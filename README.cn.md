@@ -58,7 +58,6 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 
 - 在 Dag Pool 外层实现可以连接 IPFS 网络的卫星节点
 - 根据用户定制提供轻量 IPFS gateway 服务
-- 实现 “柱式” 节点，可以连接到多个基于 libp2p 的 p2p 网络, 帮助跨网络的数据分享
 
 
 
