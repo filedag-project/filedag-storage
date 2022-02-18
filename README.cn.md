@@ -10,7 +10,7 @@ FileDAG Storage 的最小存储单位是 dag, 即为数据块 block。文件或�
 
 提供商业化的存储服务，首先要保证数据的可靠性、可用性和容错性。IPFS 目前是基于单节点来实现的，没有考虑这些，比较轻量，适合个人使用。
 
-FileDAG Storage 的开发将为上述问题提供提供一种解决方案。
+FileDAG Storage 的开发将为上述问题提供一种解决方案
 - 学习成熟的对象存储服务的技术方案来管理数据
 - 以引用计数的方式来处理数据块的释放
 - 通过使用分布式的存储节点来提供数据的可用性，利用纠删码的技术来提高数据的可靠性和容错性
@@ -27,8 +27,38 @@ FileDAG Storage 的开发将为上述问题提供提供一种解决方案。
 
 ## Roadmap
 
+- 单体的 Dag Node 开发，满足 blockstore 的接口，为 Dag Pool 提供基础的存储服务
+- 实现 Dag Pool 的多用户访问和认证机制
+- 实现 Dag Pool 对数据块的引用记录
+- 实现 Dag Pool 的数据固定策略
+- 实现 Dag Pool 可中断的垃圾回收机制
 
 
+- Dag Node 基于 Reed-Solomon Erasure Code 开发数据容错能力
+- Dag Pool 基于 libp2p 和 redis hash slots 组织多个 Dag Node 构建存储集群
+- Dag Pool 存储节点健康报告和全局一致性状态实现
+- Dag Pool 存储节点动态扩容
+- Dag Pool 存储节点动态缩容
+
+
+
+- Object Store 用户、地域、桶、对象等基本数据结构实现
+- Object Store 用户认证 api 实现
+- Object Store 桶相关操作 api 实现
+- Object Store 对象操作 api 实现
+- Object Store 权限操作 api 实现
+
+
+- Control Pannel 实现 Dashboard, 统计存储池概况
+- Control Pannel 实现用户操作界面
+- Control Pannel 实现 Object Store 用户和接入操作界面
+- Control Pannel 实现 Object Store 桶操作界面
+- Control Pannel 实现 Object Store 权限设置界面
+
+
+- 在 Dag Pool 外层实现可以连接 IPFS 网络的卫星节点
+- 根据用户定制提供轻量 IPFS gateway 服务
+- 实现 “柱式” 节点，可以连接到多个基于 libp2p 的 p2p 网络, 帮助跨网络的数据分享
 
 
 
