@@ -1,9 +1,9 @@
 package diskv
 
 import (
-	"encoding/json"
-
+	"github.com/fxamacker/cbor/v2"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 )
 
 const refdb_path = "refdb"
@@ -31,7 +31,14 @@ func (ref *Refdb) Put(key []byte, value []byte) error {
 }
 
 func (ref *Refdb) Get(key []byte) ([]byte, error) {
-	return ref.db.Get(key, nil)
+	bs, err := ref.db.Get(key, nil)
+	if err == nil {
+		return bs, nil
+	}
+	if err == errors.ErrNotFound {
+		return nil, ErrNotFound
+	}
+	return nil, err
 }
 
 func (ref *Refdb) Delete(key []byte) error {
@@ -43,16 +50,18 @@ func (ref *Refdb) Close() error {
 }
 
 type DagRef struct {
-	Code uint32 // crc32 checksum
-	Size int
-	Type int8
-	Data []byte
+	Code     uint32 // crc32 checksum
+	UpdateAt int64
+	Size     int
+	Type     int8
+	Data     []byte
+	Deleted  bool
 }
 
 func (d *DagRef) Bytes() ([]byte, error) {
-	return json.Marshal(d)
+	return cbor.Marshal(d)
 }
 
 func (d *DagRef) FromBytes(data []byte) error {
-	return json.Unmarshal(data, d)
+	return cbor.Unmarshal(data, d)
 }
