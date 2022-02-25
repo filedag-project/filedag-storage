@@ -6,8 +6,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const defaultShardBytes = 4
-const defaultShardLevel = 2
+const defaultShardBytes = 2
+const defaultShardLevel = 3
 
 type ShardFun func(key string) (parent, path string, err error)
 
