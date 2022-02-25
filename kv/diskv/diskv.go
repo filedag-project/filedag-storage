@@ -12,7 +12,7 @@ import (
 )
 
 const maxLinkDagSize = 8 << 10
-const paralletTask = 4
+const parallelTask = 64
 const blockpath = "blocks"
 
 var (
@@ -64,7 +64,7 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 	cfg := &Config{
 		MaxLinkDagSize: maxLinkDagSize,
 		Shard:          DefaultShardFun,
-		Parallel:       paralletTask,
+		Parallel:       parallelTask,
 	}
 	for _, opt := range opts {
 		opt(cfg)
