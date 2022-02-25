@@ -1,21 +1,67 @@
 package diskv
 
 import (
+	"fmt"
 	"hash/crc32"
 	"path/filepath"
 
 	"golang.org/x/xerrors"
 )
 
-var ErrNotFound = xerrors.New("diskv: not found")
+const maxLinkDagSize = 8 << 10
+const paralletTask = 4
+
+var (
+	ErrNotFound        = xerrors.New("diskv: not found")
+	ErrUnknowOperation = xerrors.New("diskv: unknow operation")
+)
+
+type optype int8
+
+const (
+	opread optype = iota
+	opwrite
+	opdelete
+)
+
+func (o optype) String() string {
+	switch o {
+	case opread:
+		return "opread"
+	case opwrite:
+		return "opwrite"
+	case opdelete:
+		return "opdelete"
+	default:
+		return "unknow"
+	}
+}
+
+type opres struct {
+	Err  error
+	Data []byte
+}
+
+type op struct {
+	Type  optype
+	Key   []byte
+	Value []byte
+	Res   chan *opres
+}
 
 type DisKV struct {
-	Cfg *Config
-	Ref *Refdb
+	Cfg    *Config
+	Ref    *Refdb
+	close  chan struct{}
+	opchan chan *op
 }
 
 func NewDisKV(opts ...Option) (*DisKV, error) {
-	cfg := &Config{}
+	cfg := &Config{
+		MaxLinkDagSize: maxLinkDagSize,
+		Shard:          DefaultShardFun,
+		Parallel:       paralletTask,
+	}
 	for _, opt := range opts {
 		opt(cfg)
 	}
@@ -23,10 +69,53 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DisKV{
-		Cfg: cfg,
-		Ref: ref,
-	}, nil
+	kv := &DisKV{
+		Cfg:    cfg,
+		Ref:    ref,
+		close:  make(chan struct{}),
+		opchan: make(chan *op),
+	}
+	kv.acceptTasks()
+	return kv, nil
+}
+
+func (di *DisKV) acceptTasks() {
+	for i := 0; i < di.Cfg.Parallel; i++ {
+		go func(kv *DisKV) {
+			for {
+				select {
+				case <-kv.close:
+					return
+				case opt := <-kv.opchan:
+					fmt.Printf("%s %s %s\n", opt.Type, opt.Key, opt.Value)
+					switch opt.Type {
+					case opread:
+						di.opread(opt)
+					case opwrite:
+						di.opwrite(opt)
+					case opdelete:
+						di.opdelete(opt)
+					default:
+						opt.Res <- &opres{
+							Err: ErrUnknowOperation,
+						}
+					}
+				}
+			}
+		}(di)
+	}
+}
+
+func (di *DisKV) opread(opt *op) {
+
+}
+
+func (di *DisKV) opwrite(opt *op) {
+
+}
+
+func (di *DisKV) opdelete(opt *op) {
+
 }
 
 // Put - write dag node into repo
@@ -36,28 +125,50 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 //	  - data-dag which size is bigger than MaxLinkDagSize
 // we store link-dag into leveldb only, store data-dag into disk and keep an ref whith leveldb
 func (di *DisKV) Put(key []byte, value []byte) error {
-	vsz := len(value)
-	if vsz <= di.Cfg.MaxLinkDagSize {
-		return di.putlink(key, value)
+	// vsz := len(value)
+	// if vsz <= di.Cfg.MaxLinkDagSize {
+	// 	return di.putRef(key, value, true)
+	// }
+	resc := make(chan *opres)
+	di.opchan <- &op{
+		Type:  opwrite,
+		Key:   key,
+		Value: value,
+		Res:   resc,
 	}
+	res := <-resc
 
-	return nil
+	return res.Err
 }
 
 func (di *DisKV) Delete(key []byte) error {
-	return nil
+	resc := make(chan *opres)
+	di.opchan <- &op{
+		Type: opdelete,
+		Key:  key,
+		Res:  resc,
+	}
+	res := <-resc
+
+	return res.Err
 }
 
 func (di *DisKV) Get(key []byte) ([]byte, error) {
-	ref, err := di.getRef(key)
-	if err != nil {
-		return nil, err
+	// ref, err := di.getRef(key)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if ref.Type == RefLink {
+	// 	return ref.Data, nil
+	// }
+	resc := make(chan *opres)
+	di.opchan <- &op{
+		Type: opread,
+		Key:  key,
+		Res:  resc,
 	}
-	if ref.Type == RefLink {
-		return ref.Data, nil
-	}
-
-	return nil, nil
+	res := <-resc
+	return res.Data, res.Err
 }
 
 func (di *DisKV) Size(key []byte) (int, error) {
@@ -66,6 +177,11 @@ func (di *DisKV) Size(key []byte) (int, error) {
 		return -1, err
 	}
 	return ref.Size, nil
+}
+
+func (di *DisKV) Close() error {
+	close(di.close)
+	return nil
 }
 
 func (di *DisKV) getRef(key []byte) (*DagRef, error) {
@@ -81,12 +197,14 @@ func (di *DisKV) getRef(key []byte) (*DagRef, error) {
 	return ref, nil
 }
 
-func (di *DisKV) putlink(key []byte, value []byte) error {
+func (di *DisKV) putRef(key []byte, value []byte, keepData bool) error {
 	ref := &DagRef{
 		Code: crc32.ChecksumIEEE(value),
 		Size: len(value),
 		Type: RefLink,
-		Data: value,
+	}
+	if keepData {
+		ref.Data = value
 	}
 	data, err := ref.Bytes()
 	if err != nil {
@@ -98,6 +216,8 @@ func (di *DisKV) putlink(key []byte, value []byte) error {
 type Config struct {
 	Dir            string
 	MaxLinkDagSize int
+	Shard          ShardFun
+	Parallel       int
 }
 
 type Option func(cfg *Config)

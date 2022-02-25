@@ -50,12 +50,10 @@ func (ref *Refdb) Close() error {
 }
 
 type DagRef struct {
-	Code     uint32 // crc32 checksum
-	UpdateAt int64
-	Size     int
-	Type     int8
-	Data     []byte
-	Deleted  bool
+	Code uint32 // crc32 checksum
+	Size int
+	Type int8
+	Data []byte
 }
 
 func (d *DagRef) Bytes() ([]byte, error) {
