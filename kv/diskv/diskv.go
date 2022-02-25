@@ -3,13 +3,17 @@ package diskv
 import (
 	"fmt"
 	"hash/crc32"
+	"io/ioutil"
+	"os"
 	"path/filepath"
+	"syscall"
 
 	"golang.org/x/xerrors"
 )
 
 const maxLinkDagSize = 8 << 10
 const paralletTask = 4
+const blockpath = "blocks"
 
 var (
 	ErrNotFound        = xerrors.New("diskv: not found")
@@ -87,7 +91,7 @@ func (di *DisKV) acceptTasks() {
 				case <-kv.close:
 					return
 				case opt := <-kv.opchan:
-					fmt.Printf("%s %s %s\n", opt.Type, opt.Key, opt.Value)
+					//fmt.Printf("%s %s %s\n", opt.Type, opt.Key, opt.Value)
 					switch opt.Type {
 					case opread:
 						di.opread(opt)
@@ -107,15 +111,176 @@ func (di *DisKV) acceptTasks() {
 }
 
 func (di *DisKV) opread(opt *op) {
+	// try find reference from refdb
+	ref, err := di.getRef(opt.Key)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	// link-dag keep data in refdb, no need retrive data from disk
+	if ref.Type == RefLink {
+		opt.Res <- &opres{
+			Data: ref.Data,
+		}
+		return
+	}
+	_, p, err := di.pathByKey(opt.Key)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
 
+	f, err := os.OpenFile(p, os.O_RDONLY, 0644)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	defer f.Close()
+	// wait to get read lock
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_SH)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	d, err := ioutil.ReadAll(f)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	opt.Res <- &opres{
+		Data: d,
+	}
 }
 
 func (di *DisKV) opwrite(opt *op) {
+	if len(opt.Value) <= di.Cfg.MaxLinkDagSize {
+		fmt.Printf("keep data for: %s", opt.Key)
+		opt.Res <- &opres{
+			Err: di.putRef(opt.Key, opt.Value, true),
+		}
+		return
+	}
 
+	par, p, err := di.pathByKey(opt.Key)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	// make sure parent directions has been created
+	err = os.MkdirAll(par, 0755)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	defer f.Close()
+	// wait to get read lock
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+
+	n, err := f.Write(opt.Value)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	err = f.Truncate(int64(n))
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	opt.Res <- &opres{
+		Err: di.putRef(opt.Key, opt.Value, false),
+	}
 }
 
 func (di *DisKV) opdelete(opt *op) {
+	// try find reference from refdb
+	ref, err := di.getRef(opt.Key)
+	// we does not has the data
+	if err != nil {
+		opt.Res <- &opres{}
+		fmt.Printf("try to delete unkown data: %s\n", opt.Key)
+		return
+	}
+	// link-dag - delete entry in refdb
+	if ref.Type == RefLink {
+		opt.Res <- &opres{
+			Err: di.Ref.Delete(opt.Key),
+		}
+		return
+	}
 
+	_, p, err := di.pathByKey(opt.Key)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+
+	f, err := os.OpenFile(p, os.O_WRONLY, 0644)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+		return
+	}
+	defer f.Close()
+	// wait to get write lock
+	err = syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+
+		return
+	}
+	defer os.Remove(p)
+	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+
+	opt.Res <- &opres{
+		Err: di.Ref.Delete(opt.Key),
+	}
+
+}
+
+func (di *DisKV) pathByKey(key []byte) (string, string, error) {
+	ppath, p, err := di.Cfg.Shard(string(key))
+	if err != nil {
+		return "", "", err
+	}
+	return filepath.Join(di.Cfg.Dir, blockpath, ppath), filepath.Join(di.Cfg.Dir, blockpath, p), nil
 }
 
 // Put - write dag node into repo
@@ -125,10 +290,6 @@ func (di *DisKV) opdelete(opt *op) {
 //	  - data-dag which size is bigger than MaxLinkDagSize
 // we store link-dag into leveldb only, store data-dag into disk and keep an ref whith leveldb
 func (di *DisKV) Put(key []byte, value []byte) error {
-	// vsz := len(value)
-	// if vsz <= di.Cfg.MaxLinkDagSize {
-	// 	return di.putRef(key, value, true)
-	// }
 	resc := make(chan *opres)
 	di.opchan <- &op{
 		Type:  opwrite,
@@ -154,13 +315,6 @@ func (di *DisKV) Delete(key []byte) error {
 }
 
 func (di *DisKV) Get(key []byte) ([]byte, error) {
-	// ref, err := di.getRef(key)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// if ref.Type == RefLink {
-	// 	return ref.Data, nil
-	// }
 	resc := make(chan *opres)
 	di.opchan <- &op{
 		Type: opread,
@@ -168,6 +322,7 @@ func (di *DisKV) Get(key []byte) ([]byte, error) {
 		Res:  resc,
 	}
 	res := <-resc
+	//fmt.Printf("get %s, %v, err: %v\n", key, res.Data, res.Err)
 	return res.Data, res.Err
 }
 
@@ -201,10 +356,12 @@ func (di *DisKV) putRef(key []byte, value []byte, keepData bool) error {
 	ref := &DagRef{
 		Code: crc32.ChecksumIEEE(value),
 		Size: len(value),
-		Type: RefLink,
 	}
 	if keepData {
+		ref.Type = RefLink
 		ref.Data = value
+	} else {
+		ref.Type = RefData
 	}
 	data, err := ref.Bytes()
 	if err != nil {
