@@ -26,12 +26,12 @@ func NewRefdb(dir string) (*Refdb, error) {
 	}, nil
 }
 
-func (ref *Refdb) Put(key []byte, value []byte) error {
-	return ref.db.Put(key, value, nil)
+func (ref *Refdb) Put(key string, value []byte) error {
+	return ref.db.Put([]byte(key), value, nil)
 }
 
-func (ref *Refdb) Get(key []byte) ([]byte, error) {
-	bs, err := ref.db.Get(key, nil)
+func (ref *Refdb) Get(key string) ([]byte, error) {
+	bs, err := ref.db.Get([]byte(key), nil)
 	if err == nil {
 		return bs, nil
 	}
@@ -41,8 +41,8 @@ func (ref *Refdb) Get(key []byte) ([]byte, error) {
 	return nil, err
 }
 
-func (ref *Refdb) Delete(key []byte) error {
-	return ref.db.Delete(key, nil)
+func (ref *Refdb) Delete(key string) error {
+	return ref.db.Delete([]byte(key), nil)
 }
 
 func (ref *Refdb) Close() error {
