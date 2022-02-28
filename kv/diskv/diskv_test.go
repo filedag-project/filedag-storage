@@ -91,7 +91,7 @@ func TestDisKVPutDataDags(t *testing.T) {
 	}
 
 	dkv, err := NewDisKV(func(cfg *Config) {
-		cfg.Dir = "/tmp/testdir/diskv"
+		cfg.Dir = tmpdirpath(t)
 		cfg.MaxLinkDagSize = 1
 	})
 	if err != nil {
