@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - feat/ci
   pull_request:
     branches:
       - main
@@ -20,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.7
+          go-version: 1.17
 
       - name: UDP Receive Buffer Size
         run: sudo sysctl -w net.core.rmem_max=2500000
