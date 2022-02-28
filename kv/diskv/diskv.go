@@ -7,12 +7,15 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
 
+	"github.com/bluele/gcache"
 	"golang.org/x/xerrors"
 )
 
 const maxLinkDagSize = 8 << 10
-const paralletTask = 4
+const parallelTask = 64
+const maxCacheDags = 4096
 const blockpath = "blocks"
 
 var (
@@ -58,13 +61,15 @@ type DisKV struct {
 	Ref    *Refdb
 	close  chan struct{}
 	opchan chan *op
+	cache  gcache.Cache
 }
 
 func NewDisKV(opts ...Option) (*DisKV, error) {
 	cfg := &Config{
 		MaxLinkDagSize: maxLinkDagSize,
 		Shard:          DefaultShardFun,
-		Parallel:       paralletTask,
+		Parallel:       parallelTask,
+		MaxCacheDags:   maxCacheDags,
 	}
 	for _, opt := range opts {
 		opt(cfg)
@@ -78,6 +83,7 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 		Ref:    ref,
 		close:  make(chan struct{}),
 		opchan: make(chan *op),
+		cache:  gcache.New(cfg.MaxCacheDags).LRU().Expiration(time.Hour * 3).Build(),
 	}
 	kv.acceptTasks()
 	return kv, nil
@@ -111,6 +117,13 @@ func (di *DisKV) acceptTasks() {
 }
 
 func (di *DisKV) opread(opt *op) {
+	// find from cache
+	if v, err := di.cache.Get(string(opt.Key)); err == nil {
+		opt.Res <- &opres{
+			Data: v.([]byte),
+		}
+		return
+	}
 	// try find reference from refdb
 	ref, err := di.getRef(opt.Key)
 	if err != nil {
@@ -124,6 +137,8 @@ func (di *DisKV) opread(opt *op) {
 		opt.Res <- &opres{
 			Data: ref.Data,
 		}
+		// update cache
+		di.cache.Set(string(opt.Key), ref.Data)
 		return
 	}
 	_, p, err := di.pathByKey(opt.Key)
@@ -161,14 +176,17 @@ func (di *DisKV) opread(opt *op) {
 	opt.Res <- &opres{
 		Data: d,
 	}
+	// update cache
+	di.cache.Set(string(opt.Key), ref.Data)
 }
 
 func (di *DisKV) opwrite(opt *op) {
 	if len(opt.Value) <= di.Cfg.MaxLinkDagSize {
-		fmt.Printf("keep data for: %s", opt.Key)
+		fmt.Printf("keep data for: %s \n", opt.Key)
 		opt.Res <- &opres{
 			Err: di.putRef(opt.Key, opt.Value, true),
 		}
+		di.cache.Set(string(opt.Key), opt.Value)
 		return
 	}
 
@@ -219,8 +237,15 @@ func (di *DisKV) opwrite(opt *op) {
 		}
 		return
 	}
-	opt.Res <- &opres{
-		Err: di.putRef(opt.Key, opt.Value, false),
+	err = di.putRef(opt.Key, opt.Value, false)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+	} else {
+		opt.Res <- &opres{}
+		// update cache
+		di.cache.Set(string(opt.Key), opt.Value)
 	}
 }
 
@@ -269,10 +294,16 @@ func (di *DisKV) opdelete(opt *op) {
 	defer os.Remove(p)
 	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 
-	opt.Res <- &opres{
-		Err: di.Ref.Delete(opt.Key),
+	err = di.Ref.Delete(opt.Key)
+	if err != nil {
+		opt.Res <- &opres{
+			Err: err,
+		}
+	} else {
+		opt.Res <- &opres{}
+		// update cache
+		di.cache.Remove(string(opt.Key))
 	}
-
 }
 
 func (di *DisKV) pathByKey(key []byte) (string, string, error) {
@@ -375,6 +406,7 @@ type Config struct {
 	MaxLinkDagSize int
 	Shard          ShardFun
 	Parallel       int
+	MaxCacheDags   int
 }
 
 type Option func(cfg *Config)

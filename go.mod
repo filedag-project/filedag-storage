@@ -3,6 +3,7 @@ module github.com/filedag-project/filedag-storage
 go 1.17
 
 require (
+	github.com/bluele/gcache v0.0.2
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
