@@ -7,15 +7,15 @@ import (
 )
 
 type kvt struct {
-	Key   []byte
+	Key   string
 	Value []byte
 }
 
 var kvdata = []kvt{
-	{[]byte("city"), []byte("shanghai")},
-	{[]byte("app"), []byte("filedag")},
-	{[]byte("protocol"), []byte("ipfs")},
-	{[]byte("blockchain"), []byte("filecoin")},
+	{"city", []byte("shanghai")},
+	{"app", []byte("filedag")},
+	{"protocol", []byte("ipfs")},
+	{"blockchain", []byte("filecoin")},
 }
 
 func TestRefdb(t *testing.T) {

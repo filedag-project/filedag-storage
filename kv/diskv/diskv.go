@@ -51,7 +51,7 @@ type opres struct {
 
 type op struct {
 	Type  optype
-	Key   []byte
+	Key   string
 	Value []byte
 	Res   chan *opres
 }
@@ -118,7 +118,7 @@ func (di *DisKV) acceptTasks() {
 
 func (di *DisKV) opread(opt *op) {
 	// find from cache
-	if v, err := di.cache.Get(string(opt.Key)); err == nil {
+	if v, err := di.cache.Get(opt.Key); err == nil {
 		opt.Res <- &opres{
 			Data: v.([]byte),
 		}
@@ -138,7 +138,7 @@ func (di *DisKV) opread(opt *op) {
 			Data: ref.Data,
 		}
 		// update cache
-		di.cache.Set(string(opt.Key), ref.Data)
+		di.cache.Set(opt.Key, ref.Data)
 		return
 	}
 	_, p, err := di.pathByKey(opt.Key)
@@ -177,7 +177,7 @@ func (di *DisKV) opread(opt *op) {
 		Data: d,
 	}
 	// update cache
-	di.cache.Set(string(opt.Key), ref.Data)
+	di.cache.Set(opt.Key, ref.Data)
 }
 
 func (di *DisKV) opwrite(opt *op) {
@@ -186,7 +186,7 @@ func (di *DisKV) opwrite(opt *op) {
 		opt.Res <- &opres{
 			Err: di.putRef(opt.Key, opt.Value, true),
 		}
-		di.cache.Set(string(opt.Key), opt.Value)
+		di.cache.Set(opt.Key, opt.Value)
 		return
 	}
 
@@ -245,7 +245,7 @@ func (di *DisKV) opwrite(opt *op) {
 	} else {
 		opt.Res <- &opres{}
 		// update cache
-		di.cache.Set(string(opt.Key), opt.Value)
+		di.cache.Set(opt.Key, opt.Value)
 	}
 }
 
@@ -302,12 +302,12 @@ func (di *DisKV) opdelete(opt *op) {
 	} else {
 		opt.Res <- &opres{}
 		// update cache
-		di.cache.Remove(string(opt.Key))
+		di.cache.Remove(opt.Key)
 	}
 }
 
-func (di *DisKV) pathByKey(key []byte) (string, string, error) {
-	ppath, p, err := di.Cfg.Shard(string(key))
+func (di *DisKV) pathByKey(key string) (string, string, error) {
+	ppath, p, err := di.Cfg.Shard(key)
 	if err != nil {
 		return "", "", err
 	}
@@ -320,7 +320,7 @@ func (di *DisKV) pathByKey(key []byte) (string, string, error) {
 //    - link-dag which size is smaller than or equal to MaxLinkDagSize
 //	  - data-dag which size is bigger than MaxLinkDagSize
 // we store link-dag into leveldb only, store data-dag into disk and keep an ref whith leveldb
-func (di *DisKV) Put(key []byte, value []byte) error {
+func (di *DisKV) Put(key string, value []byte) error {
 	resc := make(chan *opres)
 	di.opchan <- &op{
 		Type:  opwrite,
@@ -333,7 +333,7 @@ func (di *DisKV) Put(key []byte, value []byte) error {
 	return res.Err
 }
 
-func (di *DisKV) Delete(key []byte) error {
+func (di *DisKV) Delete(key string) error {
 	resc := make(chan *opres)
 	di.opchan <- &op{
 		Type: opdelete,
@@ -345,7 +345,7 @@ func (di *DisKV) Delete(key []byte) error {
 	return res.Err
 }
 
-func (di *DisKV) Get(key []byte) ([]byte, error) {
+func (di *DisKV) Get(key string) ([]byte, error) {
 	resc := make(chan *opres)
 	di.opchan <- &op{
 		Type: opread,
@@ -357,7 +357,7 @@ func (di *DisKV) Get(key []byte) ([]byte, error) {
 	return res.Data, res.Err
 }
 
-func (di *DisKV) Size(key []byte) (int, error) {
+func (di *DisKV) Size(key string) (int, error) {
 	ref, err := di.getRef(key)
 	if err != nil {
 		return -1, err
@@ -370,7 +370,7 @@ func (di *DisKV) Close() error {
 	return nil
 }
 
-func (di *DisKV) getRef(key []byte) (*DagRef, error) {
+func (di *DisKV) getRef(key string) (*DagRef, error) {
 	data, err := di.Ref.Get(key)
 	if err != nil {
 		return nil, err
@@ -383,7 +383,7 @@ func (di *DisKV) getRef(key []byte) (*DagRef, error) {
 	return ref, nil
 }
 
-func (di *DisKV) putRef(key []byte, value []byte, keepData bool) error {
+func (di *DisKV) putRef(key string, value []byte, keepData bool) error {
 	ref := &DagRef{
 		Code: crc32.ChecksumIEEE(value),
 		Size: len(value),
