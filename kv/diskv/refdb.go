@@ -1,9 +1,12 @@
 package diskv
 
 import (
+	"context"
+
 	"github.com/fxamacker/cbor/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
 const refdb_path = "refdb"
@@ -43,6 +46,28 @@ func (ref *Refdb) Get(key string) ([]byte, error) {
 
 func (ref *Refdb) Delete(key string) error {
 	return ref.db.Delete([]byte(key), nil)
+}
+
+func (ref *Refdb) AllKeysChan(ctx context.Context) (chan string, error) {
+	iter := ref.db.NewIterator(nil, nil)
+	out := make(chan string, 1)
+	go func(iter iterator.Iterator, oc chan string) {
+		defer iter.Release()
+		defer close(out)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			if !iter.Next() {
+				return
+			}
+			out <- string(iter.Key())
+		}
+		// Todo: log if has iter.Error()
+	}(iter, out)
+	return out, nil
 }
 
 func (ref *Refdb) Close() error {
