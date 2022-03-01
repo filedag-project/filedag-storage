@@ -1,6 +1,7 @@
 package diskv
 
 import (
+	"context"
 	"fmt"
 	"hash/crc32"
 	"io/ioutil"
@@ -363,6 +364,10 @@ func (di *DisKV) Size(key string) (int, error) {
 		return -1, err
 	}
 	return ref.Size, nil
+}
+
+func (di *DisKV) AllKeysChan(ctx context.Context) (chan string, error) {
+	return di.Ref.AllKeysChan(ctx)
 }
 
 func (di *DisKV) Close() error {
