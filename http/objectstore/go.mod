@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/aws/aws-sdk-go v1.43.9
 	github.com/golang-jwt/jwt/v4 v4.3.0
+	github.com/google/martian v2.1.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/json-iterator/go v1.1.12
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965

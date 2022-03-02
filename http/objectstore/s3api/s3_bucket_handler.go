@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/filedag-project/filedag-storage/http/objectstore/s3api/s3resp"
 	"net/http"
 	"time"
 )
@@ -15,6 +16,7 @@ type ListAllMyBucketsResult struct {
 	Buckets []*s3.Bucket `xml:"Buckets>Bucket"`
 }
 
+//ListBucketsHandler ListBuckets Handler
 func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
 	var buckets []*s3.Bucket
 	buckets = append(buckets, &s3.Bucket{
@@ -29,5 +31,5 @@ func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 		Buckets: buckets,
 	}
 
-	writeSuccessResponseXML(w, r, response)
+	s3resp.WriteSuccessResponseXML(w, r, response)
 }

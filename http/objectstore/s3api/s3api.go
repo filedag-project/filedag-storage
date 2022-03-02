@@ -1,7 +1,7 @@
 package s3api
 
 import (
-	"github.com/filedag-project/filedag-storage/http/objectstore/s3api/s3err"
+	"github.com/filedag-project/filedag-storage/http/objectstore/s3api/s3resp"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -17,8 +17,15 @@ func (s3a S3ApiServer) RegisterS3Router(router *mux.Router) {
 	// Readiness Probe
 	apiRouter.Methods("GET").Path("/status").HandlerFunc(s3a.StatusHandler)
 	// NotFound
-	apiRouter.NotFoundHandler = http.HandlerFunc(s3err.NotFoundHandler)
+	apiRouter.NotFoundHandler = http.HandlerFunc(s3resp.NotFoundHandler)
 	// ListBuckets
 	apiRouter.Methods("GET").Path("/").HandlerFunc(s3a.ListBucketsHandler)
+	var routers []*mux.Router
+	routers = append(routers, apiRouter.PathPrefix("/{bucket}").Subrouter())
 
+	for _, bucket := range routers {
+		// PutObject
+		bucket.Methods("PUT").Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
+
+	}
 }

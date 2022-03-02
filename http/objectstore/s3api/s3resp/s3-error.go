@@ -1,4 +1,4 @@
-package s3err
+package s3resp
 
 /*
  * MinIO Go Library for Amazon S3 Compatible Cloud Storage

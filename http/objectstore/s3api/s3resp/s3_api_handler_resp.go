@@ -1,10 +1,10 @@
-package s3api
+package s3resp
 
 import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"log"
+	"github.com/google/martian/log"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,7 +18,7 @@ const (
 	mimeXML mimeType = " application/xml"
 )
 
-func writeSuccessResponseXML(w http.ResponseWriter, r *http.Request, response interface{}) {
+func WriteSuccessResponseXML(w http.ResponseWriter, r *http.Request, response interface{}) {
 	WriteXMLResponse(w, r, http.StatusOK, response)
 }
 func WriteXMLResponse(w http.ResponseWriter, r *http.Request, statusCode int, response interface{}) {
@@ -34,10 +34,10 @@ func WriteResponse(w http.ResponseWriter, r *http.Request, statusCode int, respo
 	}
 	w.WriteHeader(statusCode)
 	if response != nil {
-		log.Printf("status %d %s: %s", statusCode, mType, string(response))
+		log.Infof("status %d %s: %s", statusCode, mType, string(response))
 		_, err := w.Write(response)
 		if err != nil {
-			log.Printf("write err: %v", err)
+			log.Errorf("write err: %v", err)
 		}
 		w.(http.Flusher).Flush()
 	}
@@ -58,4 +58,9 @@ func EncodeXMLResponse(response interface{}) []byte {
 	e := xml.NewEncoder(&bytesBuffer)
 	e.Encode(response)
 	return bytesBuffer.Bytes()
+}
+
+//WriteSuccessResponseEmpty  Success Response Empty
+func WriteSuccessResponseEmpty(w http.ResponseWriter, r *http.Request) {
+	WriteEmptyResponse(w, r, http.StatusOK)
 }
