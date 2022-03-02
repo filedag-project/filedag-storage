@@ -34,3 +34,15 @@ func deepMatchRune(str, pattern []rune, simple bool) bool {
 	}
 	return len(str) == 0 && len(pattern) == 0
 }
+
+//Match
+func Match(pattern, name string) (matched bool) {
+	if pattern == "" {
+		return name == pattern
+	}
+	if pattern == "*" {
+		return true
+	}
+	// Does extended wildcard '*' and '?' match.
+	return deepMatchRune([]rune(name), []rune(pattern), false)
+}
