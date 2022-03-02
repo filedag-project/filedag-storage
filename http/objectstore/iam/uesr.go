@@ -1,5 +1,7 @@
 package iam
 
+import "github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+
 // AccountStatus - account status.
 type AccountStatus string
 
@@ -22,4 +24,13 @@ type UserInfo struct {
 type AddOrUpdateUser struct {
 	SecretKey string        `json:"secretKey,omitempty"`
 	Status    AccountStatus `json:"status"`
+}
+
+// UserIdentity represents a user's secret key and their status
+type UserIdentity struct {
+	Credentials auth.Credentials `json:"credentials"`
+}
+
+func newUserIdentity(cred auth.Credentials) UserIdentity {
+	return UserIdentity{Credentials: cred}
 }
