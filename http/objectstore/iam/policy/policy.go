@@ -1,20 +1,18 @@
 package policy
 
-import (
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/action"
-)
+import "github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 
 // ID - policy ID.
 type ID string
 
 // Args - arguments to policy to check whether it is allowed
 type Args struct {
-	AccountName string        `json:"account"`
-	Groups      []string      `json:"groups"`
-	Action      action.Action `json:"action"`
-	BucketName  string        `json:"bucket"`
-	IsOwner     bool          `json:"owner"`
-	ObjectName  string        `json:"object"`
+	AccountName string          `json:"account"`
+	Groups      []string        `json:"groups"`
+	Action      s3action.Action `json:"action"`
+	BucketName  string          `json:"bucket"`
+	IsOwner     bool            `json:"owner"`
+	ObjectName  string          `json:"object"`
 }
 
 // Policy - bucket policy.

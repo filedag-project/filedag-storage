@@ -3,7 +3,7 @@ package policy
 import (
 	"errors"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/action"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 )
 
 //
@@ -40,10 +40,10 @@ import (
 //  ]
 //}
 type Statement struct {
-	SID       ID               `json:"Sid,omitempty"`
-	Effect    Effect           `json:"Effect"`
-	Principal Principal        `json:"Principal"`
-	Actions   action.ActionSet `json:"Action"`
+	SID       ID                 `json:"Sid,omitempty"`
+	Effect    Effect             `json:"Effect"`
+	Principal Principal          `json:"Principal"`
+	Actions   s3action.ActionSet `json:"Action"`
 }
 
 // Equals checks if two statements are equal
@@ -67,7 +67,7 @@ func (statement Statement) Clone() Statement {
 }
 
 // NewStatement - creates new statement.
-func NewStatement(sid ID, effect Effect, principal Principal, actionSet action.ActionSet) Statement {
+func NewStatement(sid ID, effect Effect, principal Principal, actionSet s3action.ActionSet) Statement {
 	return Statement{
 		SID:       sid,
 		Effect:    effect,

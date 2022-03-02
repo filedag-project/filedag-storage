@@ -1,4 +1,4 @@
-package action
+package s3action
 
 import (
 	"errors"

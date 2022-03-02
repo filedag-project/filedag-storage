@@ -2,8 +2,8 @@ package policy
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"testing"
 	"time"
 )
@@ -24,7 +24,7 @@ func TestPolicySys_IsAllowed(t *testing.T) {
 
 func initSys() {
 	var states []Statement
-	ast := action.NewActionSet("list")
+	ast := s3action.NewActionSet("list")
 	principal := NewPrincipal(auth.DefaultAccessKey)
 	states = append(states, NewStatement("1", Allow, principal, ast))
 	globalBucketMetadataSys.Set("test", BucketMetadata{

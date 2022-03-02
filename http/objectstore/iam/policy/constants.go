@@ -1,6 +1,6 @@
 package policy
 
-import "github.com/filedag-project/filedag-storage/http/objectstore/iam/action"
+import "github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 
 const (
 	PutObjectAction         = "s3:PutObject"
@@ -21,7 +21,7 @@ var DefaultPolicies = []struct {
 				{
 					SID:     "",
 					Effect:  Allow,
-					Actions: action.NewActionSet(action.AllActions),
+					Actions: s3action.NewActionSet(s3action.AllActions),
 				},
 			},
 		},
@@ -35,7 +35,7 @@ var DefaultPolicies = []struct {
 				{
 					SID:     "",
 					Effect:  Allow,
-					Actions: action.NewActionSet(GetBucketLocationAction, GetObjectAction),
+					Actions: s3action.NewActionSet(GetBucketLocationAction, GetObjectAction),
 				},
 			},
 		},
@@ -50,7 +50,7 @@ var DefaultPolicies = []struct {
 				{
 					SID:     "",
 					Effect:  Allow,
-					Actions: action.NewActionSet(PutObjectAction),
+					Actions: s3action.NewActionSet(PutObjectAction),
 				},
 			},
 		},
