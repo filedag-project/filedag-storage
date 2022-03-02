@@ -15,7 +15,7 @@ const (
 type IAMSys struct {
 	sync.Mutex
 	// Persistence layer for IAM subsystem
-	store *IAMLevelDBStore
+	store *IAMStoreSys
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
@@ -34,5 +34,5 @@ func (sys *IAMSys) Init(ctx context.Context) {
 
 // initStore initializes IAM stores
 func (sys *IAMSys) initStore() {
-	sys.store = newIAMLevelDBStore()
+	sys.store = &IAMStoreSys{newIAMLevelDBStore()}
 }

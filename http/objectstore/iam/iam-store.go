@@ -5,8 +5,8 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 )
 
-// IAMStoreSys defines an interface for the IAM persistence layer
-type IAMStoreSys interface {
+// IAMStoreAPI defines an interface for the IAM persistence layer
+type IAMStoreAPI interface {
 	loadPolicyDoc(ctx context.Context, policy string, m map[string]PolicyDoc) error
 	loadPolicyDocs(ctx context.Context, m map[string]PolicyDoc) error
 	loadUser(ctx context.Context, user string, m map[string]auth.Credentials) error
@@ -22,4 +22,10 @@ type IAMStoreSys interface {
 	deleteMappedPolicy(ctx context.Context, name string, isGroup bool) error
 	deleteUserIdentity(ctx context.Context, name string) error
 	deleteGroupInfo(ctx context.Context, name string) error
+}
+
+// IAMStoreSys contains IAMStorageAPI to add higher-level methods on the storage
+// layer.
+type IAMStoreSys struct {
+	IAMStoreAPI
 }
