@@ -2,7 +2,7 @@ package policy
 
 import (
 	"errors"
-	"github.com/filedag-project/filedag-storage/http/objectstore/berrors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/iamerrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"sync"
 	"time"
@@ -10,14 +10,8 @@ import (
 
 var globalBucketMetadataSys = NewBucketMetadataSys()
 
-// GenericBucketError - generic object layer error.
-type GenericBucketError struct {
-	Bucket string
-	Err    error
-}
-
 // BucketPolicyNotFound - no bucket policy found.
-type BucketPolicyNotFound GenericBucketError
+type BucketPolicyNotFound iamerrors.GenericBucketError
 
 func (e BucketPolicyNotFound) Error() string {
 	return "No bucket policy configuration found for bucket: " + e.Bucket
@@ -55,7 +49,7 @@ func newBucketMetadata(name string) BucketMetadata {
 func (sys *BucketMetadataSys) GetPolicyConfig(bucket string) (*Policy, error) {
 	meta, err := sys.GetConfig(bucket)
 	if err != nil {
-		if errors.Is(err, berrors.ErrConfigNotFound) {
+		if errors.Is(err, iamerrors.ErrConfigNotFound) {
 			return nil, BucketPolicyNotFound{Bucket: bucket}
 		}
 		return nil, err
@@ -93,7 +87,7 @@ func (sys *BucketMetadataSys) Get(bucket string) (BucketMetadata, error) {
 
 	meta, ok := sys.metadataMap[bucket]
 	if !ok {
-		return newBucketMetadata(bucket), berrors.ErrConfigNotFound
+		return newBucketMetadata(bucket), iamerrors.ErrConfigNotFound
 	}
 
 	return meta, nil
