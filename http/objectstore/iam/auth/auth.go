@@ -216,3 +216,21 @@ func IsAccessKeyValid(accessKey string) bool {
 func IsSecretKeyValid(secretKey string) bool {
 	return len(secretKey) >= secretKeyMinLen
 }
+
+// IsValid - returns whether credential is valid or not.
+func (cred Credentials) IsValid() bool {
+	// Verify credentials if its enabled or not set.
+	if cred.Status == AccountOff {
+		return false
+	}
+	return IsAccessKeyValid(cred.AccessKey) && IsSecretKeyValid(cred.SecretKey) && !cred.IsExpired()
+}
+
+// IsExpired - returns whether Credential is expired or not.
+func (cred Credentials) IsExpired() bool {
+	if cred.Expiration.IsZero() || cred.Expiration.Equal(timeSentinel) {
+		return false
+	}
+
+	return cred.Expiration.Before(time.Now().UTC())
+}

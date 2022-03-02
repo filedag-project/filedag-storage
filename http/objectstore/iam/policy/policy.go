@@ -23,14 +23,6 @@ type Policy struct {
 	Statements []Statement `json:"Statement"`
 }
 
-// Statement - policy statement.
-type Statement struct {
-	SID       ID               `json:"Sid,omitempty"`
-	Effect    Effect           `json:"Effect"`
-	Principal Principal        `json:"Principal"`
-	Actions   action.ActionSet `json:"Action"`
-}
-
 // Effect - policy statement effect Allow or Deny.
 type Effect string
 
@@ -53,12 +45,12 @@ func (policy Policy) IsAllowed(args Args) bool {
 		}
 	}
 
-	// For owner, its allowed by default.
+	// For owner, it allowed by default.
 	if args.IsOwner {
 		return true
 	}
 
-	// Check all allow statements. If any one statement allows, return true.
+	// Check all allow statements. If anyone statement allows, return true.
 	for _, statement := range policy.Statements {
 		if statement.Effect == Allow {
 			if statement.IsAllowed(args) {
@@ -70,22 +62,6 @@ func (policy Policy) IsAllowed(args Args) bool {
 	return false
 }
 
-// IsAllowed - checks given policy args is allowed to continue the Rest API.
-func (statement Statement) IsAllowed(args Args) bool {
-	check := func() bool {
-		if !statement.Principal.Match(args.AccountName) {
-			return false
-		}
-
-		if !statement.Actions.Contains(args.Action) {
-			return false
-		}
-		return true
-
-	}
-	return statement.Effect.IsAllowed(check())
-}
-
 // IsAllowed - returns if given check is allowed or not.
 func (effect Effect) IsAllowed(b bool) bool {
 	if effect == Allow {
@@ -94,12 +70,65 @@ func (effect Effect) IsAllowed(b bool) bool {
 	return !b
 }
 
-// NewStatement - creates new statement.
-func NewStatement(sid ID, effect Effect, principal Principal, actionSet action.ActionSet) Statement {
-	return Statement{
-		SID:       sid,
-		Effect:    effect,
-		Principal: principal,
-		Actions:   actionSet,
+// Merge merges two policies documents and drop
+// duplicate statements if any.
+func (policy Policy) Merge(input Policy) Policy {
+	var mergedPolicy Policy
+	for _, st := range policy.Statements {
+		mergedPolicy.Statements = append(mergedPolicy.Statements, st.Clone())
 	}
+	for _, st := range input.Statements {
+		mergedPolicy.Statements = append(mergedPolicy.Statements, st.Clone())
+	}
+	mergedPolicy.dropDuplicateStatements()
+	return mergedPolicy
+}
+func (policy *Policy) dropDuplicateStatements() {
+redo:
+	for i := range policy.Statements {
+		for _, statement := range policy.Statements[i+1:] {
+			if !policy.Statements[i].Equals(statement) {
+				continue
+			}
+			policy.Statements = append(policy.Statements[:i], policy.Statements[i+1:]...)
+			goto redo
+		}
+	}
+}
+
+// Equals returns true if the two policies are identical
+func (policy *Policy) Equals(p Policy) bool {
+	if policy.ID != p.ID {
+		return false
+	}
+	if len(policy.Statements) != len(p.Statements) {
+		return false
+	}
+	for i, st := range policy.Statements {
+		if !p.Statements[i].Equals(st) {
+			return false
+		}
+	}
+	return true
+}
+
+// IsEmpty - returns whether policy is empty or not.
+func (policy Policy) IsEmpty() bool {
+	return len(policy.Statements) == 0
+}
+
+// Validate - validates all statements are for given bucket or not.
+func (policy Policy) Validate() error {
+	return policy.isValid()
+}
+
+// isValid - checks if Policy is valid or not.
+func (policy Policy) isValid() error {
+
+	for _, statement := range policy.Statements {
+		if err := statement.isValid(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
