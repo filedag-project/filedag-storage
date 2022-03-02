@@ -3,6 +3,8 @@ module github.com/filedag-project/filedag-storage/http/objectstore
 go 1.17
 
 require (
+	github.com/buger/jsonparser v1.1.1
+	github.com/dustin/go-humanize v1.0.0
 	github.com/golang-jwt/jwt/v4 v4.3.0
 	github.com/json-iterator/go v1.1.12
 	github.com/syndtr/goleveldb v1.0.0

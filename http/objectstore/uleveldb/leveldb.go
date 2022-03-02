@@ -14,6 +14,12 @@ type Uleveldb struct {
 	DB *leveldb.DB
 }
 
+const (
+	DBFILE = "/tmp/leveldb2.db"
+)
+
+var GlobalLevelDB = OpenDb(DBFILE)
+
 func OpenDb(path string) *Uleveldb {
 	newdb, err := leveldb.OpenFile(path, nil)
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
