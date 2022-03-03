@@ -18,12 +18,13 @@ func (s3a *S3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 
 	dataReader := r.Body
 	defer dataReader.Close()
-
-	if err := store.PutFile("BucketsPath", bucket+object); err != nil {
+	cid := ""
+	var err error
+	if cid, err = store.PutFile(".", bucket+object, r.Body); err != nil {
 		s3resp.WriteErrorResponse(w, r, s3resp.ErrInternalError)
 		return
 	}
-
+	w.Write([]byte(cid))
 	s3resp.WriteSuccessResponseEmpty(w, r)
 }
 func GetBucketAndObject(r *http.Request) (bucket, object string) {
