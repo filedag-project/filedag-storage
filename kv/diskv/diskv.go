@@ -108,7 +108,6 @@ func (di *DisKV) acceptTasks() {
 				case <-kv.closeChan:
 					return
 				case opt := <-kv.opchan:
-					//fmt.Printf("%s %s %s\n", opt.Type, opt.Key, opt.Value)
 					switch opt.Type {
 					case opread:
 						di.opread(opt)
@@ -193,7 +192,6 @@ func (di *DisKV) opread(opt *op) {
 
 func (di *DisKV) opwrite(opt *op) {
 	if len(opt.Value) <= di.Cfg.MaxLinkDagSize {
-		fmt.Printf("keep data for: %s \n", opt.Key)
 		opt.Res <- &opres{
 			Err: di.putRef(opt.Key, opt.Value, true),
 		}
@@ -364,7 +362,6 @@ func (di *DisKV) Get(key string) ([]byte, error) {
 		Res:  resc,
 	}
 	res := <-resc
-	//fmt.Printf("get %s, %v, err: %v\n", key, res.Data, res.Err)
 	return res.Data, res.Err
 }
 
@@ -415,13 +412,3 @@ func (di *DisKV) putRef(key string, value []byte, keepData bool) error {
 	}
 	return di.Ref.Put(key, data)
 }
-
-type Config struct {
-	Dir            string
-	MaxLinkDagSize int
-	Shard          ShardFun
-	Parallel       int
-	MaxCacheDags   int
-}
-
-type Option func(cfg *Config)
