@@ -1,15 +1,16 @@
 package main
 
 import (
+	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-//StartS3Server Start a S3Server
-func StartS3Server() {
-	var s3server s3api.S3ApiServer
+//StartServer Start a IamServer
+func StartServer() {
 	router := mux.NewRouter().SkipClean(true)
-	s3server.RegisterS3Router(router)
+	s3api.NewS3Server(router)
+	iamapi.NewIamApiServer(router)
 	http.ListenAndServe("127.0.0.1:9985", router)
 }

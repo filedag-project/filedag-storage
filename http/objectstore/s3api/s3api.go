@@ -29,3 +29,10 @@ func (s3a S3ApiServer) RegisterS3Router(router *mux.Router) {
 
 	}
 }
+
+//NewS3Server Start a S3Server
+func NewS3Server(router *mux.Router) {
+	var s3server S3ApiServer
+	router = mux.NewRouter().SkipClean(true)
+	s3server.RegisterS3Router(router)
+}
