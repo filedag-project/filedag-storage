@@ -2,7 +2,7 @@ package uleveldb
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/google/martian/log"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -18,6 +18,7 @@ const (
 	DBFILE = "/tmp/leveldb2.db"
 )
 
+//GlobalLevelDB global LevelDB
 var GlobalLevelDB = OpenDb(DBFILE)
 
 func OpenDb(path string) *Uleveldb {
@@ -45,19 +46,23 @@ func (uleveldb *Uleveldb) Put(key string, value interface{}) error {
 
 	result, err := json.Marshal(value)
 	if err != nil {
-		fmt.Println("error")
+		log.Errorf("marshal error%v", err)
 		return err
 	}
-	err = uleveldb.DB.Put([]byte(key), []byte(result), nil)
+	err = uleveldb.DB.Put([]byte(key), result, nil)
 	return err
 }
 
 // Get
 // * @param {interface{}} key
 // * @param {interface{}} value
-func (uleveldb *Uleveldb) Get(key interface{}) ([]byte, error) {
-
-	return uleveldb.DB.Get([]byte(key.(string)), nil)
+func (uleveldb *Uleveldb) Get(key, value interface{}) error {
+	get, err := uleveldb.DB.Get([]byte(key.(string)), nil)
+	if err != nil {
+		log.Errorf(" marshal error%v", err)
+		return err
+	}
+	return json.Unmarshal(get, value)
 }
 
 // Delete
