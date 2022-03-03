@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -58,11 +59,12 @@ type op struct {
 }
 
 type DisKV struct {
-	Cfg    *Config
-	Ref    *Refdb
-	close  chan struct{}
-	opchan chan *op
-	cache  gcache.Cache
+	Cfg       *Config
+	Ref       *Refdb
+	closeChan chan struct{}
+	close     func()
+	opchan    chan *op
+	cache     gcache.Cache
 }
 
 func NewDisKV(opts ...Option) (*DisKV, error) {
@@ -79,14 +81,22 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 	if err != nil {
 		return nil, err
 	}
+	var o sync.Once
+	closeChan := make(chan struct{})
 	kv := &DisKV{
-		Cfg:    cfg,
-		Ref:    ref,
-		close:  make(chan struct{}),
+		Cfg:       cfg,
+		Ref:       ref,
+		closeChan: closeChan,
+		close: func() {
+			o.Do(func() {
+				close(closeChan)
+			})
+		},
 		opchan: make(chan *op),
 		cache:  gcache.New(cfg.MaxCacheDags).LRU().Expiration(time.Hour * 3).Build(),
 	}
 	kv.acceptTasks()
+
 	return kv, nil
 }
 
@@ -95,7 +105,7 @@ func (di *DisKV) acceptTasks() {
 		go func(kv *DisKV) {
 			for {
 				select {
-				case <-kv.close:
+				case <-kv.closeChan:
 					return
 				case opt := <-kv.opchan:
 					//fmt.Printf("%s %s %s\n", opt.Type, opt.Key, opt.Value)
@@ -371,7 +381,7 @@ func (di *DisKV) AllKeysChan(ctx context.Context) (chan string, error) {
 }
 
 func (di *DisKV) Close() error {
-	close(di.close)
+	di.close()
 	return nil
 }
 
