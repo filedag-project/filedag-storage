@@ -27,10 +27,7 @@ func TestConcurrentWriteSameKey(t *testing.T) {
 		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("◣◥◢◣")},
 		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("➔➘➙➚")},
 	}
-	dkv, err := NewDisKV(func(cfg *Config) {
-		cfg.Dir = tmpdirpath(t)
-		cfg.MaxLinkDagSize = 1
-	})
+	dkv, err := NewDisKV(DirConf(tmpdirpath(t)), MaxLinkDagSizeConf(1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,10 +87,7 @@ func TestDisKVPutDataDags(t *testing.T) {
 		{"QmW6esdA2tsRmoiqmAgNx71vdNNtgJEd44CKt4nncUTsur", []byte("939836")},
 	}
 
-	dkv, err := NewDisKV(func(cfg *Config) {
-		cfg.Dir = tmpdirpath(t)
-		cfg.MaxLinkDagSize = 1
-	})
+	dkv, err := NewDisKV(DirConf(tmpdirpath(t)), MaxLinkDagSizeConf(1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +175,6 @@ func TestDisKVPutLinkDags(t *testing.T) {
 
 	dkv, err := NewDisKV(func(cfg *Config) {
 		cfg.Dir = tmpdirpath(t)
-		cfg.Parallel = 64
 	})
 	if err != nil {
 		t.Fatal(err)
