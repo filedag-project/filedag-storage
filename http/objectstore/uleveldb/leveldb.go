@@ -59,10 +59,14 @@ func (uleveldb *Uleveldb) Put(key string, value interface{}) error {
 func (uleveldb *Uleveldb) Get(key, value interface{}) error {
 	get, err := uleveldb.DB.Get([]byte(key.(string)), nil)
 	if err != nil {
-		log.Errorf(" marshal error%v", err)
+		log.Errorf(" Get error%v", err)
 		return err
 	}
-	return json.Unmarshal(get, value)
+	err = json.Unmarshal(get, value)
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 // Delete
@@ -77,4 +81,15 @@ func (uleveldb *Uleveldb) Delete(key string) error {
 func (uleveldb *Uleveldb) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
 
 	return uleveldb.DB.NewIterator(slice, ro)
+}
+
+//ReadAll read all key value
+func (uleveldb *Uleveldb) ReadAll() (map[string][]byte, error) {
+	iter := GlobalLevelDB.NewIterator(nil, nil)
+	m := make(map[string][]byte)
+	for iter.Next() {
+		m[string(iter.Key())] = iter.Value()
+	}
+	iter.Release()
+	return m, nil
 }
