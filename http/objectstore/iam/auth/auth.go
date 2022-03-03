@@ -70,7 +70,7 @@ type Credentials struct {
 	AccessKey    string    `xml:"AccessKeyId" json:"accessKey,omitempty"`
 	SecretKey    string    `xml:"SecretAccessKey" json:"secretKey,omitempty"`
 	Expiration   time.Time `xml:"Expiration" json:"expiration,omitempty"`
-	SessionToken string    `xml:"SessionToken" json:"sessionToken,omitempty"`
+	SessionToken string    `xml:"SessionToken" json:"sessionToken"`
 	Status       string    `xml:"-" json:"status,omitempty"`
 }
 
