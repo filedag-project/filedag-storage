@@ -12,5 +12,5 @@ func StartServer() {
 	router := mux.NewRouter().SkipClean(true)
 	s3api.NewS3Server(router)
 	iamapi.NewIamApiServer(router)
-	http.ListenAndServe("127.0.0.1:9985", router)
+	http.ListenAndServe(":9985", router)
 }
