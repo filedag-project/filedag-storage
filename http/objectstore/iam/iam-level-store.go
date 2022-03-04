@@ -65,8 +65,11 @@ func (I *IAMLevelDBStore) saveGroupInfo(ctx context.Context, group string, gi Gr
 }
 
 func (I *IAMLevelDBStore) deleteUserIdentity(ctx context.Context, name string) error {
-	//TODO implement me
-	panic("implement me")
+	err := I.db.Delete(name)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (I *IAMLevelDBStore) deleteGroupInfo(ctx context.Context, name string) error {

@@ -17,7 +17,7 @@ type Uleveldb struct {
 }
 
 const (
-	DBFILE = "/tmp/leveldb2.db"
+	DBFILE = "./leveldb2.db"
 )
 
 //GlobalLevelDB global LevelDB
@@ -28,9 +28,8 @@ func OpenDb(path string) *Uleveldb {
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
 		newdb, err = leveldb.RecoverFile(path, nil)
 	}
-
 	if err != nil {
-		panic(err)
+		log.Errorf("Open Db%v", err)
 	}
 	uleveldb := Uleveldb{}
 	uleveldb.DB = newdb

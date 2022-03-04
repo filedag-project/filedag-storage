@@ -23,8 +23,11 @@ func NewIamApiServer(router *mux.Router) {
 func (iama *IamApiServer) registerRouter(router *mux.Router) {
 	// API Router
 	apiRouter := router.PathPrefix("/admin").Subrouter()
-	apiRouter.Methods(http.MethodGet).Path("/user-list").HandlerFunc(iama.GetUserList)
+	apiRouter.Methods(http.MethodGet).Path("/list-user").HandlerFunc(iama.GetUserList)
 	//
 	// NotFound
+	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iama.AddUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(iama.RemoveUser).Queries("accessKey", "{accessKey:.*}")
+
 	apiRouter.NotFoundHandler = http.HandlerFunc(s3resp.NotFoundHandler)
 }

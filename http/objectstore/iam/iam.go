@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
+	logging "github.com/ipfs/go-log/v2"
 	"sync"
 )
 
@@ -13,6 +14,7 @@ const (
 	statusDisabled = "disabled"
 )
 
+var log = logging.Logger("iam")
 var GlobalIAMSys IAMSys
 
 // IAMSys - config system.
@@ -59,7 +61,7 @@ func (sys *IAMSys) GetUserList(ctx context.Context) []*iam.User {
 	}
 	for user, cerd := range users {
 		u = append(u, &iam.User{
-			Arn:                 &cerd.SessionToken,
+			Arn:                 nil,
 			CreateDate:          &cerd.Expiration,
 			PasswordLastUsed:    nil,
 			Path:                nil,
@@ -70,4 +72,30 @@ func (sys *IAMSys) GetUserList(ctx context.Context) []*iam.User {
 		})
 	}
 	return u
+}
+
+//AddUser add user
+func (sys *IAMSys) AddUser(ctx context.Context, accessKey, secretKey string) error {
+	m := make(map[string]interface{})
+	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
+	if err != nil {
+		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
+		return err
+	}
+	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
+	if err != nil {
+		log.Errorf("save UserIdentity err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// RemoveUser delete User
+func (sys *IAMSys) RemoveUser(ctx context.Context, accessKey string) error {
+	err := sys.store.deleteUserIdentity(ctx, accessKey)
+	if err != nil {
+		log.Errorf("delete UserIdentity err:%v", err)
+		return err
+	}
+	return nil
 }
