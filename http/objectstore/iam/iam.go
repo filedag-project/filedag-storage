@@ -50,7 +50,7 @@ func (sys *IAMSys) IsAllowed(args policy.Args) bool {
 	return true
 }
 
-// IsAllowed - checks given policy args is allowed to continue the Rest API.
+// GetUserList all user
 func (sys *IAMSys) GetUserList(ctx context.Context) []*iam.User {
 	var u []*iam.User
 	users, err := sys.store.loadUsers(ctx)

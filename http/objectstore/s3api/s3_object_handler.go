@@ -3,7 +3,6 @@ package s3api
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api/s3resp"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
-	"github.com/google/martian/log"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strings"

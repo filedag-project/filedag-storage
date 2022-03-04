@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/dustin/go-humanize"
-	"github.com/google/martian/log"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"

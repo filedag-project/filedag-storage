@@ -2,13 +2,15 @@ package uleveldb
 
 import (
 	"encoding/json"
-	"github.com/google/martian/log"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
+
+var log = logging.Logger("leveldb")
 
 type Uleveldb struct {
 	DB *leveldb.DB

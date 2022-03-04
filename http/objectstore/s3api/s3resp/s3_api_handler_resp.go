@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/google/martian/log"
+	logging "github.com/ipfs/go-log/v2"
 	"net/http"
 	"strconv"
 	"time"
 )
+
+var log = logging.Logger("resp")
 
 type mimeType string
 
