@@ -50,6 +50,8 @@ const (
 	alphaNumericTableLen = byte(len(alphaNumericTable))
 )
 
+var GlobalActiveCred = DefaultCredentials
+
 // DefaultCredentials Default access credentials
 var (
 	DefaultCredentials = Credentials{
