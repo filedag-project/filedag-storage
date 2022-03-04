@@ -13,7 +13,7 @@ import (
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	var s3server S3ApiServer
 	router := mux.NewRouter().SkipClean(true)
-	s3server.RegisterS3Router(router)
+	s3server.registerS3Router(router)
 	http.ListenAndServe("127.0.0.1:9985", router)
 	url := "http://127.0.0.1:9985/test/test1.txt"
 	fiveMBBytes := bytes.Repeat([]byte("a"), 5*humanize.KiByte)

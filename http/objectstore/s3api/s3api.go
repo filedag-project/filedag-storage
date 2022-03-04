@@ -9,8 +9,8 @@ import (
 type S3ApiServer struct {
 }
 
-//RegisterS3Router Register S3Router
-func (s3a S3ApiServer) RegisterS3Router(router *mux.Router) {
+//registerS3Router Register S3Router
+func (s3a S3ApiServer) registerS3Router(router *mux.Router) {
 	// API Router
 	apiRouter := router.PathPrefix("/").Subrouter()
 
@@ -35,6 +35,5 @@ func (s3a S3ApiServer) RegisterS3Router(router *mux.Router) {
 //NewS3Server Start a S3Server
 func NewS3Server(router *mux.Router) {
 	var s3server S3ApiServer
-	router = mux.NewRouter().SkipClean(true)
-	s3server.RegisterS3Router(router)
+	s3server.registerS3Router(router)
 }
