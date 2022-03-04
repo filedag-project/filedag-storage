@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-
 )
 
 // AccountAccess contains information about
@@ -242,7 +241,8 @@ func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string
 	queryValues.Set("accessKey", accessKey)
 
 	reqData := requestData{
-		relPath:     adminAPIPrefix + "/add-user",
+		//relPath:     adminAPIPrefix + "/add-user",
+		relPath:     "/add-user",
 		queryValues: queryValues,
 		content:     econfigBytes,
 	}
@@ -300,7 +300,6 @@ type AddServiceAccountReq struct {
 	AccessKey  string          `json:"accessKey,omitempty"`
 	SecretKey  string          `json:"secretKey,omitempty"`
 }
-
 
 // UpdateServiceAccountReq is the request options of the edit service account admin call
 type UpdateServiceAccountReq struct {
