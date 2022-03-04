@@ -2,7 +2,9 @@ package restapi
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/console/credentials"
 	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/pkg/auth"
 	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/admin_api"
 	"testing"
 )
@@ -64,4 +66,31 @@ func Test_getRemoveUserResponse(t *testing.T) {
 		fmt.Println(err)
 	}
 	fmt.Println(err)
+}
+
+func Test_decryptClaims(t *testing.T) {
+	token := ""
+	claims, err := auth.SessionTokenAuthenticate(token)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(claims)
+}
+
+func Test_encryptClaims(t *testing.T) {
+	value := &credentials.Value{
+		AccessKeyID:     "",
+		SecretAccessKey: "",
+		SessionToken:    "",
+	}
+	accountAccessKey := "admin"
+	features := true
+	sessionFeatures := &auth.SessionFeatures{
+		HideMenu: features,
+	}
+	claims, err := auth.NewEncryptedTokenForClient(value, accountAccessKey, sessionFeatures)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(claims)
 }
