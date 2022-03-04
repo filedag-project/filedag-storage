@@ -41,3 +41,18 @@ func (iama *IamApiServer) RemoveUser(w http.ResponseWriter, r *http.Request) {
 	}
 	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
+
+//PutUserPolicy Put UserPolicy
+func (iama *IamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request) {
+
+}
+
+//GetUserPolicy  Get UserPolicy
+func (iama *IamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request) {
+
+}
+
+//DeleteUserPolicy Delete eUserPolicy
+func (iama *IamApiServer) DeleteUserPolicy(w http.ResponseWriter, r *http.Request) {
+
+}

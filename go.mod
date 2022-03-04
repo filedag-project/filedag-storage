@@ -8,7 +8,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/golang-jwt/jwt/v4 v4.3.0
-	github.com/google/martian v2.1.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/ipfs/go-log/v2 v2.5.0
 	github.com/json-iterator/go v1.1.12
