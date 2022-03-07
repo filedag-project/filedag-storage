@@ -15,6 +15,8 @@ const (
 )
 
 var log = logging.Logger("iam")
+
+//GlobalIAMSys iam system
 var GlobalIAMSys iamSys
 
 // iamSys - config system.
@@ -87,6 +89,17 @@ func (sys *iamSys) AddUser(ctx context.Context, accessKey, secretKey string) err
 		return err
 	}
 	return nil
+}
+
+// GetUser - get user credentials
+func (sys *iamSys) GetUser(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
+	m := auth.Credentials{}
+	err := sys.store.loadUser(ctx, accessKey, &m)
+	if err != nil {
+		return m, false
+	}
+
+	return m, cred.IsValid()
 }
 
 // RemoveUser Remove User
