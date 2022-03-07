@@ -21,7 +21,7 @@ var GlobalIAMSys IAMSys
 type IAMSys struct {
 	sync.Mutex
 	// Persistence layer for IAM subsystem
-	store *IAMStoreSys
+	store *iAMStoreSys
 }
 
 // Init - initializes config system
@@ -34,7 +34,7 @@ func (sys *IAMSys) Init(ctx context.Context) {
 
 // initStore initializes IAM stores
 func (sys *IAMSys) initStore() {
-	sys.store = &IAMStoreSys{newIAMLevelDBStore()}
+	sys.store = &iAMStoreSys{newIAMLevelDBStore()}
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
@@ -90,11 +90,51 @@ func (sys *IAMSys) AddUser(ctx context.Context, accessKey, secretKey string) err
 	return nil
 }
 
-// RemoveUser delete User
+// RemoveUser Remove User
 func (sys *IAMSys) RemoveUser(ctx context.Context, accessKey string) error {
-	err := sys.store.deleteUserIdentity(ctx, accessKey)
+	err := sys.store.RemoveUserIdentity(ctx, accessKey)
 	if err != nil {
-		log.Errorf("delete UserIdentity err:%v", err)
+		log.Errorf("Remove UserIdentity err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// CreatePolicy Create Policy
+func (sys *IAMSys) CreatePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
+	err := sys.store.createPolicy(ctx, policyName, policyDocument)
+	if err != nil {
+		log.Errorf("create Policy err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// PutUserPolicy Create Policy
+func (sys *IAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+	err := sys.store.createUserPolicy(ctx, userName, policyName, policyDocument)
+	if err != nil {
+		log.Errorf("create UserPolicy err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// GetUserPolicy Get User Policy
+func (sys *IAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+	err := sys.store.getUserPolicy(ctx, userName, policyName, policyDocument)
+	if err != nil {
+		log.Errorf("get UserPolicy err:%v", err)
+		return err
+	}
+	return nil
+}
+
+// RemoveUserPolicy remove User Policy
+func (sys *IAMSys) RemoveUserPolicy(ctx context.Context, userName, policyName string) error {
+	err := sys.store.removeUserPolicy(ctx, userName, policyName)
+	if err != nil {
+		log.Errorf("remove UserPolicy err:%v", err)
 		return err
 	}
 	return nil

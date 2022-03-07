@@ -1,9 +1,17 @@
 package policy
 
-import "github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
+import (
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
+	"unicode/utf8"
+)
 
 // ID - policy ID.
 type ID string
+
+// IsValid - checks if ID is valid or not.
+func (id ID) IsValid() bool {
+	return utf8.ValidString(string(id))
+}
 
 // Args - arguments to policy to check whether it is allowed
 type Args struct {
@@ -15,10 +23,18 @@ type Args struct {
 	ObjectName  string          `json:"object"`
 }
 
-// Policy - bucket policy.
+// Policy - iam bucket iamp.
 type Policy struct {
-	ID         ID          `json:"ID,omitempty"`
+	ID         ID `json:"ID,omitempty"`
+	Version    string
 	Statements []Statement `json:"Statement"`
+}
+type PolicyDocument struct {
+	Version   string       `json:"Version"`
+	Statement []*Statement `json:"Statement"`
+}
+type Policies struct {
+	Policies map[string]PolicyDocument `json:"policies"`
 }
 
 // Effect - policy statement effect Allow or Deny.

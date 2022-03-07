@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoadUser(t *testing.T) {
-	var iamsys IAMLevelDBStore
+	var iamsys iAMLevelDBStore
 	iamsys.init()
 	//err := iamsys.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.Credentials{
 	//	AccessKey:    "test",
@@ -34,7 +34,7 @@ func TestLoadUser(t *testing.T) {
 	//	return
 	//}
 	//fmt.Println(a)
-	//err := iamsys.deleteUserIdentity(context.Background(), "s")
+	//err := iamsys.RemoveUserIdentity(context.Background(), "s")
 	//if err != nil {
 	//	return
 	//}
