@@ -46,6 +46,7 @@ type ErrorCode int
 const (
 	ErrNone ErrorCode = iota
 	ErrAccessDenied
+	ErrAuthorizationHeaderMalformed
 	ErrMethodNotAllowed
 	ErrBucketNotEmpty
 	ErrBucketAlreadyExists
@@ -63,10 +64,16 @@ const (
 	ErrInvalidMaxParts
 	ErrInvalidPartNumberMarker
 	ErrInvalidPart
+	ErrInvalidServiceSTS
+	ErrInvalidServiceS3
+	ErrInvalidRequestVersion
 	ErrInternalError
 	ErrInvalidCopyDest
 	ErrInvalidCopySource
 	ErrInvalidTag
+	ErrInvalidToken
+	ErrInvalidAccessKeyID
+	ErrAccessKeyDisabled
 	ErrAuthHeaderEmpty
 	ErrSignatureVersionNotSupported
 	ErrMalformedPOSTRequest
@@ -92,7 +99,6 @@ const (
 	ErrMaximumExpires
 	ErrSignatureDoesNotMatch
 	ErrContentSHA256Mismatch
-	ErrInvalidAccessKeyID
 	ErrRequestNotReadyYet
 	ErrMissingDateHeader
 	ErrInvalidRequest
@@ -102,6 +108,8 @@ const (
 
 	ErrExistingObjectIsDirectory
 	ErrExistingObjectIsFile
+
+	ErrReader
 )
 
 // error code to APIError structure, these fields carry respective
@@ -111,6 +119,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "AccessDenied",
 		Description:    "Access Denied.",
 		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrAuthorizationHeaderMalformed: {
+		Code:           "AuthorizationHeaderMalformed",
+		Description:    "The authorization header is malformed; the region is wrong; expecting 'us-east-1'.",
+		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrMethodNotAllowed: {
 		Code:           "MethodNotAllowed",
@@ -160,6 +173,21 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrInvalidPartNumberMarker: {
 		Code:           "InvalidArgument",
 		Description:    "Argument partNumberMarker must be an integer.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrInvalidServiceSTS: {
+		Code:           "AuthorizationParametersError",
+		Description:    "Error parsing the Credential parameter; incorrect service. This endpoint belongs to \"sts\".",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrInvalidServiceS3: {
+		Code:           "AuthorizationParametersError",
+		Description:    "Error parsing the Credential/X-Amz-Credential parameter; incorrect service. This endpoint belongs to \"s3\".",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrInvalidRequestVersion: {
+		Code:           "AuthorizatioErrInvalidRequestVersionnQueryParametersError",
+		Description:    "Error parsing the X-Amz-Credential parameter; incorrect terminal. This endpoint uses \"aws4_request\".",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrNoSuchBucket: {
@@ -217,6 +245,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrInvalidTag: {
 		Code:           "InvalidTag",
 		Description:    "The Tag value you have provided is invalid",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrInvalidToken: {
+		Code:           "Invalid token",
+		Description:    "The token value you have provided is invalid",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrMalformedXML: {
@@ -336,7 +369,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "The access key ID you provided does not exist in our records.",
 		HTTPStatusCode: http.StatusForbidden,
 	},
-
+	ErrAccessKeyDisabled: {
+		Code:           "InvalidAccessKeyId",
+		Description:    "Your account is disabled; please contact your administrator.",
+		HTTPStatusCode: http.StatusForbidden,
+	},
 	ErrRequestNotReadyYet: {
 		Code:           "AccessDenied",
 		Description:    "Request is not valid yet",
@@ -387,6 +424,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrExistingObjectIsFile: {
 		Code:           "ExistingObjectIsFile",
 		Description:    "Existing Object is a file.",
+		HTTPStatusCode: http.StatusConflict,
+	},
+	ErrReader: {
+		Code:           "ErrReader",
+		Description:    "Can not New Reader",
 		HTTPStatusCode: http.StatusConflict,
 	},
 }
