@@ -15,30 +15,29 @@ const (
 )
 
 var log = logging.Logger("iam")
-var GlobalIAMSys IAMSys
+var GlobalIAMSys iamSys
 
-// IAMSys - config system.
-type IAMSys struct {
+// iamSys - config system.
+type iamSys struct {
 	sync.Mutex
 	// Persistence layer for IAM subsystem
-	store *iAMStoreSys
+	store *iamStoreSys
 }
 
 // Init - initializes config system
-func (sys *IAMSys) Init(ctx context.Context) {
+func (sys *iamSys) Init(ctx context.Context) {
 	sys.Lock()
 	defer sys.Unlock()
 	sys.initStore()
-
 }
 
 // initStore initializes IAM stores
-func (sys *IAMSys) initStore() {
-	sys.store = &iAMStoreSys{newIAMLevelDBStore()}
+func (sys *iamSys) initStore() {
+	sys.store = &iamStoreSys{newIAMLevelDBStore()}
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
-func (sys *IAMSys) IsAllowed(args policy.Args) bool {
+func (sys *iamSys) IsAllowed(args policy.Args) bool {
 
 	// Policies don't apply to the owner.
 	if args.IsOwner {
@@ -53,7 +52,7 @@ func (sys *IAMSys) IsAllowed(args policy.Args) bool {
 }
 
 // GetUserList all user
-func (sys *IAMSys) GetUserList(ctx context.Context) []*iam.User {
+func (sys *iamSys) GetUserList(ctx context.Context) []*iam.User {
 	var u []*iam.User
 	users, err := sys.store.loadUsers(ctx)
 	if err != nil {
@@ -75,7 +74,7 @@ func (sys *IAMSys) GetUserList(ctx context.Context) []*iam.User {
 }
 
 //AddUser add user
-func (sys *IAMSys) AddUser(ctx context.Context, accessKey, secretKey string) error {
+func (sys *iamSys) AddUser(ctx context.Context, accessKey, secretKey string) error {
 	m := make(map[string]interface{})
 	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
 	if err != nil {
@@ -91,7 +90,7 @@ func (sys *IAMSys) AddUser(ctx context.Context, accessKey, secretKey string) err
 }
 
 // RemoveUser Remove User
-func (sys *IAMSys) RemoveUser(ctx context.Context, accessKey string) error {
+func (sys *iamSys) RemoveUser(ctx context.Context, accessKey string) error {
 	err := sys.store.RemoveUserIdentity(ctx, accessKey)
 	if err != nil {
 		log.Errorf("Remove UserIdentity err:%v", err)
@@ -101,7 +100,7 @@ func (sys *IAMSys) RemoveUser(ctx context.Context, accessKey string) error {
 }
 
 // CreatePolicy Create Policy
-func (sys *IAMSys) CreatePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
+func (sys *iamSys) CreatePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
 	err := sys.store.createPolicy(ctx, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create Policy err:%v", err)
@@ -111,7 +110,7 @@ func (sys *IAMSys) CreatePolicy(ctx context.Context, policyName string, policyDo
 }
 
 // PutUserPolicy Create Policy
-func (sys *IAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (sys *iamSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
 	err := sys.store.createUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create UserPolicy err:%v", err)
@@ -121,7 +120,7 @@ func (sys *IAMSys) PutUserPolicy(ctx context.Context, userName, policyName strin
 }
 
 // GetUserPolicy Get User Policy
-func (sys *IAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (sys *iamSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
 	err := sys.store.getUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)
@@ -131,7 +130,7 @@ func (sys *IAMSys) GetUserPolicy(ctx context.Context, userName, policyName strin
 }
 
 // RemoveUserPolicy remove User Policy
-func (sys *IAMSys) RemoveUserPolicy(ctx context.Context, userName, policyName string) error {
+func (sys *iamSys) RemoveUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := sys.store.removeUserPolicy(ctx, userName, policyName)
 	if err != nil {
 		log.Errorf("remove UserPolicy err:%v", err)

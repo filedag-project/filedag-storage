@@ -8,15 +8,15 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 )
 
-// iAMLevelDBStore implements IAMStorageAPI
-type iAMLevelDBStore struct {
+// iamLevelDBStore implements IAMStorageAPI
+type iamLevelDBStore struct {
 	db *uleveldb.Uleveldb
 }
 
-func (I *iAMLevelDBStore) init() {
+func (I *iamLevelDBStore) init() {
 	I.db = uleveldb.GlobalLevelDB
 }
-func (I *iAMLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Credentials) error {
+func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Credentials) error {
 	err := I.db.Get(user, m)
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func (I *iAMLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Cre
 	return nil
 }
 
-func (I *iAMLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Credentials, error) {
+func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Credentials, error) {
 	m := make(map[string]auth.Credentials)
 
 	mc, err := I.db.ReadAll()
@@ -41,7 +41,7 @@ func (I *iAMLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Creden
 	}
 	return m, nil
 }
-func (I *iAMLevelDBStore) saveUserIdentity(ctx context.Context, name string, u UserIdentity) error {
+func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, name string, u UserIdentity) error {
 	err := I.db.Put(name, u.Credentials)
 	if err != nil {
 		return err
@@ -49,21 +49,21 @@ func (I *iAMLevelDBStore) saveUserIdentity(ctx context.Context, name string, u U
 	return nil
 }
 
-func (I *iAMLevelDBStore) RemoveUserIdentity(ctx context.Context, name string) error {
+func (I *iamLevelDBStore) RemoveUserIdentity(ctx context.Context, name string) error {
 	err := I.db.Delete(name)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (I *iAMLevelDBStore) createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
+func (I *iamLevelDBStore) createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
 	err := I.db.Put(policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (I *iAMLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
 	err := I.db.Put(userName+policyName, policyDocument)
 	if err != nil {
 		return err
@@ -71,42 +71,42 @@ func (I *iAMLevelDBStore) createUserPolicy(ctx context.Context, userName, policy
 	return nil
 }
 
-func (I *iAMLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
 	err := I.db.Get(userName+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (I *iAMLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
+func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := I.db.Delete(userName + policyName)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (I *iAMLevelDBStore) loadGroup(ctx context.Context, group string, m *GroupInfo) error {
+func (I *iamLevelDBStore) loadGroup(ctx context.Context, group string, m *GroupInfo) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (I *iAMLevelDBStore) loadGroups(ctx context.Context) (map[string]GroupInfo, error) {
+func (I *iamLevelDBStore) loadGroups(ctx context.Context) (map[string]GroupInfo, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (I *iAMLevelDBStore) saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error {
+func (I *iamLevelDBStore) saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (I *iAMLevelDBStore) RemoveGroupInfo(ctx context.Context, name string) error {
+func (I *iamLevelDBStore) RemoveGroupInfo(ctx context.Context, name string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func newIAMLevelDBStore() *iAMLevelDBStore {
-	return &iAMLevelDBStore{
+func newIAMLevelDBStore() *iamLevelDBStore {
+	return &iamLevelDBStore{
 		db: uleveldb.GlobalLevelDB,
 	}
 }
