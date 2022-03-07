@@ -3,7 +3,8 @@ package policy
 // PolicySys - policy subsystem.
 type PolicySys struct{}
 
-var globalPolicySys = NewPolicySys()
+//GlobalPolicySys policy system
+var GlobalPolicySys = NewPolicySys()
 
 // Get returns stored bucket policy
 func (sys *PolicySys) Get(bucket string) (*Policy, error) {
