@@ -1,4 +1,4 @@
-package s3resp
+package api_errors
 
 import (
 	"encoding/xml"

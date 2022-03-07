@@ -5,9 +5,10 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
-	"github.com/filedag-project/filedag-storage/http/objectstore/s3api/s3resp"
+	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
 	"sync"
 )
@@ -22,7 +23,7 @@ var policyLock = sync.RWMutex{}
 func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) {
 	var resp ListUsersResponse
 	resp.ListUsersResult.Users = iam.GlobalIAMSys.GetUserList(context.Background())
-	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 // AddUser  add user
@@ -34,10 +35,10 @@ func (iamApi *iamApiServer) AddUser(w http.ResponseWriter, r *http.Request) {
 	resp.CreateUserResult.User.UserName = &accessKey
 	err := iam.GlobalIAMSys.AddUser(context.Background(), accessKey, secretKey)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 //RemoveUser delete user
@@ -47,10 +48,10 @@ func (iamApi *iamApiServer) RemoveUser(w http.ResponseWriter, r *http.Request) {
 	resp.CreateUserResult.User.UserName = &accessKey
 	err := iam.GlobalIAMSys.RemoveUser(context.Background(), accessKey)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 //PutUserPolicy Put UserPolicy
@@ -61,15 +62,15 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 	policyDocumentString := r.FormValue("policyDocument")
 	policyDocument, err := GetPolicyDocument(&policyDocumentString)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	err = iam.GlobalIAMSys.PutUserPolicy(context.Background(), userName, policyName, policyDocument)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrNoSuchBucketPolicy)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
-	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 //GetUserPolicy  Get UserPolicy
@@ -83,10 +84,10 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 	policyDocument := policy.PolicyDocument{Version: policyDocumentVersion}
 	err := iam.GlobalIAMSys.GetUserPolicy(context.Background(), userName, policyName, policyDocument)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrNoSuchBucketPolicy)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
-	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 
 }
 
@@ -97,10 +98,10 @@ func (iamApi *iamApiServer) RemoveUserPolicy(w http.ResponseWriter, r *http.Requ
 	policyName := r.FormValue("policyName")
 	err := iam.GlobalIAMSys.RemoveUserPolicy(context.Background(), userName, policyName)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrNoSuchBucketPolicy)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
-	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 //GetPolicyDocument Get PolicyDocument
@@ -123,7 +124,7 @@ func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request)
 	policyDocumentString := r.FormValue("policyDocument")
 	policyDocument, err := GetPolicyDocument(&policyDocumentString)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 	}
 	policyId := Hash(&policyDocumentString)
 	arn := fmt.Sprintf("arn:aws:iam:::policy/%s", policyName)
@@ -134,8 +135,8 @@ func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request)
 	defer policyLock.Unlock()
 	err = iam.GlobalIAMSys.CreatePolicy(context.Background(), policyName, policyDocument)
 	if err != nil {
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrNoSuchBucketPolicy)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
-	s3resp.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }

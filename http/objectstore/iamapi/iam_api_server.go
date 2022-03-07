@@ -5,7 +5,7 @@ package iamapi
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
-	"github.com/filedag-project/filedag-storage/http/objectstore/s3api/s3resp"
+	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -34,5 +34,5 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	apiRouter.Methods(http.MethodPost).Path("/remove-user-policy").HandlerFunc(iamApi.RemoveUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/creat-policy").HandlerFunc(iamApi.CreatePolicy).Queries("policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 
-	apiRouter.NotFoundHandler = http.HandlerFunc(s3resp.NotFoundHandler)
+	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 }

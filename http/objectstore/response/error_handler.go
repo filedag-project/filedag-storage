@@ -1,7 +1,8 @@
-package s3resp
+package response
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strings"
@@ -11,7 +12,7 @@ import (
 func WriteEmptyResponse(w http.ResponseWriter, r *http.Request, statusCode int) {
 	WriteResponse(w, r, statusCode, []byte{}, mimeNone)
 }
-func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode ErrorCode) {
+func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode api_errors.ErrorCode) {
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 	object := vars["object"]
@@ -19,13 +20,13 @@ func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode ErrorC
 		object = object[1:]
 	}
 
-	apiError := GetAPIError(errorCode)
+	apiError := api_errors.GetAPIError(errorCode)
 	errorResponse := getRESTErrorResponse(apiError, r.URL.Path, bucket, object)
 	encodedErrorResponse := EncodeXMLResponse(errorResponse)
 	WriteResponse(w, r, apiError.HTTPStatusCode, encodedErrorResponse, mimeXML)
 }
-func getRESTErrorResponse(err APIError, resource string, bucket, object string) RESTErrorResponse {
-	return RESTErrorResponse{
+func getRESTErrorResponse(err api_errors.APIError, resource string, bucket, object string) api_errors.RESTErrorResponse {
+	return api_errors.RESTErrorResponse{
 		Code:       err.Code,
 		BucketName: bucket,
 		Key:        object,

@@ -1,4 +1,4 @@
-package s3resp
+package response
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package s3resp
+package api_errors
 
 /*
  * MinIO Go Library for Amazon S3 Compatible Cloud Storage

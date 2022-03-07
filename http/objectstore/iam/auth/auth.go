@@ -7,10 +7,13 @@ import (
 	"errors"
 	"fmt"
 	jwtgo "github.com/golang-jwt/jwt/v4"
+	logging "github.com/ipfs/go-log/v2"
 	"strconv"
 	"strings"
 	"time"
 )
+
+var log = logging.Logger("auth")
 
 // Common errors generated for access and secret key validation.
 var (

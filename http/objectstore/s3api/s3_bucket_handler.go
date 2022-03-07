@@ -4,7 +4,8 @@ import (
 	"encoding/xml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/filedag-project/filedag-storage/http/objectstore/s3api/s3resp"
+	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
@@ -27,7 +28,7 @@ func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 		Name:         aws.String("testbuckets"),
 		CreationDate: aws.Time(time.Unix(0, 0).UTC()),
 	})
-	response := ListAllMyBucketsResult{
+	resp := ListAllMyBucketsResult{
 		Owner: &s3.Owner{
 			ID:          aws.String("fds"),
 			DisplayName: aws.String("fds admin"),
@@ -35,7 +36,7 @@ func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 		Buckets: buckets,
 	}
 
-	s3resp.WriteSuccessResponseXML(w, r, response)
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 //CreateBucketHandler Create Bucket
@@ -46,8 +47,8 @@ func (s3a *S3ApiServer) CreateBucketHandler(w http.ResponseWriter, r *http.Reque
 	// create the folder for bucket, but lazily create actual collection
 	if err := store.Mkdir(".", bucket); err != nil {
 		log.Errorf("CreateBucketHandler mkdir: %v", err)
-		s3resp.WriteErrorResponse(w, r, s3resp.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	s3resp.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessResponseEmpty(w, r)
 }
