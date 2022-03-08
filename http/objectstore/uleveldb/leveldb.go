@@ -12,18 +12,27 @@ import (
 
 var log = logging.Logger("leveldb")
 
-type Uleveldb struct {
+//ULeveldb level db store key-struct
+type ULeveldb struct {
 	DB *leveldb.DB
 }
 
 const (
-	DBFILE = "./leveldb2.db"
+	userDBFILE       = "/tmp/leveldb/user.db"
+	policyDBFILE     = "/tmp/leveldb/policy.db"
+	userPolicyDBFILE = "/tmp/leveldb/user-policy.db"
+	groupDBFILE      = "/tmp/leveldb/group.db"
 )
 
-//GlobalLevelDB global LevelDB
-var GlobalLevelDB = OpenDb(DBFILE)
+//GlobalUserLevelDB global LevelDB
+var (
+	GlobalUserLevelDB       = OpenDb(userDBFILE)
+	GlobalPolicyLevelDB     = OpenDb(policyDBFILE)
+	GlobalUserPolicyLevelDB = OpenDb(userPolicyDBFILE)
+	GlobalGroupLevelDB      = OpenDb(groupDBFILE)
+)
 
-func OpenDb(path string) *Uleveldb {
+func OpenDb(path string) *ULeveldb {
 	newdb, err := leveldb.OpenFile(path, nil)
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
 		newdb, err = leveldb.RecoverFile(path, nil)
@@ -31,19 +40,19 @@ func OpenDb(path string) *Uleveldb {
 	if err != nil {
 		log.Errorf("Open Db%v", err)
 	}
-	uleveldb := Uleveldb{}
+	uleveldb := ULeveldb{}
 	uleveldb.DB = newdb
 	return &uleveldb
 }
 
-func (uleveldb *Uleveldb) Close() {
+func (uleveldb *ULeveldb) Close() {
 	uleveldb.DB.Close()
 }
 
 // Put
 // * @param {interface{}} key
 // * @param {interface{}} value
-func (uleveldb *Uleveldb) Put(key string, value interface{}) error {
+func (uleveldb *ULeveldb) Put(key string, value interface{}) error {
 
 	result, err := json.Marshal(value)
 	if err != nil {
@@ -57,7 +66,7 @@ func (uleveldb *Uleveldb) Put(key string, value interface{}) error {
 // Get
 // * @param {interface{}} key
 // * @param {interface{}} value
-func (uleveldb *Uleveldb) Get(key, value interface{}) error {
+func (uleveldb *ULeveldb) Get(key, value interface{}) error {
 	get, err := uleveldb.DB.Get([]byte(key.(string)), nil)
 	if err != nil {
 		log.Errorf(" Get error%v", err)
@@ -73,20 +82,20 @@ func (uleveldb *Uleveldb) Get(key, value interface{}) error {
 // Delete
 // * @param {interface{}} key
 // * @param {interface{}} value
-func (uleveldb *Uleveldb) Delete(key string) error {
+func (uleveldb *ULeveldb) Delete(key string) error {
 
 	return uleveldb.DB.Delete([]byte(key), nil)
 }
 
 // NewIterator /**
-func (uleveldb *Uleveldb) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
+func (uleveldb *ULeveldb) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
 
 	return uleveldb.DB.NewIterator(slice, ro)
 }
 
 //ReadAll read all key value
-func (uleveldb *Uleveldb) ReadAll() (map[string][]byte, error) {
-	iter := GlobalLevelDB.NewIterator(nil, nil)
+func (uleveldb *ULeveldb) ReadAll() (map[string][]byte, error) {
+	iter := GlobalUserLevelDB.NewIterator(nil, nil)
 	m := make(map[string][]byte)
 	for iter.Next() {
 		m[string(iter.Key())] = iter.Value()
