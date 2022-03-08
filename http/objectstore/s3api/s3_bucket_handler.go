@@ -1,10 +1,13 @@
 package s3api
 
 import (
+	"context"
 	"encoding/xml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	logging "github.com/ipfs/go-log/v2"
@@ -23,6 +26,11 @@ type ListAllMyBucketsResult struct {
 
 //ListBucketsHandler ListBuckets Handler
 func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
+	err := iam.CheckRequestAuthType(context.Background(), r, s3action.ListAllMyBucketsAction, "testbuckets", "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
 	var buckets []*s3.Bucket
 	buckets = append(buckets, &s3.Bucket{
 		Name:         aws.String("testbuckets"),
