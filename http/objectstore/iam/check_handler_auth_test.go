@@ -20,9 +20,15 @@ import (
 	"unicode/utf8"
 )
 
-func TestCheckRequestAuthType(t *testing.T) {
+func TestV2CheckRequestAuthType(t *testing.T) {
 	GlobalIAMSys.Init(context.Background())
-	req := mustNewSignedRequest("GET", "http://127.0.0.1:9000", 0, nil, t)
+	req := mustNewSignedV2Request("GET", "http://127.0.0.1:9000", 0, nil, t)
+	err := CheckRequestAuthType(context.Background(), req, s3action.ListAllMyBucketsAction, "test", "testobject")
+	fmt.Println(api_errors.GetAPIError(err))
+}
+func TestV4CheckRequestAuthType(t *testing.T) {
+	GlobalIAMSys.Init(context.Background())
+	req := mustNewSignedV4Request("GET", "http://127.0.0.1:9000", 0, nil, t)
 	err := CheckRequestAuthType(context.Background(), req, s3action.ListAllMyBucketsAction, "test", "testobject")
 	fmt.Println(api_errors.GetAPIError(err))
 }
@@ -144,6 +150,20 @@ func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 	return nil
 }
 
+// Sign given request using Signature V4.
+func signRequestV2(req *http.Request) error {
+	creds := auth.GlobalActiveCred
+
+	policy := "policy"
+	req.Header.Set("Awsaccesskeyid", creds.AccessKey)
+	req.Header.Set("Policy", policy)
+	stringToSign := getStringToSignV2(req.Method, "", "", req.Header, "")
+	req.Header.Set("Signature", calculateSignatureV2(stringToSign, creds.SecretKey))
+	req.Header.Set("Authorization", "AWS "+creds.AccessKey+":"+calculateSignatureV2(stringToSign, creds.SecretKey))
+
+	return nil
+}
+
 // EncodePath encode the strings from UTF-8 byte representations to HTML hex escape sequences
 //
 // This is necessary since regular url.Parse() and url.Encode() functions do not support UTF-8
@@ -181,7 +201,14 @@ func EncodePath(pathName string) string {
 	}
 	return encodedPathname
 }
-func mustNewSignedRequest(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
+func mustNewSignedV2Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
+	req := mustNewRequest(method, urlStr, contentLength, body, t)
+	if err := signRequestV2(req); err != nil {
+		t.Fatalf("Unable to inititalized new signed http request %s", err)
+	}
+	return req
+}
+func mustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
 	req := mustNewRequest(method, urlStr, contentLength, body, t)
 	cred := &auth.Credentials{AccessKey: "test", SecretKey: "test"}
 	if err := signRequestV4(req, cred.AccessKey, cred.SecretKey); err != nil {
