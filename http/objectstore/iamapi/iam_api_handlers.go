@@ -140,3 +140,33 @@ func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request)
 	}
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
+
+//GetUserInfo get user info
+func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) {
+	userName := r.FormValue("userName")
+	ctx := context.Background()
+
+	_, _, _, s3Err := iam.ValidateAdminSignature(ctx, r, "")
+	if s3Err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+	cred, ok := iam.GlobalIAMSys.GetUserInfo(ctx, userName)
+	if !ok {
+		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
+		return
+	}
+	user := iam.UserInfo{
+		SecretKey:  cred.SecretKey,
+		PolicyName: "",
+		Status:     iam.AccountStatus(cred.Status),
+		MemberOf:   nil,
+	}
+
+	data, err := json.Marshal(user)
+	if err != nil {
+		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
+		return
+	}
+	response.WriteSuccessResponseJSON(w, data)
+}

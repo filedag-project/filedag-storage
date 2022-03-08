@@ -18,10 +18,10 @@ type ULeveldb struct {
 }
 
 const (
-	userDBFILE       = "/tmp/leveldb/user.db"
-	policyDBFILE     = "/tmp/leveldb/policy.db"
-	userPolicyDBFILE = "/tmp/leveldb/user-policy.db"
-	groupDBFILE      = "/tmp/leveldb/group.db"
+	userDBFILE       = "/tmp/leveldb2/user.db"
+	policyDBFILE     = "/tmp/leveldb2/policy.db"
+	userPolicyDBFILE = "/tmp/leveldb2/user-policy.db"
+	groupDBFILE      = "/tmp/leveldb2/group.db"
 )
 
 //GlobalUserLevelDB global LevelDB

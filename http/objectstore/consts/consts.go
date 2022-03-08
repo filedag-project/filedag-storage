@@ -39,4 +39,8 @@ const (
 	SlashSeparator            = "/"
 
 	GlobalMaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
+
+	ContentLength = "Content-Length"
+	// Response request id.
+	AmzRequestID = "x-amz-request-id"
 )

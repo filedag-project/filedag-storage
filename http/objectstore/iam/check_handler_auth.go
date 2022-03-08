@@ -188,201 +188,25 @@ func isReqAuthenticated(ctx context.Context, r *http.Request, region string, sty
 	return api_errors.ErrNone
 }
 
-////CheckAuth check auth right
-//func (sys *iamSys) CheckAuth(f http.HandlerFunc, action s3action.Action) http.HandlerFunc {
-//
-//	return func(w http.ResponseWriter, r *http.Request) {
-//		identity, errCode := sys.authRequest(r, action)
-//		if errCode == api_errors.ErrNone {
-//			if identity != nil && identity.Name != "" {
-//				r.Header.Set(consts.AmzIdentityId, identity.Name)
-//				if identity.isAdmin() {
-//					r.Header.Set(consts.AmzIsAdmin, "true")
-//				} else if _, ok := r.Header[consts.AmzIsAdmin]; ok {
-//					r.Header.Del(consts.AmzIsAdmin)
-//				}
-//			}
-//			f(w, r)
-//			return
-//		}
-//		response.WriteErrorResponse(w, r, errCode)
-//	}
-//}
-//func (sys *iamSys) lookupAnonymous() (identity *Identity, found bool) {
-//	for _, ident := range sys.identities {
-//		if ident.Name == "anonymous" {
-//			return ident, true
-//		}
-//	}
-//	return nil, false
-//}
-//
-//type Identity struct {
-//	Name        string
-//	Credentials []*Credential
-//	Actions     []s3action.Action
-//}
-//type Credential struct {
-//	AccessKey string
-//	SecretKey string
-//}
-//
-//// check whether the request has valid access keys
-//func (sys *iamSys) authRequest(r *http.Request, action s3action.Action) (*Identity, api_errors.ErrorCode) {
-//	var identity *Identity
-//	var s3Err api_errors.ErrorCode
-//	var found bool
-//	var authType string
-//	switch getRequestAuthType(r) {
-//	case authTypeStreamingSigned:
-//		return identity, api_errors.ErrNone
-//	case authTypeUnknown:
-//		log.Infof("unknown auth type")
-//		r.Header.Set(consts.AmzAuthType, "Unknown")
-//		return identity, api_errors.ErrAccessDenied
-//	case authTypePresignedV2, authTypeSignedV2:
-//		log.Infof("v2 auth type")
-//		identity, s3Err = sys.isReqAuthenticatedV2(r)
-//		authType = "SigV2"
-//	case authTypeSigned, authTypePresigned:
-//		log.Infof("v4 auth type")
-//		identity, s3Err = sys.reqSignatureV4Verify(r)
-//		authType = "SigV4"
-//	case authTypePostPolicy:
-//		log.Infof("post policy auth type")
-//		r.Header.Set(consts.AmzAuthType, "PostPolicy")
-//		return identity, api_errors.ErrNone
-//	case authTypeJWT:
-//		log.Infof("jwt auth type")
-//		r.Header.Set(consts.AmzAuthType, "Jwt")
-//		return identity, api_errors.ErrNotImplemented
-//	case authTypeAnonymous:
-//		authType = "Anonymous"
-//		identity, found = sys.lookupAnonymous()
-//		if !found {
-//			r.Header.Set(consts.AmzAuthType, authType)
-//			return identity, api_errors.ErrAccessDenied
-//		}
-//	default:
-//		return identity, api_errors.ErrNotImplemented
-//	}
-//
-//	if len(authType) > 0 {
-//		r.Header.Set(consts.AmzAuthType, authType)
-//	}
-//	if s3Err != api_errors.ErrNone {
-//		return identity, s3Err
-//	}
-//
-//	log.Infof("user name: %v actions: %v, action: %v", identity.Name, identity.Actions, action)
-//
-//	bucket, object := GetBucketAndObject(r)
-//
-//	if !identity.canDo(action, bucket, object) {
-//		return identity, api_errors.ErrAccessDenied
-//	}
-//
-//	return identity, api_errors.ErrNone
-//
-//}
-//func GetBucketAndObject(r *http.Request) (bucket, object string) {
-//	vars := mux.Vars(r)
-//	bucket = vars["bucket"]
-//	object = vars["object"]
-//	if !strings.HasPrefix(object, "/") {
-//		object = "/" + object
-//	}
-//
-//	return
-//}
-//func (identity *Identity) canDo(action s3action.Action, bucket string, objectKey string) bool {
-//	if identity.isAdmin() {
-//		return true
-//	}
-//	for _, a := range identity.Actions {
-//		if a == action {
-//			return true
-//		}
-//	}
-//	if bucket == "" {
-//		return false
-//	}
-//	target := string(action) + ":" + bucket + objectKey
-//	adminTarget := consts.ACTION_ADMIN + ":" + bucket + objectKey
-//	limitedByBucket := string(action) + ":" + bucket
-//	adminLimitedByBucket := consts.ACTION_ADMIN + ":" + bucket
-//	for _, a := range identity.Actions {
-//		act := string(a)
-//		if strings.HasSuffix(act, "*") {
-//			if strings.HasPrefix(target, act[:len(act)-1]) {
-//				return true
-//			}
-//			if strings.HasPrefix(adminTarget, act[:len(act)-1]) {
-//				return true
-//			}
-//		} else {
-//			if act == limitedByBucket {
-//				return true
-//			}
-//			if act == adminLimitedByBucket {
-//				return true
-//			}
-//		}
-//	}
-//	return false
-//}
-//func (identity *Identity) isAdmin() bool {
-//	for _, a := range identity.Actions {
-//		if a == "Admin" {
-//			return true
-//		}
-//	}
-//	return false
-//}
-//func (sys *iamSys) lookupByAccessKey(accessKey string) (identity *Identity, cred *Credential, found bool) {
-//
-//	for _, ident := range sys.identities {
-//		for _, cred := range ident.Credentials {
-//			// println("checking", ident.Name, cred.AccessKey)
-//			if cred.AccessKey == accessKey {
-//				return ident, cred, true
-//			}
-//		}
-//	}
-//	log.Infof("could not find accessKey %s", accessKey)
-//	return nil, nil, false
-//}
+//ValidateAdminSignature validate admin Signature
+func ValidateAdminSignature(ctx context.Context, r *http.Request, region string) (auth.Credentials, map[string]interface{}, bool, api_errors.ErrorCode) {
+	var cred auth.Credentials
+	var owner bool
+	s3Err := api_errors.ErrAccessDenied
+	if _, ok := r.Header[consts.AmzContentSha256]; ok &&
+		getRequestAuthType(r) == authTypeSigned {
+		// We only support admin credentials to access admin APIs.
+		cred, owner, s3Err = getReqAccessKeyV4(r, region, serviceS3)
+		if s3Err != api_errors.ErrNone {
+			return cred, nil, owner, s3Err
+		}
 
-//// setAuthHandler to validate authorization header for the incoming request.
-//func setAuthHandler(h http.Handler) http.Handler {
-//	// handler for validating incoming authorization headers.
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		aType := getRequestAuthType(r)
-//		if aType == authTypeSigned || aType == authTypeSignedV2 || aType == authTypeStreamingSigned {
-//			// Verify if date headers are set, if not reject the request
-//			amzDate, errCode := parseAmzDateHeader(r)
-//			if errCode != api_errors.ErrNone {
-//				// All our internal APIs are sensitive towards Date
-//				// header, for all requests where Date header is not
-//				// present we will reject such clients.
-//				writeErrorResponse(r.Context(), w, errorCodes.ToAPIErr(errCode), r.URL)
-//				atomic.AddUint64(&globalHTTPStats.rejectedRequestsTime, 1)
-//				return
-//			}
-//			// Verify if the request date header is shifted by less than globalMaxSkewTime parameter in the past
-//			// or in the future, reject request otherwise.
-//			curTime := UTCNow()
-//			if curTime.Sub(amzDate) > globalMaxSkewTime || amzDate.Sub(curTime) > globalMaxSkewTime {
-//				writeErrorResponse(r.Context(), w, errorCodes.ToAPIErr(ErrRequestTimeTooSkewed), r.URL)
-//				atomic.AddUint64(&globalHTTPStats.rejectedRequestsTime, 1)
-//				return
-//			}
-//		}
-//		if isSupportedS3AuthType(aType) || aType == authTypeJWT || aType == authTypeSTS {
-//			h.ServeHTTP(w, r)
-//			return
-//		}
-//		writeErrorResponse(r.Context(), w, errorCodes.ToAPIErr(ErrSignatureVersionNotSupported), r.URL)
-//		atomic.AddUint64(&globalHTTPStats.rejectedRequestsAuth, 1)
-//	})
-//}
+		// we only support V4 (no presign) with auth body
+		s3Err = isReqAuthenticated(ctx, r, region, serviceS3)
+	}
+	if s3Err != api_errors.ErrNone {
+		return cred, nil, owner, s3Err
+	}
+
+	return cred, nil, owner, api_errors.ErrNone
+}

@@ -151,3 +151,14 @@ func (sys *iamSys) RemoveUserPolicy(ctx context.Context, userName, policyName st
 	}
 	return nil
 }
+
+// GetUserInfo  - get user info
+func (sys *iamSys) GetUserInfo(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
+	m := auth.Credentials{}
+	err := sys.store.loadUser(ctx, accessKey, &m)
+	if err != nil {
+		return m, false
+	}
+
+	return m, m.IsValid()
+}
