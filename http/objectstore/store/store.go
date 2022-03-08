@@ -23,7 +23,7 @@ func PutFile(parentDirectoryPath string, dirName string, reader io.Reader) (stri
 
 //Mkdir store object
 func Mkdir(parentDirectoryPath string, bucket string) error {
-	err := os.Mkdir(parentDirectoryPath+bucket, 777)
+	err := os.Mkdir(parentDirectoryPath+bucket, 0777)
 	if err != nil {
 		return err
 	}

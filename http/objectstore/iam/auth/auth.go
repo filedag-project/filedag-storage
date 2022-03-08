@@ -27,8 +27,8 @@ var ErrInvalidDuration = errors.New("invalid token expiry")
 
 // Default access and secret keys.
 const (
-	DefaultAccessKey = "fds"
-	DefaultSecretKey = "fds"
+	DefaultAccessKey = "test"
+	DefaultSecretKey = "test"
 )
 const (
 	// Minimum length for MinIO access key.
