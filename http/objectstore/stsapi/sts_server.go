@@ -1,4 +1,4 @@
-package sts_api
+package stsapi
 
 import (
 	"context"

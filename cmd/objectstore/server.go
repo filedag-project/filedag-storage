@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
-	"github.com/filedag-project/filedag-storage/http/objectstore/sts_api"
+	"github.com/filedag-project/filedag-storage/http/objectstore/stsapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
@@ -19,7 +19,7 @@ func startServer() {
 		return
 	}
 	router := mux.NewRouter()
-	sts_api.RegisterSTSRouter(router)
+	stsapi.RegisterSTSRouter(router)
 	s3api.NewS3Server(router)
 	iamapi.NewIamApiServer(router)
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
