@@ -74,6 +74,7 @@ const (
 	ErrInvalidToken
 	ErrInvalidAccessKeyID
 	ErrAccessKeyDisabled
+	ErrJsonMarshal
 	ErrAuthHeaderEmpty
 	ErrSignatureVersionNotSupported
 	ErrMalformedPOSTRequest
@@ -372,6 +373,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrAccessKeyDisabled: {
 		Code:           "InvalidAccessKeyId",
 		Description:    "Your account is disabled; please contact your administrator.",
+		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrJsonMarshal: {
+		Code:           "JsonMarshalErr",
+		Description:    "json Marshal err.",
 		HTTPStatusCode: http.StatusForbidden,
 	},
 	ErrRequestNotReadyYet: {
