@@ -12,7 +12,7 @@ func isRequestJWT(r *http.Request) bool {
 }
 
 // Verify if request has AWS Signature Version '4'.
-func isRequestSignatureV4(r *http.Request) bool {
+func IsRequestSignatureV4(r *http.Request) bool {
 	return strings.HasPrefix(r.Header.Get("Authorization"), signV4Algorithm)
 }
 
@@ -70,7 +70,7 @@ func getRequestAuthType(r *http.Request) authType {
 		return authTypePresignedV2
 	} else if isRequestSignStreamingV4(r) {
 		return authTypeStreamingSigned
-	} else if isRequestSignatureV4(r) {
+	} else if IsRequestSignatureV4(r) {
 		return authTypeSigned
 	} else if isRequestPresignedSignatureV4(r) {
 		return authTypePresigned

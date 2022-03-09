@@ -437,3 +437,100 @@ var errorCodeResponse = map[ErrorCode]APIError{
 func GetAPIError(code ErrorCode) APIError {
 	return errorCodeResponse[code]
 }
+
+// STSErrorCode type of error status.
+type STSErrorCode int
+
+//go:generate stringer -type=STSErrorCode -trimprefix=Err $GOFILE
+// STSError structure
+type STSError struct {
+	Code           string
+	Description    string
+	HTTPStatusCode int
+}
+
+// Error codes, non exhaustive list - http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html
+const (
+	ErrSTSNone STSErrorCode = iota
+	ErrSTSAccessDenied
+	ErrSTSMissingParameter
+	ErrSTSInvalidParameterValue
+	ErrSTSWebIdentityExpiredToken
+	ErrSTSClientGrantsExpiredToken
+	ErrSTSInvalidClientGrantsToken
+	ErrSTSMalformedPolicyDocument
+	ErrSTSInsecureConnection
+	ErrSTSInvalidClientCertificate
+	ErrSTSNotInitialized
+	ErrSTSInternalError
+)
+
+type stsErrorCodeMap map[STSErrorCode]STSError
+
+func (e stsErrorCodeMap) ToSTSErr(errCode STSErrorCode) STSError {
+	apiErr, ok := e[errCode]
+	if !ok {
+		return e[ErrSTSInternalError]
+	}
+	return apiErr
+}
+
+// error code to STSError structure, these fields carry respective
+// descriptions for all the error responses.
+var StsErrCodes = stsErrorCodeMap{
+	ErrSTSAccessDenied: {
+		Code:           "AccessDenied",
+		Description:    "Generating temporary credentials not allowed for this request.",
+		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrSTSMissingParameter: {
+		Code:           "MissingParameter",
+		Description:    "A required parameter for the specified action is not supplied.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSInvalidParameterValue: {
+		Code:           "InvalidParameterValue",
+		Description:    "An invalid or out-of-range value was supplied for the input parameter.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSWebIdentityExpiredToken: {
+		Code:           "ExpiredToken",
+		Description:    "The web identity token that was passed is expired or is not valid. Get a new identity token from the identity provider and then retry the request.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSClientGrantsExpiredToken: {
+		Code:           "ExpiredToken",
+		Description:    "The client grants that was passed is expired or is not valid. Get a new client grants token from the identity provider and then retry the request.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSInvalidClientGrantsToken: {
+		Code:           "InvalidClientGrantsToken",
+		Description:    "The client grants token that was passed could not be validated by MinIO.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSMalformedPolicyDocument: {
+		Code:           "MalformedPolicyDocument",
+		Description:    "The request was rejected because the policy document was malformed.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSInsecureConnection: {
+		Code:           "InsecureConnection",
+		Description:    "The request was made over a plain HTTP connection. A TLS connection is required.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSInvalidClientCertificate: {
+		Code:           "InvalidClientCertificate",
+		Description:    "The provided client certificate is invalid. Retry with a different certificate.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSTSNotInitialized: {
+		Code:           "STSNotInitialized",
+		Description:    "STS API not initialized, please try again.",
+		HTTPStatusCode: http.StatusServiceUnavailable,
+	},
+	ErrSTSInternalError: {
+		Code:           "InternalError",
+		Description:    "We encountered an internal error generating credentials, please try again.",
+		HTTPStatusCode: http.StatusInternalServerError,
+	},
+}

@@ -42,5 +42,12 @@ const (
 
 	ContentLength = "Content-Length"
 	// Response request id.
-	AmzRequestID = "x-amz-request-id"
+	AmzRequestID    = "x-amz-request-id"
+	SignV4Algorithm = "AWS4-HMAC-SHA256"
+
+	// STS API version.
+	StsAPIVersion = "2011-06-15"
+	StsVersion    = "Version"
+	StsAction     = "Action"
+	AssumeRole    = "AssumeRole"
 )

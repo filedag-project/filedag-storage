@@ -47,10 +47,10 @@ func checkRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 		case policy.GetBucketLocationAction, s3action.ListAllMyBucketsAction:
 			region = ""
 		}
-		if s3Err = isReqAuthenticated(ctx, r, region, serviceS3); s3Err != api_errors.ErrNone {
+		if s3Err = IsReqAuthenticated(ctx, r, region, serviceS3); s3Err != api_errors.ErrNone {
 			return cred, owner, s3Err
 		}
-		cred, owner, s3Err = getReqAccessKeyV4(r, region, serviceS3)
+		cred, owner, s3Err = GetReqAccessKeyV4(r, region, serviceS3)
 	}
 	if s3Err != api_errors.ErrNone {
 		return cred, owner, s3Err
@@ -142,7 +142,7 @@ func isReqAuthenticatedV2(r *http.Request) (s3Error api_errors.ErrorCode) {
 func reqSignatureV4Verify(r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
 	sha256sum := getContentSha256Cksum(r, stype)
 	switch {
-	case isRequestSignatureV4(r):
+	case IsRequestSignatureV4(r):
 		return doesSignatureMatch(sha256sum, r, region, stype)
 	case isRequestPresignedSignatureV4(r):
 		return doesPresignedSignatureMatch(sha256sum, r, region, stype)
@@ -152,7 +152,7 @@ func reqSignatureV4Verify(r *http.Request, region string, stype serviceType) (s3
 }
 
 // Verify if request has valid AWS Signature Version '4'.
-func isReqAuthenticated(ctx context.Context, r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
+func IsReqAuthenticated(ctx context.Context, r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
 	if errCode := reqSignatureV4Verify(r, region, stype); errCode != api_errors.ErrNone {
 		return errCode
 	}
@@ -196,13 +196,13 @@ func ValidateAdminSignature(ctx context.Context, r *http.Request, region string)
 	if _, ok := r.Header[consts.AmzContentSha256]; ok &&
 		getRequestAuthType(r) == authTypeSigned {
 		// We only support admin credentials to access admin APIs.
-		cred, owner, s3Err = getReqAccessKeyV4(r, region, serviceS3)
+		cred, owner, s3Err = GetReqAccessKeyV4(r, region, serviceS3)
 		if s3Err != api_errors.ErrNone {
 			return cred, nil, owner, s3Err
 		}
 
 		// we only support V4 (no presign) with auth body
-		s3Err = isReqAuthenticated(ctx, r, region, serviceS3)
+		s3Err = IsReqAuthenticated(ctx, r, region, serviceS3)
 	}
 	if s3Err != api_errors.ErrNone {
 		return cred, nil, owner, s3Err
