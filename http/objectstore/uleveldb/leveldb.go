@@ -92,8 +92,7 @@ func (uleveldb *ULeveldb) NewIterator(slice *util.Range, ro *opt.ReadOptions) it
 
 //ReadAll read all key value
 func (uleveldb *ULeveldb) ReadAll(prefix string) (map[string][]byte, error) {
-	l := NewLevelDB()
-	iter := l.NewIterator(nil, nil)
+	iter := uleveldb.NewIterator(nil, nil)
 	m := make(map[string][]byte)
 	for iter.Next() {
 		if strings.Contains(string(iter.Key()), prefix) {
@@ -101,6 +100,5 @@ func (uleveldb *ULeveldb) ReadAll(prefix string) (map[string][]byte, error) {
 		}
 	}
 	iter.Release()
-	l.Close()
 	return m, nil
 }

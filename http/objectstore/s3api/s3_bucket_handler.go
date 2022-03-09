@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-var log = logging.Logger("sever")
+var log = logging.Logger("server")
 
 //ListAllMyBucketsResult  List All Buckets Result
 type ListAllMyBucketsResult struct {
