@@ -6,12 +6,14 @@ import (
 )
 
 func TestULeveldb(t *testing.T) {
-	err := GlobalUserLevelDB.Put("a", 10)
+	db := NewLevelDB()
+	err := db.Put("a", 10)
 	if err != nil {
 		return
 	}
 	var a int
-	err = GlobalUserLevelDB.Get("a", &a)
+	err = db.Get("a", &a)
+	db.Close()
 	if err != nil {
 		return
 	}

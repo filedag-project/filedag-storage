@@ -8,7 +8,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"strings"
 )
+
+const userPrefix = "user/"
 
 var log = logging.Logger("leveldb")
 
@@ -18,19 +21,13 @@ type ULeveldb struct {
 }
 
 const (
-	userDBFILE       = "/tmp/leveldb2/user.db"
-	policyDBFILE     = "/tmp/leveldb2/policy.db"
-	userPolicyDBFILE = "/tmp/leveldb2/user-policy.db"
-	groupDBFILE      = "/tmp/leveldb2/group.db"
+	DBFILE = "/tmp/leveldb2/fds.db"
 )
 
-//GlobalUserLevelDB global LevelDB
-var (
-	GlobalUserLevelDB       = OpenDb(userDBFILE)
-	GlobalPolicyLevelDB     = OpenDb(policyDBFILE)
-	GlobalUserPolicyLevelDB = OpenDb(userPolicyDBFILE)
-	GlobalGroupLevelDB      = OpenDb(groupDBFILE)
-)
+// NewLevelDB new a *leveldb.DB
+func NewLevelDB() *ULeveldb {
+	return OpenDb(DBFILE)
+}
 
 func OpenDb(path string) *ULeveldb {
 	newdb, err := leveldb.OpenFile(path, nil)
@@ -94,12 +91,16 @@ func (uleveldb *ULeveldb) NewIterator(slice *util.Range, ro *opt.ReadOptions) it
 }
 
 //ReadAll read all key value
-func (uleveldb *ULeveldb) ReadAll() (map[string][]byte, error) {
-	iter := GlobalUserLevelDB.NewIterator(nil, nil)
+func (uleveldb *ULeveldb) ReadAll(prefix string) (map[string][]byte, error) {
+	l := NewLevelDB()
+	iter := l.NewIterator(nil, nil)
 	m := make(map[string][]byte)
 	for iter.Next() {
-		m[string(iter.Key())] = iter.Value()
+		if strings.Contains(string(iter.Key()), prefix) {
+			m[string(iter.Key())] = iter.Value()
+		}
 	}
 	iter.Release()
+	l.Close()
 	return m, nil
 }

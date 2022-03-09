@@ -8,22 +8,20 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 )
 
+const (
+	userPrefix       = "user/"
+	policyPrefix     = "policy/"
+	userPolicyPrefix = "user_policy/"
+	groupPrefix      = "group/"
+)
+
 // iamLevelDBStore implements IAMStorageAPI
 type iamLevelDBStore struct {
-	userDB       *uleveldb.ULeveldb
-	policyDB     *uleveldb.ULeveldb
-	userPolicyDB *uleveldb.ULeveldb
-	groupDB      *uleveldb.ULeveldb
+	levelDB *uleveldb.ULeveldb
 }
 
-func (I *iamLevelDBStore) init() {
-	I.userDB = uleveldb.GlobalUserLevelDB
-	I.policyDB = uleveldb.GlobalPolicyLevelDB
-	I.userPolicyDB = uleveldb.GlobalUserPolicyLevelDB
-	I.groupDB = uleveldb.GlobalGroupLevelDB
-}
 func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Credentials) error {
-	err := I.userDB.Get(user, m)
+	err := I.levelDB.Get(userPrefix+user, m)
 	if err != nil {
 		return err
 	}
@@ -33,7 +31,7 @@ func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Cre
 func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Credentials, error) {
 	m := make(map[string]auth.Credentials)
 
-	mc, err := I.userDB.ReadAll()
+	mc, err := I.levelDB.ReadAll(userPrefix)
 	if err != nil {
 		return m, err
 	}
@@ -48,7 +46,7 @@ func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Creden
 	return m, nil
 }
 func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, name string, u UserIdentity) error {
-	err := I.userDB.Put(name, u.Credentials)
+	err := I.levelDB.Put(userPrefix+name, u.Credentials)
 	if err != nil {
 		return err
 	}
@@ -56,21 +54,21 @@ func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, name string, u U
 }
 
 func (I *iamLevelDBStore) RemoveUserIdentity(ctx context.Context, name string) error {
-	err := I.userDB.Delete(name)
+	err := I.levelDB.Delete(userPrefix + name)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func (I *iamLevelDBStore) createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.policyDB.Put(policyName, policyDocument)
+	err := I.levelDB.Put(policyPrefix+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.userPolicyDB.Put(userName+policyName, policyDocument)
+	err := I.levelDB.Put(userPolicyPrefix+userName+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
@@ -78,14 +76,14 @@ func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policy
 }
 
 func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.userPolicyDB.Get(userName+policyName, policyDocument)
+	err := I.levelDB.Get(userPrefix+userName+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
-	err := I.userPolicyDB.Delete(userName + policyName)
+	err := I.levelDB.Delete(userPrefix + userName + policyName)
 	if err != nil {
 		return err
 	}
@@ -113,6 +111,6 @@ func (I *iamLevelDBStore) RemoveGroupInfo(ctx context.Context, name string) erro
 
 func newIAMLevelDBStore() *iamLevelDBStore {
 	return &iamLevelDBStore{
-		userDB: uleveldb.GlobalUserLevelDB,
+		levelDB: uleveldb.NewLevelDB(),
 	}
 }
