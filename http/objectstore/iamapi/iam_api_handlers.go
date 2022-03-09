@@ -11,6 +11,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
 	"sync"
+	"time"
 )
 
 const (
@@ -156,20 +157,35 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
 		return
 	}
+
 	user := iam.UserInfo{
 		SecretKey:  cred.SecretKey,
-		PolicyName: "",
+		PolicyName: "policy",
 		Status:     iam.AccountStatus(cred.Status),
 		MemberOf:   nil,
 	}
+	indent, err := json.MarshalIndent(user.PolicyName, "", " ")
+
 	var accountInfo = AccountInfo{
 		AccountName: userName,
-		Policy:      json.RawMessage(user.PolicyName),
-		Buckets:     nil,
+		Policy:      indent,
+		Buckets: []BucketAccessInfo{{
+			Name:                 "test",
+			Size:                 10,
+			Objects:              0,
+			ObjectSizesHistogram: nil,
+			Details:              nil,
+			PrefixUsage:          nil,
+			Created:              time.Now(),
+			Access: AccountAccess{
+				Read:  true,
+				Write: true,
+			},
+		}},
 	}
 	data, err := json.Marshal(accountInfo)
 	if err != nil {
-		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
+		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
 		return
 	}
 	response.WriteSuccessResponseJSON(w, data)
