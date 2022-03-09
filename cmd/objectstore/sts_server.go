@@ -1,4 +1,4 @@
-package sts_api
+package main
 
 import (
 	"context"
@@ -51,7 +51,7 @@ func parseForm(r *http.Request) error {
 }
 
 // AssumeRole - implementation of AWS STS API AssumeRole to get temporary
-// credentials for regular users on Minio.
+// credentials for regular users .
 // https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html
 func (sts *stsAPIHandlers) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()

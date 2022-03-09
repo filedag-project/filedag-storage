@@ -32,7 +32,7 @@ type AssumedRoleUser struct {
 
 // AssumeRoleResult - Contains the response to a successful AssumeRole
 // request, including temporary credentials that can be used to make
-// MinIO API requests.
+// API requests.
 type AssumeRoleResult struct {
 	// The identifiers for the temporary security credentials that the operation
 	// returns.

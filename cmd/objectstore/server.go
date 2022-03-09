@@ -18,6 +18,7 @@ func startServer() {
 		return
 	}
 	router := mux.NewRouter()
+	registerSTSRouter(router)
 	s3api.NewS3Server(router)
 	iamapi.NewIamApiServer(router)
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {

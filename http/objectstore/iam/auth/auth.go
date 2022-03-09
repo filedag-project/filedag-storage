@@ -31,17 +31,17 @@ const (
 	DefaultSecretKey = "test"
 )
 const (
-	// Minimum length for MinIO access key.
+	// Minimum length for  access key.
 	accessKeyMinLen = 3
 
-	// Maximum length for MinIO access key.
+	// Maximum length for  access key.
 	// There is no max length enforcement for access keys
 	accessKeyMaxLen = 20
 
-	// Minimum length for MinIO secret key for both server and gateway mode.
+	// Minimum length for  secret key for both server and gateway mode.
 	secretKeyMinLen = 8
 
-	// Maximum secret key length for MinIO, this
+	// Maximum secret key length , this
 	// is used when autogenerating new credentials.
 	// There is no max length enforcement for secret keys
 	secretKeyMaxLen = 40
