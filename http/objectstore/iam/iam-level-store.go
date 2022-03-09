@@ -6,6 +6,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"strings"
 )
 
 const (
@@ -41,6 +42,7 @@ func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Creden
 		if err != nil {
 			continue
 		}
+		key = strings.Split(key, "/")[1]
 		m[key] = a
 	}
 	return m, nil
