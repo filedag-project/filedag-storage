@@ -10,7 +10,7 @@ import (
 
 func TestPolicySys_IsAllowed(t *testing.T) {
 	initSys()
-	if globalPolicySys.IsAllowed(Args{
+	if GlobalPolicySys.IsAllowed(Args{
 		AccountName: auth.DefaultAccessKey,
 		Action:      "list",
 		BucketName:  "test",

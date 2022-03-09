@@ -111,12 +111,12 @@ func checkAssumeRoleAuth(ctx context.Context, r *http.Request) (user auth.Creden
 		return user, true, api_errors.ErrSTSAccessDenied
 	}
 
-	s3Err := iam.IsReqAuthenticated(ctx, r, "", iam.ServiceSTS)
+	s3Err := iam.IsReqAuthenticated(ctx, r, consts.DefaultRegion, iam.ServiceSTS)
 	if s3Err != api_errors.ErrNone {
 		return user, false, api_errors.STSErrorCode(s3Err)
 	}
 
-	user, _, s3Err = iam.GetReqAccessKeyV4(r, "", iam.ServiceSTS)
+	user, _, s3Err = iam.GetReqAccessKeyV4(r, consts.DefaultRegion, iam.ServiceSTS)
 	if s3Err != api_errors.ErrNone {
 		return user, false, api_errors.STSErrorCode(s3Err)
 	}
