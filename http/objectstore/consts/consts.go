@@ -32,13 +32,13 @@ const (
 	MaxLocationConstraintSize = 3 * humanize.MiByte
 	EmptySHA256               = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	StsRequestBodyLimit       = 10 * (1 << 20) // 10 MiB
-	GlobalDefaultRegion       = ""
+	DefaultRegion             = ""
 	Expires                   = "Expires"
 	ContentMD5                = "Content-Md5"
 	Date                      = "Date"
 	SlashSeparator            = "/"
 
-	GlobalMaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
+	MaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
 
 	ContentLength = "Content-Length"
 	// Response request id.

@@ -129,12 +129,12 @@ func isValidRegion(reqRegion string, confRegion string) bool {
 		return true
 	}
 	if confRegion == "US" {
-		confRegion = consts.GlobalDefaultRegion
+		confRegion = consts.DefaultRegion
 	}
 	// Some older s3 clients set region as "US" instead of
 	// globalMinioDefaultRegion, handle it.
 	if reqRegion == "US" {
-		reqRegion = consts.GlobalDefaultRegion
+		reqRegion = consts.DefaultRegion
 	}
 	return reqRegion == confRegion
 }
@@ -143,7 +143,7 @@ func isValidRegion(reqRegion string, confRegion string) bool {
 // also returns if the access key is owner/admin.
 func checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, api_errors.ErrorCode) {
 
-	cred := auth.GlobalActiveCred
+	cred := auth.GetDefaultActiveCred()
 	if cred.AccessKey != accessKey {
 		// Check if the access key is part of users credentials.
 		ucred, ok := GlobalIAMSys.GetUser(r.Context(), accessKey)
@@ -157,7 +157,7 @@ func checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, a
 		}
 		cred = ucred
 	}
-	owner := cred.AccessKey == auth.GlobalActiveCred.AccessKey
+	owner := cred.AccessKey == auth.GetDefaultActiveCred().AccessKey
 	return cred, owner, api_errors.ErrNone
 }
 

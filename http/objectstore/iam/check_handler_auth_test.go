@@ -144,15 +144,15 @@ func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 		"SignedHeaders=" + signedHeaders,
 		"Signature=" + signature,
 	}
-	auth := strings.Join(parts, ", ")
-	req.Header.Set("Authorization", auth)
+	author := strings.Join(parts, ", ")
+	req.Header.Set("Authorization", author)
 
 	return nil
 }
 
 // Sign given request using Signature V4.
 func signRequestV2(req *http.Request) error {
-	creds := auth.GlobalActiveCred
+	creds := auth.GetDefaultActiveCred()
 
 	policy := "policy"
 	req.Header.Set("Awsaccesskeyid", creds.AccessKey)

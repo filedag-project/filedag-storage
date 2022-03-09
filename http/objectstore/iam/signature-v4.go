@@ -208,7 +208,7 @@ func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region s
 
 	// If the host which signed the request is slightly ahead in time (by less than globalMaxSkewTime) the
 	// request should still be allowed.
-	if pSignValues.Date.After(time.Now().UTC().Add(consts.GlobalMaxSkewTime)) {
+	if pSignValues.Date.After(time.Now().UTC().Add(consts.MaxSkewTime)) {
 		return api_errors.ErrRequestNotReadyYet
 	}
 

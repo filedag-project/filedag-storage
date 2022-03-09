@@ -53,15 +53,13 @@ const (
 	alphaNumericTableLen = byte(len(alphaNumericTable))
 )
 
-var GlobalActiveCred = DefaultCredentials
-
-// DefaultCredentials Default access credentials
-var (
-	DefaultCredentials = Credentials{
+//GetDefaultActiveCred Get DefaultActiveCred
+func GetDefaultActiveCred() Credentials {
+	return Credentials{
 		AccessKey: DefaultAccessKey,
 		SecretKey: DefaultSecretKey,
 	}
-)
+}
 
 const (
 	// AccountOn indicates that credentials are enabled

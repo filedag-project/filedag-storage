@@ -92,7 +92,7 @@ func (sts *stsAPIHandlers) AssumeRole(w http.ResponseWriter, r *http.Request) {
 		parentClaim: user.AccessKey,
 	}
 
-	secret := auth.GlobalActiveCred.SecretKey
+	secret := auth.GetDefaultActiveCred().SecretKey
 	cred, err := auth.GetNewCredentialsWithMetadata(m, secret)
 	if err != nil {
 		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSInternalError, err)
