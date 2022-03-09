@@ -162,8 +162,12 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 		Status:     iam.AccountStatus(cred.Status),
 		MemberOf:   nil,
 	}
-
-	data, err := json.Marshal(user)
+	var accountInfo = AccountInfo{
+		AccountName: userName,
+		Policy:      json.RawMessage(user.PolicyName),
+		Buckets:     nil,
+	}
+	data, err := json.Marshal(accountInfo)
 	if err != nil {
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
 		return
