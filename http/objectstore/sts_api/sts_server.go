@@ -1,4 +1,4 @@
-package main
+package sts_api
 
 import (
 	"context"
@@ -22,13 +22,13 @@ const (
 // stsAPIHandlers implements and provides http handlers for AWS STS API.
 type stsAPIHandlers struct{}
 
-// registerSTSRouter - registers AWS STS compatible APIs.
-func registerSTSRouter(router *mux.Router) {
+// RegisterSTSRouter - registers AWS STS compatible APIs.
+func RegisterSTSRouter(router *mux.Router) {
 	// Initialize STS.
 	sts := &stsAPIHandlers{}
 
 	// STS Router
-	stsRouter := router.NewRoute().PathPrefix(consts.SlashSeparator).Subrouter()
+	stsRouter := router.PathPrefix(consts.SlashSeparator).Subrouter()
 
 	// Assume roles with no JWT, handles AssumeRole.
 	stsRouter.Methods(http.MethodPost).MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
