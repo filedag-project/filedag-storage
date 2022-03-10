@@ -27,7 +27,7 @@ func (s3a S3ApiServer) registerS3Router(router *mux.Router) {
 		// PutObject
 		bucket.Methods("PUT").Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
 		// PutBucket
-		bucket.Methods("PUT").HandlerFunc(s3a.CreateBucketHandler)
+		bucket.Methods("PUT").HandlerFunc(s3a.PutBucketHandler)
 
 	}
 }

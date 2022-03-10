@@ -19,7 +19,7 @@ func TestStsAPIHandlers_AssumeRole(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	fmt.Println(err)
-	fmt.Println(resp)
+	fmt.Printf("resp%+v", resp.Body)
 }
 func mustNewSignedV4RequestSts(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
 	req := mustNewRequest(method, urlStr, contentLength, body, t)

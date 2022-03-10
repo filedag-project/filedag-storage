@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
@@ -47,14 +48,27 @@ func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 
-//CreateBucketHandler Create Bucket
-func (s3a *S3ApiServer) CreateBucketHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *S3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
+
 	bucket, _ := GetBucketAndObject(r)
-	log.Infof("CreateBucketHandler %s", bucket)
+	log.Infof("PutBucketHandler %s", bucket)
+
+	// avoid duplicated buckets
+	errCode := api_errors.ErrNone
+	pol, err := policy.GlobalPolicySys.Get(bucket)
+	if err != nil || pol.IsEmpty() {
+		response.WriteErrorResponse(w, r, errCode)
+		return
+	}
+
+	if iam.CheckRequestAuthType(context.Background(), r, s3action.CreateBucketAction, bucket, "") != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, errCode)
+		return
+	}
 
 	// create the folder for bucket, but lazily create actual collection
-	if err := store.Mkdir(".", bucket); err != nil {
-		log.Errorf("CreateBucketHandler mkdir: %v", err)
+	if err := store.Mkdir("", bucket); err != nil {
+		log.Errorf("PutBucketHandler mkdir: %v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
