@@ -7,13 +7,18 @@ type IPolicySys struct{}
 var GlobalPolicySys = NewPolicySys()
 
 // Get returns stored bucket policy
-func (sys *IPolicySys) Get(bucket string) (*Policy, error) {
-	return globalBucketMetadataSys.GetPolicyConfig(bucket)
+func (sys *IPolicySys) Get(bucket, accessKey string) (*Policy, error) {
+	return globalBucketMetadataSys.GetPolicyConfig(bucket, accessKey)
+}
+
+// Set returns stored bucket policy
+func (sys *IPolicySys) Set(bucket, accessKey string) error {
+	return globalBucketMetadataSys.Set(bucket, accessKey, newBucketMetadata(bucket))
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
 func (sys *IPolicySys) IsAllowed(args Args) bool {
-	p, err := sys.Get(args.BucketName)
+	p, err := sys.Get(args.BucketName, args.AccountName)
 	if err != nil {
 		return false
 	} else {

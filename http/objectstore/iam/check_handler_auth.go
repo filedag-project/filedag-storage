@@ -22,7 +22,7 @@ import (
 //   for authenticated requests validates IAM policies.
 // returns APIErrorCode if any to be replied to the client.
 func CheckRequestAuthType(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (s3Err api_errors.ErrorCode) {
-	_, _, s3Err = checkRequestAuthTypeCredential(ctx, r, action, bucketName, objectName)
+	_, _, s3Err = CheckRequestAuthTypeCredential(ctx, r, action, bucketName, objectName)
 	return s3Err
 }
 
@@ -32,7 +32,7 @@ func CheckRequestAuthType(ctx context.Context, r *http.Request, action s3action.
 //   for authenticated requests validates IAM policies.
 // returns APIErrorCode if any to be replied to the client.
 // Additionally returns the accessKey used in the request, and if this request is by an admin.
-func checkRequestAuthTypeCredential(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
+func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
 	switch getRequestAuthType(r) {
 	case authTypeUnknown, authTypeStreamingSigned:
 		return cred, owner, api_errors.ErrSignatureVersionNotSupported
@@ -69,6 +69,10 @@ func checkRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 
 		// Populate payload again to handle it in HTTP handler.
 		r.Body = ioutil.NopCloser(bytes.NewReader(payload))
+		pol, err := policy.GlobalPolicySys.Get(bucketName, cred.AccessKey)
+		if err != nil || pol.IsEmpty() {
+			return cred, owner, api_errors.ErrMalformedXML
+		}
 	}
 
 	if action != s3action.ListAllMyBucketsAction && cred.AccessKey == "" {

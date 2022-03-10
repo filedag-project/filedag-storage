@@ -55,13 +55,8 @@ func (s3a *S3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 
 	// avoid duplicated buckets
 	errCode := api_errors.ErrNone
-	pol, err := policy.GlobalPolicySys.Get(bucket)
-	if err != nil || pol.IsEmpty() {
-		response.WriteErrorResponse(w, r, errCode)
-		return
-	}
-
-	if iam.CheckRequestAuthType(context.Background(), r, s3action.CreateBucketAction, bucket, "") != api_errors.ErrNone {
+	cred, _, err := iam.CheckRequestAuthTypeCredential(context.Background(), r, s3action.CreateBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errCode)
 		return
 	}
@@ -69,6 +64,11 @@ func (s3a *S3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	// create the folder for bucket, but lazily create actual collection
 	if err := store.Mkdir("", bucket); err != nil {
 		log.Errorf("PutBucketHandler mkdir: %v", err)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	erro := policy.GlobalPolicySys.Set(bucket, cred.AccessKey)
+	if erro != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}

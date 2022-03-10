@@ -27,7 +27,7 @@ func initSys() {
 	ast := s3action.NewActionSet("list")
 	principal := NewPrincipal(auth.DefaultAccessKey)
 	states = append(states, NewStatement("1", Allow, principal, ast))
-	globalBucketMetadataSys.Set("test", BucketMetadata{
+	globalBucketMetadataSys.Set("test", "name", BucketMetadata{
 		Name:    "test",
 		Created: time.Time{},
 		PolicyConfig: &Policy{

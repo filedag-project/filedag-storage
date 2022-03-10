@@ -4,29 +4,31 @@ import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"sync"
 	"time"
 )
 
 var globalBucketMetadataSys = NewBucketMetadataSys()
 
-// BucketPolicyNotFound - no bucket policy found.
-type BucketPolicyNotFound api_errors.GenericBucketError
+const (
+	bucketPrefix = "buckets/"
+)
 
-func (e BucketPolicyNotFound) Error() string {
+// bucketPolicyNotFound - no bucket policy found.
+type bucketPolicyNotFound api_errors.GenericBucketError
+
+func (e bucketPolicyNotFound) Error() string {
 	return "No bucket policy configuration found for bucket: " + e.Bucket
 }
 
 // BucketMetadataSys captures all bucket metadata for a given cluster.
 type BucketMetadataSys struct {
-	sync.RWMutex
-	metadataMap map[string]BucketMetadata
+	db *uleveldb.ULeveldb
 }
 
 // NewBucketMetadataSys - creates new policy system.
 func NewBucketMetadataSys() *BucketMetadataSys {
 	return &BucketMetadataSys{
-		metadataMap: make(map[string]BucketMetadata),
+		db: uleveldb.NewLevelDB(),
 	}
 }
 
@@ -46,54 +48,44 @@ func newBucketMetadata(name string) BucketMetadata {
 }
 
 // GetPolicyConfig returns configured bucket policy
-func (sys *BucketMetadataSys) GetPolicyConfig(bucket string) (*Policy, error) {
-	meta, err := sys.GetConfig(bucket)
+func (sys *BucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*Policy, error) {
+	meta, err := sys.GetConfig(bucket, accessKey)
 	if err != nil {
 		if errors.Is(err, api_errors.ErrConfigNotFound) {
-			return nil, BucketPolicyNotFound{Bucket: bucket}
+			return nil, bucketPolicyNotFound{Bucket: bucket}
 		}
 		return nil, err
 	}
 	if meta.PolicyConfig == nil {
-		return nil, BucketPolicyNotFound{Bucket: bucket}
+		return nil, bucketPolicyNotFound{Bucket: bucket}
 	}
 	return meta.PolicyConfig, nil
 }
 
 // GetConfig returns a specific configuration from the bucket metadata.
-func (sys *BucketMetadataSys) GetConfig(bucket string) (BucketMetadata, error) {
-	sys.RLock()
-	meta, ok := sys.metadataMap[bucket]
-	sys.RUnlock()
-	if !ok {
-		return BucketMetadata{}, BucketPolicyNotFound{Bucket: bucket}
+func (sys *BucketMetadataSys) GetConfig(bucket, accessKey string) (BucketMetadata, error) {
+	var meta BucketMetadata
+	err := sys.Get(bucket, accessKey, &meta)
+	if err != nil {
+		return BucketMetadata{}, err
 	}
-
 	return meta, nil
 }
 
-// Set - sets a new metadata in-memory.
-func (sys *BucketMetadataSys) Set(bucket string, meta BucketMetadata) {
-	sys.Lock()
-	sys.metadataMap[bucket] = meta
-	sys.Unlock()
+// Set - sets a new metadata in-db
+func (sys *BucketMetadataSys) Set(bucket, username string, meta BucketMetadata) error {
+	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Get metadata for a bucket.
-func (sys *BucketMetadataSys) Get(bucket string) (BucketMetadata, error) {
-
-	sys.RLock()
-	defer sys.RUnlock()
-
-	meta, ok := sys.metadataMap[bucket]
-	if !ok {
-		return newBucketMetadata(bucket), api_errors.ErrConfigNotFound
+func (sys *BucketMetadataSys) Get(bucket, username string, meta *BucketMetadata) error {
+	err := sys.db.Get(bucketPrefix+username+"-"+bucket, meta)
+	if err != nil {
+		return err
 	}
-
-	return meta, nil
-}
-
-func (sys *BucketMetadataSys) Update(bucket string, meta BucketMetadata) {
-	db := uleveldb.OpenDb("./fds.db")
-	db.Put(bucket, meta)
+	return nil
 }
