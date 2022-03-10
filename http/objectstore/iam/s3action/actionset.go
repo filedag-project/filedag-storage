@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+//Action s3 action
 type Action string
 
 // ActionSet - set of actions.

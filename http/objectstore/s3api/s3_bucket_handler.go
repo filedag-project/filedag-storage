@@ -46,6 +46,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 
+//PutBucketHandler put a bucket
 func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
 
 	bucket, _ := GetBucketAndObject(r)
@@ -62,12 +63,12 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	// create the folder for bucket, but lazily create actual collection
 	if err := store.Mkdir("", bucket); err != nil {
 		log.Errorf("PutBucketHandler mkdir: %v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrStoreMkdirFail)
 		return
 	}
 	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
 		return
 	}
 	response.WriteSuccessResponseEmpty(w, r)

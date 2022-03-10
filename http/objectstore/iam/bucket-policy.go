@@ -1,6 +1,9 @@
 package iam
 
-import "github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+import (
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
+)
 
 // IPolicySys - policy subsystem.
 type IPolicySys struct {
@@ -8,7 +11,7 @@ type IPolicySys struct {
 }
 
 // Get returns stored bucket policy
-func (sys *IPolicySys) Get(bucket, accessKey string) (*Policy, error) {
+func (sys *IPolicySys) Get(bucket, accessKey string) (*policy.Policy, error) {
 	return sys.bmSys.GetPolicyConfig(bucket, accessKey)
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	logging "github.com/ipfs/go-log/v2"
 	"sync"
 )
@@ -109,7 +110,7 @@ func (sys *IdentityAMSys) RemoveUser(ctx context.Context, accessKey string) erro
 }
 
 // CreatePolicy Create Policy
-func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, policyDocument PolicyDocument) error {
+func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
 	err := sys.store.createPolicy(ctx, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create Policy err:%v", err)
@@ -119,7 +120,7 @@ func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, p
 }
 
 // PutUserPolicy Create Policy
-func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error {
+func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
 	err := sys.store.createUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create UserPolicy err:%v", err)
@@ -129,7 +130,7 @@ func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyNam
 }
 
 // GetUserPolicy Get User Policy
-func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error {
+func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
 	err := sys.store.getUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)

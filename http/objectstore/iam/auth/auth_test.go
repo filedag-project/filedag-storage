@@ -6,12 +6,12 @@ import (
 )
 
 func TestGenerateCredentials(t *testing.T) {
-	accessKey, secretKey, err := GenerateCredentials()
+	accessKey, secretKey, err := generateCredentials()
 	if err != nil {
 		return
 	}
 	fmt.Println(accessKey, secretKey)
-	credentials, err := CreateCredentials(accessKey, secretKey)
+	credentials, err := createCredentials(accessKey, secretKey)
 	if err != nil {
 		return
 	}
@@ -19,7 +19,7 @@ func TestGenerateCredentials(t *testing.T) {
 }
 
 func TestGetNewCredentialsWithMetadata(t *testing.T) {
-	accessKey, secretKey, err := GenerateCredentials()
+	accessKey, secretKey, err := generateCredentials()
 	if err != nil {
 		return
 	}

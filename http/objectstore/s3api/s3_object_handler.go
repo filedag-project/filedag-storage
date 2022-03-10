@@ -21,7 +21,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	cid := ""
 	var err error
 	if cid, err = store.PutFile(".", bucket+object, r.Body); err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrStorePutFail)
 		return
 	}
 	w.Write([]byte(cid))

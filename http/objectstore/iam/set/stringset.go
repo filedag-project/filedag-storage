@@ -172,5 +172,3 @@ func CreateStringSet(sl ...string) StringSet {
 	}
 	return set
 }
-
-// CopyStringSet - returns copy of given set.

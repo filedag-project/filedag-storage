@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
 	"sync"
@@ -81,7 +82,7 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 
 	resp.GetUserPolicyResult.UserName = userName
 	resp.GetUserPolicyResult.PolicyName = policyName
-	policyDocument := iam.PolicyDocument{Version: policyDocumentVersion}
+	policyDocument := policy.PolicyDocument{Version: policyDocumentVersion}
 	err := iamApi.authSys.Iam.GetUserPolicy(context.Background(), userName, policyName, policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
@@ -105,9 +106,9 @@ func (iamApi *iamApiServer) RemoveUserPolicy(w http.ResponseWriter, r *http.Requ
 }
 
 //GetPolicyDocument Get PolicyDocument
-func GetPolicyDocument(policyD *string) (policyDocument iam.PolicyDocument, err error) {
+func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, err error) {
 	if err = json.Unmarshal([]byte(*policyD), &policyDocument); err != nil {
-		return iam.PolicyDocument{}, err
+		return policy.PolicyDocument{}, err
 	}
 	return policyDocument, err
 }

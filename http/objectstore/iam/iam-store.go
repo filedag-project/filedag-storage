@@ -3,6 +3,7 @@ package iam
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 )
 
 // iamStoreAPI defines an interface for the IAM persistence layer
@@ -15,9 +16,9 @@ type iamStoreAPI interface {
 	loadGroups(ctx context.Context) (map[string]GroupInfo, error)
 	saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error
 	RemoveGroupInfo(ctx context.Context, name string) error
-	createPolicy(ctx context.Context, policyName string, policyDocument PolicyDocument) error
-	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error
-	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error
+	createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
+	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
+	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
 	removeUserPolicy(ctx context.Context, userName, policyName string) error
 }
 

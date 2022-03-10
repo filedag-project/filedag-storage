@@ -99,6 +99,8 @@ const (
 	ErrNegativeExpires
 	ErrMaximumExpires
 	ErrSignatureDoesNotMatch
+	ErrStoreMkdirFail
+	ErrStorePutFail
 	ErrContentSHA256Mismatch
 	ErrRequestNotReadyYet
 	ErrMissingDateHeader
@@ -109,6 +111,8 @@ const (
 
 	ErrExistingObjectIsDirectory
 	ErrExistingObjectIsFile
+
+	ErrSetBucketPolicyFail
 
 	ErrReader
 )
@@ -391,6 +395,16 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
 		HTTPStatusCode: http.StatusForbidden,
 	},
+	ErrStoreMkdirFail: {
+		Code:           "StoreMkdirFail",
+		Description:    "Fail to make a bucket ",
+		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrStorePutFail: {
+		Code:           "StoreMkdirFail",
+		Description:    "Fail to put a object ",
+		HTTPStatusCode: http.StatusForbidden,
+	},
 
 	ErrContentSHA256Mismatch: {
 		Code:           "XAmzContentSHA256Mismatch",
@@ -432,6 +446,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Existing Object is a file.",
 		HTTPStatusCode: http.StatusConflict,
 	},
+	ErrSetBucketPolicyFail: {
+		Code:           "SetBucketPolicyFail",
+		Description:    "Set bucketPolicy fail.",
+		HTTPStatusCode: http.StatusConflict,
+	},
 	ErrReader: {
 		Code:           "ErrReader",
 		Description:    "Can not New Reader",
@@ -447,7 +466,6 @@ func GetAPIError(code ErrorCode) APIError {
 // STSErrorCode type of error status.
 type STSErrorCode int
 
-//go:generate stringer -type=STSErrorCode -trimprefix=Err $GOFILE
 // STSError structure
 type STSError struct {
 	Code           string
@@ -473,6 +491,7 @@ const (
 
 type stsErrorCodeMap map[STSErrorCode]STSError
 
+//ToSTSErr code to err
 func (e stsErrorCodeMap) ToSTSErr(errCode STSErrorCode) STSError {
 	apiErr, ok := e[errCode]
 	if !ok {
@@ -481,7 +500,7 @@ func (e stsErrorCodeMap) ToSTSErr(errCode STSErrorCode) STSError {
 	return apiErr
 }
 
-// error code to STSError structure, these fields carry respective
+// StsErrCodes error code to STSError structure, these fields carry respective
 // descriptions for all the error responses.
 var StsErrCodes = stsErrorCodeMap{
 	ErrSTSAccessDenied: {

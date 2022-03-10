@@ -1,29 +1,19 @@
-package iam
+package policy
 
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
-	"unicode/utf8"
 )
-
-// ID - policy ID.
-type ID string
-
-// IsValid - checks if ID is valid or not.
-func (id ID) IsValid() bool {
-	return utf8.ValidString(string(id))
-}
 
 // Policy - iam bucket iamp.
 type Policy struct {
 	ID         ID `json:"ID,omitempty"`
 	Version    string
-	Statements []policy.Statement `json:"Statement"`
+	Statements []Statement `json:"Statement"`
 }
 type PolicyDocument struct {
-	Version   string              `json:"Version"`
-	Statement []*policy.Statement `json:"Statement"`
+	Version   string       `json:"Version"`
+	Statement []*Statement `json:"Statement"`
 }
 type Policies struct {
 	Policies map[string]PolicyDocument `json:"policies"`
@@ -33,7 +23,7 @@ type Policies struct {
 func (p Policy) IsAllowed(args auth.Args) bool {
 	// Check all deny statements. If any one statement denies, return false.
 	for _, statement := range p.Statements {
-		if statement.Effect == policy.Deny {
+		if statement.Effect == Deny {
 			if !statement.IsAllowed(args) {
 				return false
 			}
@@ -47,7 +37,7 @@ func (p Policy) IsAllowed(args auth.Args) bool {
 
 	// Check all allow statements. If anyone statement allows, return true.
 	for _, statement := range p.Statements {
-		if statement.Effect == policy.Allow {
+		if statement.Effect == Allow {
 			if statement.IsAllowed(args) {
 				return true
 			}
@@ -129,10 +119,10 @@ var DefaultPolicies = []struct {
 	{
 		Name: "readwrite",
 		Definition: Policy{
-			Statements: []policy.Statement{
+			Statements: []Statement{
 				{
 					SID:     "",
-					Effect:  policy.Allow,
+					Effect:  Allow,
 					Actions: s3action.NewActionSet(s3action.AllActions),
 				},
 			},
@@ -143,10 +133,10 @@ var DefaultPolicies = []struct {
 	{
 		Name: "readonly",
 		Definition: Policy{
-			Statements: []policy.Statement{
+			Statements: []Statement{
 				{
 					SID:     "",
-					Effect:  policy.Allow,
+					Effect:  Allow,
 					Actions: s3action.NewActionSet(s3action.GetBucketLocationAction, s3action.GetObjectAction),
 				},
 			},
@@ -158,10 +148,10 @@ var DefaultPolicies = []struct {
 		Name: "writeonly",
 		Definition: Policy{
 
-			Statements: []policy.Statement{
+			Statements: []Statement{
 				{
 					SID:     "",
-					Effect:  policy.Allow,
+					Effect:  Allow,
 					Actions: s3action.NewActionSet(s3action.PutObjectAction),
 				},
 			},

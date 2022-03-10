@@ -28,13 +28,13 @@ type Args struct {
 
 // Common errors generated for access and secret key validation.
 var (
-	ErrInvalidAccessKeyLength = fmt.Errorf("access key length should be between %d and %d", accessKeyMinLen, accessKeyMaxLen)
-	ErrInvalidSecretKeyLength = fmt.Errorf("secret key length should be between %d and %d", secretKeyMinLen, secretKeyMaxLen)
+	errInvalidAccessKeyLength = fmt.Errorf("access key length should be between %d and %d", accessKeyMinLen, accessKeyMaxLen)
+	errInvalidSecretKeyLength = fmt.Errorf("secret key length should be between %d and %d", secretKeyMinLen, secretKeyMaxLen)
 )
 var timeSentinel = time.Unix(0, 0).UTC()
 
-// ErrInvalidDuration invalid token expiry
-var ErrInvalidDuration = errors.New("invalid token expiry")
+// errInvalidDuration invalid token expiry
+var errInvalidDuration = errors.New("invalid token expiry")
 
 // Default access and secret keys.
 const (
@@ -88,9 +88,9 @@ type Credentials struct {
 	Status       string    `xml:"-" json:"status,omitempty"`
 }
 
-// GenerateCredentials - creates randomly generated credentials of maximum
+// generateCredentials - creates randomly generated credentials of maximum
 // allowed length.
-func GenerateCredentials() (accessKey, secretKey string, err error) {
+func generateCredentials() (accessKey, secretKey string, err error) {
 	// Generate access key.
 	keyBytes, err := credentialsReadBytes(accessKeyMaxLen)
 	if err != nil {
@@ -113,13 +113,13 @@ func GenerateCredentials() (accessKey, secretKey string, err error) {
 	return accessKey, secretKey, nil
 }
 
-// CreateCredentials Error is returned if given access key or secret key are invalid length.
-func CreateCredentials(accessKey, secretKey string) (cred Credentials, err error) {
+// createCredentials Error is returned if given access key or secret key are invalid length.
+func createCredentials(accessKey, secretKey string) (cred Credentials, err error) {
 	if !IsAccessKeyValid(accessKey) {
-		return cred, ErrInvalidAccessKeyLength
+		return cred, errInvalidAccessKeyLength
 	}
-	if !IsSecretKeyValid(secretKey) {
-		return cred, ErrInvalidSecretKeyLength
+	if !isSecretKeyValid(secretKey) {
+		return cred, errInvalidSecretKeyLength
 	}
 	cred.AccessKey = accessKey
 	cred.SecretKey = secretKey
@@ -132,11 +132,11 @@ func CreateCredentials(accessKey, secretKey string) (cred Credentials, err error
 // and generate a session token if a secret token is provided.
 func CreateNewCredentialsWithMetadata(accessKey, secretKey string, m map[string]interface{}, tokenSecret string) (cred Credentials, err error) {
 	if len(accessKey) < accessKeyMinLen || len(accessKey) > accessKeyMaxLen {
-		return Credentials{}, ErrInvalidAccessKeyLength
+		return Credentials{}, errInvalidAccessKeyLength
 	}
 
 	if len(secretKey) < secretKeyMinLen || len(secretKey) > secretKeyMaxLen {
-		return Credentials{}, ErrInvalidSecretKeyLength
+		return Credentials{}, errInvalidSecretKeyLength
 	}
 
 	cred.AccessKey = accessKey
@@ -148,13 +148,13 @@ func CreateNewCredentialsWithMetadata(accessKey, secretKey string, m map[string]
 		return cred, nil
 	}
 
-	expiry, err := ExpToInt64(m["exp"])
+	expiry, err := expToInt64(m["exp"])
 	if err != nil {
 		return cred, err
 	}
 	cred.Expiration = time.Unix(expiry, 0).UTC()
 
-	cred.SessionToken, err = JWTSignWithAccessKey(cred.AccessKey, m, tokenSecret)
+	cred.SessionToken, err = jWTSignWithAccessKey(cred.AccessKey, m, tokenSecret)
 	if err != nil {
 		return cred, err
 	}
@@ -164,22 +164,22 @@ func CreateNewCredentialsWithMetadata(accessKey, secretKey string, m map[string]
 
 // GetNewCredentialsWithMetadata generates and returns new credential with expiry.
 func GetNewCredentialsWithMetadata(m map[string]interface{}, tokenSecret string) (Credentials, error) {
-	accessKey, secretKey, err := GenerateCredentials()
+	accessKey, secretKey, err := generateCredentials()
 	if err != nil {
 		return Credentials{}, err
 	}
 	return CreateNewCredentialsWithMetadata(accessKey, secretKey, m, tokenSecret)
 }
 
-// JWTSignWithAccessKey - generates a session token.
-func JWTSignWithAccessKey(accessKey string, m map[string]interface{}, tokenSecret string) (string, error) {
+// jWTSignWithAccessKey - generates a session token.
+func jWTSignWithAccessKey(accessKey string, m map[string]interface{}, tokenSecret string) (string, error) {
 	m["accessKey"] = accessKey
 	jwt := jwtgo.NewWithClaims(jwtgo.SigningMethodHS512, jwtgo.MapClaims(m))
 	return jwt.SignedString([]byte(tokenSecret))
 }
 
-// ExpToInt64 - convert input interface value to int64.
-func ExpToInt64(expI interface{}) (expAt int64, err error) {
+// expToInt64 - convert input interface value to int64.
+func expToInt64(expI interface{}) (expAt int64, err error) {
 	switch exp := expI.(type) {
 	case string:
 		expAt, err = strconv.ParseInt(exp, 10, 64)
@@ -200,10 +200,10 @@ func ExpToInt64(expI interface{}) (expAt int64, err error) {
 	case nil:
 		expAt, err = 0, nil
 	default:
-		expAt, err = 0, ErrInvalidDuration
+		expAt, err = 0, errInvalidDuration
 	}
 	if expAt < 0 {
-		return 0, ErrInvalidDuration
+		return 0, errInvalidDuration
 	}
 	return expAt, err
 }
@@ -223,8 +223,8 @@ func IsAccessKeyValid(accessKey string) bool {
 	return len(accessKey) >= accessKeyMinLen
 }
 
-// IsSecretKeyValid - validate secret key for right length.
-func IsSecretKeyValid(secretKey string) bool {
+// isSecretKeyValid - validate secret key for right length.
+func isSecretKeyValid(secretKey string) bool {
 	return len(secretKey) >= secretKeyMinLen
 }
 
@@ -234,7 +234,7 @@ func (cred Credentials) IsValid() bool {
 	if cred.Status == AccountOff {
 		return false
 	}
-	return IsAccessKeyValid(cred.AccessKey) && IsSecretKeyValid(cred.SecretKey) && !cred.IsExpired()
+	return IsAccessKeyValid(cred.AccessKey) && isSecretKeyValid(cred.SecretKey) && !cred.IsExpired()
 }
 
 // IsExpired - returns whether Credential is expired or not.

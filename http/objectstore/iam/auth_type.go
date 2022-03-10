@@ -11,7 +11,7 @@ func isRequestJWT(r *http.Request) bool {
 	return strings.HasPrefix(r.Header.Get("Authorization"), "Bearer")
 }
 
-// Verify if request has AWS Signature Version '4'.
+// IsRequestSignatureV4 Verify if request has AWS Signature Version '4'.
 func IsRequestSignatureV4(r *http.Request) bool {
 	return strings.HasPrefix(r.Header.Get("Authorization"), signV4Algorithm)
 }

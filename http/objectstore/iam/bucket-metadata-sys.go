@@ -3,6 +3,7 @@ package iam
 import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"time"
 )
@@ -34,7 +35,7 @@ func newBucketMetadataSys() *bucketMetadataSys {
 type bucketMetadata struct {
 	Name         string
 	Created      time.Time
-	PolicyConfig *Policy
+	PolicyConfig *policy.Policy
 }
 
 // newBucketMetadata creates bucketMetadata with the supplied name and Created to Now.
@@ -46,7 +47,7 @@ func newBucketMetadata(name string) bucketMetadata {
 }
 
 // GetPolicyConfig returns configured bucket policy
-func (sys *bucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*Policy, error) {
+func (sys *bucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*policy.Policy, error) {
 	meta, err := sys.GetConfig(bucket, accessKey)
 	if err != nil {
 		if errors.Is(err, api_errors.ErrConfigNotFound) {
