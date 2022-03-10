@@ -26,31 +26,3 @@ func main() {
 	app.Run(os.Args)
 
 }
-
-var startCmd = &cli.Command{
-	Name:  "run",
-	Usage: "Start a file dag storage process",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "db-path",
-			Usage: "set db path",
-			Value: dbFILE,
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-
-		if cctx.String("db-path") != "" {
-			err := os.Setenv("DBPATH", cctx.String("db-path"))
-			if err != nil {
-				return err
-			}
-		} else {
-			err := os.Setenv("DBPATH", cctx.String(dbFILE))
-			if err != nil {
-				return err
-			}
-		}
-		startServer()
-		return nil
-	},
-}
