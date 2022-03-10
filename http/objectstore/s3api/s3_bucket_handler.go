@@ -11,7 +11,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
-	"time"
 )
 
 var log = logging.Logger("server")
@@ -25,20 +24,28 @@ type ListAllMyBucketsResult struct {
 
 //ListBucketsHandler ListBuckets Handler
 func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
-	err := s3a.authSys.CheckRequestAuthType(context.Background(), r, s3action.ListAllMyBucketsAction, "testbuckets", "")
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.ListAllMyBucketsAction, "testbuckets", "")
 	if err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
+	bucketMetas, erro := s3a.authSys.PolicySys.GetAllBucketOfUser(cred.AccessKey)
+	if erro != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
 	var buckets []*s3.Bucket
-	buckets = append(buckets, &s3.Bucket{
-		Name:         aws.String("testbuckets"),
-		CreationDate: aws.Time(time.Unix(0, 0).UTC()),
-	})
+	for _, b := range bucketMetas {
+		buckets = append(buckets, &s3.Bucket{
+			Name:         aws.String(b.Name),
+			CreationDate: aws.Time(b.Created),
+		})
+	}
+
 	resp := ListAllMyBucketsResult{
 		Owner: &s3.Owner{
-			ID:          aws.String("fds"),
-			DisplayName: aws.String("fds admin"),
+			ID:          aws.String(cred.AccessKey),
+			DisplayName: aws.String(cred.AccessKey),
 		},
 		Buckets: buckets,
 	}

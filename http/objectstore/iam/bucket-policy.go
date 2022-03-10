@@ -11,6 +11,11 @@ type IPolicySys struct {
 }
 
 // Get returns stored bucket policy
+func (sys *IPolicySys) GetAllBucketOfUser(accessKey string) ([]bucketMetadata, error) {
+	return sys.bmSys.getAllBucketOfUser(accessKey)
+}
+
+// Get returns stored bucket policy
 func (sys *IPolicySys) Get(bucket, accessKey string) (*policy.Policy, error) {
 	return sys.bmSys.GetPolicyConfig(bucket, accessKey)
 }

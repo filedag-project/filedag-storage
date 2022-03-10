@@ -1,10 +1,12 @@
 package iam
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"strings"
 	"time"
 )
 
@@ -87,4 +89,23 @@ func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata)
 		return err
 	}
 	return nil
+}
+
+// getAllBucketOfUser metadata for all bucket.
+func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]bucketMetadata, error) {
+	var m []bucketMetadata
+	mb, err := sys.db.ReadAll(bucketPrefix + username)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range mb {
+		a := bucketMetadata{}
+		err := json.Unmarshal(value, &a)
+		if err != nil {
+			continue
+		}
+		key = strings.Split(key, "/")[1]
+		m = append(m, a)
+	}
+	return m, nil
 }
