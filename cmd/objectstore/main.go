@@ -6,10 +6,6 @@ import (
 	"os"
 )
 
-const (
-	dbFILE = "/tmp/leveldb2/fds.db"
-)
-
 func main() {
 	logging.SetLogLevel("*", "INFO")
 	local := []*cli.Command{
