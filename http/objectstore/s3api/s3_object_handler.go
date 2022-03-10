@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (s3a *S3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
 

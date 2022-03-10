@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	logging "github.com/ipfs/go-log/v2"
 	"sync"
 )
@@ -16,30 +15,27 @@ const (
 
 var log = logging.Logger("iam")
 
-//GlobalIAMSys iam system
-var GlobalIAMSys iamSys
-
-// iamSys - config system.
-type iamSys struct {
+// IdentityAMSys - config system.
+type IdentityAMSys struct {
 	sync.Mutex
 	// Persistence layer for IAM subsystem
 	store *iamStoreSys
 }
 
-// Init - initializes config system
-func (sys *iamSys) Init(ctx context.Context) {
+// Init - initializes IdentityAM config system
+func (sys *IdentityAMSys) Init() {
 	sys.Lock()
 	defer sys.Unlock()
 	sys.initStore()
 }
 
 // initStore initializes IAM stores
-func (sys *iamSys) initStore() {
+func (sys *IdentityAMSys) initStore() {
 	sys.store = &iamStoreSys{newIAMLevelDBStore()}
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
-func (sys *iamSys) IsAllowed(args policy.Args) bool {
+func (sys *IdentityAMSys) IsAllowed(args auth.Args) bool {
 
 	// Policies don't apply to the owner.
 	if args.IsOwner {
@@ -54,7 +50,7 @@ func (sys *iamSys) IsAllowed(args policy.Args) bool {
 }
 
 // GetUserList all user
-func (sys *iamSys) GetUserList(ctx context.Context) []*iam.User {
+func (sys *IdentityAMSys) GetUserList(ctx context.Context) []*iam.User {
 	var u []*iam.User
 	users, err := sys.store.loadUsers(ctx)
 	if err != nil {
@@ -76,7 +72,7 @@ func (sys *iamSys) GetUserList(ctx context.Context) []*iam.User {
 }
 
 //AddUser add user
-func (sys *iamSys) AddUser(ctx context.Context, accessKey, secretKey string) error {
+func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey string) error {
 	m := make(map[string]interface{})
 	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
 	if err != nil {
@@ -92,7 +88,7 @@ func (sys *iamSys) AddUser(ctx context.Context, accessKey, secretKey string) err
 }
 
 // GetUser - get user credentials
-func (sys *iamSys) GetUser(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
+func (sys *IdentityAMSys) GetUser(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
 	m := auth.Credentials{}
 	err := sys.store.loadUser(ctx, accessKey, &m)
 	if err != nil {
@@ -103,7 +99,7 @@ func (sys *iamSys) GetUser(ctx context.Context, accessKey string) (cred auth.Cre
 }
 
 // RemoveUser Remove User
-func (sys *iamSys) RemoveUser(ctx context.Context, accessKey string) error {
+func (sys *IdentityAMSys) RemoveUser(ctx context.Context, accessKey string) error {
 	err := sys.store.RemoveUserIdentity(ctx, accessKey)
 	if err != nil {
 		log.Errorf("Remove UserIdentity err:%v", err)
@@ -113,7 +109,7 @@ func (sys *iamSys) RemoveUser(ctx context.Context, accessKey string) error {
 }
 
 // CreatePolicy Create Policy
-func (sys *iamSys) CreatePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
+func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, policyDocument PolicyDocument) error {
 	err := sys.store.createPolicy(ctx, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create Policy err:%v", err)
@@ -123,7 +119,7 @@ func (sys *iamSys) CreatePolicy(ctx context.Context, policyName string, policyDo
 }
 
 // PutUserPolicy Create Policy
-func (sys *iamSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error {
 	err := sys.store.createUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create UserPolicy err:%v", err)
@@ -133,7 +129,7 @@ func (sys *iamSys) PutUserPolicy(ctx context.Context, userName, policyName strin
 }
 
 // GetUserPolicy Get User Policy
-func (sys *iamSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error {
 	err := sys.store.getUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)
@@ -143,7 +139,7 @@ func (sys *iamSys) GetUserPolicy(ctx context.Context, userName, policyName strin
 }
 
 // RemoveUserPolicy remove User Policy
-func (sys *iamSys) RemoveUserPolicy(ctx context.Context, userName, policyName string) error {
+func (sys *IdentityAMSys) RemoveUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := sys.store.removeUserPolicy(ctx, userName, policyName)
 	if err != nil {
 		log.Errorf("remove UserPolicy err:%v", err)
@@ -153,7 +149,7 @@ func (sys *iamSys) RemoveUserPolicy(ctx context.Context, userName, policyName st
 }
 
 // GetUserInfo  - get user info
-func (sys *iamSys) GetUserInfo(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
+func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
 	m := auth.Credentials{}
 	err := sys.store.loadUser(ctx, accessKey, &m)
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"strings"
 )
@@ -18,7 +17,7 @@ const (
 
 // iamLevelDBStore implements IAMStorageAPI
 type iamLevelDBStore struct {
-	levelDB *uleveldb.ULeveldb
+	levelDB *uleveldb.ULevelDB
 }
 
 func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Credentials) error {
@@ -62,14 +61,14 @@ func (I *iamLevelDBStore) RemoveUserIdentity(ctx context.Context, name string) e
 	}
 	return nil
 }
-func (I *iamLevelDBStore) createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
+func (I *iamLevelDBStore) createPolicy(ctx context.Context, policyName string, policyDocument PolicyDocument) error {
 	err := I.levelDB.Put(policyPrefix+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error {
 	err := I.levelDB.Put(userPolicyPrefix+userName+policyName, policyDocument)
 	if err != nil {
 		return err
@@ -77,7 +76,7 @@ func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policy
 	return nil
 }
 
-func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument PolicyDocument) error {
 	err := I.levelDB.Get(userPrefix+userName+policyName, policyDocument)
 	if err != nil {
 		return err
@@ -113,6 +112,6 @@ func (I *iamLevelDBStore) RemoveGroupInfo(ctx context.Context, name string) erro
 
 func newIAMLevelDBStore() *iamLevelDBStore {
 	return &iamLevelDBStore{
-		levelDB: uleveldb.NewLevelDB(),
+		levelDB: uleveldb.DBClient,
 	}
 }

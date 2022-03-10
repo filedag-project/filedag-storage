@@ -11,60 +11,54 @@ import (
 	"strings"
 )
 
-const userPrefix = "user/"
-
 var log = logging.Logger("leveldb")
 
-//ULeveldb level db store key-struct
-type ULeveldb struct {
+// DBClient start a levelDb
+var DBClient *ULevelDB
+
+//ULevelDB level db store key-struct
+type ULevelDB struct {
 	DB *leveldb.DB
 }
 
-const (
-	DBFILE = "/tmp/leveldb2/fds.db"
-)
-
-// NewLevelDB new a *leveldb.DB
-func NewLevelDB() *ULeveldb {
-	return OpenDb(DBFILE)
-}
-
-func OpenDb(path string) *ULeveldb {
-	newdb, err := leveldb.OpenFile(path, nil)
+// OpenDb open a db client
+func OpenDb(path string) *ULevelDB {
+	newDb, err := leveldb.OpenFile(path, nil)
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
-		newdb, err = leveldb.RecoverFile(path, nil)
+		newDb, err = leveldb.RecoverFile(path, nil)
 	}
 	if err != nil {
-		log.Errorf("Open Db%v", err)
+		log.Errorf("Open Db path: %v,err:%v,", path, err)
 	}
-	uleveldb := ULeveldb{}
-	uleveldb.DB = newdb
-	return &uleveldb
+	uLevelDB := ULevelDB{}
+	uLevelDB.DB = newDb
+	return &uLevelDB
 }
 
-func (uleveldb *ULeveldb) Close() {
-	uleveldb.DB.Close()
+//Close db close
+func (l *ULevelDB) Close() {
+	l.DB.Close()
 }
 
 // Put
 // * @param {interface{}} key
 // * @param {interface{}} value
-func (uleveldb *ULeveldb) Put(key string, value interface{}) error {
+func (l *ULevelDB) Put(key string, value interface{}) error {
 
 	result, err := json.Marshal(value)
 	if err != nil {
 		log.Errorf("marshal error%v", err)
 		return err
 	}
-	err = uleveldb.DB.Put([]byte(key), result, nil)
+	err = l.DB.Put([]byte(key), result, nil)
 	return err
 }
 
 // Get
 // * @param {interface{}} key
 // * @param {interface{}} value
-func (uleveldb *ULeveldb) Get(key, value interface{}) error {
-	get, err := uleveldb.DB.Get([]byte(key.(string)), nil)
+func (l *ULevelDB) Get(key, value interface{}) error {
+	get, err := l.DB.Get([]byte(key.(string)), nil)
 	if err != nil {
 		log.Errorf(" Get error%v", err)
 		return err
@@ -79,20 +73,20 @@ func (uleveldb *ULeveldb) Get(key, value interface{}) error {
 // Delete
 // * @param {interface{}} key
 // * @param {interface{}} value
-func (uleveldb *ULeveldb) Delete(key string) error {
+func (l *ULevelDB) Delete(key string) error {
 
-	return uleveldb.DB.Delete([]byte(key), nil)
+	return l.DB.Delete([]byte(key), nil)
 }
 
 // NewIterator /**
-func (uleveldb *ULeveldb) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
+func (l *ULevelDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
 
-	return uleveldb.DB.NewIterator(slice, ro)
+	return l.DB.NewIterator(slice, ro)
 }
 
 //ReadAll read all key value
-func (uleveldb *ULeveldb) ReadAll(prefix string) (map[string][]byte, error) {
-	iter := uleveldb.NewIterator(nil, nil)
+func (l *ULevelDB) ReadAll(prefix string) (map[string][]byte, error) {
+	iter := l.NewIterator(nil, nil)
 	m := make(map[string][]byte)
 	for iter.Next() {
 		if strings.Contains(string(iter.Key()), prefix) {

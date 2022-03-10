@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	jwtgo "github.com/golang-jwt/jwt/v4"
 	logging "github.com/ipfs/go-log/v2"
 	"strconv"
@@ -14,6 +15,16 @@ import (
 )
 
 var log = logging.Logger("auth")
+
+// Args - arguments to policy to check whether it is allowed
+type Args struct {
+	AccountName string          `json:"account"`
+	Groups      []string        `json:"groups"`
+	Action      s3action.Action `json:"action"`
+	BucketName  string          `json:"bucket"`
+	IsOwner     bool            `json:"owner"`
+	ObjectName  string          `json:"object"`
+}
 
 // Common errors generated for access and secret key validation.
 var (

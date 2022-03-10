@@ -11,7 +11,7 @@ import (
 )
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
-	var s3server S3ApiServer
+	var s3server s3ApiServer
 	router := mux.NewRouter().SkipClean(true)
 	s3server.registerS3Router(router)
 	http.ListenAndServe("127.0.0.1:9985", router)

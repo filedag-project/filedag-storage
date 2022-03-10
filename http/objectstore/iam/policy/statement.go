@@ -3,7 +3,9 @@ package policy
 import (
 	"errors"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
+	"unicode/utf8"
 )
 
 //
@@ -46,6 +48,25 @@ type Statement struct {
 	Actions   s3action.ActionSet `json:"Action"`
 }
 
+// ID - policy ID.
+type ID string
+
+// IsValid - checks if ID is valid or not.
+func (id ID) IsValid() bool {
+	return utf8.ValidString(string(id))
+}
+
+// Effect - policy statement effect Allow or Deny.
+type Effect string
+
+const (
+	// Allow - allow effect.
+	Allow Effect = "Allow"
+
+	// Deny - deny effect.
+	Deny = "Deny"
+)
+
 // Equals checks if two statements are equal
 func (statement Statement) Equals(st Statement) bool {
 	if statement.Effect != st.Effect {
@@ -77,7 +98,7 @@ func NewStatement(sid ID, effect Effect, principal Principal, actionSet s3action
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
-func (statement Statement) IsAllowed(args Args) bool {
+func (statement Statement) IsAllowed(args auth.Args) bool {
 	check := func() bool {
 		if !statement.Principal.Match(args.AccountName) {
 			return false
@@ -92,8 +113,8 @@ func (statement Statement) IsAllowed(args Args) bool {
 	return statement.Effect.IsAllowed(check())
 }
 
-// isValid - checks whether statement is valid or not.
-func (statement Statement) isValid() error {
+// IsValid - checks whether statement is valid or not.
+func (statement Statement) IsValid() error {
 
 	if len(statement.Actions) == 0 {
 		return errors.New(fmt.Sprintf("Action must not be empty"))
@@ -104,4 +125,12 @@ func (statement Statement) isValid() error {
 	}
 
 	return nil
+}
+
+// IsAllowed - returns if given check is allowed or not.
+func (effect Effect) IsAllowed(b bool) bool {
+	if effect == Allow {
+		return b
+	}
+	return !b
 }

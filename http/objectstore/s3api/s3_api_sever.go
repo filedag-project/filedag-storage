@@ -1,19 +1,28 @@
 package s3api
 
 import (
+	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-type S3ApiServer struct {
+type s3ApiServer struct {
+	authSys iam.AuthSys
 }
 
 //registerS3Router Register S3Router
-func (s3a S3ApiServer) registerS3Router(router *mux.Router) {
+func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	// API Router
 	apiRouter := router.PathPrefix("/").Subrouter()
-
+	apiRouter.Methods(http.MethodPost).MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+		ctypeOk := set.MatchSimple("application/x-www-form-urlencoded*", r.Header.Get(consts.ContentType))
+		authOk := set.MatchSimple(consts.SignV4Algorithm+"*", r.Header.Get(consts.Authorization))
+		noQueries := len(r.URL.RawQuery) == 0
+		return ctypeOk && authOk && noQueries
+	}).HandlerFunc(s3a.AssumeRole)
 	// Readiness Probe
 	apiRouter.Methods("GET").Path("/status").HandlerFunc(s3a.StatusHandler)
 	// NotFound
@@ -34,6 +43,7 @@ func (s3a S3ApiServer) registerS3Router(router *mux.Router) {
 
 //NewS3Server Start a S3Server
 func NewS3Server(router *mux.Router) {
-	var s3server S3ApiServer
+	var s3server s3ApiServer
+	s3server.authSys.Init()
 	s3server.registerS3Router(router)
 }

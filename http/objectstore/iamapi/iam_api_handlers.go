@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
 	"sync"
@@ -23,7 +22,7 @@ var policyLock = sync.RWMutex{}
 //GetUserList get all user
 func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) {
 	var resp ListUsersResponse
-	resp.ListUsersResult.Users = iam.GlobalIAMSys.GetUserList(context.Background())
+	resp.ListUsersResult.Users = iamApi.authSys.Iam.GetUserList(context.Background())
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
@@ -34,7 +33,7 @@ func (iamApi *iamApiServer) AddUser(w http.ResponseWriter, r *http.Request) {
 	accessKey := values.Get("accessKey")
 	secretKey := values.Get("secretKey")
 	resp.CreateUserResult.User.UserName = &accessKey
-	err := iam.GlobalIAMSys.AddUser(context.Background(), accessKey, secretKey)
+	err := iamApi.authSys.Iam.AddUser(context.Background(), accessKey, secretKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -47,7 +46,7 @@ func (iamApi *iamApiServer) RemoveUser(w http.ResponseWriter, r *http.Request) {
 	var resp CreateUserResponse
 	accessKey := r.FormValue("accessKey")
 	resp.CreateUserResult.User.UserName = &accessKey
-	err := iam.GlobalIAMSys.RemoveUser(context.Background(), accessKey)
+	err := iamApi.authSys.Iam.RemoveUser(context.Background(), accessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -66,7 +65,7 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	err = iam.GlobalIAMSys.PutUserPolicy(context.Background(), userName, policyName, policyDocument)
+	err = iamApi.authSys.Iam.PutUserPolicy(context.Background(), userName, policyName, policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -82,8 +81,8 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 
 	resp.GetUserPolicyResult.UserName = userName
 	resp.GetUserPolicyResult.PolicyName = policyName
-	policyDocument := policy.PolicyDocument{Version: policyDocumentVersion}
-	err := iam.GlobalIAMSys.GetUserPolicy(context.Background(), userName, policyName, policyDocument)
+	policyDocument := iam.PolicyDocument{Version: policyDocumentVersion}
+	err := iamApi.authSys.Iam.GetUserPolicy(context.Background(), userName, policyName, policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -97,7 +96,7 @@ func (iamApi *iamApiServer) RemoveUserPolicy(w http.ResponseWriter, r *http.Requ
 	var resp PutUserPolicyResponse
 	userName := r.FormValue("userName")
 	policyName := r.FormValue("policyName")
-	err := iam.GlobalIAMSys.RemoveUserPolicy(context.Background(), userName, policyName)
+	err := iamApi.authSys.Iam.RemoveUserPolicy(context.Background(), userName, policyName)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -106,9 +105,9 @@ func (iamApi *iamApiServer) RemoveUserPolicy(w http.ResponseWriter, r *http.Requ
 }
 
 //GetPolicyDocument Get PolicyDocument
-func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, err error) {
+func GetPolicyDocument(policyD *string) (policyDocument iam.PolicyDocument, err error) {
 	if err = json.Unmarshal([]byte(*policyD), &policyDocument); err != nil {
-		return policy.PolicyDocument{}, err
+		return iam.PolicyDocument{}, err
 	}
 	return policyDocument, err
 }
@@ -134,7 +133,7 @@ func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request)
 	resp.CreatePolicyResult.Policy.PolicyId = &policyId
 	policyLock.Lock()
 	defer policyLock.Unlock()
-	err = iam.GlobalIAMSys.CreatePolicy(context.Background(), policyName, policyDocument)
+	err = iamApi.authSys.Iam.CreatePolicy(context.Background(), policyName, policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -147,12 +146,12 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 	userName := r.FormValue("userName")
 	ctx := context.Background()
 
-	_, _, _, s3Err := iam.ValidateAdminSignature(ctx, r, "")
+	_, _, _, s3Err := iamApi.authSys.ValidateAdminSignature(ctx, r, "")
 	if s3Err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
-	cred, ok := iam.GlobalIAMSys.GetUserInfo(ctx, userName)
+	cred, ok := iamApi.authSys.Iam.GetUserInfo(ctx, userName)
 	if !ok {
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
 		return

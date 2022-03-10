@@ -8,9 +8,9 @@ import (
 )
 
 func TestLoadUser(t *testing.T) {
-	var iamsys iamSys
-	iamsys.Init(context.Background())
-	//err := iamsys.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.Credentials{
+	var iamSys IdentityAMSys
+	iamSys.Init()
+	//err := iamSys.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.Credentials{
 	//	AccessKey:    "test",
 	//	SecretKey:    "test secret",
 	//	Expiration:   time.Now(),
@@ -22,19 +22,19 @@ func TestLoadUser(t *testing.T) {
 	//}
 
 	m := &auth.Credentials{}
-	err := iamsys.store.loadUser(context.Background(), "test", m)
+	err := iamSys.store.loadUser(context.Background(), "test", m)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	//fmt.Println(m)
-	//a, err := iamsys.loadUsers(context.Background())
+	//a, err := iamSys.loadUsers(context.Background())
 	//if err != nil {
 	//	fmt.Println(err)
 	//	return
 	//}
 	//fmt.Println(a)
-	//err := iamsys.RemoveUserIdentity(context.Background(), "s")
+	//err := iamSys.RemoveUserIdentity(context.Background(), "s")
 	//if err != nil {
 	//	return
 	//}

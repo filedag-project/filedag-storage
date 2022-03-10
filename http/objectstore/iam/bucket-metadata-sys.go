@@ -1,4 +1,4 @@
-package policy
+package iam
 
 import (
 	"errors"
@@ -6,8 +6,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"time"
 )
-
-var globalBucketMetadataSys = NewBucketMetadataSys()
 
 const (
 	bucketPrefix = "buckets/"
@@ -20,35 +18,35 @@ func (e bucketPolicyNotFound) Error() string {
 	return "No bucket policy configuration found for bucket: " + e.Bucket
 }
 
-// BucketMetadataSys captures all bucket metadata for a given cluster.
-type BucketMetadataSys struct {
-	db *uleveldb.ULeveldb
+// bucketMetadataSys captures all bucket metadata for a given cluster.
+type bucketMetadataSys struct {
+	db *uleveldb.ULevelDB
 }
 
-// NewBucketMetadataSys - creates new policy system.
-func NewBucketMetadataSys() *BucketMetadataSys {
-	return &BucketMetadataSys{
-		db: uleveldb.NewLevelDB(),
+// newBucketMetadataSys - creates new policy system.
+func newBucketMetadataSys() *bucketMetadataSys {
+	return &bucketMetadataSys{
+		db: uleveldb.DBClient,
 	}
 }
 
-// BucketMetadata contains bucket metadata.
-type BucketMetadata struct {
+// bucketMetadata contains bucket metadata.
+type bucketMetadata struct {
 	Name         string
 	Created      time.Time
 	PolicyConfig *Policy
 }
 
-// newBucketMetadata creates BucketMetadata with the supplied name and Created to Now.
-func newBucketMetadata(name string) BucketMetadata {
-	return BucketMetadata{
+// newBucketMetadata creates bucketMetadata with the supplied name and Created to Now.
+func newBucketMetadata(name string) bucketMetadata {
+	return bucketMetadata{
 		Name:    name,
 		Created: time.Now().UTC(),
 	}
 }
 
 // GetPolicyConfig returns configured bucket policy
-func (sys *BucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*Policy, error) {
+func (sys *bucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*Policy, error) {
 	meta, err := sys.GetConfig(bucket, accessKey)
 	if err != nil {
 		if errors.Is(err, api_errors.ErrConfigNotFound) {
@@ -63,17 +61,17 @@ func (sys *BucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*Policy
 }
 
 // GetConfig returns a specific configuration from the bucket metadata.
-func (sys *BucketMetadataSys) GetConfig(bucket, accessKey string) (BucketMetadata, error) {
-	var meta BucketMetadata
+func (sys *bucketMetadataSys) GetConfig(bucket, accessKey string) (bucketMetadata, error) {
+	var meta bucketMetadata
 	err := sys.Get(bucket, accessKey, &meta)
 	if err != nil {
-		return BucketMetadata{}, err
+		return bucketMetadata{}, err
 	}
 	return meta, nil
 }
 
 // Set - sets a new metadata in-db
-func (sys *BucketMetadataSys) Set(bucket, username string, meta BucketMetadata) error {
+func (sys *bucketMetadataSys) Set(bucket, username string, meta bucketMetadata) error {
 	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
@@ -82,7 +80,7 @@ func (sys *BucketMetadataSys) Set(bucket, username string, meta BucketMetadata) 
 }
 
 // Get metadata for a bucket.
-func (sys *BucketMetadataSys) Get(bucket, username string, meta *BucketMetadata) error {
+func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata) error {
 	err := sys.db.Get(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err

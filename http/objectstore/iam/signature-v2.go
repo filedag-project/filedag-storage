@@ -77,11 +77,11 @@ const (
 
 // AWS S3 Signature V2 calculation rule is give here:
 // http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html#RESTAuthenticationStringToSign
-func doesPolicySignatureV2Match(formValues http.Header) (auth.Credentials, api_errors.ErrorCode) {
+func (s *AuthSys) doesPolicySignatureV2Match(formValues http.Header) (auth.Credentials, api_errors.ErrorCode) {
 	accessKey := formValues.Get(consts.AmzAccessKeyID)
 
 	r := &http.Request{Header: formValues}
-	cred, _, s3Err := checkKeyValid(r, accessKey)
+	cred, _, s3Err := s.checkKeyValid(r, accessKey)
 	if s3Err != api_errors.ErrNone {
 		return cred, s3Err
 	}
@@ -110,7 +110,7 @@ func unescapeQueries(encodedQuery string) (unescapedQueries []string, err error)
 // doesPresignV2SignatureMatch - Verify query headers with presigned signature
 //     - http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html#RESTAuthenticationQueryStringAuth
 // returns api_errors.ErrNone if matches. S3 errors otherwise.
-func doesPresignV2SignatureMatch(r *http.Request) api_errors.ErrorCode {
+func (s *AuthSys) doesPresignV2SignatureMatch(r *http.Request) api_errors.ErrorCode {
 	// r.RequestURI will have raw encoded URI as sent by the client.
 	tokens := strings.SplitN(r.RequestURI, "?", 2)
 	encodedResource := tokens[0]
@@ -156,7 +156,7 @@ func doesPresignV2SignatureMatch(r *http.Request) api_errors.ErrorCode {
 		return api_errors.ErrInvalidQueryParams
 	}
 
-	cred, _, s3Err := checkKeyValid(r, accessKey)
+	cred, _, s3Err := s.checkKeyValid(r, accessKey)
 	if s3Err != api_errors.ErrNone {
 		return s3Err
 	}
@@ -187,9 +187,9 @@ func doesPresignV2SignatureMatch(r *http.Request) api_errors.ErrorCode {
 	return api_errors.ErrNone
 }
 
-func getReqAccessKeyV2(r *http.Request) (auth.Credentials, bool, api_errors.ErrorCode) {
+func (s *AuthSys) getReqAccessKeyV2(r *http.Request) (auth.Credentials, bool, api_errors.ErrorCode) {
 	if accessKey := r.Form.Get(consts.AmzAccessKeyID); accessKey != "" {
-		return checkKeyValid(r, accessKey)
+		return s.checkKeyValid(r, accessKey)
 	}
 
 	// below is V2 Signed Auth header format, splitting on `space` (after the `AWS` string).
@@ -205,7 +205,7 @@ func getReqAccessKeyV2(r *http.Request) (auth.Credentials, bool, api_errors.Erro
 		return auth.Credentials{}, false, api_errors.ErrMissingFields
 	}
 
-	return checkKeyValid(r, keySignFields[0])
+	return s.checkKeyValid(r, keySignFields[0])
 }
 
 // Authorization = "AWS" + " " + AWSAccessKeyId + ":" + Signature;
@@ -228,7 +228,7 @@ func getReqAccessKeyV2(r *http.Request) (auth.Credentials, bool, api_errors.Erro
 //     - http://docs.aws.amazon.com/AmazonS3/latest/dev/auth-request-sig-v2.html
 // returns true if matches, false otherwise. if error is not nil then it is always false
 
-func validateV2AuthHeader(r *http.Request) (auth.Credentials, api_errors.ErrorCode) {
+func (s *AuthSys) validateV2AuthHeader(r *http.Request) (auth.Credentials, api_errors.ErrorCode) {
 	var cred auth.Credentials
 	v2Auth := r.Header.Get(consts.Authorization)
 	if v2Auth == "" {
@@ -240,7 +240,7 @@ func validateV2AuthHeader(r *http.Request) (auth.Credentials, api_errors.ErrorCo
 		return cred, api_errors.ErrSignatureVersionNotSupported
 	}
 
-	cred, _, apiErr := getReqAccessKeyV2(r)
+	cred, _, apiErr := s.getReqAccessKeyV2(r)
 	if apiErr != api_errors.ErrNone {
 		return cred, apiErr
 	}
@@ -248,9 +248,9 @@ func validateV2AuthHeader(r *http.Request) (auth.Credentials, api_errors.ErrorCo
 	return cred, api_errors.ErrNone
 }
 
-func doesSignV2Match(r *http.Request) api_errors.ErrorCode {
+func (s *AuthSys) doesSignV2Match(r *http.Request) api_errors.ErrorCode {
 	v2Auth := r.Header.Get(consts.Authorization)
-	cred, apiError := validateV2AuthHeader(r)
+	cred, apiError := s.validateV2AuthHeader(r)
 	if apiError != api_errors.ErrNone {
 		return apiError
 	}

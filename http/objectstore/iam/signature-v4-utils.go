@@ -141,12 +141,12 @@ func isValidRegion(reqRegion string, confRegion string) bool {
 
 // check if the access key is valid and recognized, additionally
 // also returns if the access key is owner/admin.
-func checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, api_errors.ErrorCode) {
+func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, api_errors.ErrorCode) {
 
 	cred := auth.GetDefaultActiveCred()
 	if cred.AccessKey != accessKey {
 		// Check if the access key is part of users credentials.
-		ucred, ok := GlobalIAMSys.GetUser(r.Context(), accessKey)
+		ucred, ok := s.Iam.GetUser(r.Context(), accessKey)
 		if !ok {
 			// Credentials will be invalid but and disabled
 			// return a different error in such a scenario.

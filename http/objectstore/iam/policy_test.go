@@ -1,16 +1,22 @@
-package policy
+package iam
 
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"testing"
-	"time"
 )
 
 func TestPolicySys_IsAllowed(t *testing.T) {
+	uleveldb.DBClient = uleveldb.OpenDb("/tmp/test/fds.db")
 	initSys()
-	if GlobalPolicySys.IsAllowed(Args{
+	var iamSys IdentityAMSys
+	iamSys.Init()
+	var poli IPolicySys
+	poli.Init()
+	if iamSys.IsAllowed(auth.Args{
 		AccountName: auth.DefaultAccessKey,
 		Action:      "list",
 		BucketName:  "test",
@@ -23,16 +29,10 @@ func TestPolicySys_IsAllowed(t *testing.T) {
 }
 
 func initSys() {
-	var states []Statement
+	var states []policy.Statement
+
 	ast := s3action.NewActionSet("list")
-	principal := NewPrincipal(auth.DefaultAccessKey)
-	states = append(states, NewStatement("1", Allow, principal, ast))
-	globalBucketMetadataSys.Set("test", "name", BucketMetadata{
-		Name:    "test",
-		Created: time.Time{},
-		PolicyConfig: &Policy{
-			ID:         "policyConfigtest",
-			Statements: states,
-		},
-	})
+	principal := policy.NewPrincipal(auth.DefaultAccessKey)
+	states = append(states, policy.NewStatement("1", policy.Allow, principal, ast))
+
 }

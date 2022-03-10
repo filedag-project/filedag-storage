@@ -49,7 +49,7 @@ func (c credentialHeader) getScope() string {
 	}, consts.SlashSeparator)
 }
 
-func GetReqAccessKeyV4(r *http.Request, region string, stype serviceType) (auth.Credentials, bool, api_errors.ErrorCode) {
+func (s *AuthSys) GetReqAccessKeyV4(r *http.Request, region string, stype serviceType) (auth.Credentials, bool, api_errors.ErrorCode) {
 	ch, s3Err := parseCredentialHeader("Credential="+r.Form.Get(consts.AmzCredential), region, stype)
 	if s3Err != api_errors.ErrNone {
 		// Strip off the Algorithm prefix.
@@ -63,7 +63,7 @@ func GetReqAccessKeyV4(r *http.Request, region string, stype serviceType) (auth.
 			return auth.Credentials{}, false, s3Err
 		}
 	}
-	return checkKeyValid(r, ch.accessKey)
+	return s.checkKeyValid(r, ch.accessKey)
 }
 
 // parse credentialHeader string into its structured form.

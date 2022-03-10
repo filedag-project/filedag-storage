@@ -7,7 +7,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
@@ -16,41 +15,53 @@ import (
 	"net/http"
 )
 
+// AuthSys auth and sign system
+type AuthSys struct {
+	Iam       IdentityAMSys
+	PolicySys IPolicySys
+}
+
+//Init AuthSys
+func (s *AuthSys) Init() {
+	s.Iam.Init()
+	s.PolicySys.Init()
+}
+
 // CheckRequestAuthType Check request auth type verifies the incoming http request
 // - validates the request signature
 // - validates the policy action if anonymous tests bucket policies if any,
 //   for authenticated requests validates IAM policies.
 // returns APIErrorCode if any to be replied to the client.
-func CheckRequestAuthType(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (s3Err api_errors.ErrorCode) {
-	_, _, s3Err = CheckRequestAuthTypeCredential(ctx, r, action, bucketName, objectName)
+func (s *AuthSys) CheckRequestAuthType(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (s3Err api_errors.ErrorCode) {
+	_, _, s3Err = s.CheckRequestAuthTypeCredential(ctx, r, action, bucketName, objectName)
 	return s3Err
 }
 
-// Check request auth type verifies the incoming http request
+// CheckRequestAuthTypeCredential Check request auth type verifies the incoming http request
 // - validates the request signature
 // - validates the policy action if anonymous tests bucket policies if any,
 //   for authenticated requests validates IAM policies.
 // returns APIErrorCode if any to be replied to the client.
 // Additionally returns the accessKey used in the request, and if this request is by an admin.
-func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
+func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
 	switch getRequestAuthType(r) {
 	case authTypeUnknown, authTypeStreamingSigned:
 		return cred, owner, api_errors.ErrSignatureVersionNotSupported
 	case authTypePresignedV2, authTypeSignedV2:
-		if s3Err = isReqAuthenticatedV2(r); s3Err != api_errors.ErrNone {
+		if s3Err = s.isReqAuthenticatedV2(r); s3Err != api_errors.ErrNone {
 			return cred, owner, s3Err
 		}
-		cred, owner, s3Err = getReqAccessKeyV2(r)
+		cred, owner, s3Err = s.getReqAccessKeyV2(r)
 	case authTypeSigned, authTypePresigned:
 		region := ""
 		switch action {
-		case policy.GetBucketLocationAction, s3action.ListAllMyBucketsAction:
+		case s3action.GetBucketLocationAction, s3action.ListAllMyBucketsAction:
 			region = ""
 		}
-		if s3Err = IsReqAuthenticated(ctx, r, region, serviceS3); s3Err != api_errors.ErrNone {
+		if s3Err = s.IsReqAuthenticated(ctx, r, region, serviceS3); s3Err != api_errors.ErrNone {
 			return cred, owner, s3Err
 		}
-		cred, owner, s3Err = GetReqAccessKeyV4(r, region, serviceS3)
+		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, serviceS3)
 	}
 	if s3Err != api_errors.ErrNone {
 		return cred, owner, s3Err
@@ -69,7 +80,7 @@ func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 
 		// Populate payload again to handle it in HTTP handler.
 		r.Body = ioutil.NopCloser(bytes.NewReader(payload))
-		pol, err := policy.GlobalPolicySys.Get(bucketName, cred.AccessKey)
+		pol, err := s.PolicySys.Get(bucketName, cred.AccessKey)
 		if err != nil || pol.IsEmpty() {
 			return cred, owner, api_errors.ErrMalformedXML
 		}
@@ -77,7 +88,7 @@ func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 
 	if action != s3action.ListAllMyBucketsAction && cred.AccessKey == "" {
 		// Anonymous checks are not meant for ListBuckets action
-		if policy.GlobalPolicySys.IsAllowed(policy.Args{
+		if s.PolicySys.IsAllowed(auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      action,
 			BucketName:  bucketName,
@@ -91,7 +102,7 @@ func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 		if action == s3action.ListBucketVersionsAction {
 			// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
 			// verify as a fallback.
-			if policy.GlobalPolicySys.IsAllowed(policy.Args{
+			if s.PolicySys.IsAllowed(auth.Args{
 				AccountName: cred.AccessKey,
 				Action:      s3action.ListBucketAction,
 				BucketName:  bucketName,
@@ -106,7 +117,7 @@ func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 		return cred, owner, api_errors.ErrAccessDenied
 	}
 
-	if GlobalIAMSys.IsAllowed(policy.Args{
+	if s.Iam.IsAllowed(auth.Args{
 		AccountName: cred.AccessKey,
 		Action:      action,
 		BucketName:  bucketName,
@@ -120,7 +131,7 @@ func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 	if action == s3action.ListBucketVersionsAction {
 		// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
 		// verify as a fallback.
-		if GlobalIAMSys.IsAllowed(policy.Args{
+		if s.Iam.IsAllowed(auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      s3action.ListBucketAction,
 			BucketName:  bucketName,
@@ -136,28 +147,28 @@ func CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action
 }
 
 // Verify if request has valid AWS Signature Version '2'.
-func isReqAuthenticatedV2(r *http.Request) (s3Error api_errors.ErrorCode) {
+func (s *AuthSys) isReqAuthenticatedV2(r *http.Request) (s3Error api_errors.ErrorCode) {
 	if isRequestSignatureV2(r) {
-		return doesSignV2Match(r)
+		return s.doesSignV2Match(r)
 	}
-	return doesPresignV2SignatureMatch(r)
+	return s.doesPresignV2SignatureMatch(r)
 }
 
-func reqSignatureV4Verify(r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
+func (s *AuthSys) reqSignatureV4Verify(r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
 	sha256sum := getContentSha256Cksum(r, stype)
 	switch {
 	case IsRequestSignatureV4(r):
-		return doesSignatureMatch(sha256sum, r, region, stype)
+		return s.doesSignatureMatch(sha256sum, r, region, stype)
 	case isRequestPresignedSignatureV4(r):
-		return doesPresignedSignatureMatch(sha256sum, r, region, stype)
+		return s.doesPresignedSignatureMatch(sha256sum, r, region, stype)
 	default:
 		return api_errors.ErrAccessDenied
 	}
 }
 
 // Verify if request has valid AWS Signature Version '4'.
-func IsReqAuthenticated(ctx context.Context, r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
-	if errCode := reqSignatureV4Verify(r, region, stype); errCode != api_errors.ErrNone {
+func (s *AuthSys) IsReqAuthenticated(ctx context.Context, r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
+	if errCode := s.reqSignatureV4Verify(r, region, stype); errCode != api_errors.ErrNone {
 		return errCode
 	}
 	clientETag, err := etag.FromContentMD5(r.Header)
@@ -193,20 +204,20 @@ func IsReqAuthenticated(ctx context.Context, r *http.Request, region string, sty
 }
 
 //ValidateAdminSignature validate admin Signature
-func ValidateAdminSignature(ctx context.Context, r *http.Request, region string) (auth.Credentials, map[string]interface{}, bool, api_errors.ErrorCode) {
+func (s *AuthSys) ValidateAdminSignature(ctx context.Context, r *http.Request, region string) (auth.Credentials, map[string]interface{}, bool, api_errors.ErrorCode) {
 	var cred auth.Credentials
 	var owner bool
 	s3Err := api_errors.ErrAccessDenied
 	if _, ok := r.Header[consts.AmzContentSha256]; ok &&
 		getRequestAuthType(r) == authTypeSigned {
 		// We only support admin credentials to access admin APIs.
-		cred, owner, s3Err = GetReqAccessKeyV4(r, region, serviceS3)
+		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, serviceS3)
 		if s3Err != api_errors.ErrNone {
 			return cred, nil, owner, s3Err
 		}
 
 		// we only support V4 (no presign) with auth body
-		s3Err = IsReqAuthenticated(ctx, r, region, serviceS3)
+		s3Err = s.IsReqAuthenticated(ctx, r, region, serviceS3)
 	}
 	if s3Err != api_errors.ErrNone {
 		return cred, nil, owner, s3Err

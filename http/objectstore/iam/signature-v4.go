@@ -185,7 +185,7 @@ func compareSignatureV4(sig1, sig2 string) bool {
 // doesPresignedSignatureMatch - Verify query headers with presigned signature
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
 // returns api_errors.ErrNone if the signature matches.
-func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) api_errors.ErrorCode {
+func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) api_errors.ErrorCode {
 	// Copy request
 	req := *r
 
@@ -195,7 +195,7 @@ func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region s
 		return err
 	}
 
-	cred, _, s3Err := checkKeyValid(r, pSignValues.Credential.accessKey)
+	cred, _, s3Err := s.checkKeyValid(r, pSignValues.Credential.accessKey)
 	if s3Err != api_errors.ErrNone {
 		return s3Err
 	}
@@ -311,7 +311,7 @@ func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region s
 // doesSignatureMatch - Verify authorization header with calculated header in accordance with
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html
 // returns api_errors.ErrNone if signature matches.
-func doesSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) api_errors.ErrorCode {
+func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) api_errors.ErrorCode {
 	// Copy request.
 	req := *r
 
@@ -330,7 +330,7 @@ func doesSignatureMatch(hashedPayload string, r *http.Request, region string, st
 		return errCode
 	}
 
-	cred, _, s3Err := checkKeyValid(r, signV4Values.Credential.accessKey)
+	cred, _, s3Err := s.checkKeyValid(r, signV4Values.Credential.accessKey)
 	if s3Err != api_errors.ErrNone {
 		return s3Err
 	}

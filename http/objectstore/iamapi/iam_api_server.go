@@ -3,7 +3,6 @@ package iamapi
 // https://docs.aws.amazon.com/cli/latest/reference/iam/list-roles.html
 
 import (
-	"context"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/gorilla/mux"
@@ -12,12 +11,13 @@ import (
 
 //iamApiServer the IamApi Server
 type iamApiServer struct {
+	authSys iam.AuthSys
 }
 
 //NewIamApiServer New iamApiServer
 func NewIamApiServer(router *mux.Router) {
 	iamApiSer := &iamApiServer{}
-	iam.GlobalIAMSys.Init(context.Background())
+	iamApiSer.authSys.Init()
 	iamApiSer.registerRouter(router)
 
 }

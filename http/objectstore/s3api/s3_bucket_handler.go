@@ -6,8 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
@@ -26,8 +24,8 @@ type ListAllMyBucketsResult struct {
 }
 
 //ListBucketsHandler ListBuckets Handler
-func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
-	err := iam.CheckRequestAuthType(context.Background(), r, s3action.ListAllMyBucketsAction, "testbuckets", "")
+func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
+	err := s3a.authSys.CheckRequestAuthType(context.Background(), r, s3action.ListAllMyBucketsAction, "testbuckets", "")
 	if err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
@@ -48,14 +46,14 @@ func (s3a *S3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 
-func (s3a *S3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
 
 	bucket, _ := GetBucketAndObject(r)
 	log.Infof("PutBucketHandler %s", bucket)
 
 	// avoid duplicated buckets
 	errCode := api_errors.ErrNone
-	cred, _, err := iam.CheckRequestAuthTypeCredential(context.Background(), r, s3action.CreateBucketAction, bucket, "")
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.CreateBucketAction, bucket, "")
 	if err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errCode)
 		return
@@ -67,7 +65,7 @@ func (s3a *S3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	erro := policy.GlobalPolicySys.Set(bucket, cred.AccessKey)
+	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey)
 	if erro != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return

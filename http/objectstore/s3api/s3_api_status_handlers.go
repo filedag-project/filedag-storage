@@ -4,6 +4,6 @@ import (
 	"net/http"
 )
 
-func (s3a *S3ApiServer) StatusHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *s3ApiServer) StatusHandler(w http.ResponseWriter, r *http.Request) {
 
 }
