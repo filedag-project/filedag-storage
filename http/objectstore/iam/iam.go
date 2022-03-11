@@ -94,17 +94,9 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context) []*iam.User {
 	if err != nil {
 		return nil
 	}
-	for user, cerd := range users {
-		u = append(u, &iam.User{
-			Arn:                 nil,
-			CreateDate:          &cerd.Expiration,
-			PasswordLastUsed:    nil,
-			Path:                nil,
-			PermissionsBoundary: nil,
-			Tags:                nil,
-			UserId:              &user,
-			UserName:            &user,
-		})
+	for _, cerd := range users {
+		var a iam.User
+		u = append(u, a.SetUserName(cerd.AccessKey).SetUserId(cerd.AccessKey).SetCreateDate(cerd.CreateTime))
 	}
 	return u
 }

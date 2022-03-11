@@ -83,6 +83,7 @@ const (
 type Credentials struct {
 	AccessKey    string    `xml:"AccessKeyId" json:"accessKey,omitempty"`
 	SecretKey    string    `xml:"SecretAccessKey" json:"secretKey,omitempty"`
+	CreateTime   time.Time `xml:"CreateTime" json:"createTime,omitempty"`
 	Expiration   time.Time `xml:"Expiration" json:"expiration,omitempty"`
 	SessionToken string    `xml:"SessionToken" json:"sessionToken"`
 	Status       string    `xml:"-" json:"status,omitempty"`
@@ -143,7 +144,7 @@ func CreateNewCredentialsWithMetadata(accessKey, secretKey string, m map[string]
 	cred.AccessKey = accessKey
 	cred.SecretKey = secretKey
 	cred.Status = AccountOn
-
+	cred.CreateTime = time.Now().UTC()
 	if tokenSecret == "" {
 		cred.Expiration = timeSentinel
 		return cred, nil
