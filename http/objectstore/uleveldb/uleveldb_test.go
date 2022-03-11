@@ -6,7 +6,7 @@ import (
 )
 
 func TestULeveldb(t *testing.T) {
-	db := NewLevelDB()
+	db := OpenDb("/tmp/leveldb2/test")
 	err := db.Put("a", 10)
 	if err != nil {
 		return
