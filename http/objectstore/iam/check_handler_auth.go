@@ -27,12 +27,12 @@ func (s *AuthSys) Init() {
 	s.PolicySys.Init()
 }
 
-// CheckRequestAuthType Check request auth type verifies the incoming http request
+// checkRequestAuthType Check request auth type verifies the incoming http request
 // - validates the request signature
 // - validates the policy action if anonymous tests bucket policies if any,
 //   for authenticated requests validates IAM policies.
 // returns APIErrorCode if any to be replied to the client.
-func (s *AuthSys) CheckRequestAuthType(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (s3Err api_errors.ErrorCode) {
+func (s *AuthSys) checkRequestAuthType(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (s3Err api_errors.ErrorCode) {
 	_, _, s3Err = s.CheckRequestAuthTypeCredential(ctx, r, action, bucketName, objectName)
 	return s3Err
 }
@@ -42,7 +42,7 @@ func (s *AuthSys) CheckRequestAuthType(ctx context.Context, r *http.Request, act
 // - validates the policy action if anonymous tests bucket policies if any,
 //   for authenticated requests validates IAM policies.
 // returns APIErrorCode if any to be replied to the client.
-// Additionally returns the accessKey used in the request, and if this request is by an admin.
+// Additionally, returns the accessKey used in the request, and if this request is by an admin.
 func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
 	switch getRequestAuthType(r) {
 	case authTypeUnknown, authTypeStreamingSigned:
