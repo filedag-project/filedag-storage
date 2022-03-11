@@ -2,7 +2,6 @@ package uleveldb
 
 import (
 	"encoding/json"
-	"fmt"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -94,7 +93,6 @@ func (l *ULevelDB) ReadAll(prefix string) (map[string]string, error) {
 		if strings.HasPrefix(key, prefix) {
 			value := string(iter.Value())
 			m[key] = value
-			fmt.Println(m)
 		}
 	}
 	iter.Release()
