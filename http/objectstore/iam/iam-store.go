@@ -13,7 +13,7 @@ var errInvalidArgument = errors.New("Invalid arguments specified")
 // iamStoreAPI defines an interface for the IAM persistence layer
 type iamStoreAPI interface {
 	saveUserIdentity(ctx context.Context, name string, u UserIdentity) error
-	RemoveUserIdentity(ctx context.Context, name string) error
+	removeUserIdentity(ctx context.Context, name string) error
 	loadUser(ctx context.Context, user string, m *auth.Credentials) error
 	loadUsers(ctx context.Context) (map[string]auth.Credentials, error)
 	loadGroup(ctx context.Context, group string, m *GroupInfo) error

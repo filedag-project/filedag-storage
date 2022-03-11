@@ -34,7 +34,7 @@ func TestLoadUser(t *testing.T) {
 	//	return
 	//}
 	//fmt.Println(a)
-	//err := iamSys.RemoveUserIdentity(context.Background(), "s")
+	//err := iamSys.removeUserIdentity(context.Background(), "s")
 	//if err != nil {
 	//	return
 	//}

@@ -55,7 +55,7 @@ func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, name string, u U
 	return nil
 }
 
-func (I *iamLevelDBStore) RemoveUserIdentity(ctx context.Context, name string) error {
+func (I *iamLevelDBStore) removeUserIdentity(ctx context.Context, name string) error {
 	err := I.levelDB.Delete(userPrefix + name)
 	if err != nil {
 		return err

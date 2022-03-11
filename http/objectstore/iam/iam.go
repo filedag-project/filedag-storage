@@ -79,6 +79,10 @@ func (sys *IdentityAMSys) IsTempUser(name string) (bool, string, error) {
 		return false, "", errNoSuchUser
 	}
 	if cred.IsExpired() {
+		err := sys.store.removeUserIdentity(context.Background(), name)
+		if err != nil {
+			return false, "", err
+		}
 		return false, "", errUserIsExpired
 	}
 	if cred.IsTemp() {
@@ -143,7 +147,7 @@ func (sys *IdentityAMSys) GetUser(ctx context.Context, accessKey string) (cred a
 
 // RemoveUser Remove User
 func (sys *IdentityAMSys) RemoveUser(ctx context.Context, accessKey string) error {
-	err := sys.store.RemoveUserIdentity(ctx, accessKey)
+	err := sys.store.removeUserIdentity(ctx, accessKey)
 	if err != nil {
 		log.Errorf("Remove UserIdentity err:%v", err)
 		return err
