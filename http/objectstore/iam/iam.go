@@ -96,6 +96,9 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context) []*iam.User {
 		return nil
 	}
 	for _, cerd := range users {
+		if cerd.IsExpired() {
+			continue
+		}
 		var a = &iam.User{
 			Arn:                 nil,
 			CreateDate:          utils.Time(cerd.CreateTime),
