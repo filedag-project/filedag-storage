@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"sync"
 )
@@ -95,8 +96,17 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context) []*iam.User {
 		return nil
 	}
 	for _, cerd := range users {
-		var a iam.User
-		u = append(u, a.SetUserName(cerd.AccessKey).SetUserId(cerd.AccessKey).SetCreateDate(cerd.CreateTime))
+		var a = &iam.User{
+			Arn:                 nil,
+			CreateDate:          utils.Time(cerd.CreateTime),
+			PasswordLastUsed:    nil,
+			Path:                nil,
+			PermissionsBoundary: nil,
+			Tags:                nil,
+			UserId:              utils.String(cerd.AccessKey),
+			UserName:            utils.String(cerd.AccessKey),
+		}
+		u = append(u, a)
 	}
 	return u
 }
