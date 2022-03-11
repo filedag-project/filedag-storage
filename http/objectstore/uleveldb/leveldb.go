@@ -2,6 +2,7 @@ package uleveldb
 
 import (
 	"encoding/json"
+	"fmt"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -85,12 +86,15 @@ func (l *ULevelDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.
 }
 
 //ReadAll read all key value
-func (l *ULevelDB) ReadAll(prefix string) (map[string][]byte, error) {
+func (l *ULevelDB) ReadAll(prefix string) (map[string]string, error) {
 	iter := l.NewIterator(nil, nil)
-	m := make(map[string][]byte)
+	m := make(map[string]string)
 	for iter.Next() {
-		if strings.Contains(string(iter.Key()), prefix) {
-			m[string(iter.Key())] = iter.Value()
+		key := string(iter.Key())
+		if strings.HasPrefix(key, prefix) {
+			value := string(iter.Value())
+			m[key] = value
+			fmt.Println(m)
 		}
 	}
 	iter.Release()

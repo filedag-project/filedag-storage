@@ -94,17 +94,17 @@ func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata)
 // getAllBucketOfUser metadata for all bucket.
 func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]bucketMetadata, error) {
 	var m []bucketMetadata
-	mb, err := sys.db.ReadAll(bucketPrefix + username)
+	mb, err := sys.db.ReadAll(bucketPrefix + username + "-")
 	if err != nil {
 		return nil, err
 	}
 	for key, value := range mb {
 		a := bucketMetadata{}
-		err := json.Unmarshal(value, &a)
+		err := json.Unmarshal([]byte(value), &a)
 		if err != nil {
 			continue
 		}
-		key = strings.Split(key, "/")[1]
+		key = strings.Split(key, "-")[1]
 		m = append(m, a)
 	}
 	return m, nil

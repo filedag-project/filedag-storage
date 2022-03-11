@@ -38,7 +38,7 @@ func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Creden
 	}
 	for key, value := range mc {
 		a := auth.Credentials{}
-		err := json.Unmarshal(value, &a)
+		err := json.Unmarshal([]byte(value), &a)
 		if err != nil {
 			continue
 		}
