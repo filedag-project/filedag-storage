@@ -65,6 +65,14 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSInternalError, err)
 		return
 	}
+	// Set the parent of the temporary access key, so that it's access
+	// policy is inherited from `user.AccessKey`.
+	cred.ParentUser = user.AccessKey
+	// Set the newly generated credentials.
+	if err = s3a.authSys.Iam.SetTempUser(ctx, cred.AccessKey, cred, ""); err != nil {
+		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSInternalError, err)
+		return
+	}
 	assumeRoleResponse := &response.AssumeRoleResponse{
 		Result: response.AssumeRoleResult{
 			Credentials: cred,

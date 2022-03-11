@@ -2,9 +2,13 @@ package iam
 
 import (
 	"context"
+	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 )
+
+// errInvalidArgument means that input argument is invalid.
+var errInvalidArgument = errors.New("Invalid arguments specified")
 
 // iamStoreAPI defines an interface for the IAM persistence layer
 type iamStoreAPI interface {
@@ -26,4 +30,24 @@ type iamStoreAPI interface {
 // layer.
 type iamStoreSys struct {
 	iamStoreAPI
+}
+
+// SetTempUser - saves temporary (STS) credential to storage and cache. If a
+// policy name is given, it is associated with the parent user specified in the
+// credential.
+func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cred auth.Credentials, policyName string) error {
+	if accessKey == "" || !cred.IsTemp() || cred.IsExpired() || cred.ParentUser == "" {
+		return errInvalidArgument
+	}
+	if policyName != "" {
+		//todo policy
+	}
+
+	u := newUserIdentity(cred)
+	err := store.saveUserIdentity(ctx, accessKey, u)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

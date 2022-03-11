@@ -2,6 +2,7 @@ package iam
 
 import (
 	"context"
+	"errors"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
@@ -13,6 +14,10 @@ const (
 	statusEnabled  = "enabled"
 	statusDisabled = "disabled"
 )
+
+// error returned in IAM subsystem when user doesn't exist.
+var errNoSuchUser = errors.New("specified user does not exist")
+var errUserIsExpired = errors.New("specified user is expired")
 
 var log = logging.Logger("iam")
 
@@ -42,12 +47,44 @@ func (sys *IdentityAMSys) IsAllowed(args auth.Args) bool {
 	if args.IsOwner {
 		return true
 	}
+	// If the credential is temporary, perform STS related checks.
+	ok, parentUser, err := sys.IsTempUser(args.AccountName)
+	if err != nil {
+		return false
+	}
+	if ok {
+		return sys.IsAllowedSTS(args, parentUser)
+	}
 	m := &auth.Credentials{}
-	err := sys.store.loadUser(context.Background(), args.AccountName, m)
+	err = sys.store.loadUser(context.Background(), args.AccountName, m)
 	if err != nil {
 		return false
 	}
 	return true
+}
+
+// IsAllowedSTS is meant for STS based temporary credentials,
+// which implements claims validation and verification other than
+// applying policies.
+func (sys *IdentityAMSys) IsAllowedSTS(args auth.Args, parentUser string) bool {
+	//todo check parentUser policy
+	return true
+}
+
+// IsTempUser - returns if given key is a temporary user.
+func (sys *IdentityAMSys) IsTempUser(name string) (bool, string, error) {
+	cred, found := sys.GetUser(context.Background(), name)
+	if !found {
+		return false, "", errNoSuchUser
+	}
+	if cred.IsExpired() {
+		return false, "", errUserIsExpired
+	}
+	if cred.IsTemp() {
+		return true, cred.ParentUser, nil
+	}
+
+	return false, "", nil
 }
 
 // GetUserList all user
@@ -158,4 +195,15 @@ func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (cr
 	}
 
 	return m, m.IsValid()
+}
+
+// SetTempUser - set temporary user credentials, these credentials have an
+// expiry. The permissions for these STS credentials is determined in one of the
+// following ways:
+func (sys *IdentityAMSys) SetTempUser(ctx context.Context, accessKey string, cred auth.Credentials, policyName string) error {
+	err := sys.store.SetTempUser(ctx, accessKey, cred, policyName)
+	if err != nil {
+		return err
+	}
+	return nil
 }

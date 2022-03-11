@@ -86,6 +86,7 @@ type Credentials struct {
 	Expiration   time.Time `xml:"Expiration" json:"expiration,omitempty"`
 	SessionToken string    `xml:"SessionToken" json:"sessionToken"`
 	Status       string    `xml:"-" json:"status,omitempty"`
+	ParentUser   string    `xml:"-" json:"parentUser,omitempty"`
 }
 
 // generateCredentials - creates randomly generated credentials of maximum
@@ -244,4 +245,9 @@ func (cred Credentials) IsExpired() bool {
 	}
 
 	return cred.Expiration.Before(time.Now().UTC())
+}
+
+// IsTemp - returns whether credential is temporary or not.
+func (cred Credentials) IsTemp() bool {
+	return cred.SessionToken != "" && !cred.Expiration.IsZero() && !cred.Expiration.Equal(timeSentinel)
 }
