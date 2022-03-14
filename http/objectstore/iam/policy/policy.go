@@ -1,8 +1,11 @@
 package policy
 
 import (
+	"encoding/json"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
+	"golang.org/x/xerrors"
+	"io"
 )
 
 // Policy - iam bucket iamp.
@@ -45,6 +48,35 @@ func (p Policy) IsAllowed(args auth.Args) bool {
 	}
 
 	return false
+}
+
+// ParseConfig - parses data in given reader to Policy.
+func ParseConfig(reader io.Reader, bucketName string) (*Policy, error) {
+	var policy Policy
+
+	decoder := json.NewDecoder(reader)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&policy); err != nil {
+		return nil, xerrors.Errorf("%w", err)
+	}
+
+	err := policy.Validate(bucketName)
+	return &policy, err
+}
+
+// Validate - validates all statements are for given bucket or not.
+func (policy Policy) Validate(bucketName string) error {
+	if err := policy.isValid(); err != nil {
+		return err
+	}
+
+	for _, statement := range policy.Statements {
+		if err := statement.Validate(bucketName); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Merge merges two policies documents and drop
@@ -92,11 +124,6 @@ func (p *Policy) Equals(policy Policy) bool {
 // IsEmpty - returns whether policy is empty or not.
 func (p Policy) IsEmpty() bool {
 	return len(p.Statements) == 0
-}
-
-// Validate - validates all statements are for given bucket or not.
-func (p Policy) Validate() error {
-	return p.isValid()
 }
 
 // isValid - checks if Policy is valid or not.

@@ -24,20 +24,21 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		return ctypeOk && authOk && noQueries
 	}).HandlerFunc(s3a.AssumeRole)
 	// Readiness Probe
-	apiRouter.Methods("GET").Path("/status").HandlerFunc(s3a.StatusHandler)
+	apiRouter.Methods(http.MethodGet).Path("/status").HandlerFunc(s3a.StatusHandler)
 	// NotFound
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 	// ListBuckets
-	apiRouter.Methods("GET").Path("/").HandlerFunc(s3a.ListBucketsHandler)
+	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
 	var routers []*mux.Router
 	routers = append(routers, apiRouter.PathPrefix("/{bucket}").Subrouter())
 
 	for _, bucket := range routers {
 		// PutObject
-		bucket.Methods("PUT").Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
+		bucket.Methods(http.MethodPut).Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
 		// PutBucket
-		bucket.Methods("PUT").HandlerFunc(s3a.PutBucketHandler)
-
+		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketHandler)
+		// PutBucketPolicy
+		router.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketPolicyHandler).Queries("policy", "")
 	}
 }
 

@@ -134,3 +134,11 @@ func (effect Effect) IsAllowed(b bool) bool {
 	}
 	return !b
 }
+
+// Validate - validates Statement is for given bucket or not.
+func (statement Statement) Validate(bucketName string) error {
+	if err := statement.IsValid(); err != nil {
+		return err
+	}
+	return nil
+}

@@ -103,6 +103,7 @@ const (
 	ErrStorePutFail
 	ErrContentSHA256Mismatch
 	ErrRequestNotReadyYet
+	ErrMalformedPolicy
 	ErrMissingDateHeader
 	ErrInvalidRequest
 	ErrAuthNotSetup
@@ -389,7 +390,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Request is not valid yet",
 		HTTPStatusCode: http.StatusForbidden,
 	},
-
+	ErrMalformedPolicy: {
+		Code:           "MalformedPolicy",
+		Description:    "Policy has invalid resource.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
 	ErrSignatureDoesNotMatch: {
 		Code:           "SignatureDoesNotMatch",
 		Description:    "The request signature we calculated does not match the signature you provided. Check your key and signing method.",

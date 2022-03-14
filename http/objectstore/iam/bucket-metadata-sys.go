@@ -91,6 +91,15 @@ func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata)
 	return nil
 }
 
+// Get metadata for a bucket.
+func (sys *bucketMetadataSys) Update(username, bucket string, meta *bucketMetadata) error {
+	err := sys.db.Get(bucketPrefix+username+"-"+bucket, meta)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // getAllBucketOfUser metadata for all bucket.
 func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]bucketMetadata, error) {
 	var m []bucketMetadata
