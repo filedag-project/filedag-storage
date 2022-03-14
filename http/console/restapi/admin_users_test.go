@@ -3,7 +3,7 @@ package restapi
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/console/credentials"
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"github.com/filedag-project/filedag-storage/http/console/pkg/auth"
 	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/admin_api"
 	"testing"

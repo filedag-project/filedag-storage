@@ -24,7 +24,7 @@ package admin_api
 
 import (
 	"context"
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"io"
 	"net/http"
 
@@ -33,7 +33,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
-
 )
 
 // NewUpdateUserGroupsParams creates a new UpdateUserGroupsParams object

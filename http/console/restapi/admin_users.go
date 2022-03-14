@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/console/madmin"
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/admin_api"
 	"strings"
 
@@ -37,57 +37,57 @@ const (
 )
 
 //func registerUsersHandlers(api *operations.ConsoleAPI) {
-	//// List Users
-	//api.AdminAPIListUsersHandler = admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams, session *models.Principal) middleware.Responder {
-	//	listUsersResponse, err := getListUsersResponse(session)
-	//	if err != nil {
-	//		return admin_api.NewListUsersDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewListUsersOK().WithPayload(listUsersResponse)
-	//})
-	//// Add User
-	//api.AdminAPIAddUserHandler = admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams, session *models.Principal) middleware.Responder {
-	//	userResponse, err := getUserAddResponse(session, params)
-	//	if err != nil {
-	//		return admin_api.NewAddUserDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewAddUserCreated().WithPayload(userResponse)
-	//})
-	//// Remove User
-	//api.AdminAPIRemoveUserHandler = admin_api.RemoveUserHandlerFunc(func(params admin_api.RemoveUserParams, session *models.Principal) middleware.Responder {
-	//	err := getRemoveUserResponse(session, params)
-	//	if err != nil {
-	//		return admin_api.NewRemoveUserDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewRemoveUserNoContent()
-	//})
-	//// Update User-Groups
-	//api.AdminAPIUpdateUserGroupsHandler = admin_api.UpdateUserGroupsHandlerFunc(func(params admin_api.UpdateUserGroupsParams, session *models.Principal) middleware.Responder {
-	//	userUpdateResponse, err := getUpdateUserGroupsResponse(session, params)
-	//	if err != nil {
-	//		return admin_api.NewUpdateUserGroupsDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//
-	//	return admin_api.NewUpdateUserGroupsOK().WithPayload(userUpdateResponse)
-	//})
-	//// Get User
-	//api.AdminAPIGetUserInfoHandler = admin_api.GetUserInfoHandlerFunc(func(params admin_api.GetUserInfoParams, session *models.Principal) middleware.Responder {
-	//	userInfoResponse, err := getUserInfoResponse(session, params)
-	//	if err != nil {
-	//		return admin_api.NewGetUserInfoDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//
-	//	return admin_api.NewGetUserInfoOK().WithPayload(userInfoResponse)
-	//})
-	//// Update User
-	//api.AdminAPIUpdateUserInfoHandler = admin_api.UpdateUserInfoHandlerFunc(func(params admin_api.UpdateUserInfoParams, session *models.Principal) middleware.Responder {
-	//	userUpdateResponse, err := getUpdateUserResponse(session, params)
-	//	if err != nil {
-	//		return admin_api.NewUpdateUserInfoDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//
-	//	return admin_api.NewUpdateUserInfoOK().WithPayload(userUpdateResponse)
-	//})
+//// List Users
+//api.AdminAPIListUsersHandler = admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams, session *models.Principal) middleware.Responder {
+//	listUsersResponse, err := getListUsersResponse(session)
+//	if err != nil {
+//		return admin_api.NewListUsersDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewListUsersOK().WithPayload(listUsersResponse)
+//})
+//// Add User
+//api.AdminAPIAddUserHandler = admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams, session *models.Principal) middleware.Responder {
+//	userResponse, err := getUserAddResponse(session, params)
+//	if err != nil {
+//		return admin_api.NewAddUserDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewAddUserCreated().WithPayload(userResponse)
+//})
+//// Remove User
+//api.AdminAPIRemoveUserHandler = admin_api.RemoveUserHandlerFunc(func(params admin_api.RemoveUserParams, session *models.Principal) middleware.Responder {
+//	err := getRemoveUserResponse(session, params)
+//	if err != nil {
+//		return admin_api.NewRemoveUserDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewRemoveUserNoContent()
+//})
+//// Update User-Groups
+//api.AdminAPIUpdateUserGroupsHandler = admin_api.UpdateUserGroupsHandlerFunc(func(params admin_api.UpdateUserGroupsParams, session *models.Principal) middleware.Responder {
+//	userUpdateResponse, err := getUpdateUserGroupsResponse(session, params)
+//	if err != nil {
+//		return admin_api.NewUpdateUserGroupsDefault(int(err.Code)).WithPayload(err)
+//	}
+//
+//	return admin_api.NewUpdateUserGroupsOK().WithPayload(userUpdateResponse)
+//})
+//// Get User
+//api.AdminAPIGetUserInfoHandler = admin_api.GetUserInfoHandlerFunc(func(params admin_api.GetUserInfoParams, session *models.Principal) middleware.Responder {
+//	userInfoResponse, err := getUserInfoResponse(session, params)
+//	if err != nil {
+//		return admin_api.NewGetUserInfoDefault(int(err.Code)).WithPayload(err)
+//	}
+//
+//	return admin_api.NewGetUserInfoOK().WithPayload(userInfoResponse)
+//})
+//// Update User
+//api.AdminAPIUpdateUserInfoHandler = admin_api.UpdateUserInfoHandlerFunc(func(params admin_api.UpdateUserInfoParams, session *models.Principal) middleware.Responder {
+//	userUpdateResponse, err := getUpdateUserResponse(session, params)
+//	if err != nil {
+//		return admin_api.NewUpdateUserInfoDefault(int(err.Code)).WithPayload(err)
+//	}
+//
+//	return admin_api.NewUpdateUserInfoOK().WithPayload(userUpdateResponse)
+//})
 //}
 
 func listUsers(ctx context.Context, client MinioAdmin) ([]*models.User, error) {
@@ -497,4 +497,3 @@ func addUsersListToGroups(ctx context.Context, client MinioAdmin, usersToUpdate 
 
 	return nil
 }
-

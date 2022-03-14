@@ -23,11 +23,10 @@ package admin_api
 // Editing this file might prove futile when you re-run the generate command
 
 import (
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
-
 )
 
 // AddUserHandlerFunc turns a function with the right signature into a add user handler

@@ -20,7 +20,7 @@ import (
 	"context"
 	"github.com/filedag-project/filedag-storage/http/console/credentials"
 	"github.com/filedag-project/filedag-storage/http/console/madmin"
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"net/http"
 )
 
@@ -176,4 +176,3 @@ func GetConsoleHTTPClient() *http.Client {
 	}
 	return httpClient
 }
-

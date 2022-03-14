@@ -19,7 +19,7 @@ package restapi
 import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/console/madmin"
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"github.com/go-openapi/swag"
 	"runtime"
 	"strings"

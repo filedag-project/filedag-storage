@@ -27,37 +27,37 @@ The development of FileDAG Storage will provide a solution to the above challeng
 
 ## Roadmap
 
-- The development of a single Dag Node, which satisfies the interface of blockstore, provides basic storage services for Dag Pool
-- Implement the multi-user access and authentication mechanism of Dag Pool
-- Implement Dag Pool's reference record to data blocks
-- Implement Dag Pool's data pin strategy
-- Implement the interruptible garbage collection mechanism of Dag Pool
+- [ ] The development of a single Dag Node, which satisfies the interface of blockstore, provides basic storage services for Dag Pool
+- [ ] Implement the multi-user access and authentication mechanism of Dag Pool
+- [ ] Implement Dag Pool's reference record to data blocks
+- [ ] Implement Dag Pool's data pin strategy
+- [ ] Implement the interruptible garbage collection mechanism of Dag Pool
 
 
-- Dag Node - Develop data fault tolerance based on Reed-Solomon Erasure Code
-- Dag Pool - Organize multiple Dag Nodes to build a storage cluster based on libp2p and redis hash slots
-- Dag Pool - Storage node health report and global consistency state implementation
-- Dag Pool - Dynamic expansion of storage nodes
-- Dag Pool - Dynamic scaling of storage nodes
+- [ ] Dag Node - Develop data fault tolerance based on Reed-Solomon Erasure Code
+- [ ] Dag Pool - Organize multiple Dag Nodes to build a storage cluster based on libp2p and redis hash slots
+- [ ] Dag Pool - Storage node health report and global consistency state implementation
+- [ ] Dag Pool - Dynamic expansion of storage nodes
+- [ ] Dag Pool - Dynamic scaling of storage nodes
 
 
 
-- Object Store - Implementation of basic data structures such as users, regions, buckets, and objects
-- Object Store - Implement user authentication api
-- Object Store - Implement bucket related operations api
-- Object Store - Implement object manipulation api 
-- Object Store - Implement permission operation api
+- [ ] Object Store - Implementation of basic data structures such as users, regions, buckets, and objects
+- [ ] Object Store - Implement user authentication api
+- [ ] Object Store - Implement bucket related operations api
+- [ ] Object Store - Implement object manipulation api 
+- [ ] Object Store - Implement permission operation api
 
 
-- Control Pannel - Implement Dashboard - storage pool statistics overview 
-- Control Pannel - Implement user interface
-- Control Pannel - Implement Object Store user and access interface
-- Control Pannel - Implement the object store bucket operation interface
-- Control Pannel - Implement Object Store permission setting interface
+- [ ] Control Pannel - Implement Dashboard - storage pool statistics overview 
+- [ ] Control Pannel - Implement user interface
+- [ ] Control Pannel - Implement Object Store user and access interface
+- [ ] Control Pannel - Implement the object store bucket operation interface
+- [ ] Control Pannel - Implement Object Store permission setting interface
 
 
-- Implement satellite nodes that can connect to the IPFS network in the outer layer of Dag Pool
-- Provide lightweight IPFS gateway services according to user customization
+- [ ] Implement satellite nodes that can connect to the IPFS network in the outer layer of Dag Pool
+- [ ] Provide lightweight IPFS gateway services according to user customization
 
 
 

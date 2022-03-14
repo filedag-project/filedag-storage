@@ -3,6 +3,7 @@
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
+
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
@@ -18,127 +19,127 @@ package restapi
 
 import (
 	"context"
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"sort"
 )
 
 //func registersPoliciesHandler(api *operations.ConsoleAPI) {
-	//// List Policies
-	//api.AdminAPIListPoliciesHandler = admin_api.ListPoliciesHandlerFunc(func(params admin_api.ListPoliciesParams, session *models.Principal) middleware.Responder {
-	//	listPoliciesResponse, err := getListPoliciesResponse(session)
-	//	if err != nil {
-	//		return admin_api.NewListPoliciesDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewListPoliciesOK().WithPayload(listPoliciesResponse)
-	//})
-	//// Policy Info
-	//api.AdminAPIPolicyInfoHandler = admin_api.PolicyInfoHandlerFunc(func(params admin_api.PolicyInfoParams, session *models.Principal) middleware.Responder {
-	//	policyInfo, err := getPolicyInfoResponse(session, params)
-	//	if err != nil {
-	//		return admin_api.NewPolicyInfoDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewPolicyInfoOK().WithPayload(policyInfo)
-	//})
-	//// Add Policy
-	//api.AdminAPIAddPolicyHandler = admin_api.AddPolicyHandlerFunc(func(params admin_api.AddPolicyParams, session *models.Principal) middleware.Responder {
-	//	policyResponse, err := getAddPolicyResponse(session, params.Body)
-	//	if err != nil {
-	//		return admin_api.NewAddPolicyDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewAddPolicyCreated().WithPayload(policyResponse)
-	//})
-	//// Remove Policy
-	//api.AdminAPIRemovePolicyHandler = admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams, session *models.Principal) middleware.Responder {
-	//	if err := getRemovePolicyResponse(session, params); err != nil {
-	//		return admin_api.NewRemovePolicyDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewRemovePolicyNoContent()
-	//})
-	//// Set Policy
-	//api.AdminAPISetPolicyHandler = admin_api.SetPolicyHandlerFunc(func(params admin_api.SetPolicyParams, session *models.Principal) middleware.Responder {
-	//	if err := getSetPolicyResponse(session, params.Body); err != nil {
-	//		return admin_api.NewSetPolicyDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewSetPolicyNoContent()
-	//})
-	//// Set Policy Multiple User/Groups
-	//api.AdminAPISetPolicyMultipleHandler = admin_api.SetPolicyMultipleHandlerFunc(func(params admin_api.SetPolicyMultipleParams, session *models.Principal) middleware.Responder {
-	//	if err := getSetPolicyMultipleResponse(session, params.Body); err != nil {
-	//		return admin_api.NewSetPolicyMultipleDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewSetPolicyMultipleNoContent()
-	//})
-	//api.AdminAPIListPoliciesWithBucketHandler = admin_api.ListPoliciesWithBucketHandlerFunc(func(params admin_api.ListPoliciesWithBucketParams, session *models.Principal) middleware.Responder {
-	//	policyResponse, err := getListPoliciesWithBucketResponse(session, params.Bucket)
-	//	if err != nil {
-	//		return admin_api.NewListPoliciesWithBucketDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewListPoliciesWithBucketOK().WithPayload(policyResponse)
-	//})
-	//api.AdminAPIListAccessRulesWithBucketHandler = admin_api.ListAccessRulesWithBucketHandlerFunc(func(params admin_api.ListAccessRulesWithBucketParams, session *models.Principal) middleware.Responder {
-	//	policyResponse, err := getListAccessRulesWithBucketResponse(session, params.Bucket)
-	//	if err != nil {
-	//		return admin_api.NewListAccessRulesWithBucketDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewListAccessRulesWithBucketOK().WithPayload(policyResponse)
-	//})
-	//api.AdminAPISetAccessRuleWithBucketHandler = admin_api.SetAccessRuleWithBucketHandlerFunc(func(params admin_api.SetAccessRuleWithBucketParams, session *models.Principal) middleware.Responder {
-	//	policyResponse, err := getSetAccessRuleWithBucketResponse(session, params.Bucket, params.Prefixaccess)
-	//	if err != nil {
-	//		return admin_api.NewSetAccessRuleWithBucketDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewSetAccessRuleWithBucketOK().WithPayload(policyResponse)
-	//})
-	//api.AdminAPIDeleteAccessRuleWithBucketHandler = admin_api.DeleteAccessRuleWithBucketHandlerFunc(func(params admin_api.DeleteAccessRuleWithBucketParams, session *models.Principal) middleware.Responder {
-	//	policyResponse, err := getDeleteAccessRuleWithBucketResponse(session, params.Bucket, params.Prefix)
-	//	if err != nil {
-	//		return admin_api.NewDeleteAccessRuleWithBucketDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewDeleteAccessRuleWithBucketOK().WithPayload(policyResponse)
-	//})
-	//api.AdminAPIListUsersForPolicyHandler = admin_api.ListUsersForPolicyHandlerFunc(func(params admin_api.ListUsersForPolicyParams, session *models.Principal) middleware.Responder {
-	//	policyUsersResponse, err := getListUsersForPolicyResponse(session, params.Policy)
-	//	if err != nil {
-	//		return admin_api.NewListUsersForPolicyDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewListUsersForPolicyOK().WithPayload(policyUsersResponse)
-	//})
-	//api.AdminAPIListGroupsForPolicyHandler = admin_api.ListGroupsForPolicyHandlerFunc(func(params admin_api.ListGroupsForPolicyParams, session *models.Principal) middleware.Responder {
-	//	policyGroupsResponse, err := getListGroupsForPolicyResponse(session, params.Policy)
-	//	if err != nil {
-	//		return admin_api.NewListGroupsForPolicyDefault(int(err.Code)).WithPayload(err)
-	//	}
-	//	return admin_api.NewListGroupsForPolicyOK().WithPayload(policyGroupsResponse)
-	//})
+//// List Policies
+//api.AdminAPIListPoliciesHandler = admin_api.ListPoliciesHandlerFunc(func(params admin_api.ListPoliciesParams, session *models.Principal) middleware.Responder {
+//	listPoliciesResponse, err := getListPoliciesResponse(session)
+//	if err != nil {
+//		return admin_api.NewListPoliciesDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewListPoliciesOK().WithPayload(listPoliciesResponse)
+//})
+//// Policy Info
+//api.AdminAPIPolicyInfoHandler = admin_api.PolicyInfoHandlerFunc(func(params admin_api.PolicyInfoParams, session *models.Principal) middleware.Responder {
+//	policyInfo, err := getPolicyInfoResponse(session, params)
+//	if err != nil {
+//		return admin_api.NewPolicyInfoDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewPolicyInfoOK().WithPayload(policyInfo)
+//})
+//// Add Policy
+//api.AdminAPIAddPolicyHandler = admin_api.AddPolicyHandlerFunc(func(params admin_api.AddPolicyParams, session *models.Principal) middleware.Responder {
+//	policyResponse, err := getAddPolicyResponse(session, params.Body)
+//	if err != nil {
+//		return admin_api.NewAddPolicyDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewAddPolicyCreated().WithPayload(policyResponse)
+//})
+//// Remove Policy
+//api.AdminAPIRemovePolicyHandler = admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams, session *models.Principal) middleware.Responder {
+//	if err := getRemovePolicyResponse(session, params); err != nil {
+//		return admin_api.NewRemovePolicyDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewRemovePolicyNoContent()
+//})
+//// Set Policy
+//api.AdminAPISetPolicyHandler = admin_api.SetPolicyHandlerFunc(func(params admin_api.SetPolicyParams, session *models.Principal) middleware.Responder {
+//	if err := getSetPolicyResponse(session, params.Body); err != nil {
+//		return admin_api.NewSetPolicyDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewSetPolicyNoContent()
+//})
+//// Set Policy Multiple User/Groups
+//api.AdminAPISetPolicyMultipleHandler = admin_api.SetPolicyMultipleHandlerFunc(func(params admin_api.SetPolicyMultipleParams, session *models.Principal) middleware.Responder {
+//	if err := getSetPolicyMultipleResponse(session, params.Body); err != nil {
+//		return admin_api.NewSetPolicyMultipleDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewSetPolicyMultipleNoContent()
+//})
+//api.AdminAPIListPoliciesWithBucketHandler = admin_api.ListPoliciesWithBucketHandlerFunc(func(params admin_api.ListPoliciesWithBucketParams, session *models.Principal) middleware.Responder {
+//	policyResponse, err := getListPoliciesWithBucketResponse(session, params.Bucket)
+//	if err != nil {
+//		return admin_api.NewListPoliciesWithBucketDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewListPoliciesWithBucketOK().WithPayload(policyResponse)
+//})
+//api.AdminAPIListAccessRulesWithBucketHandler = admin_api.ListAccessRulesWithBucketHandlerFunc(func(params admin_api.ListAccessRulesWithBucketParams, session *models.Principal) middleware.Responder {
+//	policyResponse, err := getListAccessRulesWithBucketResponse(session, params.Bucket)
+//	if err != nil {
+//		return admin_api.NewListAccessRulesWithBucketDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewListAccessRulesWithBucketOK().WithPayload(policyResponse)
+//})
+//api.AdminAPISetAccessRuleWithBucketHandler = admin_api.SetAccessRuleWithBucketHandlerFunc(func(params admin_api.SetAccessRuleWithBucketParams, session *models.Principal) middleware.Responder {
+//	policyResponse, err := getSetAccessRuleWithBucketResponse(session, params.Bucket, params.Prefixaccess)
+//	if err != nil {
+//		return admin_api.NewSetAccessRuleWithBucketDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewSetAccessRuleWithBucketOK().WithPayload(policyResponse)
+//})
+//api.AdminAPIDeleteAccessRuleWithBucketHandler = admin_api.DeleteAccessRuleWithBucketHandlerFunc(func(params admin_api.DeleteAccessRuleWithBucketParams, session *models.Principal) middleware.Responder {
+//	policyResponse, err := getDeleteAccessRuleWithBucketResponse(session, params.Bucket, params.Prefix)
+//	if err != nil {
+//		return admin_api.NewDeleteAccessRuleWithBucketDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewDeleteAccessRuleWithBucketOK().WithPayload(policyResponse)
+//})
+//api.AdminAPIListUsersForPolicyHandler = admin_api.ListUsersForPolicyHandlerFunc(func(params admin_api.ListUsersForPolicyParams, session *models.Principal) middleware.Responder {
+//	policyUsersResponse, err := getListUsersForPolicyResponse(session, params.Policy)
+//	if err != nil {
+//		return admin_api.NewListUsersForPolicyDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewListUsersForPolicyOK().WithPayload(policyUsersResponse)
+//})
+//api.AdminAPIListGroupsForPolicyHandler = admin_api.ListGroupsForPolicyHandlerFunc(func(params admin_api.ListGroupsForPolicyParams, session *models.Principal) middleware.Responder {
+//	policyGroupsResponse, err := getListGroupsForPolicyResponse(session, params.Policy)
+//	if err != nil {
+//		return admin_api.NewListGroupsForPolicyDefault(int(err.Code)).WithPayload(err)
+//	}
+//	return admin_api.NewListGroupsForPolicyOK().WithPayload(policyGroupsResponse)
+//})
 //}
 
-//func getListAccessRulesWithBucketResponse(session *models.Principal, bucket string) (*models.ListAccessRulesResponse, *models.Error) {
-//	ctx := context.Background()
-//	client, err := newS3BucketClient(session, bucket, "")
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	accessRules, _ := client.GetAccessRules(ctx)
-//	var accessRuleList []*models.AccessRule
-//	for k, v := range accessRules {
-//		accessRuleList = append(accessRuleList, &models.AccessRule{Prefix: k[len(bucket)+1 : len(k)-1], Access: v})
-//	}
-//	return &models.ListAccessRulesResponse{AccessRules: accessRuleList}, nil
-//}
-//
-//func getSetAccessRuleWithBucketResponse(session *models.Principal, bucket string, prefixAccess *models.PrefixAccessPair) (bool, *models.Error) {
-//	ctx := context.Background()
-//	client, err := newS3BucketClient(session, bucket, prefixAccess.Prefix)
-//	if err != nil {
-//		return false, prepareError(err)
-//	}
-//	errorVal := client.SetAccess(ctx, prefixAccess.Access, false)
-//	if errorVal != nil {
-//		return false, prepareError(errorVal.Cause)
-//	}
-//	return true, nil
-//}
-//
+func getListAccessRulesWithBucketResponse(session *models.Principal, bucket string) (*models.ListAccessRulesResponse, *models.Error) {
+	ctx := context.Background()
+	client, err := newS3BucketClient(session, bucket, "")
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	accessRules, _ := client.GetAccessRules(ctx)
+	var accessRuleList []*models.AccessRule
+	for k, v := range accessRules {
+		accessRuleList = append(accessRuleList, &models.AccessRule{Prefix: k[len(bucket)+1 : len(k)-1], Access: v})
+	}
+	return &models.ListAccessRulesResponse{AccessRules: accessRuleList}, nil
+}
+
+func getSetAccessRuleWithBucketResponse(session *models.Principal, bucket string, prefixAccess *models.PrefixAccessPair) (bool, *models.Error) {
+	ctx := context.Background()
+	client, err := newS3BucketClient(session, bucket, prefixAccess.Prefix)
+	if err != nil {
+		return false, prepareError(err)
+	}
+	errorVal := client.SetAccess(ctx, prefixAccess.Access, false)
+	if errorVal != nil {
+		return false, prepareError(errorVal.Cause)
+	}
+	return true, nil
+}
+
 //func getDeleteAccessRuleWithBucketResponse(session *models.Principal, bucket string, prefix *models.PrefixWrapper) (bool, *models.Error) {
 //	ctx := context.Background()
 //	client, err := newS3BucketClient(session, bucket, prefix.Prefix)
@@ -215,49 +216,49 @@ import (
 //	}
 //	return false
 //}
-//
-//// listPolicies calls MinIO server to list all policy names present on the server.
-//// listPolicies() converts the map[string][]byte returned by client.listPolicies()
-//// to []*models.Policy by iterating over each key in policyRawMap and
-//// then using Unmarshal on the raw bytes to create a *models.Policy
-//func listPolicies(ctx context.Context, client MinioAdmin) ([]*models.Policy, error) {
-//	policyMap, err := client.listPolicies(ctx)
-//	var policies []*models.Policy
-//	if err != nil {
-//		return nil, err
-//	}
-//	for name, policy := range policyMap {
-//		policy, err := parsePolicy(name, policy)
-//		if err != nil {
-//			return nil, err
-//		}
-//		policies = append(policies, policy)
-//	}
-//	return policies, nil
-//}
 
-//// getListPoliciesResponse performs listPolicies() and serializes it to the handler's output
-//func getListPoliciesResponse(session *models.Principal) (*models.ListPoliciesResponse, *models.Error) {
-//	ctx := context.Background()
-//	mAdmin, err := NewMinioAdminClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// create a MinIO Admin Client interface implementation
-//	// defining the client to be used
-//	adminClient := AdminClient{Client: mAdmin}
-//
-//	policies, err := listPolicies(ctx, adminClient)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// serialize output
-//	listPoliciesResponse := &models.ListPoliciesResponse{
-//		Policies: policies,
-//		Total:    int64(len(policies)),
-//	}
-//	return listPoliciesResponse, nil
-//}
+// listPolicies calls MinIO server to list all policy names present on the server.
+// listPolicies() converts the map[string][]byte returned by client.listPolicies()
+// to []*models.Policy by iterating over each key in policyRawMap and
+// then using Unmarshal on the raw bytes to create a *models.Policy
+func listPolicies(ctx context.Context, client MinioAdmin) ([]*models.Policy, error) {
+	policyMap, err := client.listPolicies(ctx)
+	var policies []*models.Policy
+	if err != nil {
+		return nil, err
+	}
+	for name, policy := range policyMap {
+		policy, err := parsePolicy(name, policy)
+		if err != nil {
+			return nil, err
+		}
+		policies = append(policies, policy)
+	}
+	return policies, nil
+}
+
+// getListPoliciesResponse performs listPolicies() and serializes it to the handler's output
+func getListPoliciesResponse(session *models.Principal) (*models.ListPoliciesResponse, *models.Error) {
+	ctx := context.Background()
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	// create a MinIO Admin Client interface implementation
+	// defining the client to be used
+	adminClient := AdminClient{Client: mAdmin}
+
+	policies, err := listPolicies(ctx, adminClient)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	// serialize output
+	listPoliciesResponse := &models.ListPoliciesResponse{
+		Policies: policies,
+		Total:    int64(len(policies)),
+	}
+	return listPoliciesResponse, nil
+}
 
 // getListUsersForPoliciesResponse performs lists users affected by a given policy.
 func getListUsersForPolicyResponse(session *models.Principal, policy string) ([]string, *models.Error) {

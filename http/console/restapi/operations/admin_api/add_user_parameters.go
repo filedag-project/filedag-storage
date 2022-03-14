@@ -24,7 +24,7 @@ package admin_api
 
 import (
 	"context"
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"io"
 	"net/http"
 
@@ -32,7 +32,6 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/validate"
-
 )
 
 // NewAddUserParams creates a new AddUserParams object

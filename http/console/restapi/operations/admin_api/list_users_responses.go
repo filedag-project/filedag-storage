@@ -23,11 +23,10 @@ package admin_api
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	models "github.com/filedag-project/filedag-storage/http/console/model"
+	"github.com/filedag-project/filedag-storage/http/console/models"
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-
 )
 
 // ListUsersOKCode is the HTTP code returned for type ListUsersOK
