@@ -42,11 +42,11 @@ import (
 //  ]
 //}
 type Statement struct {
-	SID       ID        `json:"Sid,omitempty"`
-	Effect    Effect    `json:"Effect"`
-	Principal Principal `json:"Principal"`
-	Actions   s3action.ActionSet
-	Resources ResourceSet `json:"Resource"`
+	SID       ID                 `json:"Sid,omitempty"`
+	Effect    Effect             `json:"Effect"`
+	Principal Principal          `json:"Principal"`
+	Actions   s3action.ActionSet `json:"Action"`
+	Resources ResourceSet        `json:"Resource"`
 }
 
 // ID - policy ID.
