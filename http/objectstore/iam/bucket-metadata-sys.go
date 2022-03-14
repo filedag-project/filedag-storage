@@ -93,7 +93,7 @@ func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata)
 
 // Get metadata for a bucket.
 func (sys *bucketMetadataSys) Update(username, bucket string, meta *bucketMetadata) error {
-	err := sys.db.Get(bucketPrefix+username+"-"+bucket, meta)
+	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
 	}

@@ -35,10 +35,10 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	for _, bucket := range routers {
 		// PutObject
 		bucket.Methods(http.MethodPut).Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
+		// PutBucketPolicy
+		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketPolicyHandler).Queries("policy", "")
 		// PutBucket
 		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketHandler)
-		// PutBucketPolicy
-		router.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketPolicyHandler).Queries("policy", "")
 	}
 }
 

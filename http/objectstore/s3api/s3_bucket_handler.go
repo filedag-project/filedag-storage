@@ -60,10 +60,9 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	log.Infof("PutBucketHandler %s", bucket)
 
 	// avoid duplicated buckets
-	errCode := api_errors.ErrNone
 	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.CreateBucketAction, bucket, "")
 	if err != api_errors.ErrNone {
-		response.WriteErrorResponse(w, r, errCode)
+		response.WriteErrorResponse(w, r, err)
 		return
 	}
 

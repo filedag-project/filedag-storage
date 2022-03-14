@@ -16,7 +16,7 @@ import (
 func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := GetBucketAndObject(r)
 	var ctx = context.Background()
-	log.Infof("PutBucketHandler %s", bucket)
+	log.Infof("PutBucketPolicyHandler %s", bucket)
 	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.CreateBucketAction, bucket, "")
 	if errc != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
