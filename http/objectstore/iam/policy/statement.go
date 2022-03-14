@@ -8,9 +8,9 @@ import (
 	"unicode/utf8"
 )
 
-//
-// Statement - policy statement.
-//{
+//https://docs.aws.amazon.com/zh_cn/zh_cn/IAM/latest/UserGuide/reference_policies_elements.html
+
+// Statement {
 //  "Version": "2012-10-17",
 //  "Statement": [
 //    {
@@ -42,10 +42,11 @@ import (
 //  ]
 //}
 type Statement struct {
-	SID       ID                 `json:"Sid,omitempty"`
-	Effect    Effect             `json:"Effect"`
-	Principal Principal          `json:"Principal"`
-	Actions   s3action.ActionSet `json:"Action"`
+	SID       ID        `json:"Sid,omitempty"`
+	Effect    Effect    `json:"Effect"`
+	Principal Principal `json:"Principal"`
+	Actions   s3action.ActionSet
+	Resources ResourceSet `json:"Resource"`
 }
 
 // ID - policy ID.
