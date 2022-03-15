@@ -27,13 +27,13 @@ func startServer() {
 	router := mux.NewRouter()
 	s3api.NewS3Server(router)
 	iamapi.NewIamApiServer(router)
-	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
-		log.Infof("start sever at http://%v:%v", ip, os.Getenv(fileDagStoragePort))
-	}
 	err := http.ListenAndServe(os.Getenv(fileDagStoragePort), router)
 	if err != nil {
-		log.Errorf("ListenAndServe err%v", err)
+		log.Errorf("Listen And Serve err%v", err)
 		return
+	}
+	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
+		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
 	}
 	defer uleveldb.DBClient.Close()
 }
@@ -49,7 +49,7 @@ var startCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "port",
-			Usage: "set port",
+			Usage: "set port eg.:9985",
 			Value: defaultPort,
 		},
 	},
@@ -60,19 +60,9 @@ var startCmd = &cli.Command{
 			if err != nil {
 				return err
 			}
-		} else {
-			err := os.Setenv(deFaultDBFILE, cctx.String(deFaultDBFILE))
-			if err != nil {
-				return err
-			}
 		}
 		if cctx.String("port") != "" {
 			err := os.Setenv(fileDagStoragePort, cctx.String("port"))
-			if err != nil {
-				return err
-			}
-		} else {
-			err := os.Setenv(fileDagStoragePort, cctx.String(defaultPort))
 			if err != nil {
 				return err
 			}
