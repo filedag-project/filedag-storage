@@ -44,6 +44,12 @@ func (sys *IPolicySys) Init() {
 // Update bucket metadata for the specified config file.
 // The configData data should not be modified after being sent here.
 func (sys *IPolicySys) Update(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
+	//	//todo check duplicate statements
+	//pConfig, err := sys.bmSys.GetPolicyConfig(bucket, accessKey)
+	//if err != nil {
+	//	return err
+	//}
+	//p.Merge(*pConfig)
 	err := sys.bmSys.Update(accessKey, bucket, &bucketMetadata{
 		Name:         bucket,
 		PolicyConfig: p,
