@@ -127,3 +127,8 @@ func writeResponse(w http.ResponseWriter, statusCode int, response []byte, mType
 		w.Write(response)
 	}
 }
+
+// WriteSuccessNoContent writes success headers with http status 204
+func WriteSuccessNoContent(w http.ResponseWriter) {
+	writeResponse(w, http.StatusNoContent, nil, mimeNone)
+}
