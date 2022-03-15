@@ -78,3 +78,49 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	}
 	response.WriteSuccessResponseEmpty(w, r)
 }
+
+// HeadBucketHandler - HEAD Bucket
+// ----------
+// This operation is useful to determine if a bucket exists.
+// The operation returns a 200 OK if the bucket exists and you
+// have permission to access it. Otherwise, the operation might
+// return responses such as 404 Not Found and 403 Forbidden.
+func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request) {
+
+	bucket, _ := GetBucketAndObject(r)
+	log.Infof("HeadBucketHandler %s", bucket)
+	// avoid duplicated buckets
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.HeadBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
+
+	if p, err := s3a.authSys.PolicySys.Get(bucket, cred.AccessKey); p == nil || err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
+
+	response.WriteSuccessResponseEmpty(w, r)
+}
+
+// DeleteBucketHandler delete Bucket
+func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
+
+	bucket, _ := GetBucketAndObject(r)
+	log.Infof("DeleteBucketHandler %s", bucket)
+
+	// avoid duplicated buckets
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
+
+	errc := s3a.authSys.PolicySys.Delete(context.Background(), cred.AccessKey, bucket)
+	if errc != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
+		return
+	}
+	response.WriteSuccessResponseEmpty(w, r)
+}

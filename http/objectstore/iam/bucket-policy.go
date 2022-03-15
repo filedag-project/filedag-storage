@@ -11,7 +11,7 @@ type IPolicySys struct {
 	bmSys *bucketMetadataSys
 }
 
-// Get returns stored bucket policy
+// GetAllBucketOfUser returns stored bucket policy
 func (sys *IPolicySys) GetAllBucketOfUser(accessKey string) ([]bucketMetadata, error) {
 	return sys.bmSys.getAllBucketOfUser(accessKey)
 }
@@ -41,9 +41,9 @@ func (sys *IPolicySys) Init() {
 	sys.bmSys = newBucketMetadataSys()
 }
 
-// Update bucket metadata for the specified config file.
+// UpdatePolicy Update bucket metadata for the specified config file.
 // The configData data should not be modified after being sent here.
-func (sys *IPolicySys) Update(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
+func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
 	//	//todo check duplicate statements
 	//pConfig, err := sys.bmSys.GetPolicyConfig(bucket, accessKey)
 	//if err != nil {
@@ -54,6 +54,15 @@ func (sys *IPolicySys) Update(ctx context.Context, accessKey, bucket string, p *
 		Name:         bucket,
 		PolicyConfig: p,
 	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//Delete the bucket
+func (sys *IPolicySys) Delete(ctx context.Context, accessKey, bucket string) error {
+	err := sys.bmSys.Delete(accessKey, bucket)
 	if err != nil {
 		return err
 	}

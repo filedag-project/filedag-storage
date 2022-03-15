@@ -39,7 +39,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err = s3a.authSys.PolicySys.Update(ctx, cred.AccessKey, bucket, bucketPolicy); err != nil {
+	if err = s3a.authSys.PolicySys.UpdatePolicy(ctx, cred.AccessKey, bucket, bucketPolicy); err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -56,7 +56,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
-	if err := s3a.authSys.PolicySys.Update(ctx, cred.AccessKey, bucket, nil); err != nil {
+	if err := s3a.authSys.PolicySys.UpdatePolicy(ctx, cred.AccessKey, bucket, nil); err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
 		return
 	}

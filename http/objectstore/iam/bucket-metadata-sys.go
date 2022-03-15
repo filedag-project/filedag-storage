@@ -91,6 +91,15 @@ func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata)
 	return nil
 }
 
+// Delete bucket.
+func (sys *bucketMetadataSys) Delete(bucket, username string) error {
+	err := sys.db.Delete(bucketPrefix + username + "-" + bucket)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Get metadata for a bucket.
 func (sys *bucketMetadataSys) Update(username, bucket string, meta *bucketMetadata) error {
 	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
