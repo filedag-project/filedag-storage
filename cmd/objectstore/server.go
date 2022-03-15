@@ -15,10 +15,10 @@ import (
 var log = logging.Logger("sever")
 
 const (
-	deFaultDBFILE  = "/tmp/leveldb2/fds.db"
-	defaultPort    = ":9985"
-	fileDagStorage = "FILE_DAG_STORAGE_PORT"
-	dbPath         = "DBPATH"
+	deFaultDBFILE      = "/tmp/leveldb2/fds.db"
+	defaultPort        = ":9985"
+	fileDagStoragePort = "FILE_DAG_STORAGE_PORT"
+	dbPath             = "DBPATH"
 )
 
 //startServer Start a IamServer
@@ -28,9 +28,9 @@ func startServer() {
 	s3api.NewS3Server(router)
 	iamapi.NewIamApiServer(router)
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
-		log.Infof("start sever at http://%v:%v", ip, 9985)
+		log.Infof("start sever at http://%v:%v", ip, os.Getenv(fileDagStoragePort))
 	}
-	err := http.ListenAndServe(os.Getenv(fileDagStorage), router)
+	err := http.ListenAndServe(os.Getenv(fileDagStoragePort), router)
 	if err != nil {
 		log.Errorf("ListenAndServe err%v", err)
 		return
@@ -67,12 +67,12 @@ var startCmd = &cli.Command{
 			}
 		}
 		if cctx.String("port") != "" {
-			err := os.Setenv(fileDagStorage, cctx.String("port"))
+			err := os.Setenv(fileDagStoragePort, cctx.String("port"))
 			if err != nil {
 				return err
 			}
 		} else {
-			err := os.Setenv(fileDagStorage, cctx.String(defaultPort))
+			err := os.Setenv(fileDagStoragePort, cctx.String(defaultPort))
 			if err != nil {
 				return err
 			}
