@@ -5,12 +5,14 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
+	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
 type s3ApiServer struct {
-	authSys iam.AuthSys
+	authSys *iam.AuthSys
+	store   *store.StorageSys
 }
 
 //registerS3Router Register S3Router
@@ -50,5 +52,6 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 func NewS3Server(router *mux.Router) {
 	var s3server s3ApiServer
 	s3server.authSys.Init()
+	s3server.store.Init()
 	s3server.registerS3Router(router)
 }

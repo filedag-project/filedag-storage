@@ -27,13 +27,13 @@ func startServer() {
 	router := mux.NewRouter()
 	s3api.NewS3Server(router)
 	iamapi.NewIamApiServer(router)
+	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
+		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
+	}
 	err := http.ListenAndServe(os.Getenv(fileDagStoragePort), router)
 	if err != nil {
 		log.Errorf("Listen And Serve err%v", err)
 		return
-	}
-	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
-		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
 	}
 	defer uleveldb.DBClient.Close()
 }

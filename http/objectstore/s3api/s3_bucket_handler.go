@@ -8,7 +8,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
-	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
 )
@@ -67,7 +66,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// create the folder for bucket, but lazily create actual collection
-	if err := store.Mkdir("", bucket); err != nil {
+	if err := s3a.store.Mkdir("", bucket); err != nil {
 		log.Errorf("PutBucketHandler mkdir: %v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrStoreMkdirFail)
 		return

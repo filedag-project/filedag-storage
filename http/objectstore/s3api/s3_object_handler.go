@@ -3,7 +3,6 @@ package s3api
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
-	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strings"
@@ -20,7 +19,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	defer dataReader.Close()
 	cid := ""
 	var err error
-	if cid, err = store.PutFile(".", bucket+object, r.Body); err != nil {
+	if cid, err = s3a.store.PutFile(".", bucket+object, r.Body); err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrStorePutFail)
 		return
 	}

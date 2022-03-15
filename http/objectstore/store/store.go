@@ -6,8 +6,12 @@ import (
 	"os"
 )
 
+//StorageSys store sys
+type StorageSys struct {
+}
+
 //PutFile store object
-func PutFile(parentDirectoryPath string, dirName string, reader io.Reader) (string, error) {
+func (s *StorageSys) PutFile(parentDirectoryPath string, dirName string, reader io.Reader) (string, error) {
 
 	all, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -22,10 +26,15 @@ func PutFile(parentDirectoryPath string, dirName string, reader io.Reader) (stri
 }
 
 //Mkdir store object
-func Mkdir(parentDirectoryPath string, bucket string) error {
+func (s *StorageSys) Mkdir(parentDirectoryPath string, bucket string) error {
 	err := os.Mkdir(parentDirectoryPath+bucket, 0777)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+//Init storage sys
+func (s *StorageSys) Init() {
+
 }

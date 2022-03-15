@@ -17,8 +17,8 @@ import (
 
 // AuthSys auth and sign system
 type AuthSys struct {
-	Iam       IdentityAMSys
-	PolicySys IPolicySys
+	Iam       *IdentityAMSys
+	PolicySys *IPolicySys
 }
 
 //Init AuthSys
