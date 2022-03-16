@@ -32,5 +32,28 @@ func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
 
 	fmt.Println(res)
 	fmt.Println(string(body))
+}
+func TestS3ApiServer_GetBucketPolicyHandler(t *testing.T) {
+	u := "http://127.0.0.1:9985/test"
+	urlValues := make(url.Values)
+	policy := ""
+	urlValues.Set("policy", policy)
+	req, err := http.NewRequest("GET", u+"?policy", nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//req.Header.Set("Content-Type", "text/plain")
+	client := &http.Client{}
+	req.ContentLength = int64(len(policy))
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
 
+	fmt.Println(res)
+	fmt.Println(string(body))
 }
