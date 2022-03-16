@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"io"
 	"net/http"
@@ -46,16 +47,16 @@ func MustNewSignedV4Request(method string, urlStr string, contentLength int64, b
 // Sign given request using Signature V4.
 func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 	// Get hashed payload.
-	hashedPayload := req.Header.Get("x-amz-content-sha256")
-	if hashedPayload == "" {
-		return fmt.Errorf("Invalid hashed payload")
-	}
-
+	hashedPayload := getContentSha256Cksum(req)
+	fmt.Println(hashedPayload)
 	currTime := time.Now()
 
 	// Set x-amz-date.
 	req.Header.Set("x-amz-date", currTime.Format(iso8601Format))
-
+	req.Header.Set(consts.ContentType, "application/x-www-form-urlencoded")
+	// Query string.
+	// final Authorization header
+	// Get header keys.
 	// Get header map.
 	headerMap := make(map[string][]string)
 	for k, vv := range req.Header {
@@ -64,15 +65,11 @@ func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 			headerMap[strings.ToLower(k)] = vv
 		}
 	}
-
-	// Get header keys.
 	headers := []string{"host"}
 	for k := range headerMap {
 		headers = append(headers, k)
 	}
 	sort.Strings(headers)
-
-	region := "us-east-1"
 
 	// Get canonical headers.
 	var buf bytes.Buffer
@@ -93,35 +90,12 @@ func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 			buf.WriteByte('\n')
 		}
 	}
-	canonicalHeaders := buf.String()
+	headerMap["host"] = append(headerMap["host"], req.URL.Host)
 
 	// Get signed headers.
 	signedHeaders := strings.Join(headers, ";")
-
-	// Get canonical query string.
-	req.URL.RawQuery = strings.Replace(req.URL.Query().Encode(), "+", "%20", -1)
-
-	// Get canonical URI.
-	canonicalURI := encodePath(req.URL.Path)
-
-	// Get canonical request.
-	// canonicalRequest =
-	//  <HTTPMethod>\n
-	//  <CanonicalURI>\n
-	//  <CanonicalQueryString>\n
-	//  <CanonicalHeaders>\n
-	//  <SignedHeaders>\n
-	//  <HashedPayload>
-	//
-	canonicalRequest := strings.Join([]string{
-		req.Method,
-		canonicalURI,
-		req.URL.RawQuery,
-		canonicalHeaders,
-		signedHeaders,
-		hashedPayload,
-	}, "\n")
-
+	queryStr := req.Form.Encode()
+	region := "us-east-1"
 	// Get scope.
 	scope := strings.Join([]string{
 		currTime.Format(yyyymmdd),
@@ -129,23 +103,26 @@ func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 		"s3",
 		"aws4_request",
 	}, "/")
+	// Get canonical request.
+	fmt.Printf("headerMap:%+v,hashedPayload:%v,queryStr:%v,req.URL.Path:%v,req.Method:%v\n", headerMap, hashedPayload, queryStr, req.URL.Path, req.Method)
+	canonicalRequest := getCanonicalRequest(headerMap, hashedPayload, queryStr, req.URL.Path, req.Method)
+	// Get string to sign from canonical request.
+	fmt.Printf("canonicalRequest:%v,currTime:%v,scope:%v\n", canonicalRequest, currTime, scope)
+	stringToSign := getStringToSign(canonicalRequest, currTime, scope)
+	fmt.Println("stringToSign", stringToSign)
 
-	stringToSign := signV4Algorithm + "\n" + currTime.Format(iso8601Format) + "\n"
-	stringToSign = stringToSign + scope + "\n"
-	stringToSign = stringToSign + getSHA256Hash([]byte(canonicalRequest))
+	// Get hmac signing key.
+	signingKey := getSigningKey(secretKey, currTime, region, "s3")
+	fmt.Println("signingKey", signingKey)
 
-	date := sumHMAC([]byte("AWS4"+secretKey), []byte(currTime.Format(yyyymmdd)))
-	regionHMAC := sumHMAC(date, []byte(region))
-	service := sumHMAC(regionHMAC, []byte("s3"))
-	signingKey := sumHMAC(service, []byte("aws4_request"))
+	// Calculate signature.
+	newSignature := getSignature(signingKey, stringToSign)
+	fmt.Println(newSignature)
 
-	signature := hex.EncodeToString(sumHMAC(signingKey, []byte(stringToSign)))
-
-	// final Authorization header
 	parts := []string{
-		signV4Algorithm + " Credential=" + accessKey + "/" + scope,
+		"AWS4-HMAC-SHA256" + " Credential=" + accessKey + "/" + scope,
 		"SignedHeaders=" + signedHeaders,
-		"Signature=" + signature,
+		"Signature=" + newSignature,
 	}
 	author := strings.Join(parts, ", ")
 	req.Header.Set("Authorization", author)
@@ -268,9 +245,121 @@ func getMD5Sum(data []byte) []byte {
 	return hash.Sum(nil)
 }
 
+// Returns SHA256 for calculating canonical-request.
+func getContentSha256Cksum(r *http.Request) string {
+	var (
+		defaultSha256Cksum string
+		v                  []string
+		ok                 bool
+	)
+
+	// X-Amz-Content-Sha256, if not set in signed requests, checksum
+	// will default to sha256([]byte("")).
+	defaultSha256Cksum = consts.EmptySHA256
+	v, ok = r.Header[consts.AmzContentSha256]
+
+	// We found 'X-Amz-Content-Sha256' return the captured value.
+	if ok {
+		return v[0]
+	}
+
+	// We couldn't find 'X-Amz-Content-Sha256'.
+	return defaultSha256Cksum
+}
+
+// getCanonicalRequest generate a canonical request of style
+//
+// canonicalRequest =
+//  <HTTPMethod>\n
+//  <CanonicalURI>\n
+//  <CanonicalQueryString>\n
+//  <CanonicalHeaders>\n
+//  <SignedHeaders>\n
+//  <HashedPayload>
+//
+func getCanonicalRequest(extractedSignedHeaders http.Header, payload, queryStr, urlPath, method string) string {
+	rawQuery := strings.ReplaceAll(queryStr, "+", "%20")
+	encodedPath := encodePath(urlPath)
+	canonicalRequest := strings.Join([]string{
+		method,
+		encodedPath,
+		rawQuery,
+		getCanonicalHeaders(extractedSignedHeaders),
+		getSignedHeaders(extractedSignedHeaders),
+		payload,
+	}, "\n")
+	return canonicalRequest
+}
+
+// getSignedHeaders generate a string i.e alphabetically sorted, semicolon-separated list of lowercase request header names
+func getSignedHeaders(signedHeaders http.Header) string {
+	var headers []string
+	for k := range signedHeaders {
+		headers = append(headers, strings.ToLower(k))
+	}
+	sort.Strings(headers)
+	return strings.Join(headers, ";")
+}
+
+// getCanonicalHeaders generate a list of request headers with their values
+func getCanonicalHeaders(signedHeaders http.Header) string {
+	var headers []string
+	vals := make(http.Header)
+	for k, vv := range signedHeaders {
+		headers = append(headers, strings.ToLower(k))
+		vals[strings.ToLower(k)] = vv
+	}
+	sort.Strings(headers)
+
+	var buf bytes.Buffer
+	for _, k := range headers {
+		buf.WriteString(k)
+		buf.WriteByte(':')
+		for idx, v := range vals[k] {
+			if idx > 0 {
+				buf.WriteByte(',')
+			}
+			buf.WriteString(signV4TrimAll(v))
+		}
+		buf.WriteByte('\n')
+	}
+	return buf.String()
+}
+
+// getStringToSign a string based on selected query values.
+func getStringToSign(canonicalRequest string, t time.Time, scope string) string {
+	stringToSign := signV4Algorithm + "\n" + t.Format(iso8601Format) + "\n"
+	stringToSign += scope + "\n"
+	canonicalRequestBytes := sha256.Sum256([]byte(canonicalRequest))
+	stringToSign += hex.EncodeToString(canonicalRequestBytes[:])
+	return stringToSign
+}
+
+// getSigningKey hmac seed to calculate final signature.
+func getSigningKey(secretKey string, t time.Time, region string, stype string) []byte {
+	date := sumHMAC([]byte("AWS4"+secretKey), []byte(t.Format(yyyymmdd)))
+	regionBytes := sumHMAC(date, []byte(region))
+	service := sumHMAC(regionBytes, []byte(stype))
+	signingKey := sumHMAC(service, []byte("aws4_request"))
+	return signingKey
+}
+
+// getSignature final signature in hexadecimal form.
+func getSignature(signingKey []byte, stringToSign string) string {
+	return hex.EncodeToString(sumHMAC(signingKey, []byte(stringToSign)))
+}
+
 // sumHMAC calculate hmac between two input byte array.
 func sumHMAC(key []byte, data []byte) []byte {
 	hash := hmac.New(sha256.New, key)
 	hash.Write(data)
 	return hash.Sum(nil)
+}
+
+// Trim leading and trailing spaces and replace sequential spaces with one space, following Trimall()
+// in http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
+func signV4TrimAll(input string) string {
+	// Compress adjacent spaces (a space is determined by
+	// unicode.IsSpace() internally here) to one space and return
+	return strings.Join(strings.Fields(input), " ")
 }
