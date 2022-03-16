@@ -11,7 +11,8 @@ import (
 const resourceARNPrefix = "arn:aws:s3:::"
 
 //The Resource element specifies the object or objects that the statement covers. Statements must include either a Resource or a NotResource element.
-// Resource - resource in policy statement.
+// An entity that users can work with in AWS, such as an EC2 instance, an Amazon DynamoDB table, an Amazon S3 bucket, an IAM user, or an AWS OpsWorks stack.
+//Resource - resource in policy statement.
 //"Resource": "arn:aws:iam::account-ID-without-hyphens:user/accounting/*"
 type Resource struct {
 	BucketName string

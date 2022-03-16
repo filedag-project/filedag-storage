@@ -15,6 +15,8 @@ import (
 //    "CanonicalUser": "79a59df900b949e55d96a1e698fbacedfd6e09d98eacf8f8d5218e7cd47ef2be"
 //  ]
 //}
+//The user, service, or account that receives permissions that are defined in a policy.
+//The principal is A in the statement "A has permission to do B to C."
 type Principal struct {
 	AWS set.StringSet
 }
