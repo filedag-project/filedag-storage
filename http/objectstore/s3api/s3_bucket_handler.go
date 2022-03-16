@@ -2,24 +2,19 @@ package s3api
 
 import (
 	"context"
-	"encoding/xml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
+	"io"
 	"net/http"
 )
 
 var log = logging.Logger("server")
-
-//ListAllMyBucketsResult  List All Buckets Result
-type ListAllMyBucketsResult struct {
-	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListAllMyBucketsResult"`
-	Owner   *s3.Owner
-	Buckets []*s3.Bucket `xml:"Buckets>Bucket"`
-}
 
 //ListBucketsHandler ListBuckets Handler
 func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +36,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 		})
 	}
 
-	resp := ListAllMyBucketsResult{
+	resp := response.ListAllMyBucketsResult{
 		Owner: &s3.Owner{
 			ID:          aws.String(cred.AccessKey),
 			DisplayName: aws.String(cred.AccessKey),
@@ -123,4 +118,93 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	response.WriteSuccessResponseEmpty(w, r)
+}
+
+// GetBucketAclHandler Get Bucket ACL
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html
+func (s3a *s3ApiServer) GetBucketAclHandler(w http.ResponseWriter, r *http.Request) {
+	// collect parameters
+	bucket, _ := getBucketAndObject(r)
+	log.Infof("GetBucketAclHandler %s", bucket)
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
+	resp := response.AccessControlPolicy{}
+	id := cred.AccessKey
+	if resp.Owner.DisplayName == "" {
+		resp.Owner.DisplayName = cred.AccessKey
+		resp.Owner.ID = id
+	}
+	resp.AccessControlList.Grant = append(resp.AccessControlList.Grant, response.Grant{
+		Grantee: response.Grantee{
+			ID:          id,
+			DisplayName: cred.AccessKey,
+			Type:        "CanonicalUser",
+			XMLXSI:      "CanonicalUser",
+			XMLNS:       "http://www.w3.org/2001/XMLSchema-instance"},
+		Permission: "FULL_CONTROL", //todo change
+	})
+	response.WriteSuccessResponseXML(w, r, resp)
+}
+
+// GetBucketCorsHandler Get bucket CORS
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketCors.html
+func (s3a *s3ApiServer) GetBucketCorsHandler(w http.ResponseWriter, r *http.Request) {
+	response.WriteErrorResponse(w, r, api_errors.ErrNoSuchCORSConfiguration)
+}
+
+// PutBucketCorsHandler Put bucket CORS
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketCors.html
+func (s3a *s3ApiServer) PutBucketCorsHandler(w http.ResponseWriter, r *http.Request) {
+	response.WriteErrorResponse(w, r, api_errors.ErrNotImplemented)
+}
+
+// DeleteBucketCorsHandler Delete bucket CORS
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketCors.html
+func (s3a *s3ApiServer) DeleteBucketCorsHandler(w http.ResponseWriter, r *http.Request) {
+	response.WriteErrorResponse(w, r, http.StatusNoContent)
+}
+
+// PutBucketAclHandler Put bucket ACL
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketAcl.html
+func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Request) {
+	bucket, _ := getBucketAndObject(r)
+
+	// Allow putBucketACL if policy action is set, since this is a dummy call
+	// we are simply re-purposing the bucketPolicyAction.
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
+
+	aclHeader := r.Header.Get(consts.AmzACL)
+	if aclHeader == "" {
+		acl := &response.AccessControlPolicy{}
+		if errc := utils.XmlDecoder(r.Body, acl, r.ContentLength); errc != nil {
+			if errc == io.EOF {
+				response.WriteErrorResponse(w, r, api_errors.ErrMissingSecurityHeader)
+				return
+			}
+			response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+			return
+		}
+
+		if len(acl.AccessControlList.Grant) == 0 {
+			response.WriteErrorResponse(w, r, api_errors.ErrNotImplemented)
+			return
+		}
+
+		if acl.AccessControlList.Grant[0].Permission != "FULL_CONTROL" {
+			response.WriteErrorResponse(w, r, api_errors.ErrNotImplemented)
+			return
+		}
+	}
+
+	if aclHeader != "" && aclHeader != "private" {
+		response.WriteErrorResponse(w, r, api_errors.ErrNotImplemented)
+		return
+	}
 }

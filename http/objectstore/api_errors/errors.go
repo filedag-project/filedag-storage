@@ -12,3 +12,8 @@ type GenericBucketError struct {
 	Bucket string
 	Err    error
 }
+
+// NotImplemented If a feature is not implemented
+type NotImplemented struct {
+	Message string
+}

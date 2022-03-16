@@ -72,6 +72,7 @@ const (
 	ErrInvalidCopyDest
 	ErrInvalidCopySource
 	ErrInvalidTag
+	ErrMissingSecurityHeader
 	ErrInvalidToken
 	ErrInvalidAccessKeyID
 	ErrAccessKeyDisabled
@@ -257,6 +258,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrInvalidTag: {
 		Code:           "InvalidTag",
 		Description:    "The Tag value you have provided is invalid",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrMissingSecurityHeader: {
+		Code:           "MissingSecurityHeader",
+		Description:    "Your request was missing a required header",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrInvalidToken: {

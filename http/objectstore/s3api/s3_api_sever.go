@@ -43,6 +43,19 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketPolicyHandler).Queries("policy", "")
 		// GetBucketPolicy
 		bucket.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketPolicyHandler).Queries("policy", "")
+
+		// GetBucketACL
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketAclHandler).Queries("acl", "")
+		// PutBucketACL
+		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketAclHandler).Queries("acl", "")
+
+		// GetBucketCors
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketCorsHandler).Queries("cors", "")
+		// PutBucketCors
+		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketCorsHandler).Queries("cors", "")
+		// DeleteBucketCors
+		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketCorsHandler).Queries("cors", "")
+
 		// PutBucket
 		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketHandler)
 		// HeadBucket

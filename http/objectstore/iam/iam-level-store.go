@@ -106,7 +106,7 @@ func (I *iamLevelDBStore) saveGroupInfo(ctx context.Context, group string, gi Gr
 	panic("implement me")
 }
 
-func (I *iamLevelDBStore) RemoveGroupInfo(ctx context.Context, name string) error {
+func (I *iamLevelDBStore) removeGroupInfo(ctx context.Context, name string) error {
 	//TODO implement me
 	panic("implement me")
 }

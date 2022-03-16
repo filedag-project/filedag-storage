@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	logging "github.com/ipfs/go-log/v2"
@@ -134,4 +135,11 @@ func writeResponseSimple(w http.ResponseWriter, statusCode int, response []byte,
 // WriteSuccessNoContent writes success headers with http status 204
 func WriteSuccessNoContent(w http.ResponseWriter) {
 	writeResponseSimple(w, http.StatusNoContent, nil, mimeNone)
+}
+
+//ListAllMyBucketsResult  List All Buckets Result
+type ListAllMyBucketsResult struct {
+	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListAllMyBucketsResult"`
+	Owner   *s3.Owner
+	Buckets []*s3.Bucket `xml:"Buckets>Bucket"`
 }

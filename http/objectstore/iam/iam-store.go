@@ -19,7 +19,7 @@ type iamStoreAPI interface {
 	loadGroup(ctx context.Context, group string, m *GroupInfo) error
 	loadGroups(ctx context.Context) (map[string]GroupInfo, error)
 	saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error
-	RemoveGroupInfo(ctx context.Context, name string) error
+	removeGroupInfo(ctx context.Context, name string) error
 	createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
 	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
 	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error

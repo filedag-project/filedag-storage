@@ -50,4 +50,7 @@ const (
 	StsVersion    = "Version"
 	StsAction     = "Action"
 	AssumeRole    = "AssumeRole"
+
+	// Dummy putBucketACL
+	AmzACL = "x-amz-acl"
 )
