@@ -110,14 +110,14 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
 
-	//// avoid duplicated buckets
-	//cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
-	//if err != api_errors.ErrNone {
-	//	response.WriteErrorResponse(w, r, err)
-	//	return
-	//}
+	// avoid duplicated buckets
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
 
-	errc := s3a.authSys.PolicySys.Delete(context.Background(), "test", bucket)
+	errc := s3a.authSys.PolicySys.Delete(context.Background(), cred.AccessKey, bucket)
 	if errc != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
