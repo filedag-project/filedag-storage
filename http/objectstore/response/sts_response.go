@@ -89,7 +89,7 @@ func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCode
 	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeXML)
 }
 
-// Encodes the response headers into XML format.
+// EncodeResponse Encodes the response headers into XML format.
 func EncodeResponse(response interface{}) []byte {
 	var bytesBuffer bytes.Buffer
 	bytesBuffer.WriteString(xml.Header)

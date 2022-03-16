@@ -67,6 +67,7 @@ const (
 	ErrInvalidServiceSTS
 	ErrInvalidServiceS3
 	ErrInvalidRequestVersion
+	ErrPolicyTooLarge
 	ErrInternalError
 	ErrInvalidCopyDest
 	ErrInvalidCopySource
@@ -194,6 +195,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrInvalidRequestVersion: {
 		Code:           "AuthorizatioErrInvalidRequestVersionnQueryParametersError",
 		Description:    "Error parsing the X-Amz-Credential parameter; incorrect terminal. This endpoint uses \"aws4_request\".",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrPolicyTooLarge: {
+		Code:           "PolicyTooLarge",
+		Description:    "Policy exceeds the maximum allowed document size.",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrNoSuchBucket: {

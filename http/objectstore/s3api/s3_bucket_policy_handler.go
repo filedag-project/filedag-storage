@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/dustin/go-humanize"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
@@ -13,6 +14,8 @@ import (
 	"net/http"
 )
 
+const maxBucketPolicySize = 20 * humanize.KiByte
+
 //PutBucketPolicyHandler Put BucketPolicy
 func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := GetBucketAndObject(r)
@@ -21,6 +24,11 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutBucketPolicyAction, bucket, "")
 	if errc != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
+		return
+	}
+	// Error out if Content-Length is beyond allowed size.
+	if r.ContentLength > maxBucketPolicySize {
+		response.WriteErrorResponse(w, r, api_errors.ErrPolicyTooLarge)
 		return
 	}
 	bucketPolicyBytes, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
