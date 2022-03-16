@@ -2,6 +2,7 @@ package s3api
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -14,11 +15,7 @@ func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
 	urlValues := make(url.Values)
 	policy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::bucket/*"}]}`
 	urlValues.Set("policy", policy)
-	req, err := http.NewRequest("PUT", u+"?"+urlValues.Encode(), strings.NewReader(policy))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u+"?"+urlValues.Encode(), int64(len(policy)), strings.NewReader(policy), t)
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	req.ContentLength = int64(len(policy))
@@ -35,17 +32,10 @@ func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
 }
 func TestS3ApiServer_GetBucketPolicyHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
-	urlValues := make(url.Values)
-	policy := ""
-	urlValues.Set("policy", policy)
-	req, err := http.NewRequest("GET", u+"?policy", nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	req := testsign.MustNewSignedV4Request(http.MethodGet, u+"?policy", 0, nil, t)
+
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
-	req.ContentLength = int64(len(policy))
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
@@ -59,17 +49,10 @@ func TestS3ApiServer_GetBucketPolicyHandler(t *testing.T) {
 }
 func TestS3ApiServer_DeleteBucketPolicyHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
-	urlValues := make(url.Values)
-	policy := ""
-	urlValues.Set("policy", policy)
-	req, err := http.NewRequest(http.MethodDelete, u+"?policy", nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	req := testsign.MustNewSignedV4Request(http.MethodDelete, u+"?policy", 0, nil, t)
+
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
-	req.ContentLength = int64(len(policy))
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
@@ -83,12 +66,8 @@ func TestS3ApiServer_DeleteBucketPolicyHandler(t *testing.T) {
 }
 func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
-	req, err := http.NewRequest(http.MethodHead, u, nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 	//req.Header.Set("Content-Type", "text/plain")
+	req := testsign.MustNewSignedV4Request(http.MethodHead, u, 0, nil, t)
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
@@ -108,6 +87,7 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 		fmt.Println(err)
 		return
 	}
+
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	res, err := client.Do(req)
