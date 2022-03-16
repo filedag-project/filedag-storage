@@ -86,7 +86,7 @@ func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCode
 		stsErrorResponse.Error.Message = errCtxt.Error()
 	}
 	encodedErrorResponse := EncodeResponse(stsErrorResponse)
-	writeResponse(w, err.HTTPStatusCode, encodedErrorResponse, mimeXML)
+	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeXML)
 }
 
 // Encodes the response headers into XML format.

@@ -9,9 +9,11 @@ import (
 	"time"
 )
 
-func WriteEmptyResponse(w http.ResponseWriter, r *http.Request, statusCode int) {
-	WriteResponse(w, r, statusCode, []byte{}, mimeNone)
+func writeEmptyResponse(w http.ResponseWriter, r *http.Request, statusCode int) {
+	writeResponse(w, r, statusCode, []byte{}, mimeNone)
 }
+
+//WriteErrorResponse write ErrorResponse
 func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode api_errors.ErrorCode) {
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
@@ -23,7 +25,7 @@ func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode api_er
 	apiError := api_errors.GetAPIError(errorCode)
 	errorResponse := getRESTErrorResponse(apiError, r.URL.Path, bucket, object)
 	encodedErrorResponse := encodeXMLResponse(errorResponse)
-	WriteResponse(w, r, apiError.HTTPStatusCode, encodedErrorResponse, mimeXML)
+	writeResponse(w, r, apiError.HTTPStatusCode, encodedErrorResponse, mimeXML)
 }
 func getRESTErrorResponse(err api_errors.APIError, resource string, bucket, object string) api_errors.RESTErrorResponse {
 	return api_errors.RESTErrorResponse{

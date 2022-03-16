@@ -43,9 +43,9 @@ func WriteSuccessResponseXML(w http.ResponseWriter, r *http.Request, response in
 
 //WriteXMLResponse Write XMLResponse
 func WriteXMLResponse(w http.ResponseWriter, r *http.Request, statusCode int, response interface{}) {
-	WriteResponse(w, r, statusCode, encodeXMLResponse(response), mimeXML)
+	writeResponse(w, r, statusCode, encodeXMLResponse(response), mimeXML)
 }
-func WriteResponse(w http.ResponseWriter, r *http.Request, statusCode int, response []byte, mType mimeType) {
+func writeResponse(w http.ResponseWriter, r *http.Request, statusCode int, response []byte, mType mimeType) {
 	setCommonHeaders(w, r)
 	if response != nil {
 		w.Header().Set("Content-Length", strconv.Itoa(len(response)))
@@ -83,7 +83,7 @@ func encodeXMLResponse(response interface{}) []byte {
 
 //WriteSuccessResponseEmpty  Success Response Empty
 func WriteSuccessResponseEmpty(w http.ResponseWriter, r *http.Request) {
-	WriteEmptyResponse(w, r, http.StatusOK)
+	writeEmptyResponse(w, r, http.StatusOK)
 }
 
 // WriteErrorResponseJSON - writes error response in JSON format;
@@ -92,7 +92,7 @@ func WriteErrorResponseJSON(ctx context.Context, w http.ResponseWriter, err api_
 	// Generate error response.
 	errorResponse := getAPIErrorResponse(ctx, err, reqURL.Path, w.Header().Get(consts.AmzRequestID), host)
 	encodedErrorResponse := encodeResponseJSON(errorResponse)
-	writeResponse(w, err.HTTPStatusCode, encodedErrorResponse, mimeJSON)
+	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeJSON)
 }
 
 // getErrorResponse gets in standard error and resource value and
@@ -118,9 +118,9 @@ func encodeResponseJSON(response interface{}) []byte {
 // WriteSuccessResponseJSON writes success headers and response if any,
 // with content-type set to `application/json`.
 func WriteSuccessResponseJSON(w http.ResponseWriter, response []byte) {
-	writeResponse(w, http.StatusOK, response, mimeJSON)
+	writeResponseSimple(w, http.StatusOK, response, mimeJSON)
 }
-func writeResponse(w http.ResponseWriter, statusCode int, response []byte, mType mimeType) {
+func writeResponseSimple(w http.ResponseWriter, statusCode int, response []byte, mType mimeType) {
 	if mType != mimeNone {
 		w.Header().Set(consts.ContentType, string(mType))
 	}
@@ -133,5 +133,5 @@ func writeResponse(w http.ResponseWriter, statusCode int, response []byte, mType
 
 // WriteSuccessNoContent writes success headers with http status 204
 func WriteSuccessNoContent(w http.ResponseWriter) {
-	writeResponse(w, http.StatusNoContent, nil, mimeNone)
+	writeResponseSimple(w, http.StatusNoContent, nil, mimeNone)
 }
