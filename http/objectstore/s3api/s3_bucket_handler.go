@@ -55,7 +55,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 //PutBucketHandler put a bucket
 func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
 
-	bucket, _ := GetBucketAndObject(r)
+	bucket, _ := getBucketAndObject(r)
 	log.Infof("PutBucketHandler %s", bucket)
 
 	// avoid duplicated buckets
@@ -87,7 +87,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 // return responses such as 404 Not Found and 403 Forbidden.
 func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request) {
 
-	bucket, _ := GetBucketAndObject(r)
+	bucket, _ := getBucketAndObject(r)
 	log.Infof("HeadBucketHandler %s", bucket)
 	// avoid duplicated buckets
 	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.HeadBucketAction, bucket, "")
@@ -96,7 +96,7 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if p, err := s3a.authSys.PolicySys.Get(bucket, cred.AccessKey); p == nil || err != nil {
+	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -107,7 +107,7 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 // DeleteBucketHandler delete Bucket
 func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
 
-	bucket, _ := GetBucketAndObject(r)
+	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
 
 	// avoid duplicated buckets

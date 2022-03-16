@@ -91,6 +91,16 @@ func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata)
 	return nil
 }
 
+// Head metadata for a bucket.
+func (sys *bucketMetadataSys) Head(bucket, username string) bool {
+	var meta bucketMetadata
+	err := sys.db.Get(bucketPrefix+username+"-"+bucket, &meta)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 // Delete bucket.
 func (sys *bucketMetadataSys) Delete(bucket, username string) error {
 	err := sys.db.Delete(bucketPrefix + username + "-" + bucket)

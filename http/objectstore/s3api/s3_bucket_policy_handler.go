@@ -18,7 +18,7 @@ const maxBucketPolicySize = 20 * humanize.KiByte
 
 //PutBucketPolicyHandler Put BucketPolicy
 func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := GetBucketAndObject(r)
+	bucket, _ := getBucketAndObject(r)
 	var ctx = context.Background()
 	log.Infof("PutBucketPolicyHandler %s", bucket)
 	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutBucketPolicyAction, bucket, "")
@@ -56,7 +56,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 
 //DeleteBucketPolicyHandler Delete BucketPolicy
 func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := GetBucketAndObject(r)
+	bucket, _ := getBucketAndObject(r)
 	var ctx = context.Background()
 	log.Infof("DeleteBucketPolicyHandler %s", bucket)
 	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketPolicyAction, bucket, "")
@@ -74,7 +74,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 
 //GetBucketPolicyHandler Get BucketPolicy
 func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := GetBucketAndObject(r)
+	bucket, _ := getBucketAndObject(r)
 	log.Infof("PutBucketPolicyHandler %s", bucket)
 	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.GetBucketPolicyAction, bucket, "")
 	if errc != api_errors.ErrNone {

@@ -8,11 +8,12 @@ import (
 	"strings"
 )
 
+//PutObjectHandler Put ObjectHandler
 func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
 
-	bucket, object := GetBucketAndObject(r)
+	bucket, object := getBucketAndObject(r)
 	log.Infof("PutObjectHandler %s %s", bucket, object)
 
 	dataReader := r.Body
@@ -26,7 +27,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	w.Write([]byte(cid))
 	response.WriteSuccessResponseEmpty(w, r)
 }
-func GetBucketAndObject(r *http.Request) (bucket, object string) {
+func getBucketAndObject(r *http.Request) (bucket, object string) {
 	vars := mux.Vars(r)
 	bucket = vars["bucket"]
 	object = vars["object"]

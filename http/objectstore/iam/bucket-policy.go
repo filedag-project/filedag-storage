@@ -21,6 +21,11 @@ func (sys *IPolicySys) Get(bucket, accessKey string) (*policy.Policy, error) {
 	return sys.bmSys.GetPolicyConfig(bucket, accessKey)
 }
 
+// Head returns stored bucket policy
+func (sys *IPolicySys) Head(bucket, accessKey string) bool {
+	return sys.bmSys.Head(bucket, accessKey)
+}
+
 // Set returns stored bucket policy
 func (sys *IPolicySys) Set(bucket, accessKey string) error {
 	return sys.bmSys.Set(bucket, accessKey, newBucketMetadata(bucket))
