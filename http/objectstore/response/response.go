@@ -36,11 +36,14 @@ type APIErrorResponse struct {
 	HostID    string `xml:"HostId" json:"HostId"`
 }
 
+//WriteSuccessResponseXML Write Success Response XML
 func WriteSuccessResponseXML(w http.ResponseWriter, r *http.Request, response interface{}) {
 	WriteXMLResponse(w, r, http.StatusOK, response)
 }
+
+//WriteXMLResponse Write XMLResponse
 func WriteXMLResponse(w http.ResponseWriter, r *http.Request, statusCode int, response interface{}) {
-	WriteResponse(w, r, statusCode, EncodeXMLResponse(response), mimeXML)
+	WriteResponse(w, r, statusCode, encodeXMLResponse(response), mimeXML)
 }
 func WriteResponse(w http.ResponseWriter, r *http.Request, statusCode int, response []byte, mType mimeType) {
 	setCommonHeaders(w, r)
@@ -69,8 +72,8 @@ func setCommonHeaders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// EncodeXMLResponse Encodes the response headers into XML format.
-func EncodeXMLResponse(response interface{}) []byte {
+// encodeXMLResponse Encodes the response headers into XML format.
+func encodeXMLResponse(response interface{}) []byte {
 	var bytesBuffer bytes.Buffer
 	bytesBuffer.WriteString(xml.Header)
 	e := xml.NewEncoder(&bytesBuffer)
