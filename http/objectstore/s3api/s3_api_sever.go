@@ -11,8 +11,8 @@ import (
 )
 
 type s3ApiServer struct {
-	authSys *iam.AuthSys
-	store   *store.StorageSys
+	authSys iam.AuthSys
+	store   store.StorageSys
 }
 
 //registerS3Router Register S3Router
@@ -40,15 +40,15 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		// PutBucketPolicy
 		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketPolicyHandler).Queries("policy", "")
 		// DeleteBucketPolicy
-		router.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketPolicyHandler).Queries("policy", "")
+		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketPolicyHandler).Queries("policy", "")
 		// GetBucketPolicy
-		router.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketPolicyHandler).Queries("policy", "")
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketPolicyHandler).Queries("policy", "")
 		// PutBucket
 		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketHandler)
 		// HeadBucket
-		bucket.Methods("HEAD").HandlerFunc(s3a.HeadBucketHandler)
+		bucket.Methods(http.MethodHead).HandlerFunc(s3a.HeadBucketHandler)
 		// DeleteBucket
-		bucket.Methods("DELETE").HandlerFunc(s3a.DeleteBucketHandler)
+		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketHandler)
 
 	}
 }
