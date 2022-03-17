@@ -132,5 +132,5 @@ func (statement Statement) Validate(bucketName string) error {
 	if err := statement.IsValid(); err != nil {
 		return err
 	}
-	return nil
+	return statement.Resources.Validate(bucketName)
 }
