@@ -1,10 +1,9 @@
 package policy
 
 import (
-	"errors"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
+	"golang.org/x/xerrors"
 	"unicode/utf8"
 )
 
@@ -70,22 +69,29 @@ func (statement Statement) Equals(st Statement) bool {
 	if !statement.Actions.Equals(st.Actions) {
 		return false
 	}
+	if !statement.Resources.Equals(st.Resources) {
+		return false
+	}
+	if !statement.Resources.Equals(st.Resources) {
+		return false
+	}
 	return true
 }
 
 // Clone clones Statement structure
 func (statement Statement) Clone() Statement {
 	return NewStatement(statement.SID, statement.Effect, statement.Principal.Clone(),
-		statement.Actions.Clone())
+		statement.Actions.Clone(), statement.Resources.Clone())
 }
 
 // NewStatement - creates new statement.
-func NewStatement(sid ID, effect Effect, principal Principal, actionSet s3action.ActionSet) Statement {
+func NewStatement(sid ID, effect Effect, principal Principal, actionSet s3action.ActionSet, resourceSet ResourceSet) Statement {
 	return Statement{
 		SID:       sid,
 		Effect:    effect,
 		Principal: principal,
 		Actions:   actionSet,
+		Resources: resourceSet,
 	}
 }
 
@@ -107,13 +113,16 @@ func (statement Statement) IsAllowed(args auth.Args) bool {
 
 // IsValid - checks whether statement is valid or not.
 func (statement Statement) IsValid() error {
-
-	if len(statement.Actions) == 0 {
-		return errors.New(fmt.Sprintf("Action must not be empty"))
+	if !statement.Principal.IsValid() {
+		return xerrors.Errorf("invalid Principal %v", statement.Principal)
 	}
 
-	if err := statement.Actions.Validate(); err != nil {
-		return err
+	if len(statement.Actions) == 0 {
+		return xerrors.Errorf("Action must not be empty")
+	}
+
+	if len(statement.Resources) == 0 {
+		return xerrors.Errorf("Resource must not be empty")
 	}
 
 	return nil
