@@ -4,7 +4,8 @@ type Config struct {
 	Dir            string
 	MaxLinkDagSize int
 	Shard          ShardFun
-	Parallel       int
+	MaxRead        int
+	MaxWrite       int
 	MaxCacheDags   int
 }
 
@@ -22,9 +23,15 @@ func MaxLinkDagSizeConf(size int) Option {
 	}
 }
 
-func ParallelConf(n int) Option {
+func MaxReadConf(n int) Option {
 	return func(cfg *Config) {
-		cfg.Parallel = n
+		cfg.MaxRead = n
+	}
+}
+
+func MaxWriteConf(n int) Option {
+	return func(cfg *Config) {
+		cfg.MaxWrite = n
 	}
 }
 

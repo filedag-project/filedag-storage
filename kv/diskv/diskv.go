@@ -16,7 +16,8 @@ import (
 )
 
 const maxLinkDagSize = 8 << 10
-const parallelTask = 64
+const maxWriteTask = 48
+const maxReadTask = 64
 const maxCacheDags = 4096
 const blockpath = "blocks"
 
@@ -63,7 +64,8 @@ type DisKV struct {
 	Ref       *Refdb
 	closeChan chan struct{}
 	close     func()
-	opchan    chan *op
+	opwchan   chan *op
+	oprchan   chan *op
 	cache     gcache.Cache
 }
 
@@ -71,7 +73,8 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 	cfg := &Config{
 		MaxLinkDagSize: maxLinkDagSize,
 		Shard:          DefaultShardFun,
-		Parallel:       parallelTask,
+		MaxRead:        maxReadTask,
+		MaxWrite:       maxWriteTask,
 		MaxCacheDags:   maxCacheDags,
 	}
 	for _, opt := range opts {
@@ -92,8 +95,9 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 				close(closeChan)
 			})
 		},
-		opchan: make(chan *op),
-		cache:  gcache.New(cfg.MaxCacheDags).LRU().Expiration(time.Hour * 3).Build(),
+		opwchan: make(chan *op),
+		oprchan: make(chan *op),
+		cache:   gcache.New(cfg.MaxCacheDags).LRU().Expiration(time.Hour * 3).Build(),
 	}
 	kv.acceptTasks()
 
@@ -101,20 +105,39 @@ func NewDisKV(opts ...Option) (*DisKV, error) {
 }
 
 func (di *DisKV) acceptTasks() {
-	for i := 0; i < di.Cfg.Parallel; i++ {
+	// set handlers for write operations
+	for i := 0; i < di.Cfg.MaxWrite; i++ {
 		go func(kv *DisKV) {
 			for {
 				select {
 				case <-kv.closeChan:
 					return
-				case opt := <-kv.opchan:
+				case opt := <-kv.opwchan:
 					switch opt.Type {
-					case opread:
-						di.opread(opt)
 					case opwrite:
 						di.opwrite(opt)
 					case opdelete:
 						di.opdelete(opt)
+					default:
+						opt.Res <- &opres{
+							Err: ErrUnknowOperation,
+						}
+					}
+				}
+			}
+		}(di)
+	}
+	// set handlers for read operation
+	for i := 0; i < di.Cfg.MaxRead; i++ {
+		go func(kv *DisKV) {
+			for {
+				select {
+				case <-kv.closeChan:
+					return
+				case opt := <-kv.oprchan:
+					switch opt.Type {
+					case opread:
+						di.opread(opt)
 					default:
 						opt.Res <- &opres{
 							Err: ErrUnknowOperation,
@@ -331,7 +354,7 @@ func (di *DisKV) pathByKey(key string) (string, string, error) {
 // we store link-dag into leveldb only, store data-dag into disk and keep an ref whith leveldb
 func (di *DisKV) Put(key string, value []byte) error {
 	resc := make(chan *opres)
-	di.opchan <- &op{
+	di.opwchan <- &op{
 		Type:  opwrite,
 		Key:   key,
 		Value: value,
@@ -344,7 +367,7 @@ func (di *DisKV) Put(key string, value []byte) error {
 
 func (di *DisKV) Delete(key string) error {
 	resc := make(chan *opres)
-	di.opchan <- &op{
+	di.opwchan <- &op{
 		Type: opdelete,
 		Key:  key,
 		Res:  resc,
@@ -356,7 +379,7 @@ func (di *DisKV) Delete(key string) error {
 
 func (di *DisKV) Get(key string) ([]byte, error) {
 	resc := make(chan *opres)
-	di.opchan <- &op{
+	di.oprchan <- &op{
 		Type: opread,
 		Key:  key,
 		Res:  resc,
