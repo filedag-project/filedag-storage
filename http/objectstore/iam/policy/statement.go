@@ -11,36 +11,27 @@ import (
 //https://docs.aws.amazon.com/zh_cn/zh_cn/IAM/latest/UserGuide/reference_policies_elements.html
 
 // Statement {
-//  "Version": "2012-10-17",
-//  "Statement": [
-//    {
-//      "Effect": "Allow",
-//      "Action": [
-//        "s3:ListAllMyBuckets",
-//        "s3:GetBucketLocation"
-//      ],
-//      "Resource": "arn:aws:s3:::*"
-//    },
-//    {
-//      "Effect": "Allow",
-//      "Action": "s3:ListBucket",
-//      "Resource": "arn:aws:s3:::BUCKET-NAME",
-//      "Condition": {"StringLike": {"s3:prefix": [
-//        "",
-//        "home/",
-//        "home/${aws:username}/"
-//      ]}}
-//    },
-//    {
-//      "Effect": "Allow",
-//      "Action": "s3:*",
-//      "Resource": [
-//        "arn:aws:s3:::BUCKET-NAME/home/${aws:username}",
-//        "arn:aws:s3:::BUCKET-NAME/home/${aws:username}/*"
-//      ]
-//    }
-//  ]
-//}
+//    "Version": "2012-10-17",
+//    "Statement": [
+//        {
+//            "Sid": "Only allow writes to my bucket with bucket owner full control",
+//            "Effect": "Allow",
+//            "Principal": {
+//                "AWS": [
+//                    "arn:aws:iam::111122223333:user/ExampleUser"
+//                ]
+//            },
+//            "Action": [
+//                "s3:PutObject"
+//            ],
+//            "Resource": "arn:aws:s3:::DOC-EXAMPLE-BUCKET/*",
+//            "Condition": {
+//                "StringEquals": {
+//                    "s3:x-amz-acl": "bucket-owner-full-control"
+//                }
+//            }
+//        }
+//    ]
 type Statement struct {
 	SID       ID                 `json:"Sid,omitempty"`
 	Effect    Effect             `json:"Effect"`
