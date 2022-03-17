@@ -23,6 +23,7 @@ var policyLock = sync.RWMutex{}
 //GetUserList get all user
 func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) {
 	var resp ListUsersResponse
+	resp.SetRequestId()
 	resp.ListUsersResult.Users = iamApi.authSys.Iam.GetUserList(context.Background())
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }

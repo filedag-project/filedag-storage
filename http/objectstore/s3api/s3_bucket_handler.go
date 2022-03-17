@@ -126,7 +126,7 @@ func (s3a *s3ApiServer) GetBucketAclHandler(w http.ResponseWriter, r *http.Reque
 	// collect parameters
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("GetBucketAclHandler %s", bucket)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.GetBucketPolicyAction, bucket, "")
 	if err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
@@ -174,7 +174,7 @@ func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Reque
 
 	// Allow putBucketACL if policy action is set, since this is a dummy call
 	// we are simply re-purposing the bucketPolicyAction.
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutBucketPolicyAction, bucket, "")
 	if err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return

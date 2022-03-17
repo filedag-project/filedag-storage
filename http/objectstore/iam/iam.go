@@ -16,7 +16,7 @@ const (
 	statusDisabled = "disabled"
 )
 
-// error returned in IAM subsystem when user doesn't exist.
+// error returned to IAM subsystem when user doesn't exist.
 var errNoSuchUser = errors.New("specified user does not exist")
 var errUserIsExpired = errors.New("specified user is expired")
 
