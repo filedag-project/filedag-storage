@@ -10,6 +10,10 @@ const (
 	StreamingContentSHA256 = "STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
 
 	Authorization = "Authorization"
+	ETag          = "ETag"
+	// S3 object version ID
+	AmzVersionID    = "x-amz-version-id"
+	AmzDeleteMarker = "x-amz-delete-marker"
 
 	AmzCredential = "X-Amz-Credential"
 	ContentType   = "Content-Type"

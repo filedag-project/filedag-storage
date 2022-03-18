@@ -35,10 +35,10 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	routers = append(routers, apiRouter.PathPrefix("/{bucket}").Subrouter())
 
 	for _, bucket := range routers {
-		bucket.Methods("GET").Path("/{object:.+}").HandlerFunc(s3a.GetObjectHandler)
+		bucket.Methods("GET").Path("/{object:.+}").HandlerFunc(s3a.getObjectHandler)
 
 		// PutObject
-		bucket.Methods("PUT").Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
+		bucket.Methods("PUT").Path("/{object:.+}").HandlerFunc(s3a.putObjectHandler)
 		// DeleteObject
 		bucket.Methods("DELETE").Path("/{object:.+}").HandlerFunc(s3a.DeleteObjectHandler)
 

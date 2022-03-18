@@ -3,43 +3,44 @@ package s3api
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
+	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/gorilla/mux"
-	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
-//PutObjectHandler Put ObjectHandler
-func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
+//putObjectHandler Put ObjectHandler
+func (s3a *s3ApiServer) putObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
 
 	bucket, object := getBucketAndObject(r)
 	log.Infof("PutObjectHandler %s %s", bucket, object)
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutObjectAction, "testbuckets", "")
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutObjectAction, "testbuckets", "")
 	if err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
 	dataReader := r.Body
 	defer dataReader.Close()
-	cid := ""
-	var errc error
-	if cid, errc = s3a.store.PutFile(".", bucket+object, r.Body); errc != nil {
+	objInfo, err2 := s3a.store.StoreObject(cred.AccessKey, bucket, object, r.Body)
+	if err2 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrStorePutFail)
 		return
 	}
-	w.Write([]byte(cid))
-	response.WriteSuccessResponseEmpty(w, r)
+	setPutObjHeaders(w, objInfo, false)
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
-// GetObjectHandler - GET Object
+// getObjectHandler - GET Object
 // ----------
 // This implementation of the GET operation retrieves object. To use GET,
 // you must have READ access to the object.
-func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *s3ApiServer) getObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.
@@ -51,10 +52,10 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 
 }
 
-// HeadObjectHandler - HEAD Object
+// headObjectHandler - HEAD Object
 // -----------
 // The HEAD operation retrieves metadata from an object without returning the object itself.
-func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *s3ApiServer) headObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.
@@ -91,19 +92,27 @@ func getBucketAndObject(r *http.Request) (bucket, object string) {
 	return
 }
 
-func passThroughResponse(proxyResponse *http.Response, w http.ResponseWriter) (statusCode int) {
-	for k, v := range proxyResponse.Header {
-		w.Header()[k] = v
+// setPutObjHeaders sets all the necessary headers returned back
+// upon a success Put/Copy/CompleteMultipart/Delete requests
+// to activate delete only headers set delete as true
+func setPutObjHeaders(w http.ResponseWriter, objInfo store.ObjectInfo, delete bool) {
+	// We must not use the http.Header().Set method here because some (broken)
+	// clients expect the ETag header key to be literally "ETag" - not "Etag" (case-sensitive).
+	// Therefore, we have to set the ETag directly as map entry.
+	if objInfo.ETag != "" && !delete {
+		w.Header()[consts.ETag] = []string{`"` + objInfo.ETag + `"`}
 	}
-	if proxyResponse.Header.Get("Content-Range") != "" && proxyResponse.StatusCode == 200 {
-		w.WriteHeader(http.StatusPartialContent)
-		statusCode = http.StatusPartialContent
-	} else {
-		statusCode = proxyResponse.StatusCode
+
+	// Set the relevant version ID as part of the response header.
+	if objInfo.VersionID != "" {
+		w.Header()[consts.AmzVersionID] = []string{objInfo.VersionID}
+		// If version is a deleted marker, set this header as well
+		if objInfo.DeleteMarker && delete { // only returned during delete object
+			w.Header()[consts.AmzDeleteMarker] = []string{strconv.FormatBool(objInfo.DeleteMarker)}
+		}
 	}
-	w.WriteHeader(statusCode)
-	if n, err := io.Copy(w, proxyResponse.Body); err != nil {
-		log.Infof("passthrough response read %d bytes: %v", n, err)
+
+	if objInfo.Bucket != "" && objInfo.Name != "" {
+
 	}
-	return statusCode
 }

@@ -1,32 +1,67 @@
 package store
 
 import (
+	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 //StorageSys store sys
 type StorageSys struct {
+	db      *uleveldb.ULevelDB
+	dagPool dagPoolClient
 }
 
-//PutFile store object
-func (s *StorageSys) PutFile(parentDirectoryPath string, dirName string, reader io.Reader) (string, error) {
+const objectPrefixTemplate = "object-%s-%s-%s/"
 
+//StoreObject store object
+func (s *StorageSys) StoreObject(user, bucket, object string, reader io.Reader) (ObjectInfo, error) {
+	cid, err := s.dagPool.PutFile(bucket, object, reader)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
 	all, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return "", err
+	meta := ObjectInfo{
+		Bucket:                     bucket,
+		Name:                       object,
+		ModTime:                    time.Now().UTC(),
+		Size:                       int64(len(all)),
+		IsDir:                      false,
+		ETag:                       cid,
+		VersionID:                  "",
+		IsLatest:                   false,
+		DeleteMarker:               false,
+		RestoreExpires:             time.Unix(0, 0).UTC(),
+		RestoreOngoing:             false,
+		ContentType:                "application/x-msdownload",
+		ContentEncoding:            "",
+		Expires:                    time.Unix(0, 0).UTC(),
+		StorageClass:               "STANDARD",
+		UserDefined:                nil,
+		UserTags:                   "",
+		Parts:                      nil,
+		Writer:                     nil,
+		Reader:                     nil,
+		PutObjReader:               nil,
+		AccTime:                    time.Unix(0, 0).UTC(),
+		Legacy:                     false,
+		VersionPurgeStatusInternal: "",
+		VersionPurgeStatus:         "",
+		NumVersions:                0,
+		SuccessorModTime:           time.Now().UTC(),
 	}
-	err = ioutil.WriteFile(parentDirectoryPath+"/"+dirName, all, 0644)
+	err = s.db.Put(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), meta)
 	if err != nil {
-		return "", err
+		return ObjectInfo{}, err
 	}
-	return "cid", nil
-
+	return meta, nil
 }
 
-//Mkdir store object
-func (s *StorageSys) Mkdir(parentDirectoryPath string, bucket string) error {
+//MkBucket store object
+func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
 	err := os.Mkdir(parentDirectoryPath+bucket, 0777)
 	if err != nil {
 		return err

@@ -143,3 +143,8 @@ type ListAllMyBucketsResult struct {
 	Owner   *s3.Owner
 	Buckets []*s3.Bucket `xml:"Buckets>Bucket"`
 }
+
+//WriteSuccessResponseHeadersOnly write SuccessResponseHeadersOnly
+func WriteSuccessResponseHeadersOnly(w http.ResponseWriter, r *http.Request) {
+	writeResponse(w, r, http.StatusOK, nil, mimeNone)
+}
