@@ -1,27 +1,24 @@
 package s3api
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"github.com/gorilla/mux"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"io/ioutil"
 	"net/http"
 	"testing"
 )
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
-	var s3server s3ApiServer
-	router := mux.NewRouter().SkipClean(true)
-	s3server.registerS3Router(router)
-	http.ListenAndServe("127.0.0.1:9985", router)
-	url := "http://127.0.0.1:9985/test/test1.txt"
-	fiveMBBytes := bytes.Repeat([]byte("a"), 5*humanize.KiByte)
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(fiveMBBytes))
-	req.Header.Set("Content-Type", "text/plain")
+	u := "http://127.0.0.1:9985/test/1.txt"
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", t)
+
+	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	res, err := client.Do(req)
-	log.Infof("err%v", err)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 
