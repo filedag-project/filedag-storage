@@ -66,9 +66,8 @@ func (s3a *s3ApiServer) headObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// Delete objectAPIHandlers
-
 // DeleteObjectHandler - delete an object
+// Delete objectAPIHandlers
 func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	bucket, object := getBucketAndObject(r)

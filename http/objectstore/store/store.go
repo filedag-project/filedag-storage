@@ -71,5 +71,5 @@ func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
 
 //Init storage sys
 func (s *StorageSys) Init() {
-
+	s.db = uleveldb.DBClient
 }
