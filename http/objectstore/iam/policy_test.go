@@ -33,6 +33,7 @@ func initSys() {
 
 	ast := s3action.NewActionSet("list")
 	principal := policy.NewPrincipal(auth.DefaultAccessKey)
-	states = append(states, policy.NewStatement("1", policy.Allow, principal, ast))
+	resource := policy.NewResourceSet()
+	states = append(states, policy.NewStatement("1", policy.Allow, principal, ast, resource))
 
 }
