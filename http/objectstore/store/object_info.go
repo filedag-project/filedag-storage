@@ -7,33 +7,35 @@ import (
 )
 
 // ObjectInfo - represents object metadata.
-// Bucket = {string} "test"
-// Name = {string} "default.exe"
-// ModTime = {time.Time} 2022-03-18 10:54:43.308685163 +0800
-// Size = {int64} 11604147
-// IsDir = {bool} false
-// ETag = {string} "a6b0b7ddb4630832ed47821af59aa125"
-// VersionID = {string} ""
-// IsLatest = {bool} false
-// DeleteMarker = {bool} false
-// RestoreExpires = {time.Time} 0001-01-01 00:00:00 +0000
-// RestoreOngoing = {bool} false
-// ContentType = {string} "application/x-msdownload"
-// ContentEncoding = {string} ""
-// Expires = {time.Time} 0001-01-01 00:00:00 +0000
-// StorageClass = {string} "STANDARD"
-// UserDefined = {map[string]string}
-// UserTags = {string} ""
-// Parts = {[]ObjectPartInfo} nil
-// Writer = {io.WriteCloser} nil
-// Reader = {*hash.Reader | 0x0} nil
-// putObjReader = {*putObjReader | 0x0} nil
-// AccTime = {time.Time} 0001-01-01 00:00:00 +0000
-// Legacy = {bool} false
-// VersionPurgeStatusInternal = {string} ""
-// VersionPurgeStatus = {VersionPurgeStatusType} ""
-// NumVersions = {int} 0
-// SuccessorModTime = {time.Time} 0001-01-01 00:00:00 +0000
+//{
+// 	Bucket = {string} "test"
+// 	Name = {string} "default.exe"
+// 	ModTime = {time.Time} 2022-03-18 10:54:43.308685163 +0800
+// 	Size = {int64} 11604147
+// 	IsDir = {bool} false
+// 	ETag = {string} "a6b0b7ddb4630832ed47821af59aa125"
+// 	VersionID = {string} ""
+// 	IsLatest = {bool} false
+// 	DeleteMarker = {bool} false
+// 	RestoreExpires = {time.Time} 0001-01-01 00:00:00 +0000
+// 	RestoreOngoing = {bool} false
+// 	ContentType = {string} "application/x-msdownload"
+// 	ContentEncoding = {string} ""
+// 	Expires = {time.Time} 0001-01-01 00:00:00 +0000
+// 	StorageClass = {string} "STANDARD"
+// 	UserDefined = {map[string]string}
+// 	UserTags = {string} ""
+// 	Parts = {[]ObjectPartInfo} nil
+// 	Writer = {io.WriteCloser} nil
+// 	Reader = {*hash.Reader | 0x0} nil
+// 	putObjReader = {*putObjReader | 0x0} nil
+// 	AccTime = {time.Time} 0001-01-01 00:00:00 +0000
+// 	Legacy = {bool} false
+// 	VersionPurgeStatusInternal = {string} ""
+// 	VersionPurgeStatus = {VersionPurgeStatusType} ""
+// 	NumVersions = {int} 0
+// 	SuccessorModTime = {time.Time} 0001-01-01 00:00:00 +0000
+//}
 type ObjectInfo struct {
 	// Name of the bucket.
 	Bucket string
