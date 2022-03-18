@@ -34,18 +34,25 @@ const (
 	yyyymmdd        = "20060102"
 )
 
+type serviceType string
+
+const (
+	serviceS3  serviceType = "s3"
+	serviceSTS serviceType = "sts"
+)
+
 //MustNewSignedV4Request  NewSignedV4Request
-func MustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
+func MustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, st serviceType, t *testing.T) *http.Request {
 	req := mustNewRequest(method, urlStr, contentLength, body, t)
 	cred := &auth.Credentials{AccessKey: "test", SecretKey: "test"}
-	if err := signRequestV4(req, cred.AccessKey, cred.SecretKey); err != nil {
+	if err := signRequestV4(req, cred.AccessKey, cred.SecretKey, st); err != nil {
 		t.Fatalf("Unable to inititalized new signed http request %s", err)
 	}
 	return req
 }
 
 // Sign given request using Signature V4.
-func signRequestV4(req *http.Request, accessKey, secretKey string) error {
+func signRequestV4(req *http.Request, accessKey, secretKey string, st serviceType) error {
 	// Get hashed payload.
 	hashedPayload := getContentSha256Cksum(req)
 	fmt.Println(hashedPayload)
@@ -100,7 +107,7 @@ func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 	scope := strings.Join([]string{
 		currTime.Format(yyyymmdd),
 		region,
-		"s3",
+		string(st),
 		"aws4_request",
 	}, "/")
 	// Get canonical request.
@@ -112,7 +119,7 @@ func signRequestV4(req *http.Request, accessKey, secretKey string) error {
 	fmt.Println("stringToSign", stringToSign)
 
 	// Get hmac signing key.
-	signingKey := getSigningKey(secretKey, currTime, region, "s3")
+	signingKey := getSigningKey(secretKey, currTime, region, string(st))
 	fmt.Println("signingKey", signingKey)
 
 	// Calculate signature.
