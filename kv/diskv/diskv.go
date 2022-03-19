@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/bluele/gcache"
+	"github.com/filedag-project/filedag-storage/kv"
 	"golang.org/x/xerrors"
 )
 
@@ -25,6 +26,8 @@ var (
 	ErrNotFound        = xerrors.New("diskv: not found")
 	ErrUnknowOperation = xerrors.New("diskv: unknow operation")
 )
+
+var _ kv.KVDB = (*DisKV)(nil)
 
 type optype int8
 
