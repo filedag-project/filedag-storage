@@ -138,6 +138,8 @@ func NewCask() *Cask {
 					cask.doread(act)
 				case opdelete:
 					cask.dodelete(act)
+				case opwrite:
+					cask.dowrite(act)
 				default:
 
 				}
@@ -156,6 +158,19 @@ func (c *Cask) Close() {
 	if c.vLog != nil {
 		c.vLog.Close()
 	}
+}
+
+func (c *Cask) Put(key string, value []byte) (err error) {
+	retvc := make(chan retv)
+	c.actChan <- &action{
+		optype:   opwrite,
+		key:      key,
+		value:    value,
+		retvchan: retvc,
+	}
+	ret := <-retvc
+
+	return ret.err
 }
 
 func (c *Cask) Delete(key string) (err error) {
@@ -247,4 +262,54 @@ func (c *Cask) dodelete(act *action) {
 	}
 	// truncate the last hint
 	act.retvchan <- retv{err: c.hintLog.Truncate(finfo.Size() - int64(HintEncodeSize))}
+}
+
+func (c *Cask) dowrite(act *action) {
+	var err error
+	defer func() {
+		if err != nil {
+			act.retvchan <- retv{err: err}
+		}
+	}()
+	// get vLog file size
+	finfo, err := c.vLog.Stat()
+	if err != nil {
+		return
+	}
+	// record file size as value offset
+	voffset := uint64(finfo.Size())
+	// encode value
+	encbytes := EncodeValue(act.value)
+	// record encoded value size
+	vsize := uint32(len(encbytes))
+	// write to vlog file
+	_, err = c.vLog.WriteAt(encbytes, finfo.Size())
+	if err != nil {
+		return
+	}
+
+	var hint = &Hint{}
+	if h, has := c.keyMap.Get(act.key); has {
+		hint = h
+	} else {
+		hfinfo, err := c.hintLog.Stat()
+		if err != nil {
+			return
+		}
+		hint.KOffset = uint64(hfinfo.Size())
+	}
+	hint.Key = act.key
+	hint.VOffset = voffset
+	hint.VSize = vsize
+
+	encHintBytes, err := hint.Encode()
+	if err != nil {
+		return
+	}
+	_, err = c.hintLog.WriteAt(encHintBytes, int64(hint.KOffset))
+	if err != nil {
+		return
+	}
+
+	act.retvchan <- retv{}
 }

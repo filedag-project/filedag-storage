@@ -2,8 +2,10 @@ package mutcask
 
 import (
 	"context"
+	"fmt"
 	"hash/crc32"
 	"os"
+	"path/filepath"
 
 	"github.com/filedag-project/filedag-storage/kv"
 )
@@ -46,8 +48,31 @@ func NewMutcask(opts ...Option) (*mutcask, error) {
 	return m, nil
 }
 
-func (m *mutcask) Put(key string, value []byte) error {
-	return nil
+func (m *mutcask) vLogName(id uint32) string {
+	return fmt.Sprintf("%08d%s", id, vLogSuffix)
+}
+
+func (m *mutcask) hintLogName(id uint32) string {
+	return fmt.Sprintf("%08d%s", id, hintLogSuffix)
+}
+
+func (m *mutcask) Put(key string, value []byte) (err error) {
+	id := m.fileID(key)
+	cask, has := m.caskMap.Get(id)
+	if !has {
+		cask = NewCask()
+		// create vlog file
+		cask.vLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.vLogName(id)), os.O_RDWR, 0644)
+		if err != nil {
+			return
+		}
+		cask.hintLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.hintLogName(id)), os.O_RDWR, 0644)
+		if err != nil {
+			return
+		}
+		return
+	}
+	return cask.Put(key, value)
 }
 
 func (m *mutcask) Delete(key string) error {
