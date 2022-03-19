@@ -26,6 +26,8 @@ func (cm *CaskMap) Add(id uint32, cask *Cask) {
 }
 
 func (cm *CaskMap) Get(id uint32) (c *Cask, b bool) {
+	cm.Lock()
+	defer cm.Unlock()
 	c, b = cm.m[id]
 	return
 }
@@ -50,6 +52,8 @@ func (km *KeyMap) Add(key string, hint *Hint) {
 }
 
 func (km *KeyMap) Get(key string) (h *Hint, b bool) {
+	km.Lock()
+	defer km.Unlock()
 	h, b = km.m[key]
 	return
 }
@@ -122,7 +126,7 @@ func buildCaskMap(cfg *Config) (*CaskMap, error) {
 			if err != nil {
 				return nil, err
 			}
-			cask.vLog, err = os.OpenFile(filepath.Join(cfg.Path, name, vLogSuffix), os.O_RDWR, 0644)
+			cask.vLog, err = os.OpenFile(filepath.Join(cfg.Path, name+vLogSuffix), os.O_RDWR, 0644)
 			if err != nil {
 				return nil, err
 			}

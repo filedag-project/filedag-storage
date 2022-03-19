@@ -60,18 +60,25 @@ func (m *mutcask) Put(key string, value []byte) (err error) {
 	id := m.fileID(key)
 	cask, has := m.caskMap.Get(id)
 	if !has {
+		m.caskMap.Lock()
+
 		cask = NewCask()
 		// create vlog file
-		cask.vLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.vLogName(id)), os.O_RDWR, 0644)
+		cask.vLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.vLogName(id)), os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
+			m.caskMap.Unlock()
 			return
 		}
-		cask.hintLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.hintLogName(id)), os.O_RDWR, 0644)
+		cask.hintLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.hintLogName(id)), os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
+			m.caskMap.Unlock()
 			return
 		}
-		return
+
+		m.caskMap.m[id] = cask
+		m.caskMap.Unlock()
 	}
+
 	return cask.Put(key, value)
 }
 

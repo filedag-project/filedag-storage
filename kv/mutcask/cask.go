@@ -2,6 +2,7 @@ package mutcask
 
 import (
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 	"os"
 	"sync"
@@ -141,11 +142,12 @@ func NewCask() *Cask {
 				case opwrite:
 					cask.dowrite(act)
 				default:
-
+					fmt.Printf("unkown op type %d\n", act.optype)
 				}
 			}
 
 		}
+
 	}(cask)
 	return cask
 }
@@ -310,6 +312,7 @@ func (c *Cask) dowrite(act *action) {
 	if err != nil {
 		return
 	}
+	c.keyMap.Add(hint.Key, hint)
 
 	act.retvchan <- retv{}
 }

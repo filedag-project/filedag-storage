@@ -13,13 +13,13 @@ func defaultConfig() *Config {
 
 type Option func(cfg *Config)
 
-func ConfCaskNum(caskNum int) Option {
+func CaskNumConf(caskNum int) Option {
 	return func(cfg *Config) {
 		cfg.CaskNum = uint32(caskNum)
 	}
 }
 
-func ConfPath(dir string) Option {
+func PathConf(dir string) Option {
 	return func(cfg *Config) {
 		cfg.Path = dir
 	}
