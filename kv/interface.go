@@ -1,6 +1,12 @@
 package kv
 
-import "context"
+import (
+	"context"
+
+	"golang.org/x/xerrors"
+)
+
+var ErrNotFound = xerrors.New("kv: key not found")
 
 type KVDB interface {
 	Put(string, []byte) error
