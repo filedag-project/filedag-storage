@@ -8,7 +8,19 @@ import (
 
 var _ kv.KVDB = (*mutcask)(nil)
 
-type mutcask struct{}
+type mutcask struct {
+	cfg *Config
+}
+
+func NewMutcask(opts ...Option) *mutcask {
+	m := &mutcask{
+		cfg: defaultConfig(),
+	}
+	for _, opt := range opts {
+		opt(m.cfg)
+	}
+	return m
+}
 
 func (m *mutcask) Put(key string, value []byte) error {
 	return nil
