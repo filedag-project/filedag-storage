@@ -211,8 +211,13 @@ func (c *Cask) Delete(key string) (err error) {
 func (c *Cask) Read(key string) (v []byte, err error) {
 	hint, has := c.keyMap.Get(key)
 	if !has || hint.Deleted {
+		fmt.Printf("has: %v\n", has)
+		if hint != nil && hint.Deleted {
+			fmt.Printf("delete: %v\n", hint.Deleted)
+		}
 		return nil, kv.ErrNotFound
 	}
+
 	retvc := make(chan retv)
 	c.actChan <- &action{
 		optype:   opread,
@@ -255,16 +260,14 @@ func (c *Cask) doread(act *action) {
 }
 
 func (c *Cask) dodelete(act *action) {
-	fmt.Printf("<==== start delete for %s at %d\n", act.key, c.id)
 	var err error
 	defer func() {
 		if err != nil {
 			act.retvchan <- retv{err: err}
 		}
-		fmt.Printf("end delete for %s at %d =====>\n", act.key, c.id)
 	}()
 	fsize := atomic.LoadUint64(&c.hintLogSize)
-	fmt.Printf("%d | %s hint offset: %d, %d, file size: %d\n", c.id, act.key, act.hint.KOffset, act.hint.KOffset+HintEncodeSize, fsize)
+	//fmt.Printf("%d | %s hint offset: %d, %d, file size: %d\n", c.id, act.key, act.hint.KOffset, act.hint.KOffset+HintEncodeSize, fsize)
 	if act.hint.KOffset+HintEncodeSize > fsize {
 		err = ErrReadHintBeyondRange
 		return
@@ -328,11 +331,14 @@ func (c *Cask) dowrite(act *action) {
 	if err != nil {
 		return
 	}
-	c.keyMap.Add(hint.Key, hint)
+
 	if isAddNew {
 		// update hint log file size
 		atomic.AddUint64(&c.hintLogSize, HintEncodeSize)
 	}
 
+	fmt.Printf("update key map for %d\n", c.id)
+	c.keyMap.Add(hint.Key, hint)
 	act.retvchan <- retv{}
+	fmt.Printf("put %s = %s\n", act.key, act.value)
 }

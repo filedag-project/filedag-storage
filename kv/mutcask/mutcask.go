@@ -6,6 +6,7 @@ import (
 	"hash/crc32"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/filedag-project/filedag-storage/kv"
 )
@@ -13,13 +14,19 @@ import (
 var _ kv.KVDB = (*mutcask)(nil)
 
 type mutcask struct {
-	cfg     *Config
-	caskMap *CaskMap
+	sync.Mutex
+	cfg            *Config
+	caskMap        *CaskMap
+	createCaskChan chan *createCaskRequst
+	close          func()
+	closeChan      chan struct{}
 }
 
 func NewMutcask(opts ...Option) (*mutcask, error) {
 	m := &mutcask{
-		cfg: defaultConfig(),
+		cfg:            defaultConfig(),
+		createCaskChan: make(chan *createCaskRequst),
+		closeChan:      make(chan struct{}),
 	}
 	for _, opt := range opts {
 		opt(m.cfg)
@@ -44,8 +51,51 @@ func NewMutcask(opts ...Option) (*mutcask, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	var once sync.Once
+	m.close = func() {
+		once.Do(func() {
+			close(m.closeChan)
+		})
+	}
+	m.handleCreateCask()
 	return m, nil
+}
+
+func (m *mutcask) handleCreateCask() {
+	go func(m *mutcask) {
+		ids := []uint32{}
+		for {
+			select {
+			case <-m.closeChan:
+				return
+			case req := <-m.createCaskChan:
+				func() {
+					// fmt.Printf("received cask create request, id = %d\n", req.id)
+					if hasId(ids, req.id) {
+						req.done <- ErrNone
+						return
+					}
+					cask := NewCask(req.id)
+					var err error
+					// create vlog file
+					cask.vLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.vLogName(req.id)), os.O_RDWR|os.O_CREATE, 0644)
+					if err != nil {
+						req.done <- err
+						return
+					}
+					// create hintlog file
+					cask.hintLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.hintLogName(req.id)), os.O_RDWR|os.O_CREATE, 0644)
+					if err != nil {
+						req.done <- err
+						return
+					}
+					m.caskMap.Add(req.id, cask)
+					ids = append(ids, req.id)
+					req.done <- ErrNone
+				}()
+			}
+		}
+	}(m)
 }
 
 func (m *mutcask) vLogName(id uint32) string {
@@ -58,25 +108,19 @@ func (m *mutcask) hintLogName(id uint32) string {
 
 func (m *mutcask) Put(key string, value []byte) (err error) {
 	id := m.fileID(key)
-	cask, has := m.caskMap.Get(id)
+	var cask *Cask
+	var has bool
+	cask, has = m.caskMap.Get(id)
 	if !has {
-		m.caskMap.Lock()
-
-		cask = NewCask(id)
-		// create vlog file
-		cask.vLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.vLogName(id)), os.O_RDWR|os.O_CREATE, 0644)
-		if err != nil {
-			m.caskMap.Unlock()
-			return
+		done := make(chan error)
+		m.createCaskChan <- &createCaskRequst{
+			id:   id,
+			done: done,
 		}
-		cask.hintLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.hintLogName(id)), os.O_RDWR|os.O_CREATE, 0644)
-		if err != nil {
-			m.caskMap.Unlock()
-			return
+		if err := <-done; err != ErrNone {
+			return err
 		}
-
-		m.caskMap.m[id] = cask
-		m.caskMap.Unlock()
+		cask, _ = m.caskMap.Get(id)
 	}
 
 	return cask.Put(key, value)
@@ -95,6 +139,7 @@ func (m *mutcask) Get(key string) ([]byte, error) {
 	id := m.fileID(key)
 	cask, has := m.caskMap.Get(id)
 	if !has {
+		fmt.Println("********")
 		return nil, kv.ErrNotFound
 	}
 
@@ -112,6 +157,7 @@ func (m *mutcask) Size(key string) (int, error) {
 
 func (m *mutcask) Close() error {
 	m.caskMap.CloseAll()
+	m.close()
 	return nil
 }
 func (m *mutcask) AllKeysChan(ctx context.Context) (chan string, error) {
@@ -138,4 +184,18 @@ func (m *mutcask) AllKeysChan(ctx context.Context) (chan string, error) {
 func (m *mutcask) fileID(key string) uint32 {
 	crc := crc32.ChecksumIEEE([]byte(key))
 	return crc % m.cfg.CaskNum
+}
+
+type createCaskRequst struct {
+	id   uint32
+	done chan error
+}
+
+func hasId(ids []uint32, id uint32) bool {
+	for _, item := range ids {
+		if item == id {
+			return true
+		}
+	}
+	return false
 }

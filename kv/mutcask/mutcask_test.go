@@ -2,6 +2,7 @@ package mutcask
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"sync"
@@ -41,7 +42,7 @@ func TestMutcask(t *testing.T) {
 		{"QmW6esdA2tsRmoiqmAgNx71vdNNtgJEd44CKt4nncUTsur", []byte("939836")},
 	}
 	mutc, err := NewMutcask(PathConf(tmpdirpath(t)), CaskNumConf(6))
-	//mutc, err := NewMutcask(PathConf("/Users/lifeng/testdir/mutcask"), CaskNumConf(512))
+	//mutc, err := NewMutcask(PathConf("/Users/lifeng/testdir/mutcask"), CaskNumConf(128))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +61,14 @@ func TestMutcask(t *testing.T) {
 		}(item.Key, item.Value)
 	}
 	wg.Wait()
-
+	// test all key chan
+	kc, err := mutc.AllKeysChan(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for k := range kc {
+		fmt.Println(k)
+	}
 	wg.Add(len(kvdata))
 	for _, item := range kvdata {
 		go func(k string, v []byte) {

@@ -26,8 +26,8 @@ func (cm *CaskMap) Add(id uint32, cask *Cask) {
 }
 
 func (cm *CaskMap) Get(id uint32) (c *Cask, b bool) {
-	cm.Lock()
-	defer cm.Unlock()
+	// cm.Lock()
+	// defer cm.Unlock()
 	c, b = cm.m[id]
 	return
 }
