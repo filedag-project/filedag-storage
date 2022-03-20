@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"sync"
 	"testing"
+
+	"github.com/filedag-project/filedag-storage/kv"
 )
 
 func TestMutcask(t *testing.T) {
@@ -28,9 +30,18 @@ func TestMutcask(t *testing.T) {
 		{"QmUPqWa9KJz44skxo8fDD4UFcxTsbTLk2XWQd1HdTdBq1h", []byte("778934")},
 		{"QmSfVC3EX4Uwa54sJt8F9TFuWDVvRzCbyuxpfDdh6qMgwR", []byte("878934")},
 		{"QmWBwR7pC2VY9KcFXgLJSYGZrbwuTnpNYHizgfDrtVMPCH", []byte("978934")},
+		{"QmapgjbPdMSqz6qTWGHesRuzBjQk9btZKSEMzZuEm2BKXt", []byte("139836")},
+		{"QmYfqhMnqunMjPFYsnUJea8sN65LFmF8ChSZ7kivZiwXi7", []byte("239836")},
+		{"QmRJvXuzSFRq5Sajd8hesZLsXnaWYe5bScsjWZUj1NLkgz", []byte("339836")},
+		{"QmQ1xczV6i2GzWv7RnstCs5ThyS9ngTadWiyGLZnBQD4Ry", []byte("439836")},
+		{"QmYHcpDZAzAW4N8gYDecNDAvk9gpwmPCMJKSCm7U1Eyvna", []byte("539836")},
+		{"QmQmXdRBn5zRVmq6ZBVS1tFKe3sBf8xuXibzqH7zqi2hp1", []byte("639836")},
+		{"QmZYCXLAV3wdpiWDfggRnC6ndKboedceDqnJDGqkuDBp3z", []byte("739836")},
+		{"QmXgEMNz5JbajkQ8tXRJHgbC12aogba9gwTgqTQW2LCK35", []byte("839836")},
+		{"QmW6esdA2tsRmoiqmAgNx71vdNNtgJEd44CKt4nncUTsur", []byte("939836")},
 	}
-
 	mutc, err := NewMutcask(PathConf(tmpdirpath(t)), CaskNumConf(6))
+	//mutc, err := NewMutcask(PathConf("/Users/lifeng/testdir/mutcask"), CaskNumConf(512))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,34 +79,34 @@ func TestMutcask(t *testing.T) {
 	}
 	wg.Wait()
 
-	// wg.Add(len(kvdata))
-	// for _, item := range kvdata {
-	// 	go func(k string, v []byte) {
-	// 		defer wg.Done()
+	wg.Add(len(kvdata))
+	for _, item := range kvdata {
+		go func(k string, v []byte) {
+			defer wg.Done()
 
-	// 		err := mutc.Delete(k)
-	// 		if err != nil {
-	// 			fmt.Println(err)
-	// 			t.Fail()
-	// 		}
-	// 	}(item.Key, item.Value)
-	// }
-	// wg.Wait()
+			err := mutc.Delete(k)
+			if err != nil {
+				fmt.Println(err)
+				t.Fail()
+			}
+		}(item.Key, item.Value)
+	}
+	wg.Wait()
 
-	// wg.Add(len(kvdata))
-	// for _, item := range kvdata {
-	// 	go func(k string, v []byte) {
-	// 		defer wg.Done()
+	wg.Add(len(kvdata))
+	for _, item := range kvdata {
+		go func(k string, v []byte) {
+			defer wg.Done()
 
-	// 		_, err := mutc.Get(k)
-	// 		if err != kv.ErrNotFound {
-	// 			fmt.Printf("err type wrong %#v \n", err)
-	// 			t.Fail()
-	// 		}
+			_, err := mutc.Get(k)
+			if err != kv.ErrNotFound {
+				fmt.Printf("err type wrong %#v \n", err)
+				t.Fail()
+			}
 
-	// 	}(item.Key, item.Value)
-	// }
-	// wg.Wait()
+		}(item.Key, item.Value)
+	}
+	wg.Wait()
 }
 
 func tmpdirpath(t *testing.T) string {

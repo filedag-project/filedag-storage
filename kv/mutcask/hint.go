@@ -58,6 +58,12 @@ func (km *KeyMap) Get(key string) (h *Hint, b bool) {
 	return
 }
 
+func (km *KeyMap) Remove(key string) {
+	km.Lock()
+	defer km.Unlock()
+	delete(km.m, key)
+}
+
 func buildKeyMap(hint *os.File) (*KeyMap, error) {
 	finfo, err := hint.Stat()
 	if err != nil {
@@ -116,9 +122,13 @@ func buildCaskMap(cfg *Config) (*CaskMap, error) {
 			if err != nil {
 				return nil, err
 			}
-			cask := NewCask()
+			cask := NewCask(uint32(id))
 			cm.Add(uint32(id), cask)
 			cask.hintLog, err = os.OpenFile(filepath.Join(cfg.Path, ent.Name()), os.O_RDWR, 0644)
+			if err != nil {
+				return nil, err
+			}
+			cask.hintLogSize, err = fileSize(cask.hintLog)
 			if err != nil {
 				return nil, err
 			}
@@ -126,7 +136,12 @@ func buildCaskMap(cfg *Config) (*CaskMap, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			cask.vLog, err = os.OpenFile(filepath.Join(cfg.Path, name+vLogSuffix), os.O_RDWR, 0644)
+			if err != nil {
+				return nil, err
+			}
+			cask.vLogSize, err = fileSize(cask.vLog)
 			if err != nil {
 				return nil, err
 			}
@@ -134,4 +149,12 @@ func buildCaskMap(cfg *Config) (*CaskMap, error) {
 	}
 
 	return cm, nil
+}
+
+func fileSize(f *os.File) (uint64, error) {
+	finfo, err := f.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return uint64(finfo.Size()), nil
 }

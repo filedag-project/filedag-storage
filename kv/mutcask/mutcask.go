@@ -62,7 +62,7 @@ func (m *mutcask) Put(key string, value []byte) (err error) {
 	if !has {
 		m.caskMap.Lock()
 
-		cask = NewCask()
+		cask = NewCask(id)
 		// create vlog file
 		cask.vLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.vLogName(id)), os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil {
@@ -117,8 +117,12 @@ func (m *mutcask) Close() error {
 func (m *mutcask) AllKeysChan(ctx context.Context) (chan string, error) {
 	kc := make(chan string)
 	go func(ctx context.Context, m *mutcask) {
+		defer close(kc)
 		for _, cask := range m.caskMap.m {
-			for key := range cask.keyMap.m {
+			for key, h := range cask.keyMap.m {
+				if h.Deleted {
+					continue
+				}
 				select {
 				case <-ctx.Done():
 					return
