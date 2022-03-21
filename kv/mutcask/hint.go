@@ -46,23 +46,23 @@ type KeyMap struct {
 }
 
 func (km *KeyMap) Add(key string, hint *Hint) {
-	km.Lock()
-	defer km.Unlock()
+	// km.Lock()
+	// defer km.Unlock()
 	km.m[key] = hint
 }
 
 func (km *KeyMap) Get(key string) (h *Hint, b bool) {
-	km.Lock()
-	defer km.Unlock()
+	// km.Lock()
+	// defer km.Unlock()
 	h, b = km.m[key]
 	return
 }
 
-func (km *KeyMap) Remove(key string) {
-	km.Lock()
-	defer km.Unlock()
-	delete(km.m, key)
-}
+// func (km *KeyMap) Remove(key string) {
+// 	km.Lock()
+// 	defer km.Unlock()
+// 	delete(km.m, key)
+// }
 
 func buildKeyMap(hint *os.File) (*KeyMap, error) {
 	finfo, err := hint.Stat()

@@ -92,6 +92,24 @@ func TestMutcask(t *testing.T) {
 		go func(k string, v []byte) {
 			defer wg.Done()
 
+			n, err := mutc.Size(k)
+			if err != nil {
+				fmt.Println(err)
+				t.Fail()
+			}
+			if n != len(v) {
+				fmt.Printf("size should be equal")
+				t.Fail()
+			}
+		}(item.Key, item.Value)
+	}
+	wg.Wait()
+
+	wg.Add(len(kvdata))
+	for _, item := range kvdata {
+		go func(k string, v []byte) {
+			defer wg.Done()
+
 			err := mutc.Delete(k)
 			if err != nil {
 				fmt.Println(err)

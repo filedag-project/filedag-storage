@@ -6,7 +6,6 @@ import (
 	"hash/crc32"
 	"os"
 	"sync"
-	"sync/atomic"
 
 	"github.com/filedag-project/filedag-storage/kv"
 )
@@ -211,10 +210,6 @@ func (c *Cask) Delete(key string) (err error) {
 func (c *Cask) Read(key string) (v []byte, err error) {
 	hint, has := c.keyMap.Get(key)
 	if !has || hint.Deleted {
-		fmt.Printf("has: %v\n", has)
-		if hint != nil && hint.Deleted {
-			fmt.Printf("delete: %v\n", hint.Deleted)
-		}
 		return nil, kv.ErrNotFound
 	}
 
@@ -266,7 +261,8 @@ func (c *Cask) dodelete(act *action) {
 			act.retvchan <- retv{err: err}
 		}
 	}()
-	fsize := atomic.LoadUint64(&c.hintLogSize)
+	// operations for one cask actually did in a sync style, so there is no need to use actomic
+	fsize := c.hintLogSize // atomic.LoadUint64(&c.hintLogSize)
 	//fmt.Printf("%d | %s hint offset: %d, %d, file size: %d\n", c.id, act.key, act.hint.KOffset, act.hint.KOffset+HintEncodeSize, fsize)
 	if act.hint.KOffset+HintEncodeSize > fsize {
 		err = ErrReadHintBeyondRange
@@ -307,15 +303,17 @@ func (c *Cask) dowrite(act *action) {
 	if err != nil {
 		return
 	}
+	// operations for one cask actually did in a sync style, so there is no need to use actomic
 	// update vlog file size
-	atomic.AddUint64(&c.vLogSize, uint64(vsize))
+	//atomic.AddUint64(&c.vLogSize, uint64(vsize))
+	c.vLogSize += uint64(vsize)
 
 	var hint = &Hint{}
 	var isAddNew bool
 	if h, has := c.keyMap.Get(act.key); has {
 		hint = h
 	} else {
-		hint.KOffset = atomic.LoadUint64(&c.hintLogSize)
+		hint.KOffset = c.hintLogSize // atomic.LoadUint64(&c.hintLogSize)
 		isAddNew = true
 	}
 	hint.Key = act.key
@@ -334,7 +332,8 @@ func (c *Cask) dowrite(act *action) {
 
 	if isAddNew {
 		// update hint log file size
-		atomic.AddUint64(&c.hintLogSize, HintEncodeSize)
+		// atomic.AddUint64(&c.hintLogSize, HintEncodeSize)
+		c.hintLogSize += HintEncodeSize
 	}
 
 	fmt.Printf("update key map for %d\n", c.id)
