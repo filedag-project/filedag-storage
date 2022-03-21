@@ -12,4 +12,5 @@ var (
 	ErrPath                = xerrors.New("mutcask: path should be directory not file")
 	ErrHintLogBroken       = xerrors.New("mutcask: hint log broken")
 	ErrReadHintBeyondRange = xerrors.New("mutcask: read hint out of file range")
+	ErrRepoLocked          = xerrors.New("mutcask: repo has been locked")
 )

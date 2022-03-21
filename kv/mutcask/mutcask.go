@@ -9,7 +9,11 @@ import (
 	"sync"
 
 	"github.com/filedag-project/filedag-storage/kv"
+	fslock "github.com/ipfs/go-fs-lock"
+	"golang.org/x/xerrors"
 )
+
+const lockFileName = "repo.lock"
 
 var _ kv.KVDB = (*mutcask)(nil)
 
@@ -47,6 +51,20 @@ func NewMutcask(opts ...Option) (*mutcask, error) {
 			return nil, err
 		}
 	}
+	// try to get the repo lock
+	locked, err := fslock.Locked(repoPath, lockFileName)
+	if err != nil {
+		return nil, xerrors.Errorf("could not check lock status: %w", err)
+	}
+	if locked {
+		return nil, ErrRepoLocked
+	}
+
+	unlockRepo, err := fslock.Lock(repoPath, lockFileName)
+	if err != nil {
+		return nil, xerrors.Errorf("could not lock the repo: %w", err)
+	}
+
 	m.caskMap, err = buildCaskMap(m.cfg)
 	if err != nil {
 		return nil, err
@@ -55,6 +73,7 @@ func NewMutcask(opts ...Option) (*mutcask, error) {
 	m.close = func() {
 		once.Do(func() {
 			close(m.closeChan)
+			unlockRepo.Close()
 		})
 	}
 	m.handleCreateCask()

@@ -325,6 +325,7 @@ func (c *Cask) dowrite(act *action) {
 			}
 			hint.Deleted = false
 			c.keyMap.Add(hint.Key, hint)
+			act.retvchan <- retv{}
 			return
 		}
 	} else {
