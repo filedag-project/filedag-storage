@@ -58,3 +58,14 @@ const (
 	// Dummy putBucketACL
 	AmzACL = "x-amz-acl"
 )
+
+//object const
+const (
+	LastModified            = "Last-Modified"
+	ContentEncoding         = "Content-Encoding"
+	AmzTagCount             = "x-amz-tagging-count"
+	AmzServerSideEncryption = "X-Amz-Server-Side-Encryption"
+	AmzEncryptionAES        = "AES256"
+	ContentLanguage         = "Content-Language"
+	ContentDisposition      = "Content-Disposition"
+)

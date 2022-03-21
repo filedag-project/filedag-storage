@@ -78,6 +78,7 @@ const (
 	ErrAccessKeyDisabled
 	ErrJsonMarshal
 	ErrAuthHeaderEmpty
+	ErrSetHeader
 	ErrSignatureVersionNotSupported
 	ErrMalformedPOSTRequest
 	ErrPOSTFileRequired
@@ -279,6 +280,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "InvalidArgument",
 		Description:    "Authorization header is invalid -- one and only one ' ' (space) required.",
 		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrSetHeader: {
+		Code:           "ErrSetHeader",
+		Description:    "set response header err",
+		HTTPStatusCode: http.StatusForbidden,
 	},
 	ErrSignatureVersionNotSupported: {
 		Code:           "InvalidRequest",

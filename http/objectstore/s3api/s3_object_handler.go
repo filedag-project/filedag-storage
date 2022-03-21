@@ -8,13 +8,14 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-//putObjectHandler Put ObjectHandler
-func (s3a *s3ApiServer) putObjectHandler(w http.ResponseWriter, r *http.Request) {
+//PutObjectHandler Put ObjectHandler
+func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
 
@@ -36,26 +37,43 @@ func (s3a *s3ApiServer) putObjectHandler(w http.ResponseWriter, r *http.Request)
 	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
-// getObjectHandler - GET Object
+// GetObjectHandler - GET Object
 // ----------
 // This implementation of the GET operation retrieves object. To use GET,
 // you must have READ access to the object.
-func (s3a *s3ApiServer) getObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	if _, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object); s3Error != api_errors.ErrNone {
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+
+	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
+	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
+
+	if err = response.SetObjectHeaders(w, r, objInfo); err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrSetHeader)
+		return
+	}
+	//todo use reader
+	r1, _ := ioutil.ReadFile("./go.mod")
+	w.Header().Set(consts.ContentLength, strconv.Itoa(len(r1)))
+	response.SetHeadGetRespHeaders(w, r.Form)
+	_, err = w.Write(r1)
+	if err != nil {
 		return
 	}
 
 }
 
-// headObjectHandler - HEAD Object
+// HeadObjectHandler - HEAD Object
 // -----------
 // The HEAD operation retrieves metadata from an object without returning the object itself.
-func (s3a *s3ApiServer) headObjectHandler(w http.ResponseWriter, r *http.Request) {
+func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.
@@ -69,7 +87,6 @@ func (s3a *s3ApiServer) headObjectHandler(w http.ResponseWriter, r *http.Request
 // DeleteObjectHandler - delete an object
 // Delete objectAPIHandlers
 func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
-
 	bucket, object := getBucketAndObject(r)
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.

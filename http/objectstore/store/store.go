@@ -60,6 +60,17 @@ func (s *StorageSys) StoreObject(user, bucket, object string, reader io.Reader) 
 	return meta, nil
 }
 
+//GetObject Get object
+func (s *StorageSys) GetObject(user, bucket, object string) (ObjectInfo, io.Reader, error) {
+	reader, err := s.dagPool.GetFile(bucket, object)
+	meta := ObjectInfo{}
+	err = s.db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
+	return meta, reader, nil
+}
+
 //MkBucket store object
 func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
 	err := os.Mkdir(parentDirectoryPath+bucket, 0777)
