@@ -15,7 +15,7 @@ func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
 	urlValues := make(url.Values)
 	policy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::bucket/*"}]}`
 	urlValues.Set("policy", policy)
-	req := testsign.MustNewSignedV4Request(http.MethodPut, u+"?"+urlValues.Encode(), int64(len(policy)), strings.NewReader(policy), "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u+"?"+urlValues.Encode(), int64(len(policy)), strings.NewReader(policy), "s3", "test", "test", t)
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	req.ContentLength = int64(len(policy))
@@ -32,7 +32,7 @@ func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
 }
 func TestS3ApiServer_GetBucketPolicyHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
-	req := testsign.MustNewSignedV4Request(http.MethodGet, u+"?policy", 0, nil, "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodGet, u+"?policy", 0, nil, "s3", "test", "test", t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
@@ -49,7 +49,7 @@ func TestS3ApiServer_GetBucketPolicyHandler(t *testing.T) {
 }
 func TestS3ApiServer_DeleteBucketPolicyHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
-	req := testsign.MustNewSignedV4Request(http.MethodDelete, u+"?policy", 0, nil, "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodDelete, u+"?policy", 0, nil, "s3", "test", "test", t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
@@ -67,7 +67,7 @@ func TestS3ApiServer_DeleteBucketPolicyHandler(t *testing.T) {
 func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
 	//req.Header.Set("Content-Type", "text/plain")
-	req := testsign.MustNewSignedV4Request(http.MethodHead, u, 0, nil, "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodHead, u, 0, nil, "s3", "test", "test", t)
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
@@ -82,7 +82,7 @@ func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
 }
 func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
-	req := testsign.MustNewSignedV4Request(http.MethodDelete, u, 0, nil, "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodDelete, u, 0, nil, "s3", "test", "test", t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
@@ -99,7 +99,7 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 }
 func TestS3ApiServer_GetBucketAclHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test"
-	req := testsign.MustNewSignedV4Request(http.MethodGet, u+"?acl=", 0, nil, "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodGet, u+"?acl=", 0, nil, "s3", "test", "test", t)
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	res, err := client.Do(req)
@@ -132,7 +132,7 @@ func TestS3ApiServer_PutBucketAclHandler(t *testing.T) {
     </Grant>
   </AccessControlList>
 </AccessControlPolicy>`
-	req := testsign.MustNewSignedV4Request(http.MethodPut, u+"?acl=", int64(len(a)), strings.NewReader(a), "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u+"?acl=", int64(len(a)), strings.NewReader(a), "s3", "test", "test", t)
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
 	res, err := client.Do(req)

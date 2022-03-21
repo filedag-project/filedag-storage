@@ -19,7 +19,7 @@ func TestV2CheckRequestAuthType(t *testing.T) {
 func TestV4CheckRequestAuthType(t *testing.T) {
 	var aSys AuthSys
 	aSys.Init()
-	req := testsign.MustNewSignedV4Request("GET", "http://127.0.0.1:9000", 0, nil, "s3", t)
+	req := testsign.MustNewSignedV4Request("GET", "http://127.0.0.1:9000", 0, nil, "test", "test", "s3", t)
 	err := aSys.checkRequestAuthType(context.Background(), req, s3action.ListAllMyBucketsAction, "test", "testobject")
 	fmt.Println(api_errors.GetAPIError(err))
 }

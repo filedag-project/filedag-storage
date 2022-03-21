@@ -10,7 +10,7 @@ import (
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test/1.txt"
-	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", t)
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", "test", "test", t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}

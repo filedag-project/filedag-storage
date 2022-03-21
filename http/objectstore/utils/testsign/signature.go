@@ -38,9 +38,9 @@ const (
 type serviceType string
 
 //MustNewSignedV4Request  NewSignedV4Request
-func MustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, st serviceType, t *testing.T) *http.Request {
+func MustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, st serviceType, accessKey, secretKey string, t *testing.T) *http.Request {
 	req := mustNewRequest(method, urlStr, contentLength, body, t)
-	cred := &auth.Credentials{AccessKey: "test", SecretKey: "test"}
+	cred := &auth.Credentials{AccessKey: accessKey, SecretKey: secretKey}
 	if err := signRequestV4(req, cred.AccessKey, cred.SecretKey, st); err != nil {
 		t.Fatalf("Unable to inititalized new signed http request %s", err)
 	}
