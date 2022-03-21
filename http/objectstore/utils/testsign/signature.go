@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/md5"
+	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -35,11 +36,6 @@ const (
 )
 
 type serviceType string
-
-const (
-	serviceS3  serviceType = "s3"
-	serviceSTS serviceType = "sts"
-)
 
 //MustNewSignedV4Request  NewSignedV4Request
 func MustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, st serviceType, t *testing.T) *http.Request {
@@ -369,4 +365,158 @@ func signV4TrimAll(input string) string {
 	// Compress adjacent spaces (a space is determined by
 	// unicode.IsSpace() internally here) to one space and return
 	return strings.Join(strings.Fields(input), " ")
+}
+
+// Sign given request using Signature V4.
+func signRequestV2(req *http.Request) error {
+	creds := auth.GetDefaultActiveCred()
+
+	policy := "policy"
+	req.Header.Set("Awsaccesskeyid", creds.AccessKey)
+	req.Header.Set("Policy", policy)
+	stringToSign := getStringToSignV2(req.Method, "", "", req.Header, "")
+	req.Header.Set("Signature", calculateSignatureV2(stringToSign, creds.SecretKey))
+	req.Header.Set("Authorization", "AWS "+creds.AccessKey+":"+calculateSignatureV2(stringToSign, creds.SecretKey))
+
+	return nil
+}
+
+//MustNewSignedV2Request New SignedV2 Request
+func MustNewSignedV2Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
+	req := mustNewRequest(method, urlStr, contentLength, body, t)
+	if err := signRequestV2(req); err != nil {
+		t.Fatalf("Unable to inititalized new signed http request %s", err)
+	}
+	return req
+}
+
+// Return string to sign under two different conditions.
+// - if expires string is set then string to sign includes date instead of the Date header.
+// - if expires string is empty then string to sign includes date header instead.
+func getStringToSignV2(method string, encodedResource, encodedQuery string, headers http.Header, expires string) string {
+	canonicalHeaders := canonicalizedAmzHeadersV2(headers)
+	if len(canonicalHeaders) > 0 {
+		canonicalHeaders += "\n"
+	}
+
+	date := expires // Date is set to expires date for presign operations.
+	if date == "" {
+		// If expires date is empty then request header Date is used.
+		date = headers.Get(consts.Date)
+	}
+
+	// From the Amazon docs:
+	//
+	// StringToSign = HTTP-Verb + "\n" +
+	// 	 Content-Md5 + "\n" +
+	//	 Content-Type + "\n" +
+	//	 Date/Expires + "\n" +
+	//	 CanonicalizedProtocolHeaders +
+	//	 CanonicalizedResource;
+	stringToSign := strings.Join([]string{
+		method,
+		headers.Get(consts.ContentMD5),
+		headers.Get(consts.ContentType),
+		date,
+		canonicalHeaders,
+	}, "\n")
+
+	return stringToSign + canonicalizedResourceV2(encodedResource, encodedQuery)
+}
+func calculateSignatureV2(stringToSign string, secret string) string {
+	hm := hmac.New(sha1.New, []byte(secret))
+	hm.Write([]byte(stringToSign))
+	return base64.StdEncoding.EncodeToString(hm.Sum(nil))
+}
+
+// Return canonical headers.
+func canonicalizedAmzHeadersV2(headers http.Header) string {
+	var keys []string
+	keyval := make(map[string]string, len(headers))
+	for key := range headers {
+		lkey := strings.ToLower(key)
+		if !strings.HasPrefix(lkey, "x-amz-") {
+			continue
+		}
+		keys = append(keys, lkey)
+		keyval[lkey] = strings.Join(headers[key], ",")
+	}
+	sort.Strings(keys)
+	var canonicalHeaders []string
+	for _, key := range keys {
+		canonicalHeaders = append(canonicalHeaders, key+":"+keyval[key])
+	}
+	return strings.Join(canonicalHeaders, "\n")
+}
+
+// Return canonical resource string.
+func canonicalizedResourceV2(encodedResource, encodedQuery string) string {
+	queries := strings.Split(encodedQuery, "&")
+	keyval := make(map[string]string)
+	for _, query := range queries {
+		key := query
+		val := ""
+		index := strings.Index(query, "=")
+		if index != -1 {
+			key = query[:index]
+			val = query[index+1:]
+		}
+		keyval[key] = val
+	}
+
+	var canonicalQueries []string
+	for _, key := range resourceList {
+		val, ok := keyval[key]
+		if !ok {
+			continue
+		}
+		if val == "" {
+			canonicalQueries = append(canonicalQueries, key)
+			continue
+		}
+		canonicalQueries = append(canonicalQueries, key+"="+val)
+	}
+
+	// The queries will be already sorted as resourceList is sorted, if canonicalQueries
+	// is empty strings.Join returns empty.
+	canonicalQuery := strings.Join(canonicalQueries, "&")
+	if canonicalQuery != "" {
+		return encodedResource + "?" + canonicalQuery
+	}
+	return encodedResource
+}
+
+// Whitelist resource list that will be used in query string for signature-V2 calculation.
+//
+// This list should be kept alphabetically sorted, do not hastily edit.
+var resourceList = []string{
+	"acl",
+	"cors",
+	"delete",
+	"encryption",
+	"legal-hold",
+	"lifecycle",
+	"location",
+	"logging",
+	"notification",
+	"partNumber",
+	"policy",
+	"requestPayment",
+	"response-cache-control",
+	"response-content-disposition",
+	"response-content-encoding",
+	"response-content-language",
+	"response-content-type",
+	"response-expires",
+	"retention",
+	"select",
+	"select-type",
+	"tagging",
+	"torrent",
+	"uploadId",
+	"uploads",
+	"versionId",
+	"versioning",
+	"versions",
+	"website",
 }
