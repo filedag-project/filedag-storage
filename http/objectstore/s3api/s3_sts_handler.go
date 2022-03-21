@@ -79,7 +79,7 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	assumeRoleResponse.ResponseMetadata.RequestID = w.Header().Get(consts.AmzRequestID)
-	response.WriteSuccessResponseXML(w, r, response.EncodeResponse(assumeRoleResponse))
+	response.WriteSuccessResponseXML(w, r, assumeRoleResponse)
 }
 func (s3a *s3ApiServer) checkAssumeRoleAuth(ctx context.Context, r *http.Request) (user auth.Credentials, isErrCodeSTS bool, stsErr api_errors.STSErrorCode) {
 	if !iam.IsRequestSignatureV4(r) {

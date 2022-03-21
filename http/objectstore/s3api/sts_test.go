@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
+	"io/ioutil"
 	"net/http"
 	"testing"
 )
@@ -14,5 +15,10 @@ func TestStsAPIHandlers_AssumeRole(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	fmt.Println(err)
-	fmt.Printf("resp%+v", resp.Body)
+	all, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	header := resp.Header
+	fmt.Printf("resp%v,%v", string(all), header)
 }
