@@ -119,6 +119,7 @@ const (
 	ErrSetBucketPolicyFail
 
 	ErrReader
+	ErrWriter
 )
 
 // error code to APIError structure, these fields carry respective
@@ -478,6 +479,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "ErrReader",
 		Description:    "Can not New Reader",
 		HTTPStatusCode: http.StatusConflict,
+	},
+	ErrWriter: {
+		Code:           "ErrWriter",
+		Description:    "writer byte to http writer err",
+		HTTPStatusCode: http.StatusForbidden,
 	},
 }
 

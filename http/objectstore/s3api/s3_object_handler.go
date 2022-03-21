@@ -65,9 +65,9 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	response.SetHeadGetRespHeaders(w, r.Form)
 	_, err = w.Write(r1)
 	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrReader)
 		return
 	}
-
 }
 
 // HeadObjectHandler - HEAD Object
