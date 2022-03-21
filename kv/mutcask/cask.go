@@ -272,14 +272,15 @@ func (c *Cask) dodelete(act *action) {
 	if err != nil {
 		return
 	}
-	h := &Hint{
-		Deleted: true,
-		Key:     act.hint.Key,
-		KOffset: act.hint.KOffset,
-		VOffset: act.hint.VOffset,
-		VSize:   act.hint.VSize,
-	}
-	c.keyMap.Add(act.key, h)
+	// h := &Hint{
+	// 	Deleted: true,
+	// 	Key:     act.hint.Key,
+	// 	KOffset: act.hint.KOffset,
+	// 	VOffset: act.hint.VOffset,
+	// 	VSize:   act.hint.VSize,
+	// }
+	act.hint.Deleted = true
+	c.keyMap.Add(act.key, act.hint)
 	// truncate the last hint
 	act.retvchan <- retv{}
 }
@@ -291,6 +292,45 @@ func (c *Cask) dowrite(act *action) {
 			act.retvchan <- retv{err: err}
 		}
 	}()
+
+	var hint = &Hint{}
+	var isAddNew bool
+	// check if key value already been saved
+	if h, has := c.keyMap.Get(act.key); has {
+		hint = h
+		// the crc code
+		buf := make([]byte, 4)
+		_, err = c.vLog.ReadAt(buf, int64(h.VOffset))
+		if err != nil {
+			return
+		}
+
+		crcRecord := binary.LittleEndian.Uint32(buf)
+		crcv := crc32.ChecksumIEEE(act.value)
+		// value has same crc code
+		if crcRecord == crcv && !h.Deleted {
+			act.retvchan <- retv{}
+			return
+		}
+		// value has same crc code but in deleted state
+		// should just update hint to undeleted state
+		if crcRecord == crcv && h.Deleted {
+			if hint.KOffset+HintEncodeSize > c.hintLogSize {
+				err = ErrReadHintBeyondRange
+				return
+			}
+			_, err = c.hintLog.WriteAt([]byte{HintDeletedFlag}, int64(hint.KOffset))
+			if err != nil {
+				return
+			}
+			hint.Deleted = false
+			c.keyMap.Add(hint.Key, hint)
+			return
+		}
+	} else {
+		isAddNew = true
+		hint.KOffset = c.hintLogSize
+	}
 
 	// record file size as value offset
 	voffset := c.vLogSize
@@ -308,14 +348,6 @@ func (c *Cask) dowrite(act *action) {
 	//atomic.AddUint64(&c.vLogSize, uint64(vsize))
 	c.vLogSize += uint64(vsize)
 
-	var hint = &Hint{}
-	var isAddNew bool
-	if h, has := c.keyMap.Get(act.key); has {
-		hint = h
-	} else {
-		hint.KOffset = c.hintLogSize // atomic.LoadUint64(&c.hintLogSize)
-		isAddNew = true
-	}
 	hint.Key = act.key
 	hint.VOffset = voffset
 	hint.VSize = vsize
