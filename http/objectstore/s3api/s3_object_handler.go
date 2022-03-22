@@ -78,10 +78,26 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	if _, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object); s3Error != api_errors.ErrNone {
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
+
+	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
+	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
+
+	// Set standard object headers.
+	if err = response.SetObjectHeaders(w, r, objInfo); err != nil {
+		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrSetHeader)
+		return
+	}
+	// Set any additional requested response headers.
+	response.SetHeadGetRespHeaders(w, r.Form)
+
+	// Successful response.
+	w.WriteHeader(http.StatusOK)
+
 }
 
 // DeleteObjectHandler - delete an object

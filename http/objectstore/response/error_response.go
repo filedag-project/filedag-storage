@@ -12,6 +12,9 @@ import (
 func writeEmptyResponse(w http.ResponseWriter, r *http.Request, statusCode int) {
 	writeResponse(w, r, statusCode, []byte{}, mimeNone)
 }
+func WriteErrorResponseHeadersOnly(w http.ResponseWriter, r *http.Request, err api_errors.ErrorCode) {
+	writeResponse(w, r, int(err), nil, mimeNone)
+}
 
 //WriteErrorResponse write ErrorResponse
 func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode api_errors.ErrorCode) {
