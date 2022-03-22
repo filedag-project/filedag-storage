@@ -29,8 +29,6 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	apiRouter.Methods(http.MethodGet).Path("/status").HandlerFunc(s3a.StatusHandler)
 	// NotFound
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
-	// ListBuckets
-	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
 	var routers []*mux.Router
 	routers = append(routers, apiRouter.PathPrefix("/{bucket}").Subrouter())
 
@@ -38,17 +36,13 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		// CopyObject
 		bucket.Methods(http.MethodPut).Path("/{object:.+}").HeadersRegexp("X-Amz-Copy-Source", ".*?(\\/|%2F).*?").HandlerFunc(s3a.CopyObjectHandler)
 
-		// ListObjectsV1 (Legacy)
-		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV1Handler)
-		// ListObjectsV2
-		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV2Handler).Queries("list-type", "2")
 		// GetObject
 		bucket.Methods(http.MethodGet).Path("/{object:.+}").HandlerFunc(s3a.GetObjectHandler)
 
 		// PutObject
 		bucket.Methods(http.MethodPut).Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
 		//HeadObject
-		bucket.Methods(http.MethodDelete).Path("/{object:.+}").HandlerFunc(s3a.HeadObjectHandler)
+		bucket.Methods(http.MethodHead).Path("/{object:.+}").HandlerFunc(s3a.HeadObjectHandler)
 
 		// DeleteObject
 		bucket.Methods(http.MethodDelete).Path("/{object:.+}").HandlerFunc(s3a.DeleteObjectHandler)
@@ -78,8 +72,14 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		bucket.Methods(http.MethodHead).HandlerFunc(s3a.HeadBucketHandler)
 		// DeleteBucket
 		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketHandler)
+		// ListObjectsV1 (Legacy)
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV1Handler)
+		// ListObjectsV2
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV2Handler).Queries("list-type", "2")
 
 	}
+	// ListBuckets
+	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
 }
 
 //NewS3Server Start a S3Server
