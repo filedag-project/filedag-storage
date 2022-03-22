@@ -1,6 +1,10 @@
 package store
 
-import "io"
+import (
+	"bytes"
+	"io"
+	"io/ioutil"
+)
 
 //dagPoolClient dagPool Client
 type dagPoolClient struct {
@@ -15,7 +19,9 @@ func (d dagPoolClient) PutFile(bucket, object string, reader io.Reader) (string,
 //GetFile get file
 func (d dagPoolClient) GetFile(bucket, object string) (io.Reader, error) {
 	//todo implement me
-	return nil, nil
+	//todo use reader
+	r1, _ := ioutil.ReadFile("./go.mod")
+	return bytes.NewReader(r1), nil
 }
 
 //DelFile del file

@@ -55,7 +55,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
+	objInfo, reader, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
 	if err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
 		return
@@ -66,8 +66,10 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrSetHeader)
 		return
 	}
-	//todo use reader
-	r1, _ := ioutil.ReadFile("./go.mod")
+	r1, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return
+	}
 	w.Header().Set(consts.ContentLength, strconv.Itoa(len(r1)))
 	response.SetHeadGetRespHeaders(w, r.Form)
 	_, err = w.Write(r1)
