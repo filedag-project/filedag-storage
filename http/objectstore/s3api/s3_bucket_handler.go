@@ -38,7 +38,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 
 	resp := response.ListAllMyBucketsResult{
 		Owner: &s3.Owner{
-			ID:          aws.String(cred.AccessKey),
+			ID:          aws.String(consts.DefaultOwnerID),
 			DisplayName: aws.String(cred.AccessKey),
 		},
 		Buckets: buckets,

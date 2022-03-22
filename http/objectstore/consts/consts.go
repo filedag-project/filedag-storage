@@ -57,6 +57,8 @@ const (
 
 	// Dummy putBucketACL
 	AmzACL = "x-amz-acl"
+
+	DefaultOwnerID = "02d6176db174dc93cb1b899f7c6078f08654445fe8cf1b6ce98d8855f66bdbf4"
 )
 
 //object const
