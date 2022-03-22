@@ -142,7 +142,7 @@ func (sys *IdentityAMSys) GetUser(ctx context.Context, accessKey string) (cred a
 		return m, false
 	}
 
-	return m, cred.IsValid()
+	return m, m.IsValid()
 }
 
 // RemoveUser Remove User

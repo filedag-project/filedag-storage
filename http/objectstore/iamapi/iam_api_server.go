@@ -24,7 +24,7 @@ func NewIamApiServer(router *mux.Router) {
 
 func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	// API Router
-	apiRouter := router.PathPrefix("/admin").Subrouter()
+	apiRouter := router.PathPrefix("/admin/v1").Subrouter()
 	apiRouter.Methods(http.MethodGet).Path("/list-user").HandlerFunc(iamApi.GetUserList)
 	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iamApi.AddUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(iamApi.RemoveUser).Queries("accessKey", "{accessKey:.*}")

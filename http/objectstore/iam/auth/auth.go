@@ -231,7 +231,7 @@ func isSecretKeyValid(secretKey string) bool {
 }
 
 // IsValid - returns whether credential is valid or not.
-func (cred Credentials) IsValid() bool {
+func (cred *Credentials) IsValid() bool {
 	// Verify credentials if its enabled or not set.
 	if cred.Status == AccountOff {
 		return false
@@ -240,7 +240,7 @@ func (cred Credentials) IsValid() bool {
 }
 
 // IsExpired - returns whether Credential is expired or not.
-func (cred Credentials) IsExpired() bool {
+func (cred *Credentials) IsExpired() bool {
 	if cred.Expiration.IsZero() || cred.Expiration.Equal(timeSentinel) {
 		return false
 	}
@@ -249,6 +249,6 @@ func (cred Credentials) IsExpired() bool {
 }
 
 // IsTemp - returns whether credential is temporary or not.
-func (cred Credentials) IsTemp() bool {
+func (cred *Credentials) IsTemp() bool {
 	return cred.SessionToken != "" && !cred.Expiration.IsZero() && !cred.Expiration.Equal(timeSentinel)
 }
