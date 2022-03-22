@@ -17,12 +17,6 @@
 
 package restapi
 
-import (
-	"context"
-	"github.com/filedag-project/filedag-storage/http/console/models"
-	"sort"
-)
-
 //func registersPoliciesHandler(api *operations.ConsoleAPI) {
 //// List Policies
 //api.AdminAPIListPoliciesHandler = admin_api.ListPoliciesHandlerFunc(func(params admin_api.ListPoliciesParams, session *models.Principal) middleware.Responder {
@@ -113,32 +107,32 @@ import (
 //})
 //}
 
-func getListAccessRulesWithBucketResponse(session *models.Principal, bucket string) (*models.ListAccessRulesResponse, *models.Error) {
-	ctx := context.Background()
-	client, err := newS3BucketClient(session, bucket, "")
-	if err != nil {
-		return nil, prepareError(err)
-	}
-	accessRules, _ := client.GetAccessRules(ctx)
-	var accessRuleList []*models.AccessRule
-	for k, v := range accessRules {
-		accessRuleList = append(accessRuleList, &models.AccessRule{Prefix: k[len(bucket)+1 : len(k)-1], Access: v})
-	}
-	return &models.ListAccessRulesResponse{AccessRules: accessRuleList}, nil
-}
-
-func getSetAccessRuleWithBucketResponse(session *models.Principal, bucket string, prefixAccess *models.PrefixAccessPair) (bool, *models.Error) {
-	ctx := context.Background()
-	client, err := newS3BucketClient(session, bucket, prefixAccess.Prefix)
-	if err != nil {
-		return false, prepareError(err)
-	}
-	errorVal := client.SetAccess(ctx, prefixAccess.Access, false)
-	if errorVal != nil {
-		return false, prepareError(errorVal.Cause)
-	}
-	return true, nil
-}
+//func getListAccessRulesWithBucketResponse(session *models.Principal, bucket string) (*models.ListAccessRulesResponse, *models.Error) {
+//	ctx := context.Background()
+//	client, err := newS3BucketClient(session, bucket, "")
+//	if err != nil {
+//		return nil, prepareError(err)
+//	}
+//	accessRules, _ := client.GetAccessRules(ctx)
+//	var accessRuleList []*models.AccessRule
+//	for k, v := range accessRules {
+//		accessRuleList = append(accessRuleList, &models.AccessRule{Prefix: k[len(bucket)+1 : len(k)-1], Access: v})
+//	}
+//	return &models.ListAccessRulesResponse{AccessRules: accessRuleList}, nil
+//}
+//
+//func getSetAccessRuleWithBucketResponse(session *models.Principal, bucket string, prefixAccess *models.PrefixAccessPair) (bool, *models.Error) {
+//	ctx := context.Background()
+//	client, err := newS3BucketClient(session, bucket, prefixAccess.Prefix)
+//	if err != nil {
+//		return false, prepareError(err)
+//	}
+//	errorVal := client.SetAccess(ctx, prefixAccess.Access, false)
+//	if errorVal != nil {
+//		return false, prepareError(errorVal.Cause)
+//	}
+//	return true, nil
+//}
 
 //func getDeleteAccessRuleWithBucketResponse(session *models.Principal, bucket string, prefix *models.PrefixWrapper) (bool, *models.Error) {
 //	ctx := context.Background()
@@ -217,106 +211,106 @@ func getSetAccessRuleWithBucketResponse(session *models.Principal, bucket string
 //	return false
 //}
 
-// listPolicies calls MinIO server to list all policy names present on the server.
-// listPolicies() converts the map[string][]byte returned by client.listPolicies()
-// to []*models.Policy by iterating over each key in policyRawMap and
-// then using Unmarshal on the raw bytes to create a *models.Policy
-func listPolicies(ctx context.Context, client MinioAdmin) ([]*models.Policy, error) {
-	policyMap, err := client.listPolicies(ctx)
-	var policies []*models.Policy
-	if err != nil {
-		return nil, err
-	}
-	for name, policy := range policyMap {
-		policy, err := parsePolicy(name, policy)
-		if err != nil {
-			return nil, err
-		}
-		policies = append(policies, policy)
-	}
-	return policies, nil
-}
+//// listPolicies calls MinIO server to list all policy names present on the server.
+//// listPolicies() converts the map[string][]byte returned by client.listPolicies()
+//// to []*models.Policy by iterating over each key in policyRawMap and
+//// then using Unmarshal on the raw bytes to create a *models.Policy
+//func listPolicies(ctx context.Context, client MinioAdmin) ([]*models.Policy, error) {
+//	policyMap, err := client.listPolicies(ctx)
+//	var policies []*models.Policy
+//	if err != nil {
+//		return nil, err
+//	}
+//	for name, policy := range policyMap {
+//		policy, err := parsePolicy(name, policy)
+//		if err != nil {
+//			return nil, err
+//		}
+//		policies = append(policies, policy)
+//	}
+//	return policies, nil
+//}
 
-// getListPoliciesResponse performs listPolicies() and serializes it to the handler's output
-func getListPoliciesResponse(session *models.Principal) (*models.ListPoliciesResponse, *models.Error) {
-	ctx := context.Background()
-	mAdmin, err := NewMinioAdminClient(session)
-	if err != nil {
-		return nil, prepareError(err)
-	}
-	// create a MinIO Admin Client interface implementation
-	// defining the client to be used
-	adminClient := AdminClient{Client: mAdmin}
-
-	policies, err := listPolicies(ctx, adminClient)
-	if err != nil {
-		return nil, prepareError(err)
-	}
-	// serialize output
-	listPoliciesResponse := &models.ListPoliciesResponse{
-		Policies: policies,
-		Total:    int64(len(policies)),
-	}
-	return listPoliciesResponse, nil
-}
-
-// getListUsersForPoliciesResponse performs lists users affected by a given policy.
-func getListUsersForPolicyResponse(session *models.Principal, policy string) ([]string, *models.Error) {
-	ctx := context.Background()
-	mAdmin, err := NewMinioAdminClient(session)
-	if err != nil {
-		return nil, prepareError(err)
-	}
-	// create a minioClient interface implementation
-	// defining the client to be used
-	adminClient := AdminClient{Client: mAdmin}
-
-	users, err := listUsers(ctx, adminClient)
-	if err != nil {
-		return nil, prepareError(err)
-	}
-
-	var filteredUsers []string
-	for _, user := range users {
-		for _, upolicy := range user.Policy {
-			if upolicy == policy {
-				filteredUsers = append(filteredUsers, user.AccessKey)
-				break
-			}
-		}
-	}
-	sort.Strings(filteredUsers)
-	return filteredUsers, nil
-}
-
-func getListGroupsForPolicyResponse(session *models.Principal, policy string) ([]string, *models.Error) {
-	ctx := context.Background()
-	mAdmin, err := NewMinioAdminClient(session)
-	if err != nil {
-		return nil, prepareError(err)
-	}
-	// create a minioClient interface implementation
-	// defining the client to be used
-	adminClient := AdminClient{Client: mAdmin}
-
-	groups, err := adminClient.listGroups(ctx)
-	if err != nil {
-		return nil, prepareError(err)
-	}
-
-	var filteredGroups []string
-	for _, group := range groups {
-		info, err := groupInfo(ctx, adminClient, group)
-		if err != nil {
-			return nil, prepareError(err)
-		}
-		if info.Policy == policy {
-			filteredGroups = append(filteredGroups, group)
-		}
-	}
-	sort.Strings(filteredGroups)
-	return filteredGroups, nil
-}
+//// getListPoliciesResponse performs listPolicies() and serializes it to the handler's output
+//func getListPoliciesResponse(session *models.Principal) (*models.ListPoliciesResponse, *models.Error) {
+//	ctx := context.Background()
+//	mAdmin, err := NewMinioAdminClient(session)
+//	if err != nil {
+//		return nil, prepareError(err)
+//	}
+//	// create a MinIO Admin Client interface implementation
+//	// defining the client to be used
+//	adminClient := AdminClient{Client: mAdmin}
+//
+//	policies, err := listPolicies(ctx, adminClient)
+//	if err != nil {
+//		return nil, prepareError(err)
+//	}
+//	// serialize output
+//	listPoliciesResponse := &models.ListPoliciesResponse{
+//		Policies: policies,
+//		Total:    int64(len(policies)),
+//	}
+//	return listPoliciesResponse, nil
+//}
+//
+//// getListUsersForPoliciesResponse performs lists users affected by a given policy.
+//func getListUsersForPolicyResponse(session *models.Principal, policy string) ([]string, *models.Error) {
+//	ctx := context.Background()
+//	mAdmin, err := NewMinioAdminClient(session)
+//	if err != nil {
+//		return nil, prepareError(err)
+//	}
+//	// create a minioClient interface implementation
+//	// defining the client to be used
+//	adminClient := AdminClient{Client: mAdmin}
+//
+//	users, err := listUsers(ctx, adminClient)
+//	if err != nil {
+//		return nil, prepareError(err)
+//	}
+//
+//	var filteredUsers []string
+//	for _, user := range users {
+//		for _, upolicy := range user.Policy {
+//			if upolicy == policy {
+//				filteredUsers = append(filteredUsers, user.AccessKey)
+//				break
+//			}
+//		}
+//	}
+//	sort.Strings(filteredUsers)
+//	return filteredUsers, nil
+//}
+//
+//func getListGroupsForPolicyResponse(session *models.Principal, policy string) ([]string, *models.Error) {
+//	ctx := context.Background()
+//	mAdmin, err := NewMinioAdminClient(session)
+//	if err != nil {
+//		return nil, prepareError(err)
+//	}
+//	// create a minioClient interface implementation
+//	// defining the client to be used
+//	adminClient := AdminClient{Client: mAdmin}
+//
+//	groups, err := adminClient.listGroups(ctx)
+//	if err != nil {
+//		return nil, prepareError(err)
+//	}
+//
+//	var filteredGroups []string
+//	for _, group := range groups {
+//		info, err := groupInfo(ctx, adminClient, group)
+//		if err != nil {
+//			return nil, prepareError(err)
+//		}
+//		if info.Policy == policy {
+//			filteredGroups = append(filteredGroups, group)
+//		}
+//	}
+//	sort.Strings(filteredGroups)
+//	return filteredGroups, nil
+//}
 
 //// removePolicy() calls MinIO server to remove a policy based on name.
 //func removePolicy(ctx context.Context, client MinioAdmin, name string) error {

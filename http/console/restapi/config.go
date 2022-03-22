@@ -46,7 +46,7 @@ var (
 )
 
 func getMinIOServer() string {
-	return strings.TrimSpace(env.Get(ConsoleMinIOServer, "http://localhost:9000"))
+	return strings.TrimSpace(env.Get(ConsoleMinIOServer, "http://192.168.19.133:9985"))
 }
 
 func getSubnetProxy() string {

@@ -377,8 +377,6 @@ func (adm AdminClient) executeMethod(ctx context.Context, method string, reqData
 		// Instantiate a new request.
 		var req *http.Request
 		req, err = adm.newRequest(ctx, method, reqData)
-		req.URL.Host = "192.168.19.91:9985"
-		req.URL.Path = "/admin/user-list"
 		if err != nil {
 			return nil, err
 		}
@@ -529,8 +527,8 @@ func (adm AdminClient) makeTargetURL(r requestData) (*url.URL, error) {
 	host := adm.endpointURL.Host
 	scheme := adm.endpointURL.Scheme
 
-	urlStr := scheme + "://" + host + libraryAdminURLPrefix + r.relPath
-
+	//urlStr := scheme + "://" + host + libraryAdminURLPrefix + r.relPath
+	urlStr := scheme + "://" + host + r.relPath
 	// If there are any query values, add them to the end.
 	if len(r.queryValues) > 0 {
 		urlStr = urlStr + "?" + s3utils.QueryEncode(r.queryValues)

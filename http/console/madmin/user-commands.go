@@ -19,6 +19,7 @@ package madmin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/filedag-project/filedag-storage/http/console/madmin/tags"
 	"io/ioutil"
 	"net/http"
@@ -78,10 +79,11 @@ func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (Acco
 	}
 	resp, err := adm.executeMethod(ctx, http.MethodGet,
 		requestData{
-			relPath:     adminAPIPrefix + "/accountinfo",
+			relPath:     "/",
 			queryValues: q,
 		},
 	)
+	fmt.Println(resp.Body)
 	defer closeResponse(resp)
 	if err != nil {
 		return AccountInfo{}, err
@@ -106,6 +108,60 @@ func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (Acco
 	}
 
 	return accountInfo, nil
+}
+
+// PutBucket returns the usage info for the authenticating account.
+func (adm *AdminClient) PutBucket(ctx context.Context, bucketName string, opts AccountOpts) error {
+
+	queryValues := url.Values{}
+	queryValues.Set("bucketName", bucketName)
+
+	reqData := requestData{
+		//relPath:     adminAPIPrefix + "/add-user",
+		relPath:     "/" + bucketName,
+		queryValues: queryValues,
+	}
+
+	// Execute PUT on /minio/admin/v3/add-user to set a user.
+	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
+
+	defer closeResponse(resp)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return httpRespToErrorResponse(resp)
+	}
+
+	return nil
+}
+
+// RemoveBucket returns the usage info for the authenticating account.
+func (adm *AdminClient) RemoveBucket(ctx context.Context, bucketName string, opts AccountOpts) error {
+
+	queryValues := url.Values{}
+	queryValues.Set("bucketName", bucketName)
+
+	reqData := requestData{
+		//relPath:     adminAPIPrefix + "/add-user",
+		relPath:     "/" + bucketName,
+		queryValues: queryValues,
+	}
+
+	// Execute PUT on /minio/admin/v3/add-user to set a user.
+	resp, err := adm.executeMethod(ctx, http.MethodDelete, reqData)
+
+	defer closeResponse(resp)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return httpRespToErrorResponse(resp)
+	}
+
+	return nil
 }
 
 // AccountStatus - account status.

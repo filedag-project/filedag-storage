@@ -39,6 +39,9 @@ type MinioAdmin interface {
 	updateGroupMembers(ctx context.Context, greq madmin.GroupAddRemove) error
 	getGroupDescription(ctx context.Context, group string) (*madmin.GroupDesc, error)
 	setGroupStatus(ctx context.Context, group string, status madmin.GroupStatus) error
+	AccountInfo(ctx context.Context) (madmin.AccountInfo, error)
+	PutBucket(ctx context.Context, bucketName, location string, objectLocking bool) error
+	RemoveBucket(ctx context.Context, bucketName, location string, objectLocking bool) error
 }
 
 // Interface implementation
@@ -122,6 +125,16 @@ func (ac AdminClient) updateServiceAccount(ctx context.Context, serviceAccount s
 // AccountInfo implements madmin.AccountInfo()
 func (ac AdminClient) AccountInfo(ctx context.Context) (madmin.AccountInfo, error) {
 	return ac.Client.AccountInfo(ctx, madmin.AccountOpts{})
+}
+
+// implements minio.MakeBucketWithContext(ctx, bucketName, location, objectLocking)
+func (ac AdminClient) PutBucket(ctx context.Context, bucketName, location string, objectLocking bool) error {
+	return ac.Client.PutBucket(ctx, bucketName, madmin.AccountOpts{})
+}
+
+// implements minio.RemoveBucket(ctx, bucketName, location, objectLocking)
+func (ac AdminClient) RemoveBucket(ctx context.Context, bucketName, location string, objectLocking bool) error {
+	return ac.Client.RemoveBucket(ctx, bucketName, madmin.AccountOpts{})
 }
 
 func NewMinioAdminClient(sessionClaims *models.Principal) (*madmin.AdminClient, error) {

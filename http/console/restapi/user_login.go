@@ -16,6 +16,11 @@
 
 package restapi
 
+import (
+	"github.com/filedag-project/filedag-storage/http/console/models"
+	"github.com/filedag-project/filedag-storage/http/console/pkg/auth"
+)
+
 //func registerLoginHandlers(api *operations.ConsoleAPI) {
 //	// GET login strategy
 //	api.UserAPILoginDetailHandler = user_api.LoginDetailHandlerFunc(func(params user_api.LoginDetailParams) middleware.Responder {
@@ -55,20 +60,20 @@ package restapi
 
 // login performs a check of ConsoleCredentials against MinIO, generates some claims and returns the jwt
 // for subsequent authentication
-//func login(credentials ConsoleCredentialsI, sessionFeatures *auth.SessionFeatures) (*string, error) {
-//	// try to obtain consoleCredentials,
-//	tokens, err := credentials.Get()
-//	if err != nil {
-//		return nil, err
-//	}
-//	// if we made it here, the consoleCredentials work, generate a jwt with claims
-//	token, err := auth.NewEncryptedTokenForClient(&tokens, credentials.GetAccountAccessKey(), sessionFeatures)
-//	if err != nil {
-//		LogError("error authenticating user: %v", err)
-//		return nil, errInvalidCredentials
-//	}
-//	return &token, nil
-//}
+func login(credentials ConsoleCredentialsI, sessionFeatures *auth.SessionFeatures) (*string, error) {
+	// try to obtain consoleCredentials,
+	tokens, err := credentials.Get()
+	if err != nil {
+		return nil, err
+	}
+	// if we made it here, the consoleCredentials work, generate a jwt with claims
+	token, err := auth.NewEncryptedTokenForClient(&tokens, credentials.GetAccountAccessKey(), sessionFeatures)
+	if err != nil {
+		LogError("error authenticating user: %v", err)
+		return nil, errInvalidCredentials
+	}
+	return &token, nil
+}
 
 //// getAccountPolicy will return the associated policy of the current account
 //func getAccountPolicy(ctx context.Context, client MinioAdmin) (*iampolicy.Policy, error) {
@@ -81,39 +86,39 @@ package restapi
 //	return iampolicy.ParseConfig(bytes.NewReader(accountInfo.Policy))
 //}
 
-//// getConsoleCredentials will return ConsoleCredentials interface
-//func getConsoleCredentials(accessKey, secretKey string) (*ConsoleCredentials, error) {
-//	creds, err := NewConsoleCredentials(accessKey, secretKey, GetMinIORegion())
-//	if err != nil {
-//		return nil, err
-//	}
-//	return &ConsoleCredentials{
-//		ConsoleCredentials: creds,
-//		AccountAccessKey:   accessKey,
-//	}, nil
-//}
-//
-//// getLoginResponse performs login() and serializes it to the handler's output
-//func getLoginResponse(lr *models.LoginRequest) (*models.LoginResponse, *models.Error) {
-//	// prepare console credentials
-//	consoleCreds, err := getConsoleCredentials(*lr.AccessKey, *lr.SecretKey)
-//	if err != nil {
-//		return nil, prepareError(err, errInvalidCredentials, err)
-//	}
-//	sf := &auth.SessionFeatures{}
-//	if lr.Features != nil {
-//		sf.HideMenu = lr.Features.HideMenu
-//	}
-//	sessionID, err := login(consoleCreds, sf)
-//	if err != nil {
-//		return nil, prepareError(err, errInvalidCredentials, err)
-//	}
-//	// serialize output
-//	loginResponse := &models.LoginResponse{
-//		SessionID: *sessionID,
-//	}
-//	return loginResponse, nil
-//}
+// getConsoleCredentials will return ConsoleCredentials interface
+func getConsoleCredentials(accessKey, secretKey string) (*ConsoleCredentials, error) {
+	creds, err := NewConsoleCredentials(accessKey, secretKey, GetMinIORegion())
+	if err != nil {
+		return nil, err
+	}
+	return &ConsoleCredentials{
+		ConsoleCredentials: creds,
+		AccountAccessKey:   accessKey,
+	}, nil
+}
+
+// getLoginResponse performs login() and serializes it to the handler's output
+func getLoginResponse(lr *models.LoginRequest) (*models.LoginResponse, *models.Error) {
+	// prepare console credentials
+	consoleCreds, err := getConsoleCredentials(*lr.AccessKey, *lr.SecretKey)
+	if err != nil {
+		return nil, prepareError(err, errInvalidCredentials, err)
+	}
+	sf := &auth.SessionFeatures{}
+	if lr.Features != nil {
+		sf.HideMenu = lr.Features.HideMenu
+	}
+	sessionID, err := login(consoleCreds, sf)
+	if err != nil {
+		return nil, prepareError(err, errInvalidCredentials, err)
+	}
+	// serialize output
+	loginResponse := &models.LoginResponse{
+		SessionID: *sessionID,
+	}
+	return loginResponse, nil
+}
 
 //// getLoginDetailsResponse returns information regarding the Console authentication mechanism.
 //func getLoginDetailsResponse(r *http.Request) (*models.LoginDetails, *models.Error) {
