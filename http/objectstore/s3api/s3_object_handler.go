@@ -3,11 +3,13 @@ package s3api
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
@@ -215,15 +217,37 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Request) {
-	bucket, object := getBucketAndObject(r)
+	bucket, _ := getBucketAndObject(r)
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	cerd, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, "")
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
+	objs, err := s3a.store.ListObject(cerd.AccessKey, bucket)
+	if err != nil {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+	var resp response.ListObjectsResponse
+	var objects []response.Object
+	for _, obj := range objs {
+		var v = response.Object{
+			Key:          "",
+			LastModified: obj.SuccessorModTime.String(),
+			ETag:         obj.ETag,
+			Size:         obj.Size,
+			Owner:        s3.Owner{DisplayName: utils.String(consts.DefaultOwnerID), ID: utils.String(cerd.AccessKey)},
+			StorageClass: "",
+			UserMetadata: nil,
+		}
+
+		objects = append(objects, v)
+	}
+	// Write success response.
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
@@ -16,6 +17,7 @@ type StorageSys struct {
 }
 
 const objectPrefixTemplate = "object-%s-%s-%s/"
+const allObjectPrefixTemplate = "object-%s-%s-"
 
 //StoreObject store object
 func (s *StorageSys) StoreObject(user, bucket, object string, reader io.Reader) (ObjectInfo, error) {
@@ -79,6 +81,21 @@ func (s *StorageSys) DeleteObject(user, bucket, object string) error {
 		return err
 	}
 	return nil
+}
+
+//ListObject list user object
+func (s *StorageSys) ListObject(user, bucket string) ([]ObjectInfo, error) {
+	var objs []ObjectInfo
+	objMap, err := s.db.ReadAll(fmt.Sprintf(allObjectPrefixTemplate, user, bucket))
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range objMap {
+		var o ObjectInfo
+		json.Unmarshal([]byte(v), &o)
+		objs = append(objs, o)
+	}
+	return objs, nil
 }
 
 //MkBucket store object
