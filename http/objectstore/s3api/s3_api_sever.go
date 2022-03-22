@@ -40,6 +40,8 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 
 		// PutObject
 		bucket.Methods(http.MethodPut).Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
+		//HeadObject
+		bucket.Methods(http.MethodDelete).Path("/{object:.+}").HandlerFunc(s3a.HeadObjectHandler)
 
 		// DeleteObject
 		bucket.Methods(http.MethodDelete).Path("/{object:.+}").HandlerFunc(s3a.DeleteObjectHandler)

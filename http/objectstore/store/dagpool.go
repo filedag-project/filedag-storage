@@ -12,8 +12,14 @@ func (d dagPoolClient) PutFile(bucket, object string, reader io.Reader) (string,
 	return "cid", nil
 }
 
-//PutFile put file
+//GetFile get file
 func (d dagPoolClient) GetFile(bucket, object string) (io.Reader, error) {
 	//todo implement me
 	return nil, nil
+}
+
+//DelFile del file
+func (d dagPoolClient) DelFile(bucket, object string) error {
+	//todo implement me
+	return nil
 }

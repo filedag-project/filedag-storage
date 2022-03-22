@@ -71,6 +71,16 @@ func (s *StorageSys) GetObject(user, bucket, object string) (ObjectInfo, io.Read
 	return meta, reader, nil
 }
 
+//DeleteObject Get object
+func (s *StorageSys) DeleteObject(user, bucket, object string) error {
+	err := s.dagPool.DelFile(bucket, object)
+	err = s.db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //MkBucket store object
 func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
 	err := os.Mkdir(parentDirectoryPath+bucket, 0777)
