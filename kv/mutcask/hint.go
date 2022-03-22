@@ -15,7 +15,7 @@ const vLogSuffix = ".vlog"
 const hintLogSuffix = ".hint"
 
 type CaskMap struct {
-	sync.Mutex
+	sync.RWMutex
 	m map[uint32]*Cask
 }
 
@@ -26,8 +26,8 @@ func (cm *CaskMap) Add(id uint32, cask *Cask) {
 }
 
 func (cm *CaskMap) Get(id uint32) (c *Cask, b bool) {
-	// cm.Lock()
-	// defer cm.Unlock()
+	cm.RLock()
+	defer cm.RUnlock()
 	c, b = cm.m[id]
 	return
 }
@@ -41,28 +41,22 @@ func (cm *CaskMap) CloseAll() {
 }
 
 type KeyMap struct {
-	sync.Mutex
+	sync.RWMutex
 	m map[string]*Hint
 }
 
 func (km *KeyMap) Add(key string, hint *Hint) {
-	// km.Lock()
-	// defer km.Unlock()
+	km.Lock()
+	defer km.Unlock()
 	km.m[key] = hint
 }
 
 func (km *KeyMap) Get(key string) (h *Hint, b bool) {
-	// km.Lock()
-	// defer km.Unlock()
+	km.RLock()
+	defer km.RUnlock()
 	h, b = km.m[key]
 	return
 }
-
-// func (km *KeyMap) Remove(key string) {
-// 	km.Lock()
-// 	defer km.Unlock()
-// 	delete(km.m, key)
-// }
 
 func buildKeyMap(hint *os.File) (*KeyMap, error) {
 	finfo, err := hint.Stat()

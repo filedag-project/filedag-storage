@@ -18,7 +18,6 @@ const lockFileName = "repo.lock"
 var _ kv.KVDB = (*mutcask)(nil)
 
 type mutcask struct {
-	sync.Mutex
 	cfg            *Config
 	caskMap        *CaskMap
 	createCaskChan chan *createCaskRequst
@@ -158,7 +157,6 @@ func (m *mutcask) Get(key string) ([]byte, error) {
 	id := m.fileID(key)
 	cask, has := m.caskMap.Get(id)
 	if !has {
-		fmt.Println("********")
 		return nil, kv.ErrNotFound
 	}
 
