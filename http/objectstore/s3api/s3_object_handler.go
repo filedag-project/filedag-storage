@@ -68,6 +68,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	}
 	r1, err := ioutil.ReadAll(reader)
 	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrReader)
 		return
 	}
 	w.Header().Set(consts.ContentLength, strconv.Itoa(len(r1)))
