@@ -35,6 +35,13 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	routers = append(routers, apiRouter.PathPrefix("/{bucket}").Subrouter())
 
 	for _, bucket := range routers {
+		// CopyObject
+		bucket.Methods(http.MethodPut).Path("/{object:.+}").HeadersRegexp("X-Amz-Copy-Source", ".*?(\\/|%2F).*?").HandlerFunc(s3a.CopyObjectHandler)
+
+		// ListObjectsV1 (Legacy)
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV1Handler)
+		// ListObjectsV2
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV2Handler).Queries("list-type", "2")
 		// GetObject
 		bucket.Methods(http.MethodGet).Path("/{object:.+}").HandlerFunc(s3a.GetObjectHandler)
 

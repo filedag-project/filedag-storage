@@ -148,3 +148,12 @@ type ListAllMyBucketsResult struct {
 func WriteSuccessResponseHeadersOnly(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, r, http.StatusOK, nil, mimeNone)
 }
+
+type CopyObjectResponse struct {
+	CopyObjectResult CopyObjectResult `xml:"http://s3.amazonaws.com/doc/2006-03-01/ CopyObjectResult"`
+}
+
+type CopyObjectResult struct {
+	LastModified time.Time `xml:"http://s3.amazonaws.com/doc/2006-03-01/ LastModified"`
+	ETag         string    `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ETag"`
+}
