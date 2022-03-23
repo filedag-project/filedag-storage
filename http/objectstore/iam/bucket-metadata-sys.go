@@ -102,7 +102,7 @@ func (sys *bucketMetadataSys) Head(bucket, username string) bool {
 }
 
 // Delete bucket.
-func (sys *bucketMetadataSys) Delete(bucket, username string) error {
+func (sys *bucketMetadataSys) Delete(username, bucket string) error {
 	err := sys.db.Delete(bucketPrefix + username + "-" + bucket)
 	if err != nil {
 		return err
