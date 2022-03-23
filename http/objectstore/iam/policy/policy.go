@@ -153,9 +153,11 @@ var DefaultPolicies = []struct {
 		Definition: Policy{
 			Statements: []Statement{
 				{
-					SID:     "",
-					Effect:  Allow,
-					Actions: s3action.NewActionSet(s3action.AllActions),
+					SID:       "",
+					Effect:    Allow,
+					Principal: NewPrincipal("aa"),
+					Actions:   s3action.NewActionSet(s3action.AllActions),
+					Resources: NewResourceSet(NewResource("test", "")),
 				},
 			},
 		},
