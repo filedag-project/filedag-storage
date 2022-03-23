@@ -39,6 +39,7 @@ func (sys *IdentityAMSys) Init() {
 // initStore initializes IAM stores
 func (sys *IdentityAMSys) initStore() {
 	sys.store = &iamStoreSys{newIAMLevelDBStore()}
+
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
@@ -57,13 +58,16 @@ func (sys *IdentityAMSys) IsAllowed(args auth.Args) bool {
 		return sys.IsAllowedSTS(args, parentUser)
 	}
 	// Continue with the assumption of a regular user
-	p, err := sys.store.getUserPolices(context.Background(), args.AccountName)
+	ps, err := sys.store.getUserPolices(context.Background(), args.AccountName)
 	if err != nil {
 		return false
 	}
-
+	var pol, pmer policy.Policy
+	for _, p := range ps {
+		pmer = pol.Merge(p)
+	}
 	// Policies were found, evaluate all of them.
-	return p.IsAllowed(args)
+	return pmer.IsAllowed(args)
 }
 
 // IsAllowedSTS is meant for STS based temporary credentials,
@@ -131,6 +135,13 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
+		return err
+	}
+	err = sys.store.createUserPolicy(ctx, accessKey, policy.DefaultPolicies[0].Name, policy.PolicyDocument{
+		Version:   policy.DefaultPolicies[0].Definition.Version,
+		Statement: policy.DefaultPolicies[0].Definition.Statements,
+	})
+	if err != nil {
 		return err
 	}
 	return nil

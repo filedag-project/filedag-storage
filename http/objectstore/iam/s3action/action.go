@@ -161,8 +161,8 @@ const (
 	AllActions = "s3:*"
 )
 
-// List of all supported actions.
-var supportedActions = map[Action]struct{}{
+// SupportedActions List of all supported actions.
+var SupportedActions = map[Action]struct{}{
 	AbortMultipartUploadAction:             {},
 	CreateBucketAction:                     {},
 	DeleteBucketAction:                     {},
@@ -219,7 +219,7 @@ var supportedActions = map[Action]struct{}{
 
 // IsValid - checks if action is valid or not.
 func (action Action) IsValid() bool {
-	for supAction := range supportedActions {
+	for supAction := range SupportedActions {
 		if action.Match(supAction) {
 			return true
 		}

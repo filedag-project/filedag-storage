@@ -70,7 +70,7 @@ func (I *iamLevelDBStore) createPolicy(ctx context.Context, policyName string, p
 	return nil
 }
 func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.levelDB.Put(userPolicyPrefix+"-"+userName+"-"+policyName, policyDocument)
+	err := I.levelDB.Put(userPolicyPrefix+userName+"-"+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
@@ -78,23 +78,28 @@ func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policy
 }
 
 func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error {
-	err := I.levelDB.Get(userPrefix+"-"+userName+"-"+policyName, policyDocument)
+	err := I.levelDB.Get(userPolicyPrefix+userName+"-"+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) (policy.Policy, error) {
-	var p policy.PolicyDocument
-	err := I.levelDB.Get(userPrefix+"-"+userName, p)
+func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) ([]policy.Policy, error) {
+	var ps []policy.Policy
+	m, err := I.levelDB.ReadAll(userPolicyPrefix + userName)
 	if err != nil {
-		return policy.Policy{}, err
+		return nil, err
 	}
-	return policy.Policy{
-		ID:         "",
-		Version:    p.Version,
-		Statements: p.Statement,
-	}, nil
+	for _, v := range m {
+		var p policy.PolicyDocument
+		json.Unmarshal([]byte(v), &p)
+		ps = append(ps, policy.Policy{
+			ID:         "",
+			Version:    p.Version,
+			Statements: p.Statement,
+		})
+	}
+	return ps, nil
 }
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := I.levelDB.Delete(userPrefix + "-" + userName + policyName)

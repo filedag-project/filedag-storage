@@ -86,7 +86,7 @@ func (p Policy) Validate(bucketName string) error {
 
 // Merge merges two policies documents and drop
 // duplicate statements if any.
-func (p Policy) Merge(input Policy) Policy {
+func (p *Policy) Merge(input Policy) Policy {
 	var mergedPolicy Policy
 	for _, st := range p.Statements {
 		mergedPolicy.Statements = append(mergedPolicy.Statements, st.Clone())
@@ -155,8 +155,8 @@ var DefaultPolicies = []struct {
 				{
 					SID:       "",
 					Effect:    Allow,
-					Principal: NewPrincipal("aa"),
-					Actions:   s3action.NewActionSet(s3action.AllActions),
+					Principal: NewPrincipal("*"),
+					Actions:   s3action.SupportedActions,
 					Resources: NewResourceSet(NewResource("test", "")),
 				},
 			},
