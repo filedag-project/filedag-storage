@@ -77,7 +77,7 @@ func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policy
 	return nil
 }
 
-func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error {
 	err := I.levelDB.Get(userPrefix+userName+policyName, policyDocument)
 	if err != nil {
 		return err

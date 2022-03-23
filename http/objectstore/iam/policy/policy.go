@@ -22,6 +22,11 @@ type Policies struct {
 	Policies map[string]PolicyDocument `json:"policies"`
 }
 
+func (p PolicyDocument) String() string {
+	b, _ := json.Marshal(p)
+	return string(b)
+}
+
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
 func (p Policy) IsAllowed(args auth.Args) bool {
 	// Check all deny statements. If any one statement denies, return false.
@@ -65,12 +70,12 @@ func ParseConfig(reader io.Reader, bucketName string) (*Policy, error) {
 }
 
 // Validate - validates all statements are for given bucket or not.
-func (policy Policy) Validate(bucketName string) error {
-	if err := policy.isValid(); err != nil {
+func (p Policy) Validate(bucketName string) error {
+	if err := p.isValid(); err != nil {
 		return err
 	}
 
-	for _, statement := range policy.Statements {
+	for _, statement := range p.Statements {
 		if err := statement.Validate(bucketName); err != nil {
 			return err
 		}

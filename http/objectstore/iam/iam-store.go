@@ -22,7 +22,7 @@ type iamStoreAPI interface {
 	removeGroupInfo(ctx context.Context, name string) error
 	createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
 	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
-	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
+	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error
 	removeUserPolicy(ctx context.Context, userName, policyName string) error
 }
 

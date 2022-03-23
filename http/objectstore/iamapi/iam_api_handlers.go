@@ -84,11 +84,12 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 	resp.GetUserPolicyResult.UserName = userName
 	resp.GetUserPolicyResult.PolicyName = policyName
 	policyDocument := policy.PolicyDocument{Version: policyDocumentVersion}
-	err := iamApi.authSys.Iam.GetUserPolicy(context.Background(), userName, policyName, policyDocument)
+	err := iamApi.authSys.Iam.GetUserPolicy(context.Background(), userName, policyName, &policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
+	resp.GetUserPolicyResult.PolicyDocument = policyDocument.String()
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 
 }
