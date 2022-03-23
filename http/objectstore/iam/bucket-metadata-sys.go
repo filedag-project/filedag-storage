@@ -110,7 +110,7 @@ func (sys *bucketMetadataSys) Delete(username, bucket string) error {
 	return nil
 }
 
-// Get metadata for a bucket.
+// Update  metadata for a bucket.
 func (sys *bucketMetadataSys) Update(username, bucket string, meta *bucketMetadata) error {
 	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
