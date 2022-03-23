@@ -63,14 +63,14 @@ func (I *iamLevelDBStore) removeUserIdentity(ctx context.Context, name string) e
 	return nil
 }
 func (I *iamLevelDBStore) createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.levelDB.Put(policyPrefix+policyName, policyDocument)
+	err := I.levelDB.Put(policyPrefix+"-"+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.levelDB.Put(userPolicyPrefix+userName+policyName, policyDocument)
+	err := I.levelDB.Put(userPolicyPrefix+"-"+userName+"-"+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
@@ -78,14 +78,26 @@ func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policy
 }
 
 func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error {
-	err := I.levelDB.Get(userPrefix+userName+policyName, policyDocument)
+	err := I.levelDB.Get(userPrefix+"-"+userName+"-"+policyName, policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
+func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) (policy.Policy, error) {
+	var p policy.PolicyDocument
+	err := I.levelDB.Get(userPrefix+"-"+userName, p)
+	if err != nil {
+		return policy.Policy{}, err
+	}
+	return policy.Policy{
+		ID:         "",
+		Version:    p.Version,
+		Statements: p.Statement,
+	}, nil
+}
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
-	err := I.levelDB.Delete(userPrefix + userName + policyName)
+	err := I.levelDB.Delete(userPrefix + "-" + userName + policyName)
 	if err != nil {
 		return err
 	}

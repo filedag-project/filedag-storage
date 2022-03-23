@@ -56,12 +56,14 @@ func (sys *IdentityAMSys) IsAllowed(args auth.Args) bool {
 	if ok {
 		return sys.IsAllowedSTS(args, parentUser)
 	}
-	m := &auth.Credentials{}
-	err = sys.store.loadUser(context.Background(), args.AccountName, m)
+	// Continue with the assumption of a regular user
+	p, err := sys.store.getUserPolices(context.Background(), args.AccountName)
 	if err != nil {
 		return false
 	}
-	return true
+
+	// Policies were found, evaluate all of them.
+	return p.IsAllowed(args)
 }
 
 // IsAllowedSTS is meant for STS based temporary credentials,
@@ -176,7 +178,7 @@ func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyNam
 }
 
 // GetUserPolicy Get User Policy
-func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error {
 	err := sys.store.getUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)

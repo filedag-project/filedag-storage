@@ -15,8 +15,8 @@ type Policy struct {
 	Statements []Statement `json:"Statement"`
 }
 type PolicyDocument struct {
-	Version   string       `json:"Version"`
-	Statement []*Statement `json:"Statement"`
+	Version   string      `json:"Version"`
+	Statement []Statement `json:"Statement"`
 }
 type Policies struct {
 	Policies map[string]PolicyDocument `json:"policies"`
