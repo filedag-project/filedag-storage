@@ -81,9 +81,16 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 		// Populate payload again to handle it in HTTP handler.
 		r.Body = ioutil.NopCloser(bytes.NewReader(payload))
 		pol, err := s.PolicySys.Get(bucketName, cred.AccessKey)
-		if err != nil || !pol.IsEmpty() {
-			return cred, owner, api_errors.ErrBucketAlreadyExists
+		if err != nil {
+			if err.Error() != "leveldb: not found" {
+				return cred, owner, api_errors.ErrInternalError
+			}
+		} else {
+			if !pol.IsEmpty() {
+				return cred, owner, api_errors.ErrBucketAlreadyExists
+			}
 		}
+
 	}
 
 	if action != s3action.ListAllMyBucketsAction && cred.AccessKey == "" {
