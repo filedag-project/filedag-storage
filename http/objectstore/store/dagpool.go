@@ -29,3 +29,9 @@ func (d dagPoolClient) DelFile(bucket, object string) error {
 	//todo implement me
 	return nil
 }
+
+//MkBucket del file
+func (d dagPoolClient) MkBucket(bucket string) error {
+	//todo implement me
+	return nil
+}

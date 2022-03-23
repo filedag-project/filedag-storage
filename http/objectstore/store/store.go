@@ -6,7 +6,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
 	"io/ioutil"
-	"os"
 	"time"
 )
 
@@ -100,10 +99,11 @@ func (s *StorageSys) ListObject(user, bucket string) ([]ObjectInfo, error) {
 
 //MkBucket store object
 func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
-	err := os.Mkdir(parentDirectoryPath+bucket, 0777)
+	err := s.dagPool.MkBucket(bucket)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
