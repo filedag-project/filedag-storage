@@ -1,62 +1,17 @@
-package diskv
+package mutcask
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"sync"
 	"testing"
+
+	"github.com/filedag-project/filedag-storage/kv"
 )
 
-func TestConcurrentWriteSameKey(t *testing.T) {
-	var kvdata = []kvt{
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("1234")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("abcd")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("5678")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("efgh")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("9ijk")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("lmno")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("pqrs")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("tuvw")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("xyz0")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("()_+")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("&^%*")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("!@#$")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("%<>/")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte(":;',")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("◣◥◢◣")},
-		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("➔➘➙➚")},
-	}
-	dkv, err := NewDisKV(DirConf(tmpdirpath(t)), MaxLinkDagSizeConf(1))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer dkv.Close()
-	var wg sync.WaitGroup
-	wg.Add(len(kvdata))
-	for _, item := range kvdata {
-		go func(k string, v []byte) {
-			defer wg.Done()
-
-			err = dkv.Put(k, v)
-			if err != nil {
-				t.Fail()
-			}
-		}(item.Key, item.Value)
-	}
-	wg.Wait()
-
-	_, err = dkv.Get(kvdata[0].Key)
-	if err != nil {
-		t.Fail()
-	}
-	err = dkv.Delete(kvdata[0].Key)
-	if err != nil {
-		t.Fail()
-	}
-}
-
-func TestDisKVPutDataDags(t *testing.T) {
+func TestMutcask(t *testing.T) {
 	var kvdata = []kvt{
 		{"Qmc35RPEYrW3Mj1mki6thkAjx6a1ZFkU3UYxAyFhMmngr2", []byte("124567")},
 		{"QmTwNzgUFg2kCZ47AmsKUDHwnfAhcGj6TB4mNZcott9zWc", []byte("224567")},
@@ -86,32 +41,40 @@ func TestDisKVPutDataDags(t *testing.T) {
 		{"QmXgEMNz5JbajkQ8tXRJHgbC12aogba9gwTgqTQW2LCK35", []byte("839836")},
 		{"QmW6esdA2tsRmoiqmAgNx71vdNNtgJEd44CKt4nncUTsur", []byte("939836")},
 	}
-
-	dkv, err := NewDisKV(DirConf(tmpdirpath(t)), MaxLinkDagSizeConf(1))
+	mutc, err := NewMutcask(PathConf(tmpdirpath(t)), CaskNumConf(6))
+	//mutc, err := NewMutcask(PathConf("/Users/lifeng/testdir/mutcask"), CaskNumConf(128))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer dkv.Close()
+	defer mutc.Close()
+
 	var wg sync.WaitGroup
 	wg.Add(len(kvdata))
 	for _, item := range kvdata {
 		go func(k string, v []byte) {
 			defer wg.Done()
 
-			err = dkv.Put(k, v)
+			err = mutc.Put(k, v)
 			if err != nil {
 				t.Failed()
 			}
 		}(item.Key, item.Value)
 	}
 	wg.Wait()
-
+	// test all key chan
+	kc, err := mutc.AllKeysChan(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for k := range kc {
+		fmt.Println(k)
+	}
 	wg.Add(len(kvdata))
 	for _, item := range kvdata {
 		go func(k string, v []byte) {
 			defer wg.Done()
 
-			b, err := dkv.Get(k)
+			b, err := mutc.Get(k)
 			if err != nil {
 				fmt.Println(err)
 				t.Fail()
@@ -129,68 +92,44 @@ func TestDisKVPutDataDags(t *testing.T) {
 		go func(k string, v []byte) {
 			defer wg.Done()
 
-			err := dkv.Delete(k)
-			if err != nil {
-				t.Fail()
-			}
-		}(item.Key, item.Value)
-	}
-	wg.Wait()
-
-	wg.Add(len(kvdata))
-	for _, item := range kvdata {
-		go func(k string, v []byte) {
-			defer wg.Done()
-
-			_, err := dkv.Get(k)
-			if err != ErrNotFound {
-				t.Fail()
-			}
-
-		}(item.Key, item.Value)
-	}
-	wg.Wait()
-}
-
-func TestDisKVPutLinkDags(t *testing.T) {
-	var kvdata = []kvt{
-		{"city", []byte("shanghai")},
-		{"app", []byte("filedag")},
-		{"protocol", []byte("ipfs")},
-		{"blockchain", []byte("filecoin")},
-		{"fs", []byte("nfs")},
-		{"kv", []byte("leveldb")},
-		{"db", []byte("mongodb")},
-		{"language", []byte("golang")},
-		{"b", []byte("1")},
-		{"c", []byte("2")},
-		{"d", []byte("3")},
-		{"e", []byte("4")},
-		{"f", []byte("5")},
-		{"g", []byte("6")},
-		{"h", []byte("7")},
-		{"i", []byte("8")},
-		{"j", []byte("9")},
-	}
-
-	dkv, err := NewDisKV(func(cfg *Config) {
-		cfg.Dir = tmpdirpath(t)
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer dkv.Close()
-	var wg sync.WaitGroup
-	wg.Add(len(kvdata))
-	for _, item := range kvdata {
-		go func(k string, v []byte) {
-			defer wg.Done()
-
-			err = dkv.Put(k, v)
+			n, err := mutc.Size(k)
 			if err != nil {
 				fmt.Println(err)
 				t.Fail()
 			}
+			if n != len(v) {
+				fmt.Printf("size should be equal")
+				t.Fail()
+			}
+		}(item.Key, item.Value)
+	}
+	wg.Wait()
+
+	wg.Add(len(kvdata))
+	for _, item := range kvdata {
+		go func(k string, v []byte) {
+			defer wg.Done()
+
+			err := mutc.Delete(k)
+			if err != nil {
+				fmt.Println(err)
+				t.Fail()
+			}
+		}(item.Key, item.Value)
+	}
+	wg.Wait()
+
+	wg.Add(len(kvdata))
+	for _, item := range kvdata {
+		go func(k string, v []byte) {
+			defer wg.Done()
+
+			_, err := mutc.Get(k)
+			if err != kv.ErrNotFound {
+				fmt.Printf("err type wrong %#v \n", err)
+				t.Fail()
+			}
+
 		}(item.Key, item.Value)
 	}
 	wg.Wait()
@@ -202,4 +141,9 @@ func tmpdirpath(t *testing.T) string {
 		t.Fatalf("failed to make temp dir: %s", err)
 	}
 	return tmpdir
+}
+
+type kvt struct {
+	Key   string
+	Value []byte
 }

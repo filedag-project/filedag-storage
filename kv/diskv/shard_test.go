@@ -8,10 +8,10 @@ type tpair struct {
 }
 
 var testData []tpair = []tpair{
-	{In: "QmbuSHXN9RANoN46sGYdxHyG6SEEcvdEJfXuXfD6EtfTUw", Out: [2]string{"fTUw/D6Et", "fTUw/D6Et/QmbuSHXN9RANoN46sGYdxHyG6SEEcvdEJfXuXfD6EtfTUw"}},
-	{In: "QmWRzjAJjRHLsMaWZcpVysHqs22P5eBDpj2G4rYWFDrEKh", Out: [2]string{"rEKh/YWFD", "rEKh/YWFD/QmWRzjAJjRHLsMaWZcpVysHqs22P5eBDpj2G4rYWFDrEKh"}},
-	{In: "Qmepbk8EMnA7ssi1vd7A9qUDknogAVWLd8Kk3XqcApk5G5", Out: [2]string{"k5G5/qcAp", "k5G5/qcAp/Qmepbk8EMnA7ssi1vd7A9qUDknogAVWLd8Kk3XqcApk5G5"}},
-	{In: "QmT8iNCN13gs2x2563pvv5mexSE5FUVR5gcApfFTvyDMUJ", Out: [2]string{"DMUJ/FTvy", "DMUJ/FTvy/QmT8iNCN13gs2x2563pvv5mexSE5FUVR5gcApfFTvyDMUJ"}},
+	{In: "QmbuSHXN9RANoN46sGYdxHyG6SEEcvdEJfXuXfD6EtfTUw", Out: [2]string{"Uw/fT/Et", "Uw/fT/Et/QmbuSHXN9RANoN46sGYdxHyG6SEEcvdEJfXuXfD6EtfTUw"}},
+	{In: "QmWRzjAJjRHLsMaWZcpVysHqs22P5eBDpj2G4rYWFDrEKh", Out: [2]string{"Kh/rE/FD", "Kh/rE/FD/QmWRzjAJjRHLsMaWZcpVysHqs22P5eBDpj2G4rYWFDrEKh"}},
+	{In: "Qmepbk8EMnA7ssi1vd7A9qUDknogAVWLd8Kk3XqcApk5G5", Out: [2]string{"G5/k5/Ap", "G5/k5/Ap/Qmepbk8EMnA7ssi1vd7A9qUDknogAVWLd8Kk3XqcApk5G5"}},
+	{In: "QmT8iNCN13gs2x2563pvv5mexSE5FUVR5gcApfFTvyDMUJ", Out: [2]string{"UJ/DM/vy", "UJ/DM/vy/QmT8iNCN13gs2x2563pvv5mexSE5FUVR5gcApfFTvyDMUJ"}},
 }
 
 func TestDefaultShardFun(t *testing.T) {
