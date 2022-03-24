@@ -59,7 +59,11 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-
+	get, _ := s3a.authSys.PolicySys.Get(cred.AccessKey, bucket)
+	if get != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrBucketAlreadyExists)
+		return
+	}
 	// create the folder for bucket, but lazily create actual collection
 	if err := s3a.store.MkBucket("", bucket); err != nil {
 		log.Errorf("PutBucketHandler mkdir: %v", err)
