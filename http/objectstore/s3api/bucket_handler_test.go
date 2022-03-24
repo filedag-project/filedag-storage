@@ -11,9 +11,9 @@ import (
 )
 
 func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
-	u := "http://127.0.0.1:9985/test"
+	u := "http://127.0.0.1:9985/test22"
 	urlValues := make(url.Values)
-	policy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::bucket/*"}]}`
+	policy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::test22/*"}]}`
 	urlValues.Set("policy", policy)
 	req := testsign.MustNewSignedV4Request(http.MethodPut, u+"?"+urlValues.Encode(), int64(len(policy)), strings.NewReader(policy),
 		"s3", accessKeyTmp, secretKeyTmp, t)
@@ -32,7 +32,7 @@ func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
 	fmt.Println(string(body))
 }
 func TestS3ApiServer_GetBucketPolicyHandler(t *testing.T) {
-	u := "http://127.0.0.1:9985/test"
+	u := "http://127.0.0.1:9985/test22"
 	req := testsign.MustNewSignedV4Request(http.MethodGet, u+"?policy", 0, nil, "s3",
 		accessKeyTmp, secretKeyTmp, t)
 
@@ -50,7 +50,7 @@ func TestS3ApiServer_GetBucketPolicyHandler(t *testing.T) {
 	fmt.Println(string(body))
 }
 func TestS3ApiServer_DeleteBucketPolicyHandler(t *testing.T) {
-	u := "http://127.0.0.1:9985/test"
+	u := "http://127.0.0.1:9985/test22"
 	req := testsign.MustNewSignedV4Request(http.MethodDelete, u+"?policy", 0, nil, "s3", accessKeyTmp, secretKeyTmp, t)
 
 	//req.Header.Set("Content-Type", "text/plain")
