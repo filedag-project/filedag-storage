@@ -158,6 +158,12 @@ type CopyObjectResult struct {
 	ETag         string    `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ETag"`
 }
 
+// LocationResponse - format for location response.
+type LocationResponse struct {
+	XMLName  xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ LocationConstraint" json:"-"`
+	Location string   `xml:",chardata"`
+}
+
 // ListObjectsResponse - format for list objects response.
 type ListObjectsResponse struct {
 	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListBucketResult" json:"-"`

@@ -27,16 +27,6 @@ func (s *AuthSys) Init() {
 	s.PolicySys.Init()
 }
 
-// checkRequestAuthType Check request auth type verifies the incoming http request
-// - validates the request signature
-// - validates the policy action if anonymous tests bucket policies if any,
-//   for authenticated requests validates IAM policies.
-// returns APIErrorCode if any to be replied to the client.
-func (s *AuthSys) checkRequestAuthType(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (s3Err api_errors.ErrorCode) {
-	_, _, s3Err = s.CheckRequestAuthTypeCredential(ctx, r, action, bucketName, objectName)
-	return s3Err
-}
-
 // CheckRequestAuthTypeCredential Check request auth type verifies the incoming http request
 // - validates the request signature
 // - validates the policy action if anonymous tests bucket policies if any,
@@ -166,7 +156,7 @@ func (s *AuthSys) reqSignatureV4Verify(r *http.Request, region string, stype ser
 	}
 }
 
-// Verify if request has valid AWS Signature Version '4'.
+// IsReqAuthenticated Verify if request has valid AWS Signature Version '4'.
 func (s *AuthSys) IsReqAuthenticated(ctx context.Context, r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
 	if errCode := s.reqSignatureV4Verify(r, region, stype); errCode != api_errors.ErrNone {
 		return errCode

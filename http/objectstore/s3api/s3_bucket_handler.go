@@ -48,6 +48,32 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 
+// GetBucketLocationHandler - GET Bucket location.
+// -------------------------
+// This operation returns bucket location.
+func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.Request) {
+	bucket, _ := getBucketAndObject(r)
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.ListAllMyBucketsAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
+	bucketMetas, erro := s3a.authSys.PolicySys.GetLocation(bucket, cred.AccessKey)
+	if erro != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+
+	// Generate response.
+	encodedSuccessResponse := response.LocationResponse{
+		XMLName:  xml.Name{},
+		Location: bucketMetas.Region,
+	}
+
+	// Write success response.
+	response.WriteSuccessResponseXML(w, r, response.EncodeResponse(encodedSuccessResponse))
+}
+
 //PutBucketHandler put a bucket
 func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
 
