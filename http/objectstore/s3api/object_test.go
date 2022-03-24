@@ -9,9 +9,14 @@ import (
 	"testing"
 )
 
+const (
+	accessKeyTmp = "BOLPNGFEVIWN4SV36YEE"
+	secretKeyTmp = "8KPlsjxXdrlPH+P2VXIDWHv61YsOGkP++Tp+oC7j"
+)
+
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test/1.txt"
-	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", "test", "test", t)
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", accessKeyTmp, secretKeyTmp, t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
@@ -29,7 +34,7 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 }
 func TestS3ApiServer_GetObjectHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test/1.txt"
-	req := testsign.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", "test", "test", t)
+	req := testsign.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", accessKeyTmp, secretKeyTmp, t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
@@ -47,7 +52,7 @@ func TestS3ApiServer_GetObjectHandler(t *testing.T) {
 }
 func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test1/11.txt"
-	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", "test", "test", t)
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", accessKeyTmp, secretKeyTmp, t)
 	req.Header.Set("X-Amz-Copy-Source", url.QueryEscape("/test/1.txt"))
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
@@ -65,7 +70,7 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 }
 func TestS3ApiServer_HeadObjectHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test/1.txt"
-	req := testsign.MustNewSignedV4Request(http.MethodHead, u, 0, nil, "s3", "test", "test", t)
+	req := testsign.MustNewSignedV4Request(http.MethodHead, u, 0, nil, "s3", accessKeyTmp, secretKeyTmp, t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
