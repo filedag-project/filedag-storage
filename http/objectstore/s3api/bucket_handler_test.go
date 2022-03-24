@@ -68,7 +68,7 @@ func TestS3ApiServer_DeleteBucketPolicyHandler(t *testing.T) {
 }
 
 func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
-	u := "http://127.0.0.1:9985/test"
+	u := "http://127.0.0.1:9985/test22"
 	//req.Header.Set("Content-Type", "text/plain")
 	req := testsign.MustNewSignedV4Request(http.MethodHead, u, 0, nil, "s3", accessKeyTmp, secretKeyTmp, t)
 	client := &http.Client{}
