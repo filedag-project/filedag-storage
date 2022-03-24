@@ -2,6 +2,7 @@ package s3api
 
 import (
 	"context"
+	"encoding/xml"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
@@ -65,7 +66,8 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrStoreMkdirFail)
 		return
 	}
-	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey)
+	region, _ := parseLocationConstraint(r)
+	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey, region)
 	if erro != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
 		return
@@ -208,4 +210,29 @@ func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, api_errors.ErrNotImplemented)
 		return
 	}
+}
+
+// Parses location constraint from the incoming reader.
+func parseLocationConstraint(r *http.Request) (location string, s3Error api_errors.ErrorCode) {
+	// If the request has no body with content-length set to 0,
+	// we do not have to validate location constraint. Bucket will
+	// be created at default region.
+	locationConstraint := createBucketLocationConfiguration{}
+	err := utils.XmlDecoder(r.Body, &locationConstraint, r.ContentLength)
+	if err != nil && r.ContentLength != 0 {
+		// Treat all other failures as XML parsing errors.
+		return "", api_errors.ErrMalformedXML
+	} // else for both err as nil or io.EOF
+	location = locationConstraint.Location
+	if location == "" {
+		location = consts.DefaultRegion
+	}
+	return location, api_errors.ErrNone
+}
+
+// createBucketConfiguration container for bucket configuration request from client.
+// Used for parsing the location from the request body for Makebucket.
+type createBucketLocationConfiguration struct {
+	XMLName  xml.Name `xml:"CreateBucketConfiguration" json:"-"`
+	Location string   `xml:"LocationConstraint"`
 }

@@ -27,8 +27,8 @@ func (sys *IPolicySys) Head(bucket, accessKey string) bool {
 }
 
 // Set returns stored bucket policy
-func (sys *IPolicySys) Set(bucket, accessKey string) error {
-	return sys.bmSys.Set(bucket, accessKey, newBucketMetadata(bucket))
+func (sys *IPolicySys) Set(bucket, accessKey, region string) error {
+	return sys.bmSys.Set(bucket, accessKey, newBucketMetadata(bucket, region))
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.

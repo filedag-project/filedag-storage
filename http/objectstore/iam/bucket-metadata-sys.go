@@ -36,14 +36,16 @@ func newBucketMetadataSys() *bucketMetadataSys {
 // bucketMetadata contains bucket metadata.
 type bucketMetadata struct {
 	Name         string
+	Region       string
 	Created      time.Time
 	PolicyConfig *policy.Policy
 }
 
 // newBucketMetadata creates bucketMetadata with the supplied name and Created to Now.
-func newBucketMetadata(name string) bucketMetadata {
+func newBucketMetadata(name, region string) bucketMetadata {
 	return bucketMetadata{
 		Name:    name,
+		Region:  region,
 		Created: time.Now().UTC(),
 	}
 }
