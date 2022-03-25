@@ -114,6 +114,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 		AccountName: cred.AccessKey,
 		Action:      action,
 		BucketName:  bucketName,
+		Conditions:  getConditions(r, cred.AccessKey),
 		ObjectName:  objectName,
 		IsOwner:     owner,
 	}) {
