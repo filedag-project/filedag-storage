@@ -13,6 +13,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"strconv"
+	"time"
 )
 
 // AuthSys auth and sign system
@@ -214,4 +217,70 @@ func (s *AuthSys) ValidateAdminSignature(ctx context.Context, r *http.Request, r
 	}
 
 	return cred, nil, owner, api_errors.ErrNone
+}
+
+func getConditions(r *http.Request, username string) map[string][]string {
+	currTime := time.Now().UTC()
+
+	principalType := "Anonymous"
+	if username != "" {
+		principalType = "User"
+	}
+
+	at := getRequestAuthType(r)
+	var signatureVersion string
+	switch at {
+	case authTypeSignedV2, authTypePresignedV2:
+		signatureVersion = signV2Algorithm
+	case authTypeSigned, authTypePresigned, authTypeStreamingSigned, authTypePostPolicy:
+		signatureVersion = signV4Algorithm
+	}
+
+	var authtype string
+	switch at {
+	case authTypePresignedV2, authTypePresigned:
+		authtype = "REST-QUERY-STRING"
+	case authTypeSignedV2, authTypeSigned, authTypeStreamingSigned:
+		authtype = "REST-HEADER"
+	case authTypePostPolicy:
+		authtype = "POST"
+	}
+
+	args := map[string][]string{
+		"CurrentTime":      {currTime.Format(time.RFC3339)},
+		"EpochTime":        {strconv.FormatInt(currTime.Unix(), 10)},
+		"SecureTransport":  {strconv.FormatBool(r.TLS != nil)},
+		"UserAgent":        {r.UserAgent()},
+		"Referer":          {r.Referer()},
+		"principaltype":    {principalType},
+		"userid":           {username},
+		"username":         {username},
+		"signatureversion": {signatureVersion},
+		"authType":         {authtype},
+	}
+
+	cloneHeader := r.Header.Clone()
+
+	for key, values := range cloneHeader {
+		if existingValues, found := args[key]; found {
+			args[key] = append(existingValues, values...)
+		} else {
+			args[key] = values
+		}
+	}
+
+	cloneURLValues := make(url.Values, len(r.Form))
+	for k, v := range r.Form {
+		cloneURLValues[k] = v
+	}
+
+	for key, values := range cloneURLValues {
+		if existingValues, found := args[key]; found {
+			args[key] = append(existingValues, values...)
+		} else {
+			args[key] = values
+		}
+	}
+
+	return args
 }
