@@ -4,6 +4,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"golang.org/x/xerrors"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -103,6 +104,22 @@ func (statement Statement) IsAllowed(args auth.Args) bool {
 		}
 
 		if !statement.Actions.Contains(args.Action) {
+			return false
+		}
+
+		resource := args.BucketName
+		if args.ObjectName != "" {
+			if !strings.HasPrefix(args.ObjectName, "/") {
+				resource += "/"
+			}
+
+			resource += args.ObjectName
+		} else {
+			resource += "/"
+		}
+
+		// For admin statements, resource match can be ignored.
+		if !statement.Resources.Match(resource, args.Conditions) {
 			return false
 		}
 		return true
