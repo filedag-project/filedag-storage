@@ -208,7 +208,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	cpSrcPath, err := url.QueryUnescape(r.Header.Get("X-Amz-Copy-Source"))
 	if err != nil {
 		// Save unescaped string as is.
-		cpSrcPath = r.Header.Get("X-Amz-Copy-Source")
+		cpSrcPath = r.Header.Get(consts.AmzCopySource)
 	}
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
