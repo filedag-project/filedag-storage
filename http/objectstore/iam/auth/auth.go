@@ -18,12 +18,13 @@ var log = logging.Logger("auth")
 
 // Args - arguments to policy to check whether it is allowed
 type Args struct {
-	AccountName string          `json:"account"`
-	Groups      []string        `json:"groups"`
-	Action      s3action.Action `json:"action"`
-	BucketName  string          `json:"bucket"`
-	IsOwner     bool            `json:"owner"`
-	ObjectName  string          `json:"object"`
+	AccountName string              `json:"account"`
+	Groups      []string            `json:"groups"`
+	Action      s3action.Action     `json:"action"`
+	Conditions  map[string][]string `json:"conditions"`
+	BucketName  string              `json:"bucket"`
+	IsOwner     bool                `json:"owner"`
+	ObjectName  string              `json:"object"`
 }
 
 // Common errors generated for access and secret key validation.

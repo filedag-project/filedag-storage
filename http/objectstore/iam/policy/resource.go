@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
 	"golang.org/x/xerrors"
+	"path"
 	"strings"
 )
 
@@ -22,6 +23,21 @@ type Resource struct {
 // IsValid - checks whether Resource is valid or not.
 func (r Resource) IsValid() bool {
 	return r.BucketName != "" && r.Pattern != ""
+}
+
+// Match - matches object name with resource pattern, including specific conditionals.
+func (r Resource) Match(resource string, conditionValues map[string][]string) bool {
+	pattern := r.Pattern
+	for _, key := range CommonKeys {
+		// Empty values are not supported for policy variables.
+		if rvalues, ok := conditionValues[key.Name()]; ok && rvalues[0] != "" {
+			pattern = strings.Replace(pattern, key.VarName(), rvalues[0], -1)
+		}
+	}
+	if cp := path.Clean(resource); cp != "." && cp == pattern {
+		return true
+	}
+	return set.Match(pattern, resource)
 }
 
 // MarshalJSON - encodes Resource to JSON data.
