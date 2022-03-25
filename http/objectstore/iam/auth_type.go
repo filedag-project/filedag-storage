@@ -46,30 +46,30 @@ func isRequestSignStreamingV4(r *http.Request) bool {
 		r.Method == http.MethodPut
 }
 
-// Authorization type.
-type authType int
+// AuthType Authorization type.
+type AuthType int
 
 // List of all supported auth types.
 const (
-	authTypeUnknown authType = iota
+	authTypeUnknown AuthType = iota
 	authTypeAnonymous
 	authTypePresigned
 	authTypePresignedV2
 	authTypePostPolicy
-	authTypeStreamingSigned
+	AuthTypeStreamingSigned
 	authTypeSigned
 	authTypeSignedV2
 	authTypeJWT
 )
 
-// Get request authentication type.
-func getRequestAuthType(r *http.Request) authType {
+// GetRequestAuthType Get request authentication type.
+func GetRequestAuthType(r *http.Request) AuthType {
 	if isRequestSignatureV2(r) {
 		return authTypeSignedV2
 	} else if isRequestPresignedSignatureV2(r) {
 		return authTypePresignedV2
 	} else if isRequestSignStreamingV4(r) {
-		return authTypeStreamingSigned
+		return AuthTypeStreamingSigned
 	} else if IsRequestSignatureV4(r) {
 		return authTypeSigned
 	} else if isRequestPresignedSignatureV4(r) {

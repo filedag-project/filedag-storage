@@ -37,8 +37,8 @@ func (s *AuthSys) Init() {
 // returns APIErrorCode if any to be replied to the client.
 // Additionally, returns the accessKey used in the request, and if this request is by an admin.
 func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
-	switch getRequestAuthType(r) {
-	case authTypeUnknown, authTypeStreamingSigned:
+	switch GetRequestAuthType(r) {
+	case authTypeUnknown, AuthTypeStreamingSigned:
 		return cred, owner, api_errors.ErrSignatureVersionNotSupported
 	case authTypePresignedV2, authTypeSignedV2:
 		if s3Err = s.isReqAuthenticatedV2(r); s3Err != api_errors.ErrNone {
@@ -203,7 +203,7 @@ func (s *AuthSys) ValidateAdminSignature(ctx context.Context, r *http.Request, r
 	var owner bool
 	s3Err := api_errors.ErrAccessDenied
 	if _, ok := r.Header[consts.AmzContentSha256]; ok &&
-		getRequestAuthType(r) == authTypeSigned {
+		GetRequestAuthType(r) == authTypeSigned {
 		// We only support admin credentials to access admin APIs.
 		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, serviceS3)
 		if s3Err != api_errors.ErrNone {
@@ -228,12 +228,12 @@ func getConditions(r *http.Request, username string) map[string][]string {
 		principalType = "User"
 	}
 
-	at := getRequestAuthType(r)
+	at := GetRequestAuthType(r)
 	var signatureVersion string
 	switch at {
 	case authTypeSignedV2, authTypePresignedV2:
 		signatureVersion = signV2Algorithm
-	case authTypeSigned, authTypePresigned, authTypeStreamingSigned, authTypePostPolicy:
+	case authTypeSigned, authTypePresigned, AuthTypeStreamingSigned, authTypePostPolicy:
 		signatureVersion = signV4Algorithm
 	}
 
@@ -241,7 +241,7 @@ func getConditions(r *http.Request, username string) map[string][]string {
 	switch at {
 	case authTypePresignedV2, authTypePresigned:
 		authtype = "REST-QUERY-STRING"
-	case authTypeSignedV2, authTypeSigned, authTypeStreamingSigned:
+	case authTypeSignedV2, authTypeSigned, AuthTypeStreamingSigned:
 		authtype = "REST-HEADER"
 	case authTypePostPolicy:
 		authtype = "POST"
@@ -257,7 +257,7 @@ func getConditions(r *http.Request, username string) map[string][]string {
 		"userid":           {username},
 		"username":         {username},
 		"signatureversion": {signatureVersion},
-		"authType":         {authtype},
+		"AuthType":         {authtype},
 	}
 
 	cloneHeader := r.Header.Clone()

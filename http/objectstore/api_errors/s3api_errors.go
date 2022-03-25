@@ -65,6 +65,7 @@ const (
 	ErrInvalidPartNumberMarker
 	ErrInvalidPart
 	ErrInvalidServiceSTS
+	ErrMissingContentLength
 	ErrInvalidServiceS3
 	ErrInvalidRequestVersion
 	ErrPolicyTooLarge
@@ -189,6 +190,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "AuthorizationParametersError",
 		Description:    "Error parsing the Credential parameter; incorrect service. This endpoint belongs to \"sts\".",
 		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrMissingContentLength: {
+		Code:           "MissingContentLength",
+		Description:    "You must provide the Content-Length HTTP header.",
+		HTTPStatusCode: http.StatusLengthRequired,
 	},
 	ErrInvalidServiceS3: {
 		Code:           "AuthorizationParametersError",

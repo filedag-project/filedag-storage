@@ -63,8 +63,9 @@ const (
 
 //object const
 const (
-	AmzCopySource = "X-Amz-Copy-Source"
-
+	AmzCopySource           = "X-Amz-Copy-Source"
+	AmzDecodedContentLength = "X-Amz-Decoded-Content-Length"
+	MaxObjectSize           = 5 * humanize.TiByte
 	LastModified            = "Last-Modified"
 	ContentEncoding         = "Content-Encoding"
 	AmzTagCount             = "x-amz-tagging-count"

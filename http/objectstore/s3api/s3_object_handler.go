@@ -6,10 +6,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
@@ -31,14 +34,49 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	log.Infof("PutObjectHandler %s %s", bucket, object)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutObjectAction, "testbuckets", "")
-	if err != api_errors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	clientETag, err := etag.FromContentMD5(r.Header)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidDigest)
+		return
+	}
+	// if Content-Length is unknown/missing, deny the request
+	size := r.ContentLength
+	rAuthType := iam.GetRequestAuthType(r)
+	if rAuthType == iam.AuthTypeStreamingSigned {
+		if sizeStr, ok := r.Header[consts.AmzDecodedContentLength]; ok {
+			if sizeStr[0] == "" {
+				response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
+				return
+			}
+			size, err = strconv.ParseInt(sizeStr[0], 10, 64)
+			if err != nil {
+				response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+				return
+			}
+		}
+	}
+	if size == -1 {
+		response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
+		return
+	}
+	// maximum Upload size for objects in a single operation
+	if size > consts.MaxObjectSize {
+		response.WriteErrorResponse(w, r, api_errors.ErrEntityTooLarge)
+		return
+	}
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutObjectAction, "testbuckets", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 	dataReader := r.Body
+	hashReader, err1 := hash.NewReader(dataReader, size, clientETag.String(), "", size)
+	if err1 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrReader)
+		return
+	}
 	defer dataReader.Close()
-	objInfo, err2 := s3a.store.StoreObject(cred.AccessKey, bucket, object, r.Body)
+	objInfo, err2 := s3a.store.StoreObject(cred.AccessKey, bucket, object, hashReader)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrStorePutFail)
 		return
