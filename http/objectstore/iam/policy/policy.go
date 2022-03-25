@@ -157,7 +157,7 @@ var DefaultPolicies = []struct {
 					Effect:    Allow,
 					Principal: NewPrincipal("*"),
 					Actions:   s3action.SupportedActions,
-					Resources: NewResourceSet(NewResource("test", "")),
+					Resources: NewResourceSet(NewResource("*", "*")),
 				},
 			},
 		},
