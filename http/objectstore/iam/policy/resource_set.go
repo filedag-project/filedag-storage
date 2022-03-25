@@ -16,6 +16,17 @@ func (resourceSet ResourceSet) Add(resource Resource) {
 	resourceSet[resource] = struct{}{}
 }
 
+// Match - matches object name with anyone of resource pattern in resource set.
+func (resourceSet ResourceSet) Match(resource string, conditionValues map[string][]string) bool {
+	for r := range resourceSet {
+		if r.Match(resource, conditionValues) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Equals - checks whether given resource set is equal to current resource set or not.
 func (resourceSet ResourceSet) Equals(sresourceSet ResourceSet) bool {
 	// If length of set is not equal to length of given set, the
