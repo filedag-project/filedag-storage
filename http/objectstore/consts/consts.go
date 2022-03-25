@@ -63,6 +63,8 @@ const (
 
 //object const
 const (
+	AmzCopySource = "X-Amz-Copy-Source"
+
 	LastModified            = "Last-Modified"
 	ContentEncoding         = "Content-Encoding"
 	AmzTagCount             = "x-amz-tagging-count"

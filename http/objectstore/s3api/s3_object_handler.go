@@ -25,6 +25,11 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
 
 	bucket, object := getBucketAndObject(r)
+	// X-Amz-Copy-Source shouldn't be set for this call.
+	if _, ok := r.Header[consts.AmzCopySource]; ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidCopySource)
+		return
+	}
 	log.Infof("PutObjectHandler %s %s", bucket, object)
 	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutObjectAction, "testbuckets", "")
 	if err != api_errors.ErrNone {
