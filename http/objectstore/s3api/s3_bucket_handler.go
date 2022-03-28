@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
@@ -249,8 +250,35 @@ func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Reque
 
 // PutBucketTaggingHandler
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketTagging.html
-func (s3a *s3ApiServer) PutBucketTaggingHandler(writer http.ResponseWriter, request *http.Request) {
+func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
 
+	bucket, _ := getBucketAndObject(r)
+	log.Infof("DeleteBucketHandler %s", bucket)
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
+
+	// Check if bucket exists.
+	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
+		return
+	}
+
+	tags, err1 := unmarshalXML(io.LimitReader(r.Body, r.ContentLength), false)
+	if err1 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+
+	if err1 = s3a.authSys.PolicySys.UpdateBucketMeta(context.Background(), cred.AccessKey, bucket, tags); err1 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+
+	// Write success response.
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 // GetBucketTaggingHandler
@@ -298,4 +326,18 @@ func pathClean(p string) string {
 		return ""
 	}
 	return cp
+}
+func unmarshalXML(reader io.Reader, isObject bool) (*iam.Tags, error) {
+	tagging := &iam.Tags{
+		TagSet: &iam.TagSet{
+			TagMap:   make(map[string]string),
+			IsObject: isObject,
+		},
+	}
+
+	if err := xml.NewDecoder(reader).Decode(tagging); err != nil {
+		return nil, err
+	}
+
+	return tagging, nil
 }

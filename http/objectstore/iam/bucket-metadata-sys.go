@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -170,4 +171,7 @@ func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]bucketMetad
 		m = append(m, a)
 	}
 	return m, nil
+}
+func (sys *IPolicySys) UpdateBucketMeta(background context.Context, key string, bucket string, tags *Tags) error {
+	return nil
 }
