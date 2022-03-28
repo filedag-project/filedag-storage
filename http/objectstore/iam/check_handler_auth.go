@@ -59,7 +59,9 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 	if s3Err != api_errors.ErrNone {
 		return cred, owner, s3Err
 	}
-	cred, _ = s.Iam.GetUser(ctx, cred.ParentUser)
+	if cred.IsTemp() {
+		cred, _ = s.Iam.GetUser(ctx, cred.ParentUser)
+	}
 	if action == s3action.CreateBucketAction {
 		// To extract region from XML in request body, get copy of request body.
 		payload, err := ioutil.ReadAll(io.LimitReader(r.Body, consts.MaxLocationConstraintSize))
