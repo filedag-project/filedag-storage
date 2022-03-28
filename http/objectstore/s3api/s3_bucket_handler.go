@@ -302,7 +302,7 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	if meta.TaggingConfig.TagSet.TagMap == nil {
+	if meta.TaggingConfig == nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -332,7 +332,14 @@ func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *htt
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
+	err2 := s3a.authSys.PolicySys.UpdateBucketMeta(context.Background(), cred.AccessKey, bucket, nil)
+	if err2 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
 
+	// Write success response.
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 // Parses location constraint from the incoming reader.
