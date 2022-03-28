@@ -13,6 +13,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"io"
 	"net/http"
+	"path"
 )
 
 var log = logging.Logger("server")
@@ -79,7 +80,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("PutBucketHandler %s", bucket)
-
+	region, _ := parseLocationConstraint(r)
 	// avoid duplicated buckets
 	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.CreateBucketAction, bucket, "")
 	if err != api_errors.ErrNone {
@@ -92,12 +93,16 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrStoreMkdirFail)
 		return
 	}
-	region, _ := parseLocationConstraint(r)
 	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey, region)
 	if erro != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
 		return
 	}
+	// Make sure to add Location information here only for bucket
+	if cp := pathClean(r.URL.Path); cp != "" {
+		w.Header().Set(consts.Location, cp) // Clean any trailing slashes.
+	}
+
 	response.WriteSuccessResponseEmpty(w, r)
 }
 
@@ -261,4 +266,14 @@ func parseLocationConstraint(r *http.Request) (location string, s3Error api_erro
 type createBucketLocationConfiguration struct {
 	XMLName  xml.Name `xml:"CreateBucketConfiguration" json:"-"`
 	Location string   `xml:"LocationConstraint"`
+}
+
+// pathClean is like path.Clean but does not return "." for
+// empty inputs, instead returns "empty" as is.
+func pathClean(p string) string {
+	cp := path.Clean(p)
+	if cp == "." {
+		return ""
+	}
+	return cp
 }

@@ -56,8 +56,8 @@ const (
 	AssumeRole    = "AssumeRole"
 
 	// Dummy putBucketACL
-	AmzACL = "x-amz-acl"
-
+	AmzACL         = "x-amz-acl"
+	Location       = "Location"
 	DefaultOwnerID = "02d6176db174dc93cb1b899f7c6078f08654445fe8cf1b6ce98d8855f66bdbf4"
 )
 
