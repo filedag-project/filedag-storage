@@ -2,10 +2,12 @@ package iam
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"io"
 	"strings"
 	"time"
 )
@@ -33,12 +35,42 @@ func newBucketMetadataSys() *bucketMetadataSys {
 	}
 }
 
+// Tags is list of tags of XML request/response as per
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketTagging.html#API_GetBucketTagging_RequestBody
+type Tags tagging
+type tagging struct {
+	XMLName xml.Name `xml:"Tagging"`
+	TagSet  *TagSet  `xml:"TagSet"`
+}
+
+// TagSet represents list of unique tags.
+type TagSet struct {
+	TagMap   map[string]string
+	IsObject bool
+}
+
+func unmarshalXML(reader io.Reader, isObject bool) (*Tags, error) {
+	tagging := &Tags{
+		TagSet: &TagSet{
+			TagMap:   make(map[string]string),
+			IsObject: isObject,
+		},
+	}
+
+	if err := xml.NewDecoder(reader).Decode(tagging); err != nil {
+		return nil, err
+	}
+
+	return tagging, nil
+}
+
 // bucketMetadata contains bucket metadata.
 type bucketMetadata struct {
-	Name         string
-	Region       string
-	Created      time.Time
-	PolicyConfig *policy.Policy
+	Name          string
+	Region        string
+	Created       time.Time
+	PolicyConfig  *policy.Policy
+	taggingConfig *Tags
 }
 
 // newBucketMetadata creates bucketMetadata with the supplied name and Created to Now.
