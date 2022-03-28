@@ -17,6 +17,7 @@ import (
 const maxBucketPolicySize = 20 * humanize.KiByte
 
 //PutBucketPolicyHandler Put BucketPolicy
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketPolicy.html
 func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	var ctx = context.Background()
@@ -55,6 +56,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 }
 
 //DeleteBucketPolicyHandler Delete BucketPolicy
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_DeleteBucketPolicy.html
 func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	var ctx = context.Background()
@@ -73,6 +75,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 }
 
 //GetBucketPolicyHandler Get BucketPolicy
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html
 func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("PutBucketPolicyHandler %s", bucket)

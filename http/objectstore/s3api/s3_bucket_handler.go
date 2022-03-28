@@ -19,6 +19,7 @@ import (
 var log = logging.Logger("server")
 
 //ListBucketsHandler ListBuckets Handler
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html
 func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
 	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.ListAllMyBucketsAction, "testbuckets", "")
 	if err != api_errors.ErrNone {
@@ -52,6 +53,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 // GetBucketLocationHandler - GET Bucket location.
 // -------------------------
 // This operation returns bucket location.
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketLocation.html
 func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.ListAllMyBucketsAction, bucket, "")
@@ -112,6 +114,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 // The operation returns a 200 OK if the bucket exists and you
 // have permission to access it. Otherwise, the operation might
 // return responses such as 404 Not Found and 403 Forbidden.
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadBucket.html
 func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request) {
 
 	bucket, _ := getBucketAndObject(r)
@@ -132,6 +135,7 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 }
 
 // DeleteBucketHandler delete Bucket
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucket.html
 func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
 
 	bucket, _ := getBucketAndObject(r)
@@ -241,6 +245,24 @@ func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, api_errors.ErrNotImplemented)
 		return
 	}
+}
+
+// PutBucketTaggingHandler
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketTagging.html
+func (s3a *s3ApiServer) PutBucketTaggingHandler(writer http.ResponseWriter, request *http.Request) {
+
+}
+
+// GetBucketTaggingHandler
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketTagging.html
+func (s3a *s3ApiServer) GetBucketTaggingHandler(writer http.ResponseWriter, request *http.Request) {
+
+}
+
+// DeleteBucketTaggingHandler
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketTagging.html
+func (s3a *s3ApiServer) DeleteBucketTaggingHandler(writer http.ResponseWriter, request *http.Request) {
+
 }
 
 // Parses location constraint from the incoming reader.

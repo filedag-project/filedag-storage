@@ -68,6 +68,13 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		// DeleteBucketCors
 		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketCorsHandler).Queries("cors", "")
 
+		// PutBucketTaggingHandler
+		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketTaggingHandler).Queries("tagging", "")
+		// GetBucketTaggingHandler
+		router.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketTaggingHandler).Queries("tagging", "")
+		// DeleteBucketTaggingHandler
+		router.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketTaggingHandler).Queries("tagging", "")
+
 		// PutBucket
 		bucket.Methods(http.MethodPut).HandlerFunc(s3a.PutBucketHandler)
 		// HeadBucket
