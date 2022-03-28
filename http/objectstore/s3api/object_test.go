@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"io/ioutil"
@@ -16,7 +17,9 @@ const (
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	u := "http://127.0.0.1:9985/test/1.txt"
-	req := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", "test", "test", t)
+	r1, _ := ioutil.ReadFile("./object_test.go")
+
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u, int64(len(r1)), bytes.NewReader(r1), "s3", "test", "test", t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}

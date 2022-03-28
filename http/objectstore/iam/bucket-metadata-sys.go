@@ -1,7 +1,6 @@
 package iam
 
 import (
-	"context"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -49,18 +48,18 @@ type TagSet struct {
 	IsObject bool
 }
 
-// bucketMetadata contains bucket metadata.
-type bucketMetadata struct {
+// BucketMetadata contains bucket metadata.
+type BucketMetadata struct {
 	Name          string
 	Region        string
 	Created       time.Time
 	PolicyConfig  *policy.Policy
-	taggingConfig *Tags
+	TaggingConfig *Tags
 }
 
-// newBucketMetadata creates bucketMetadata with the supplied name and Created to Now.
-func newBucketMetadata(name, region string) bucketMetadata {
-	return bucketMetadata{
+// newBucketMetadata creates BucketMetadata with the supplied name and Created to Now.
+func newBucketMetadata(name, region string) BucketMetadata {
+	return BucketMetadata{
 		Name:    name,
 		Region:  region,
 		Created: time.Now().UTC(),
@@ -83,17 +82,17 @@ func (sys *bucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*policy
 }
 
 // GetMeta returns a specific configuration from the bucket metadata.
-func (sys *bucketMetadataSys) GetMeta(bucket, accessKey string) (bucketMetadata, error) {
-	var meta bucketMetadata
+func (sys *bucketMetadataSys) GetMeta(bucket, accessKey string) (BucketMetadata, error) {
+	var meta BucketMetadata
 	err := sys.GetBucketMeta(bucket, accessKey, &meta)
 	if err != nil {
-		return bucketMetadata{}, err
+		return BucketMetadata{}, err
 	}
 	return meta, nil
 }
 
 // SetBucketMeta - sets a new metadata in-db
-func (sys *bucketMetadataSys) SetBucketMeta(bucket, username string, meta bucketMetadata) error {
+func (sys *bucketMetadataSys) SetBucketMeta(bucket, username string, meta BucketMetadata) error {
 	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
@@ -102,7 +101,7 @@ func (sys *bucketMetadataSys) SetBucketMeta(bucket, username string, meta bucket
 }
 
 // GetBucketMeta metadata for a bucket.
-func (sys *bucketMetadataSys) GetBucketMeta(bucket, username string, meta *bucketMetadata) error {
+func (sys *bucketMetadataSys) GetBucketMeta(bucket, username string, meta *BucketMetadata) error {
 	err := sys.db.Get(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
@@ -112,7 +111,7 @@ func (sys *bucketMetadataSys) GetBucketMeta(bucket, username string, meta *bucke
 
 // HeadBucketMeta metadata for a bucket.
 func (sys *bucketMetadataSys) HeadBucketMeta(bucket, username string) bool {
-	var meta bucketMetadata
+	var meta BucketMetadata
 	err := sys.db.Get(bucketPrefix+username+"-"+bucket, &meta)
 	if err != nil {
 		return false
@@ -130,7 +129,7 @@ func (sys *bucketMetadataSys) DeleteBucketMeta(username, bucket string) error {
 }
 
 // UpdateBucketMeta  metadata for a bucket.
-func (sys *bucketMetadataSys) UpdateBucketMeta(username, bucket string, meta *bucketMetadata) error {
+func (sys *bucketMetadataSys) UpdateBucketMeta(username, bucket string, meta *BucketMetadata) error {
 	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
@@ -139,14 +138,14 @@ func (sys *bucketMetadataSys) UpdateBucketMeta(username, bucket string, meta *bu
 }
 
 // getAllBucketOfUser metadata for all bucket.
-func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]bucketMetadata, error) {
-	var m []bucketMetadata
+func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]BucketMetadata, error) {
+	var m []BucketMetadata
 	mb, err := sys.db.ReadAll(bucketPrefix + username + "-")
 	if err != nil {
 		return nil, err
 	}
 	for key, value := range mb {
-		a := bucketMetadata{}
+		a := BucketMetadata{}
 		err := json.Unmarshal([]byte(value), &a)
 		if err != nil {
 			continue
@@ -155,21 +154,4 @@ func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]bucketMetad
 		m = append(m, a)
 	}
 	return m, nil
-}
-func (sys *IPolicySys) UpdateBucketMeta(ctx context.Context, user string, bucket string, tags *Tags) error {
-	meta, err := sys.bmSys.GetMeta(bucket, user)
-	if err != nil {
-		return err
-	}
-	err = sys.bmSys.UpdateBucketMeta(user, bucket, &bucketMetadata{
-		Name:          meta.Name,
-		Region:        meta.Region,
-		Created:       meta.Created,
-		PolicyConfig:  meta.PolicyConfig,
-		taggingConfig: tags,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }

@@ -62,7 +62,7 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-	bucketMetas, erro := s3a.authSys.PolicySys.GetLocation(bucket, cred.AccessKey)
+	bucketMetas, erro := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
 	if erro != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -262,7 +262,7 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 
 	// Check if bucket exists.
 	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
 
@@ -283,13 +283,55 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 
 // GetBucketTaggingHandler
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketTagging.html
-func (s3a *s3ApiServer) GetBucketTaggingHandler(writer http.ResponseWriter, request *http.Request) {
+func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
+	bucket, _ := getBucketAndObject(r)
+	log.Infof("DeleteBucketHandler %s", bucket)
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
 
+	// Check if bucket exists.
+	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
+	meta, err2 := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
+	if err2 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	if meta.TaggingConfig.TagSet.TagMap == nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	configData, err2 := xml.Marshal(meta.TaggingConfig)
+	if err2 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+
+	// Write success response.
+	response.WriteSuccessResponseXML(w, r, configData)
 }
 
 // DeleteBucketTaggingHandler
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketTagging.html
-func (s3a *s3ApiServer) DeleteBucketTaggingHandler(writer http.ResponseWriter, request *http.Request) {
+func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
+	bucket, _ := getBucketAndObject(r)
+	log.Infof("DeleteBucketHandler %s", bucket)
+	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketAction, bucket, "")
+	if err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, err)
+		return
+	}
+
+	// Check if bucket exists.
+	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
 
 }
 

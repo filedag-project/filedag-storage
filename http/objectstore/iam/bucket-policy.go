@@ -12,7 +12,7 @@ type IPolicySys struct {
 }
 
 // GetAllBucketOfUser returns stored bucket policy
-func (sys *IPolicySys) GetAllBucketOfUser(accessKey string) ([]bucketMetadata, error) {
+func (sys *IPolicySys) GetAllBucketOfUser(accessKey string) ([]BucketMetadata, error) {
 	return sys.bmSys.getAllBucketOfUser(accessKey)
 }
 
@@ -21,8 +21,8 @@ func (sys *IPolicySys) Get(bucket, accessKey string) (*policy.Policy, error) {
 	return sys.bmSys.GetPolicyConfig(bucket, accessKey)
 }
 
-// GetLocation returns stored bucket GetLocation
-func (sys *IPolicySys) GetLocation(bucket, accessKey string) (bucketMetadata, error) {
+// GetMeta returns stored bucket GetMeta
+func (sys *IPolicySys) GetMeta(bucket, accessKey string) (BucketMetadata, error) {
 	return sys.bmSys.GetMeta(bucket, accessKey)
 }
 
@@ -59,9 +59,26 @@ func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket strin
 		return err
 	}
 	p.Merge(*pConfig)
-	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &bucketMetadata{
+	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &BucketMetadata{
 		Name:         bucket,
 		PolicyConfig: p,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (sys *IPolicySys) UpdateBucketMeta(ctx context.Context, user string, bucket string, tags *Tags) error {
+	meta, err := sys.bmSys.GetMeta(bucket, user)
+	if err != nil {
+		return err
+	}
+	err = sys.bmSys.UpdateBucketMeta(user, bucket, &BucketMetadata{
+		Name:          meta.Name,
+		Region:        meta.Region,
+		Created:       meta.Created,
+		PolicyConfig:  meta.PolicyConfig,
+		TaggingConfig: tags,
 	})
 	if err != nil {
 		return err
