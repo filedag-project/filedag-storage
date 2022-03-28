@@ -3,27 +3,36 @@ module github.com/filedag-project/filedag-storage
 go 1.17
 
 require (
+	github.com/aws/aws-sdk-go v1.43.21
+	github.com/bluele/gcache v0.0.2
+	github.com/dustin/go-humanize v1.0.0
+	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/go-openapi/errors v0.20.2
 	github.com/go-openapi/runtime v0.23.1
 	github.com/go-openapi/strfmt v0.21.2
 	github.com/go-openapi/swag v0.21.1
 	github.com/go-openapi/validate v0.21.0
+	github.com/golang-jwt/jwt/v4 v4.4.0
 	github.com/gorilla/mux v1.8.0
+	github.com/ipfs/go-log/v2 v2.5.0
+	github.com/json-iterator/go v1.1.12
 	github.com/lestrrat-go/jwx v1.2.19
+	github.com/minio/sha256-simd v1.0.0
 	github.com/prometheus/procfs v0.7.3
 	github.com/rjeczalik/notify v0.9.2
 	github.com/secure-io/sio-go v0.3.1
 	github.com/shirou/gopsutil/v3 v3.22.2
 	github.com/stretchr/testify v1.7.0
+	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 )
 
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/aws/aws-sdk-go v1.43.21 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.0-20210816181553-5444fa50b93d // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -34,9 +43,9 @@ require (
 	github.com/go-openapi/spec v0.20.4 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/goccy/go-json v0.9.4 // indirect
-	github.com/ipfs/go-log/v2 v2.5.0 // indirect
+	github.com/golang/snappy v0.0.1 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.4 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.0 // indirect
@@ -46,7 +55,6 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -56,6 +64,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.mongodb.org/mongo-driver v1.8.3 // indirect
 	go.uber.org/atomic v1.7.0 // indirect

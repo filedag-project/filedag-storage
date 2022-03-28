@@ -19,7 +19,9 @@ package madmin
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/console/madmin/tags"
 	"io/ioutil"
 	"net/http"
@@ -83,7 +85,7 @@ func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (Acco
 			queryValues: q,
 		},
 	)
-	fmt.Println(resp.Body)
+	//fmt.Println(resp.Body)
 	defer closeResponse(resp)
 	if err != nil {
 		return AccountInfo{}, err
@@ -101,8 +103,9 @@ func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (Acco
 	if err != nil {
 		return AccountInfo{}, err
 	}
-
-	err = json.Unmarshal(respBytes, &accountInfo)
+	fmt.Println(string(respBytes))
+	var response ListAllMyBucketsResult
+	err = xml.Unmarshal(respBytes, &response)
 	if err != nil {
 		return AccountInfo{}, err
 	}
@@ -110,11 +113,17 @@ func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (Acco
 	return accountInfo, nil
 }
 
+type ListAllMyBucketsResult struct {
+	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListAllMyBucketsResult"`
+	Owner   *s3.Owner
+	Buckets []*s3.Bucket `xml:"Buckets>Bucket"`
+}
+
 // PutBucket returns the usage info for the authenticating account.
 func (adm *AdminClient) PutBucket(ctx context.Context, bucketName string, opts AccountOpts) error {
 
 	queryValues := url.Values{}
-	queryValues.Set("bucketName", bucketName)
+	//queryValues.Set("bucketName", bucketName)
 
 	reqData := requestData{
 		//relPath:     adminAPIPrefix + "/add-user",
@@ -141,7 +150,7 @@ func (adm *AdminClient) PutBucket(ctx context.Context, bucketName string, opts A
 func (adm *AdminClient) RemoveBucket(ctx context.Context, bucketName string, opts AccountOpts) error {
 
 	queryValues := url.Values{}
-	queryValues.Set("bucketName", bucketName)
+	//queryValues.Set("bucketName", bucketName)
 
 	reqData := requestData{
 		//relPath:     adminAPIPrefix + "/add-user",
