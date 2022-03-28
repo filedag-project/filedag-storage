@@ -8,7 +8,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"io"
 	"strings"
 	"time"
 )
@@ -50,21 +49,6 @@ type TagSet struct {
 	IsObject bool
 }
 
-func unmarshalXML(reader io.Reader, isObject bool) (*Tags, error) {
-	tagging := &Tags{
-		TagSet: &TagSet{
-			TagMap:   make(map[string]string),
-			IsObject: isObject,
-		},
-	}
-
-	if err := xml.NewDecoder(reader).Decode(tagging); err != nil {
-		return nil, err
-	}
-
-	return tagging, nil
-}
-
 // bucketMetadata contains bucket metadata.
 type bucketMetadata struct {
 	Name          string
@@ -85,7 +69,7 @@ func newBucketMetadata(name, region string) bucketMetadata {
 
 // GetPolicyConfig returns configured bucket policy
 func (sys *bucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*policy.Policy, error) {
-	meta, err := sys.GetConfig(bucket, accessKey)
+	meta, err := sys.GetMeta(bucket, accessKey)
 	if err != nil {
 		if errors.Is(err, api_errors.ErrConfigNotFound) {
 			return nil, bucketPolicyNotFound{Bucket: bucket}
@@ -98,18 +82,18 @@ func (sys *bucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*policy
 	return meta.PolicyConfig, nil
 }
 
-// GetConfig returns a specific configuration from the bucket metadata.
-func (sys *bucketMetadataSys) GetConfig(bucket, accessKey string) (bucketMetadata, error) {
+// GetMeta returns a specific configuration from the bucket metadata.
+func (sys *bucketMetadataSys) GetMeta(bucket, accessKey string) (bucketMetadata, error) {
 	var meta bucketMetadata
-	err := sys.Get(bucket, accessKey, &meta)
+	err := sys.GetBucketMeta(bucket, accessKey, &meta)
 	if err != nil {
 		return bucketMetadata{}, err
 	}
 	return meta, nil
 }
 
-// Set - sets a new metadata in-db
-func (sys *bucketMetadataSys) Set(bucket, username string, meta bucketMetadata) error {
+// SetBucketMeta - sets a new metadata in-db
+func (sys *bucketMetadataSys) SetBucketMeta(bucket, username string, meta bucketMetadata) error {
 	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
@@ -117,8 +101,8 @@ func (sys *bucketMetadataSys) Set(bucket, username string, meta bucketMetadata) 
 	return nil
 }
 
-// Get metadata for a bucket.
-func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata) error {
+// GetBucketMeta metadata for a bucket.
+func (sys *bucketMetadataSys) GetBucketMeta(bucket, username string, meta *bucketMetadata) error {
 	err := sys.db.Get(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
@@ -126,8 +110,8 @@ func (sys *bucketMetadataSys) Get(bucket, username string, meta *bucketMetadata)
 	return nil
 }
 
-// Head metadata for a bucket.
-func (sys *bucketMetadataSys) Head(bucket, username string) bool {
+// HeadBucketMeta metadata for a bucket.
+func (sys *bucketMetadataSys) HeadBucketMeta(bucket, username string) bool {
 	var meta bucketMetadata
 	err := sys.db.Get(bucketPrefix+username+"-"+bucket, &meta)
 	if err != nil {
@@ -136,8 +120,8 @@ func (sys *bucketMetadataSys) Head(bucket, username string) bool {
 	return true
 }
 
-// Delete bucket.
-func (sys *bucketMetadataSys) Delete(username, bucket string) error {
+// DeleteBucketMeta bucket.
+func (sys *bucketMetadataSys) DeleteBucketMeta(username, bucket string) error {
 	err := sys.db.Delete(bucketPrefix + username + "-" + bucket)
 	if err != nil {
 		return err
@@ -145,8 +129,8 @@ func (sys *bucketMetadataSys) Delete(username, bucket string) error {
 	return nil
 }
 
-// Update  metadata for a bucket.
-func (sys *bucketMetadataSys) Update(username, bucket string, meta *bucketMetadata) error {
+// UpdateBucketMeta  metadata for a bucket.
+func (sys *bucketMetadataSys) UpdateBucketMeta(username, bucket string, meta *bucketMetadata) error {
 	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
 	if err != nil {
 		return err
@@ -172,6 +156,20 @@ func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]bucketMetad
 	}
 	return m, nil
 }
-func (sys *IPolicySys) UpdateBucketMeta(background context.Context, key string, bucket string, tags *Tags) error {
+func (sys *IPolicySys) UpdateBucketMeta(ctx context.Context, user string, bucket string, tags *Tags) error {
+	meta, err := sys.bmSys.GetMeta(bucket, user)
+	if err != nil {
+		return err
+	}
+	err = sys.bmSys.UpdateBucketMeta(user, bucket, &bucketMetadata{
+		Name:          meta.Name,
+		Region:        meta.Region,
+		Created:       meta.Created,
+		PolicyConfig:  meta.PolicyConfig,
+		taggingConfig: tags,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }

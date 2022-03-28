@@ -23,17 +23,17 @@ func (sys *IPolicySys) Get(bucket, accessKey string) (*policy.Policy, error) {
 
 // GetLocation returns stored bucket GetLocation
 func (sys *IPolicySys) GetLocation(bucket, accessKey string) (bucketMetadata, error) {
-	return sys.bmSys.GetConfig(bucket, accessKey)
+	return sys.bmSys.GetMeta(bucket, accessKey)
 }
 
 // Head returns stored bucket policy
 func (sys *IPolicySys) Head(bucket, accessKey string) bool {
-	return sys.bmSys.Head(bucket, accessKey)
+	return sys.bmSys.HeadBucketMeta(bucket, accessKey)
 }
 
 // Set returns stored bucket policy
 func (sys *IPolicySys) Set(bucket, accessKey, region string) error {
-	return sys.bmSys.Set(bucket, accessKey, newBucketMetadata(bucket, region))
+	return sys.bmSys.SetBucketMeta(bucket, accessKey, newBucketMetadata(bucket, region))
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
@@ -59,7 +59,7 @@ func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket strin
 		return err
 	}
 	p.Merge(*pConfig)
-	err = sys.bmSys.Update(accessKey, bucket, &bucketMetadata{
+	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &bucketMetadata{
 		Name:         bucket,
 		PolicyConfig: p,
 	})
@@ -71,7 +71,7 @@ func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket strin
 
 //Delete the bucket
 func (sys *IPolicySys) Delete(ctx context.Context, accessKey, bucket string) error {
-	err := sys.bmSys.Delete(accessKey, bucket)
+	err := sys.bmSys.DeleteBucketMeta(accessKey, bucket)
 	if err != nil {
 		return err
 	}
