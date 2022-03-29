@@ -11,7 +11,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
 	"sync"
-	"time"
 )
 
 const (
@@ -159,7 +158,27 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
 		return
 	}
-
+	bucketMetas, err := iamApi.authSys.PolicySys.GetAllBucketOfUser(cred.AccessKey)
+	if err != nil {
+		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrInternalError), r.URL, r.Host)
+		return
+	}
+	var bucketAccessInfos []BucketAccessInfo
+	for _, meta := range bucketMetas {
+		bucketAccessInfos = append(bucketAccessInfos, BucketAccessInfo{
+			Name:                 meta.Name,
+			Size:                 0,
+			Objects:              0,
+			ObjectSizesHistogram: nil,
+			Details:              nil,
+			PrefixUsage:          nil,
+			Created:              meta.Created,
+			Access: AccountAccess{
+				Read:  true,
+				Write: true,
+			},
+		})
+	}
 	user := iam.UserInfo{
 		SecretKey:  cred.SecretKey,
 		PolicyName: "policy",
@@ -171,20 +190,9 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 	var accountInfo = AccountInfo{
 		AccountName: userName,
 		Policy:      indent,
-		Buckets: []BucketAccessInfo{{
-			Name:                 "test",
-			Size:                 10,
-			Objects:              0,
-			ObjectSizesHistogram: nil,
-			Details:              nil,
-			PrefixUsage:          nil,
-			Created:              time.Now(),
-			Access: AccountAccess{
-				Read:  true,
-				Write: true,
-			},
-		}},
+		Buckets:     bucketAccessInfos,
 	}
+
 	data, err := json.Marshal(accountInfo)
 	if err != nil {
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
