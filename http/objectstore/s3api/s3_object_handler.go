@@ -300,11 +300,11 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	var resp response.ListObjectsResponse
+
 	var objects []response.Object
 	for _, obj := range objs {
 		var v = response.Object{
-			Key:          "",
+			Key:          obj.Name,
 			LastModified: obj.SuccessorModTime.String(),
 			ETag:         obj.ETag,
 			Size:         obj.Size,
@@ -314,6 +314,18 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		}
 
 		objects = append(objects, v)
+	}
+	var resp = response.ListObjectsResponse{
+		Name:           bucket,
+		Prefix:         "",
+		Marker:         "",
+		NextMarker:     "",
+		MaxKeys:        0,
+		Delimiter:      "",
+		IsTruncated:    false,
+		Contents:       objects,
+		CommonPrefixes: nil,
+		EncodingType:   "",
 	}
 	// Write success response.
 	response.WriteSuccessResponseXML(w, r, resp)

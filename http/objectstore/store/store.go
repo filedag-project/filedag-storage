@@ -6,6 +6,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 )
 
@@ -20,6 +21,9 @@ const allObjectPrefixTemplate = "object-%s-%s-"
 
 //StoreObject store object
 func (s *StorageSys) StoreObject(user, bucket, object string, reader io.Reader) (ObjectInfo, error) {
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
 	cid, err := s.dagPool.PutFile(bucket, object, reader)
 	if err != nil {
 		return ObjectInfo{}, err
