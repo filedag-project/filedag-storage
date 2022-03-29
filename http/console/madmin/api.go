@@ -481,6 +481,14 @@ func (adm AdminClient) newRequest(ctx context.Context, method string, reqData re
 		method = "POST"
 	}
 
+	//if _, ok := reqData.queryValues["contentLength"] ; ok{
+	//	contentLength, err := strconv.ParseInt(reqData.queryValues.Get("contentLength"),10,64)
+	//	if  err != nil {
+	//		fmt.Println(err)
+	//	}
+	//	req.ContentLength = contentLength
+	//}
+
 	// Default all requests to ""
 	location := ""
 

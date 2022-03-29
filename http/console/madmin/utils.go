@@ -24,14 +24,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
 )
 
 // AdminAPIVersion - admin api version used in the request.
 const (
 	AdminAPIVersion   = "v3"
 	AdminAPIVersionV2 = "v2"
-	adminAPIPrefix    = "/" + AdminAPIVersion
+	adminAPIPrefix    = "/"
 )
 
 // getEndpointURL - construct a new endpoint.

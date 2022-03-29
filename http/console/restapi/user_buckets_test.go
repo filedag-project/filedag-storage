@@ -8,9 +8,9 @@ import (
 
 func Test_getListBucketsResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "VXZN7MG2GATGH3AT6VQM",
-		STSSecretAccessKey: "xJBjqPNQIUE227WlMg+YEFk3lkvbsJ+VdanPkAt5",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJWWFpON01HMkdBVEdIM0FUNlZRTSIsImV4cCI6MTY0ODAzMTMzNywicGFyZW50IjoidGVzdCJ9.ulBQEnLo6KY6DnxSguSIKhekWCSmGiJoApJEjw7Dp5nHTRnvLBq3BcaNIEuYpEJjbnVSKF5tBgIMayGMsX3_PA",
+		STSAccessKeyID:     "XTPCOTBMXP890HLPNG3J",
+		STSSecretAccessKey: "pkYPrtqeIUxfctauTduI1Wy8jSMEVvfvoe7MgBbV",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJYVFBDT1RCTVhQODkwSExQTkczSiIsImV4cCI6MTY0ODQ2ODA4NywicGFyZW50IjoidGVzdDEifQ.vIx5NS4xeNhzH_4HTfR-IZUvJIEpjGxT07aWXKVjb3BOdXUlmxuUR7cgvEPUm0YwoodggAcVugw5pZnJbXAu-w",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -23,9 +23,9 @@ func Test_getListBucketsResponse(t *testing.T) {
 
 func Test_getMakeBucketResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "VXZN7MG2GATGH3AT6VQM",
-		STSSecretAccessKey: "xJBjqPNQIUE227WlMg+YEFk3lkvbsJ+VdanPkAt5",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJWWFpON01HMkdBVEdIM0FUNlZRTSIsImV4cCI6MTY0ODAzMTMzNywicGFyZW50IjoidGVzdCJ9.ulBQEnLo6KY6DnxSguSIKhekWCSmGiJoApJEjw7Dp5nHTRnvLBq3BcaNIEuYpEJjbnVSKF5tBgIMayGMsX3_PA",
+		STSAccessKeyID:     "XTPCOTBMXP890HLPNG3J",
+		STSSecretAccessKey: "pkYPrtqeIUxfctauTduI1Wy8jSMEVvfvoe7MgBbV",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJYVFBDT1RCTVhQODkwSExQTkczSiIsImV4cCI6MTY0ODQ2ODA4NywicGFyZW50IjoidGVzdDEifQ.vIx5NS4xeNhzH_4HTfR-IZUvJIEpjGxT07aWXKVjb3BOdXUlmxuUR7cgvEPUm0YwoodggAcVugw5pZnJbXAu-w",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}

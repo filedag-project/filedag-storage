@@ -348,7 +348,7 @@ import (
 
 // getAccountBuckets fetches a list of all buckets allowed to that particular client from MinIO Servers
 func getAccountBuckets(ctx context.Context, client MinioAdmin) ([]*models.Bucket, error) {
-	info, err := client.AccountInfo(ctx)
+	info, err := client.accountInfo(ctx)
 	if err != nil {
 		return []*models.Bucket{}, err
 	}
@@ -440,7 +440,7 @@ func getMakeBucketResponse(session *models.Principal, buchetName, location strin
 
 // getAccountBuckets fetches a list of all buckets allowed to that particular client from MinIO Servers
 func putBucket(ctx context.Context, client MinioAdmin, buchetName, location string, bool bool) error {
-	err := client.PutBucket(ctx, buchetName, location, bool)
+	err := client.putBucket(ctx, buchetName, location, bool)
 	if err != nil {
 		return err
 	}
@@ -449,7 +449,7 @@ func putBucket(ctx context.Context, client MinioAdmin, buchetName, location stri
 
 // removeBucket deletes a bucket
 func removeBucket(client MinioAdmin, bucketName string) error {
-	return client.RemoveBucket(context.Background(), bucketName, "", false)
+	return client.removeBucket(context.Background(), bucketName, "", false)
 }
 
 // getDeleteBucketResponse performs removeBucket() to delete a bucket

@@ -6,7 +6,7 @@ import (
 )
 
 func TestNewConsoleCredentials(t *testing.T) {
-	got, err := NewConsoleCredentials("test", "test", "tt.args.location")
+	got, err := NewConsoleCredentials("test1", "testsecretKey", "us-east-1")
 	if err != nil {
 		fmt.Println(err)
 	}
