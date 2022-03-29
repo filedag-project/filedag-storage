@@ -69,6 +69,10 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
+	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
 	dataReader := r.Body
 	hashReader, err1 := hash.NewReader(dataReader, size, clientETag.String(), "", size)
 	if err1 != nil {
@@ -99,7 +103,10 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-
+	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
 	objInfo, reader, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
 	if err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
@@ -138,7 +145,10 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-
+	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
 	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
 	if err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
@@ -169,6 +179,10 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
 	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
@@ -204,6 +218,11 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
+	if !s3a.authSys.PolicySys.Head(dstBucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
+
 	// Copy source path.
 	cpSrcPath, err := url.QueryUnescape(r.Header.Get("X-Amz-Copy-Source"))
 	if err != nil {
@@ -212,7 +231,10 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
-
+	if !s3a.authSys.PolicySys.Head(srcBucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
 	log.Infof("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
 
 	_, i, err := s3a.store.GetObject(cred.AccessKey, srcBucket, srcObject)
@@ -264,12 +286,16 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 	var ctx = context.Background()
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cerd, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, "")
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, "")
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	objs, err := s3a.store.ListObject(cerd.AccessKey, bucket)
+	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
+	objs, err := s3a.store.ListObject(cred.AccessKey, bucket)
 	if err != nil {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -282,7 +308,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 			LastModified: obj.SuccessorModTime.String(),
 			ETag:         obj.ETag,
 			Size:         obj.Size,
-			Owner:        s3.Owner{DisplayName: utils.String(consts.DefaultOwnerID), ID: utils.String(cerd.AccessKey)},
+			Owner:        s3.Owner{DisplayName: utils.String(consts.DefaultOwnerID), ID: utils.String(cred.AccessKey)},
 			StorageClass: "",
 			UserMetadata: nil,
 		}

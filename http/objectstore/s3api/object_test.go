@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	DefaultTestAccessKey = "test"
-	DefaultTestSecretKey = "test"
+	DefaultTestAccessKey = "test1"
+	DefaultTestSecretKey = "test12345"
 )
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
