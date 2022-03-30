@@ -104,6 +104,9 @@ const (
 	ErrMaximumExpires
 	ErrSignatureDoesNotMatch
 	ErrPutBucketFail
+	ErrGetBucketFail
+	ErrDeleteBucketFail
+	ErrUpdateBucketFail
 	ErrPutObjectFail
 	ErrGetObjectFail
 	ErrDeleteObjectFail
@@ -442,9 +445,24 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Get a object fail",
 		HTTPStatusCode: http.StatusForbidden,
 	},
+	ErrGetBucketFail: {
+		Code:           "GetBucketFail",
+		Description:    "Get a Bucket fail",
+		HTTPStatusCode: http.StatusForbidden,
+	},
 	ErrDeleteObjectFail: {
 		Code:           "DeleteObjectFail",
 		Description:    "Delete a object fail",
+		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrDeleteBucketFail: {
+		Code:           "DeleteBucketFail",
+		Description:    "Delete a Bucket fail",
+		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrUpdateBucketFail: {
+		Code:           "UpdateBucketFail",
+		Description:    "Update a Bucket fail",
 		HTTPStatusCode: http.StatusForbidden,
 	},
 
