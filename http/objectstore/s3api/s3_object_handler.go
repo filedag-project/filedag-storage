@@ -23,6 +23,7 @@ import (
 )
 
 //PutObjectHandler Put ObjectHandler
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html
 func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
@@ -76,13 +77,13 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	dataReader := r.Body
 	hashReader, err1 := hash.NewReader(dataReader, size, clientETag.String(), "", size)
 	if err1 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrReader)
+		response.WriteErrorResponse(w, r, api_errors.ErrNewReaderFail)
 		return
 	}
 	defer dataReader.Close()
 	objInfo, err2 := s3a.store.StoreObject(cred.AccessKey, bucket, object, hashReader)
 	if err2 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrStorePutFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrPutObjectFail)
 		return
 	}
 	setPutObjHeaders(w, objInfo, false)
@@ -93,6 +94,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 // ----------
 // This implementation of the GET operation retrieves object. To use GET,
 // you must have READ access to the object.
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html
 func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 	var ctx = context.Background()
@@ -109,7 +111,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	}
 	objInfo, reader, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
 	if err != nil {
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrGetObjectFail)
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
@@ -120,20 +122,20 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	}
 	r1, err := ioutil.ReadAll(reader)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrReader)
+		response.WriteErrorResponse(w, r, api_errors.ErrNewReaderFail)
 		return
 	}
 	w.Header().Set(consts.ContentLength, strconv.Itoa(len(r1)))
 	response.SetHeadGetRespHeaders(w, r.Form)
 	_, err = w.Write(r1)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrReader)
+		response.WriteErrorResponse(w, r, api_errors.ErrWriteByteToBodyFail)
 		return
 	}
 }
 
 // HeadObjectHandler - HEAD Object
-// -----------
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html
 // The HEAD operation retrieves metadata from an object without returning the object itself.
 func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
@@ -151,7 +153,7 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
 	if err != nil {
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrGetObjectFail)
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
@@ -171,6 +173,7 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 
 // DeleteObjectHandler - delete an object
 // Delete objectAPIHandlers
+//https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html
 func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 	var ctx = context.Background()
@@ -187,12 +190,12 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 	}
 	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrGetObjectFail)
 		return
 	}
 	err = s3a.store.DeleteObject(cred.AccessKey, bucket, object)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrDeleteObjectFail)
 		return
 	}
 	setPutObjHeaders(w, objInfo, true)
@@ -239,7 +242,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 
 	_, i, err := s3a.store.GetObject(cred.AccessKey, srcBucket, srcObject)
 	if err != nil {
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrGetObjectFail)
 		return
 	}
 	if (srcBucket == dstBucket && srcObject == dstObject || cpSrcPath == "") && isReplace(r) {
@@ -267,7 +270,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	obj, err := s3a.store.StoreObject(cred.AccessKey, dstBucket, dstObject, i)
 
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrStorePutFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrPutObjectFail)
 		return
 	}
 
@@ -350,7 +353,6 @@ func getBucketAndObject(r *http.Request) (bucket, object string) {
 	if !strings.HasPrefix(object, "/") {
 		object = "/" + object
 	}
-
 	return
 }
 

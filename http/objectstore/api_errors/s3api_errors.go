@@ -103,8 +103,10 @@ const (
 	ErrNegativeExpires
 	ErrMaximumExpires
 	ErrSignatureDoesNotMatch
-	ErrStoreMkdirFail
-	ErrStorePutFail
+	ErrPutBucketFail
+	ErrPutObjectFail
+	ErrGetObjectFail
+	ErrDeleteObjectFail
 	ErrContentSHA256Mismatch
 	ErrRequestNotReadyYet
 	ErrMalformedPolicy
@@ -119,8 +121,8 @@ const (
 
 	ErrSetBucketPolicyFail
 
-	ErrReader
-	ErrWriter
+	ErrNewReaderFail
+	ErrWriteByteToBodyFail
 )
 
 // error code to APIError structure, these fields carry respective
@@ -425,14 +427,24 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
 		HTTPStatusCode: http.StatusForbidden,
 	},
-	ErrStoreMkdirFail: {
-		Code:           "StoreMkdirFail",
-		Description:    "Fail to make a bucket ",
+	ErrPutBucketFail: {
+		Code:           "PutBucketFail",
+		Description:    "Fail to put a bucket ",
 		HTTPStatusCode: http.StatusForbidden,
 	},
-	ErrStorePutFail: {
-		Code:           "StoreMkdirFail",
+	ErrPutObjectFail: {
+		Code:           "PutObjectFail",
 		Description:    "Fail to put a object ",
+		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrGetObjectFail: {
+		Code:           "GetObjectFail",
+		Description:    "Get a object fail",
+		HTTPStatusCode: http.StatusForbidden,
+	},
+	ErrDeleteObjectFail: {
+		Code:           "DeleteObjectFail",
+		Description:    "Delete a object fail",
 		HTTPStatusCode: http.StatusForbidden,
 	},
 
@@ -481,13 +493,13 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Set bucketPolicy fail.",
 		HTTPStatusCode: http.StatusConflict,
 	},
-	ErrReader: {
-		Code:           "ErrReader",
-		Description:    "Can not New Reader",
-		HTTPStatusCode: http.StatusConflict,
+	ErrNewReaderFail: {
+		Code:           "NewReaderFail",
+		Description:    "New a Reader fail",
+		HTTPStatusCode: http.StatusForbidden,
 	},
-	ErrWriter: {
-		Code:           "ErrWriter",
+	ErrWriteByteToBodyFail: {
+		Code:           "WriteByteToBodyFail",
 		Description:    "writer byte to http writer err",
 		HTTPStatusCode: http.StatusForbidden,
 	},

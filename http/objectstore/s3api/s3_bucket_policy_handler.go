@@ -34,7 +34,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 	bucketPolicyBytes, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrReader)
+		response.WriteErrorResponse(w, r, api_errors.ErrNewReaderFail)
 		return
 	}
 	bucketPolicy, err := policy.ParseConfig(bytes.NewReader(bucketPolicyBytes), bucket)
