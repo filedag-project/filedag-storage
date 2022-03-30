@@ -21,6 +21,11 @@ var policyLock = sync.RWMutex{}
 
 //GetUserList get all user
 func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	var resp ListUsersResponse
 	resp.SetRequestId()
 	resp.ListUsersResult.Users = iamApi.authSys.Iam.GetUserList(context.Background())
@@ -44,6 +49,11 @@ func (iamApi *iamApiServer) AddUser(w http.ResponseWriter, r *http.Request) {
 
 //RemoveUser delete user
 func (iamApi *iamApiServer) RemoveUser(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	var resp CreateUserResponse
 	accessKey := r.FormValue("accessKey")
 	resp.CreateUserResult.User.UserName = &accessKey
@@ -57,6 +67,11 @@ func (iamApi *iamApiServer) RemoveUser(w http.ResponseWriter, r *http.Request) {
 
 //PutUserPolicy Put UserPolicy
 func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	var resp PutUserPolicyResponse
 	userName := r.FormValue("userName")
 	policyName := r.FormValue("policyName")
@@ -76,6 +91,11 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 
 //GetUserPolicy  Get UserPolicy
 func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	var resp GetUserPolicyResponse
 	userName := r.FormValue("userName")
 	policyName := r.FormValue("policyName")
@@ -95,6 +115,11 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 
 //RemoveUserPolicy Remove UserPolicy
 func (iamApi *iamApiServer) RemoveUserPolicy(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	var resp PutUserPolicyResponse
 	userName := r.FormValue("userName")
 	policyName := r.FormValue("policyName")
@@ -121,6 +146,11 @@ func Hash(s *string) string {
 
 //CreatePolicy Create Policy
 func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	var resp CreatePolicyResponse
 	policyName := r.FormValue("policyName")
 	policyDocumentString := r.FormValue("policyDocument")
@@ -145,6 +175,11 @@ func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request)
 
 //GetUserInfo get user info
 func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	userName := r.FormValue("userName")
 	ctx := context.Background()
 
