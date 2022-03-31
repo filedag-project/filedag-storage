@@ -112,7 +112,7 @@ func TestIamApiServer_RemoveUserPolicy(t *testing.T) {
 	urlValues.Set("userName", "test1")
 	urlValues.Set("policyName", "read")
 	u := "http://127.0.0.1:9985/admin/v1/remove-user-policy?"
-	req := testsign.MustNewSignedV4Request(http.MethodGet, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
