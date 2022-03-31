@@ -99,6 +99,7 @@ func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) (
 			Version:    p.Version,
 			Statements: p.Statement,
 		})
+		k = strings.Replace(k, userPolicyPrefix+userName+"-", "", 1)
 		key = append(key, k)
 	}
 	return ps, key, nil

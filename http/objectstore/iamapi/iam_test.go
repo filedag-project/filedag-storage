@@ -127,6 +127,26 @@ func TestIamApiServer_RemoveUserPolicy(t *testing.T) {
 	fmt.Println(res)
 	fmt.Println(string(body))
 }
+func TestIamApiServer_ListUserPolicy(t *testing.T) {
+	urlValues := make(url.Values)
+	urlValues.Set("userName", "test1")
+	u := "http://127.0.0.1:9985/admin/v1/list-user-policy?"
+	req := testsign.MustNewSignedV4Request(http.MethodGet, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+
+	//req.Header.Set("Content-Type", "text/plain")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
 func TestIamApiServer_GetUserInfo(t *testing.T) {
 	urlValues := make(url.Values)
 	user := "test1"
