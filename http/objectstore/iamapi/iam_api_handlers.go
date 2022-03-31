@@ -188,12 +188,6 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 	}
 	userName := r.FormValue("userName")
 	ctx := context.Background()
-
-	_, _, _, s3Err := iamApi.authSys.ValidateAdminSignature(ctx, r, "")
-	if s3Err != api_errors.ErrNone {
-		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
-		return
-	}
 	cred, ok := iamApi.authSys.Iam.GetUserInfo(ctx, userName)
 	if !ok {
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
