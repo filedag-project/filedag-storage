@@ -79,9 +79,10 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var resp PutUserPolicyResponse
-	userName := r.FormValue("userName")
-	policyName := r.FormValue("policyName")
-	policyDocumentString := r.FormValue("policyDocument")
+	vars := mux.Vars(r)
+	userName := vars["userName"]
+	policyName := vars["policyName"]
+	policyDocumentString := vars["policyDocument"]
 	policyDocument, err := GetPolicyDocument(&policyDocumentString)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
