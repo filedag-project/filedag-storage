@@ -74,9 +74,16 @@ func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket strin
 // DeletePolicy Delete bucket metadata .
 // The configData data should not be modified after being sent here.
 func (sys *IPolicySys) DeletePolicy(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
-	err := sys.bmSys.UpdateBucketMeta(accessKey, bucket, &BucketMetadata{
-		Name:         bucket,
-		PolicyConfig: nil,
+	meta, err := sys.bmSys.GetMeta(bucket, accessKey)
+	if err != nil {
+		return err
+	}
+	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &BucketMetadata{
+		Name:          bucket,
+		Region:        meta.Region,
+		Created:       meta.Created,
+		PolicyConfig:  nil,
+		TaggingConfig: meta.TaggingConfig,
 	})
 	if err != nil {
 		return err
