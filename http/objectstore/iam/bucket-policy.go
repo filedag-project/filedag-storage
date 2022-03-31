@@ -51,17 +51,32 @@ func (sys *IPolicySys) Init() {
 	sys.bmSys = newBucketMetadataSys()
 }
 
-// UpdatePolicy Update bucket metadata for the specified config file.
+// UpdatePolicy Update bucket metadata .
 // The configData data should not be modified after being sent here.
 func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
-	pConfig, err := sys.bmSys.GetPolicyConfig(bucket, accessKey)
+	meta, err := sys.bmSys.GetMeta(bucket, accessKey)
 	if err != nil {
 		return err
 	}
-	p.Merge(*pConfig)
+	if meta.PolicyConfig != nil {
+		*p = p.Merge(*meta.PolicyConfig)
+	}
 	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &BucketMetadata{
 		Name:         bucket,
 		PolicyConfig: p,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeletePolicy Delete bucket metadata .
+// The configData data should not be modified after being sent here.
+func (sys *IPolicySys) DeletePolicy(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
+	err := sys.bmSys.UpdateBucketMeta(accessKey, bucket, &BucketMetadata{
+		Name:         bucket,
+		PolicyConfig: nil,
 	})
 	if err != nil {
 		return err

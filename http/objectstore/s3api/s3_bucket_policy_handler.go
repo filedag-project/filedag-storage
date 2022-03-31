@@ -66,7 +66,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
-	if err := s3a.authSys.PolicySys.UpdatePolicy(ctx, cred.AccessKey, bucket, nil); err != nil {
+	if err := s3a.authSys.PolicySys.DeletePolicy(ctx, cred.AccessKey, bucket, nil); err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
 		return
 	}
