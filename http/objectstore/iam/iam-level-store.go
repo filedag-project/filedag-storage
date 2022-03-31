@@ -105,7 +105,7 @@ func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) (
 	return ps, key, nil
 }
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
-	err := I.levelDB.Delete(userPrefix + "-" + userName + policyName)
+	err := I.levelDB.Delete(userPolicyPrefix + userName + "-" + policyName)
 	if err != nil {
 		return err
 	}
