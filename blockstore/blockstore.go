@@ -13,7 +13,8 @@ import (
 	"golang.org/x/xerrors"
 )
 
-const batch_num = 32
+const default_batch_num = 32
+const default_cask_num = 256
 
 type blostore struct {
 	kv        storagekv.KVDB
