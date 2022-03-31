@@ -48,6 +48,9 @@ type MinioAdmin interface {
 	removeObject(ctx context.Context, bucketName, objectName string) error
 	copyObject(ctx context.Context, bucketName, objectName string) error
 	listObject(ctx context.Context, bucketName string) error
+	putBucketPolicy(ctx context.Context, bucketName, policyStr string) error
+	getBucketPolicy(ctx context.Context, bucketName string) error
+	removeBucketPolicy(ctx context.Context, bucketName string) error
 }
 
 // Interface implementation
@@ -165,6 +168,18 @@ func (ac AdminClient) headObject(ctx context.Context, bucketName, objectName str
 
 func (ac AdminClient) listObject(ctx context.Context, bucketName string) error {
 	return ac.Client.ListObject(ctx, bucketName)
+}
+
+func (ac AdminClient) putBucketPolicy(ctx context.Context, bucketName, policyStr string) error {
+	return ac.Client.PutBucketPolicy(ctx, bucketName, policyStr)
+}
+
+func (ac AdminClient) getBucketPolicy(ctx context.Context, bucketName string) error {
+	return ac.Client.GetBucketPolicy(ctx, bucketName)
+}
+
+func (ac AdminClient) removeBucketPolicy(ctx context.Context, bucketName string) error {
+	return ac.Client.RemoveBucketPolicy(ctx, bucketName)
 }
 
 func NewMinioAdminClient(sessionClaims *models.Principal) (*madmin.AdminClient, error) {
