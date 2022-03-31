@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
+	"github.com/gorilla/mux"
 	"net/http"
 	"sync"
 )
@@ -34,10 +35,15 @@ func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) 
 
 // AddUser  add user
 func (iamApi *iamApiServer) AddUser(w http.ResponseWriter, r *http.Request) {
+	_, ok, _ := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	var resp CreateUserResponse
-	values := r.URL.Query()
-	accessKey := values.Get("accessKey")
-	secretKey := values.Get("secretKey")
+	vars := mux.Vars(r)
+	accessKey := vars["accessKey"]
+	secretKey := vars["secretKey"]
 	resp.CreateUserResult.User.UserName = &accessKey
 	err := iamApi.authSys.Iam.AddUser(context.Background(), accessKey, secretKey)
 	if err != nil {
