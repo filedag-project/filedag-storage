@@ -84,13 +84,14 @@ func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyNam
 	}
 	return nil
 }
-func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) ([]policy.Policy, error) {
+func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error) {
 	var ps []policy.Policy
+	var key []string
 	m, err := I.levelDB.ReadAll(userPolicyPrefix + userName)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	for _, v := range m {
+	for k, v := range m {
 		var p policy.PolicyDocument
 		json.Unmarshal([]byte(v), &p)
 		ps = append(ps, policy.Policy{
@@ -98,8 +99,9 @@ func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) (
 			Version:    p.Version,
 			Statements: p.Statement,
 		})
+		key = append(key, k)
 	}
-	return ps, nil
+	return ps, key, nil
 }
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := I.levelDB.Delete(userPrefix + "-" + userName + policyName)

@@ -23,7 +23,7 @@ type iamStoreAPI interface {
 	createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
 	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
 	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error
-	getUserPolices(ctx context.Context, userName string) ([]policy.Policy, error)
+	getUserPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error)
 	removeUserPolicy(ctx context.Context, userName, policyName string) error
 }
 
