@@ -31,6 +31,7 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 
 	apiRouter.Methods(http.MethodPost).Path("/put-user-policy").HandlerFunc(iamApi.PutUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/get-user-policy").HandlerFunc(iamApi.GetUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/list-user-policy").HandlerFunc(iamApi.ListUserPolicy).Queries("userName", "{userName:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-user-policy").HandlerFunc(iamApi.RemoveUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/creat-policy").HandlerFunc(iamApi.CreatePolicy).Queries("policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("userName", "{userName:.*}")

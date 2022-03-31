@@ -120,6 +120,30 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 
 }
 
+//ListUserPolicy  Get User all Policy
+func (iamApi *iamApiServer) ListUserPolicy(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+	var resp ListUserPoliciesResponse
+	userName := r.FormValue("userName")
+
+	policyNames, err := iamApi.authSys.Iam.GetUserPolices(context.Background(), userName)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
+		return
+	}
+	var members []Members
+	for _, v := range policyNames {
+		members = append(members, Members{v})
+	}
+	resp.ListUserPoliciesResult.PolicyNames = members
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+
+}
+
 //RemoveUserPolicy Remove UserPolicy
 func (iamApi *iamApiServer) RemoveUserPolicy(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
