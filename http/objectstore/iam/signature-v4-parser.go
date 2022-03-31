@@ -18,6 +18,7 @@
 package iam
 
 import (
+	"context"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
@@ -62,6 +63,10 @@ func (s *AuthSys) GetReqAccessKeyV4(r *http.Request, region string, stype servic
 		if s3Err != api_errors.ErrNone {
 			return auth.Credentials{}, false, s3Err
 		}
+	}
+	cerd, _ := s.Iam.GetUser(context.Background(), ch.accessKey)
+	if cerd.IsTemp() {
+		ch.accessKey = cerd.ParentUser
 	}
 	return s.checkKeyValid(r, ch.accessKey)
 }
