@@ -350,7 +350,7 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 	}
 
 	// Query string.
-	queryStr := req.Form.Encode()
+	queryStr := req.URL.Query().Encode()
 
 	// Get canonical request.
 	canonicalRequest := getCanonicalRequest(extractedSignedHeaders, hashedPayload, queryStr, req.URL.Path, req.Method)

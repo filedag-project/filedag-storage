@@ -97,7 +97,7 @@ func signRequestV4(req *http.Request, accessKey, secretKey string, st serviceTyp
 
 	// Get signed headers.
 	signedHeaders := strings.Join(headers, ";")
-	queryStr := req.Form.Encode()
+	queryStr := req.URL.Query().Encode()
 	region := "us-east-1"
 	// Get scope.
 	scope := strings.Join([]string{
