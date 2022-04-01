@@ -189,6 +189,21 @@ var DefaultPolicies = []struct {
 			},
 		},
 	},
+	// ReadWrite - provides full access to all buckets and all objects.
+	{
+		Name: "default",
+		Definition: Policy{
+			Statements: []Statement{
+				{
+					SID:       "",
+					Effect:    Allow,
+					Principal: NewPrincipal("*"),
+					Actions:   s3action.SupportedActions,
+					Resources: NewResourceSet(NewResource("", "")),
+				},
+			},
+		},
+	},
 
 	// ReadOnly - read only.
 	{
