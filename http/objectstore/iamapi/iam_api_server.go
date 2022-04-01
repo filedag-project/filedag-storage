@@ -26,13 +26,13 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	// API Router
 	apiRouter := router.PathPrefix("/admin/v1").Subrouter()
 	apiRouter.Methods(http.MethodGet).Path("/list-user").HandlerFunc(iamApi.GetUserList)
-	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iamApi.AddUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(iamApi.RemoveUser).Queries("accessKey", "{accessKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iamApi.CreateUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(iamApi.DeleteUser).Queries("accessKey", "{accessKey:.*}")
 
 	apiRouter.Methods(http.MethodPost).Path("/put-user-policy").HandlerFunc(iamApi.PutUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/get-user-policy").HandlerFunc(iamApi.GetUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/list-user-policy").HandlerFunc(iamApi.ListUserPolicy).Queries("userName", "{userName:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/remove-user-policy").HandlerFunc(iamApi.RemoveUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/list-user-policy").HandlerFunc(iamApi.ListUserPolicies).Queries("userName", "{userName:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-user-policy").HandlerFunc(iamApi.DeleteUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/creat-policy").HandlerFunc(iamApi.CreatePolicy).Queries("policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("userName", "{userName:.*}")
 

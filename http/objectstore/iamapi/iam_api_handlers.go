@@ -33,8 +33,9 @@ func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) 
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
-// AddUser  add user
-func (iamApi *iamApiServer) AddUser(w http.ResponseWriter, r *http.Request) {
+// CreateUser  add user
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateUser.html
+func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	_, ok, _ := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
@@ -53,8 +54,9 @@ func (iamApi *iamApiServer) AddUser(w http.ResponseWriter, r *http.Request) {
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
-//RemoveUser delete user
-func (iamApi *iamApiServer) RemoveUser(w http.ResponseWriter, r *http.Request) {
+//DeleteUser delete user
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_DeleteUser.html
+func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
@@ -72,6 +74,7 @@ func (iamApi *iamApiServer) RemoveUser(w http.ResponseWriter, r *http.Request) {
 }
 
 //PutUserPolicy Put UserPolicy
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_PutUserPolicy.html
 func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
@@ -97,6 +100,7 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 }
 
 //GetUserPolicy  Get UserPolicy
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_GetUserPolicy.html
 func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
@@ -120,8 +124,9 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 
 }
 
-//ListUserPolicy  Get User all Policy
-func (iamApi *iamApiServer) ListUserPolicy(w http.ResponseWriter, r *http.Request) {
+//ListUserPolicies  Get User all Policy
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListUserPolicies.html
+func (iamApi *iamApiServer) ListUserPolicies(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
@@ -144,8 +149,9 @@ func (iamApi *iamApiServer) ListUserPolicy(w http.ResponseWriter, r *http.Reques
 
 }
 
-//RemoveUserPolicy Remove UserPolicy
-func (iamApi *iamApiServer) RemoveUserPolicy(w http.ResponseWriter, r *http.Request) {
+//DeleteUserPolicy Remove UserPolicy
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_DeleteUserPolicy.html
+func (iamApi *iamApiServer) DeleteUserPolicy(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
