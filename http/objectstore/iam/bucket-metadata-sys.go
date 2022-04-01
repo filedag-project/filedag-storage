@@ -59,11 +59,22 @@ type BucketMetadata struct {
 
 // newBucketMetadata creates BucketMetadata with the supplied name and Created to Now.
 func newBucketMetadata(name, region string) BucketMetadata {
+	var p = policy.Policy{
+		ID:      policy.DefaultPolicies[0].Definition.ID,
+		Version: policy.DefaultPolicies[0].Definition.Version,
+		Statements: []policy.Statement{{
+			SID:       policy.DefaultPolicies[0].Definition.Statements[0].SID,
+			Effect:    policy.DefaultPolicies[0].Definition.Statements[0].Effect,
+			Principal: policy.DefaultPolicies[0].Definition.Statements[0].Principal,
+			Actions:   policy.DefaultPolicies[0].Definition.Statements[0].Actions,
+			Resources: policy.NewResourceSet(policy.NewResource(name, "*")),
+		}},
+	}
 	return BucketMetadata{
 		Name:         name,
 		Region:       region,
 		Created:      time.Now().UTC(),
-		PolicyConfig: &policy.DefaultPolicies[0].Definition,
+		PolicyConfig: &p,
 	}
 }
 
