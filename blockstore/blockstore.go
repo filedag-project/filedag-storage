@@ -17,9 +17,8 @@ const default_batch_num = 32
 const default_cask_num = 256
 
 type blostore struct {
-	kv        storagekv.KVDB
-	hasOnRead bool
-	batch     int
+	kv    storagekv.KVDB
+	batch int
 }
 
 var _ blockstore.Blockstore = (*blostore)(nil)
@@ -48,10 +47,12 @@ func (bs *blostore) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) 
 		}
 		return nil, err
 	}
-	if bs.hasOnRead {
-		return blocks.NewBlockWithCid(data, cid)
+
+	b, err := blocks.NewBlockWithCid(data, cid)
+	if err == blocks.ErrWrongHash {
+		return nil, blockstore.ErrHashMismatch
 	}
-	return blocks.NewBlock(data), nil
+	return b, err
 }
 
 func (bs *blostore) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
@@ -111,5 +112,5 @@ func (bs *blostore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 }
 
 func (bs *blostore) HashOnRead(enabled bool) {
-	bs.hasOnRead = enabled
+	// do nothing, as every read will check hash match or not
 }

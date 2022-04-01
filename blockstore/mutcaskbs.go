@@ -5,10 +5,9 @@ import (
 )
 
 type Config struct {
-	Batch      int
-	HashOnRead bool
-	Path       string
-	CaskNum    int
+	Batch   int
+	Path    string
+	CaskNum int
 }
 
 func NewMutcaskbs(cfg *Config) (*blostore, error) {
@@ -23,8 +22,7 @@ func NewMutcaskbs(cfg *Config) (*blostore, error) {
 		return nil, err
 	}
 	return &blostore{
-		hasOnRead: cfg.HashOnRead,
-		batch:     cfg.Batch,
-		kv:        mc,
+		batch: cfg.Batch,
+		kv:    mc,
 	}, nil
 }
