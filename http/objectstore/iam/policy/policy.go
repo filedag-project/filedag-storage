@@ -18,6 +18,33 @@ type PolicyDocument struct {
 	Version   string      `json:"Version"`
 	Statement []Statement `json:"Statement"`
 }
+
+// Merge merges two policies documents and drop
+// duplicate statements if any.
+func (p *PolicyDocument) Merge(input PolicyDocument) PolicyDocument {
+	var mergedPolicy PolicyDocument
+	for _, st := range p.Statement {
+		mergedPolicy.Statement = append(mergedPolicy.Statement, st.Clone())
+	}
+	for _, st := range input.Statement {
+		mergedPolicy.Statement = append(mergedPolicy.Statement, st.Clone())
+	}
+	mergedPolicy.dropDuplicateStatements()
+	return mergedPolicy
+}
+func (p *PolicyDocument) dropDuplicateStatements() {
+redo:
+	for i := range p.Statement {
+		for _, statement := range p.Statement[i+1:] {
+			if !p.Statement[i].Equals(statement) {
+				continue
+			}
+			p.Statement = append(p.Statement[:i], p.Statement[i+1:]...)
+			goto redo
+		}
+	}
+}
+
 type Policies struct {
 	Policies map[string]PolicyDocument `json:"policies"`
 }
