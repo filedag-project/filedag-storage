@@ -4,23 +4,32 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/console/madmin/policy"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // PutBucketPolicy .
 func (adm *AdminClient) PutBucketPolicy(ctx context.Context, bucketName, policyStr string) error {
-	byte, err := json.Marshal(policyStr)
+	payloadBytes, err := io.ReadAll(strings.NewReader(policyStr))
+	q := make(url.Values)
+	q.Set("policy", "")
 	reqData := requestData{
-		relPath: adminAPIPrefix + bucketName + "?policy",
-		content: byte,
+		relPath:     adminAPIPrefix + bucketName,
+		content:     payloadBytes,
+		queryValues: q,
 	}
 	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
 	defer closeResponse(resp)
 	if err != nil {
 		return err
 	}
+	fmt.Println(resp)
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
 	if resp.StatusCode != http.StatusOK {
 		return httpRespToErrorResponse(resp)
 	}
@@ -29,28 +38,6 @@ func (adm *AdminClient) PutBucketPolicy(ctx context.Context, bucketName, policyS
 
 // GetBucketPolicy .
 func (adm *AdminClient) GetBucketPolicy(ctx context.Context, bucketName string) error {
-	//q := make(url.Values)
-	//q.Set("policy", "")
-	//reqData := requestData{
-	//	relPath: adminAPIPrefix + bucketName,
-	//	queryValues: q,
-	//}
-	//resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
-	//defer closeResponse(resp)
-	//if err != nil {
-	//	return err
-	//}
-	//fmt.Println(resp)
-	//body, err := ioutil.ReadAll(resp.Body)
-	//fmt.Println(string(body))
-	//var response policy.Policy
-	//err = xml.Unmarshal(body, &response)
-	//fmt.Println(response)
-	//if resp.StatusCode != http.StatusOK {
-	//	return httpRespToErrorResponse(resp)
-	//}
-	//return nil
-
 	q := make(url.Values)
 	q.Set("policy", "")
 	reqData := requestData{
@@ -65,6 +52,9 @@ func (adm *AdminClient) GetBucketPolicy(ctx context.Context, bucketName string) 
 	fmt.Println(resp)
 	body, err := ioutil.ReadAll(resp.Body)
 	fmt.Println(string(body))
+	var response policy.Policy
+	err = json.Unmarshal(body, &response)
+	fmt.Println(response)
 	if resp.StatusCode != http.StatusOK {
 		return httpRespToErrorResponse(resp)
 	}
@@ -73,8 +63,11 @@ func (adm *AdminClient) GetBucketPolicy(ctx context.Context, bucketName string) 
 
 // RemoveBucketPolicy .
 func (adm *AdminClient) RemoveBucketPolicy(ctx context.Context, bucketName string) error {
+	q := make(url.Values)
+	q.Set("policy", "")
 	reqData := requestData{
-		relPath: adminAPIPrefix + bucketName + "?policy",
+		relPath:     adminAPIPrefix + bucketName,
+		queryValues: q,
 	}
 	resp, err := adm.executeMethod(ctx, http.MethodDelete, reqData)
 	defer closeResponse(resp)

@@ -18,6 +18,7 @@ package restapi
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/console/credentials"
 	"github.com/filedag-project/filedag-storage/http/console/madmin"
 	"github.com/filedag-project/filedag-storage/http/console/models"
@@ -31,7 +32,7 @@ const globalAppName = "MinIO Console"
 // by mock when testing, it should include all MinioAdmin respective api calls
 // that are used within this project.
 type MinioAdmin interface {
-	listUsers(ctx context.Context) (map[string]madmin.UserInfo, error)
+	listUsers(ctx context.Context) ([]*iam.User, error)
 	addUser(ctx context.Context, acessKey, SecretKey string) error
 	removeUser(ctx context.Context, accessKey string) error
 	getUserInfo(ctx context.Context, accessKey string) (madmin.UserInfo, error)
@@ -51,6 +52,9 @@ type MinioAdmin interface {
 	putBucketPolicy(ctx context.Context, bucketName, policyStr string) error
 	getBucketPolicy(ctx context.Context, bucketName string) error
 	removeBucketPolicy(ctx context.Context, bucketName string) error
+	putUserPolicy(ctx context.Context, bucketName, policyStr string) error
+	getUserPolicy(ctx context.Context, bucketName string) error
+	removeUserPolicy(ctx context.Context, bucketName string) error
 }
 
 // Interface implementation
@@ -66,7 +70,7 @@ func (ac AdminClient) changePassword(ctx context.Context, accessKey, secretKey s
 }
 
 // implements madmin.ListUsers()
-func (ac AdminClient) listUsers(ctx context.Context) (map[string]madmin.UserInfo, error) {
+func (ac AdminClient) listUsers(ctx context.Context) ([]*iam.User, error) {
 	return ac.Client.ListUsers(ctx)
 }
 
@@ -180,6 +184,18 @@ func (ac AdminClient) getBucketPolicy(ctx context.Context, bucketName string) er
 
 func (ac AdminClient) removeBucketPolicy(ctx context.Context, bucketName string) error {
 	return ac.Client.RemoveBucketPolicy(ctx, bucketName)
+}
+
+func (ac AdminClient) putUserPolicy(ctx context.Context, bucketName, policyStr string) error {
+	return ac.Client.PutUserPolicy(ctx, bucketName, policyStr)
+}
+
+func (ac AdminClient) getUserPolicy(ctx context.Context, bucketName string) error {
+	return ac.Client.GetUserPolicy(ctx, bucketName)
+}
+
+func (ac AdminClient) removeUserPolicy(ctx context.Context, bucketName string) error {
+	return ac.Client.RemoveUserPolicy(ctx, bucketName)
 }
 
 func NewMinioAdminClient(sessionClaims *models.Principal) (*madmin.AdminClient, error) {

@@ -91,22 +91,17 @@ const (
 //}
 
 func listUsers(ctx context.Context, client MinioAdmin) ([]*models.User, error) {
-
-	// Get list of all users in the MinIO
-	// This call requires explicit authentication, no anonymous requests are
-	// allowed for listing users.
-	userMap, err := client.listUsers(ctx)
+	userList, err := client.listUsers(ctx)
 	if err != nil {
 		return []*models.User{}, err
 	}
 
 	var users []*models.User
-	for accessKey, user := range userMap {
+	for _, user := range userList {
 		userElem := &models.User{
-			AccessKey: accessKey,
-			Status:    string(user.Status),
-			Policy:    strings.Split(user.PolicyName, ","),
-			MemberOf:  user.MemberOf,
+			AccessKey: *user.UserName,
+			Status:    "",
+			Policy:    strings.Split("", ","),
 		}
 		users = append(users, userElem)
 	}
@@ -152,7 +147,6 @@ func addUser(ctx context.Context, client MinioAdmin, accessKey, secretKey *strin
 			return nil, errUG
 		}
 	}
-	// set policies for the newly created user
 	if len(policies) > 0 {
 		policyString := strings.Join(policies, ",")
 		fmt.Println(policyString)

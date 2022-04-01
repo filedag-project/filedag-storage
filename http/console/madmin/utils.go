@@ -28,9 +28,10 @@ import (
 
 // AdminAPIVersion - admin api version used in the request.
 const (
-	AdminAPIVersion   = "v3"
+	AdminAPIVersionV1 = "v1"
 	AdminAPIVersionV2 = "v2"
 	adminAPIPrefix    = "/"
+	admin             = adminAPIPrefix + "admin"
 )
 
 // getEndpointURL - construct a new endpoint.

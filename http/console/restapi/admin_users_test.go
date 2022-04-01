@@ -2,34 +2,32 @@ package restapi
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/console/credentials"
 	"github.com/filedag-project/filedag-storage/http/console/models"
-	"github.com/filedag-project/filedag-storage/http/console/pkg/auth"
 	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/admin_api"
 	"testing"
 )
 
 func Test_getListUsersResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "W2W2JWQUI52SVMMJK5MV",
-		STSSecretAccessKey: "vSZmxbVcx+lP3iUZgqqXT0PZTYH2HAEsuQ+9hLJT",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJXMlcySldRVUk1MlNWTU1KSzVNViIsImV4cCI6MTY0NjI5Mzk4OSwicGFyZW50IjoibWluaW9hZG1pbiJ9.kmC564DCOOiDUpl4FiAWDx0839tTtuuZmvxoN_tSxpnqOBt_W8zoZgASi-ag9jD29kUThnVjR4I92qIs-TTL9g",
-		AccountAccessKey:   "minioadmin",
+		STSAccessKeyID:     "JHWCTOHEC4EURPLMKFNJ",
+		STSSecretAccessKey: "GHbQ9uP0qIaripnoujoxicjHK5x5Z45LpaYvclR+",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJKSFdDVE9IRUM0RVVSUExNS0ZOSiIsImV4cCI6MTY0ODc5ODY5MiwicGFyZW50IjoidGVzdCJ9.0xXpeEetsWDo_29KpoMC4BzLj7N16Acm0zugW6npl3ZcjJ8YMFTcPXW8zhXOYFCRkorqhlbcPl9mIx9gcjiuxw",
+		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	got, got1 := getListUsersResponse(session)
-	if got1 != nil {
-		fmt.Println(got1)
+	got, err := getListUsersResponse(session)
+	if err != nil {
+		fmt.Println(err)
 	}
 	fmt.Println(got)
 }
 
 func Test_getUserAddResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "W2W2JWQUI52SVMMJK5MV",
-		STSSecretAccessKey: "vSZmxbVcx+lP3iUZgqqXT0PZTYH2HAEsuQ+9hLJT",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJXMlcySldRVUk1MlNWTU1KSzVNViIsImV4cCI6MTY0NjI5Mzk4OSwicGFyZW50IjoibWluaW9hZG1pbiJ9.kmC564DCOOiDUpl4FiAWDx0839tTtuuZmvxoN_tSxpnqOBt_W8zoZgASi-ag9jD29kUThnVjR4I92qIs-TTL9g",
-		AccountAccessKey:   "minioadmin",
+		STSAccessKeyID:     "JHWCTOHEC4EURPLMKFNJ",
+		STSSecretAccessKey: "GHbQ9uP0qIaripnoujoxicjHK5x5Z45LpaYvclR+",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJKSFdDVE9IRUM0RVVSUExNS0ZOSiIsImV4cCI6MTY0ODc5ODY5MiwicGFyZW50IjoidGVzdCJ9.0xXpeEetsWDo_29KpoMC4BzLj7N16Acm0zugW6npl3ZcjJ8YMFTcPXW8zhXOYFCRkorqhlbcPl9mIx9gcjiuxw",
+		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
 	accessKey := "admin"
@@ -50,10 +48,10 @@ func Test_getUserAddResponse(t *testing.T) {
 
 func Test_getRemoveUserResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "W2W2JWQUI52SVMMJK5MV",
-		STSSecretAccessKey: "vSZmxbVcx+lP3iUZgqqXT0PZTYH2HAEsuQ+9hLJT",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJXMlcySldRVUk1MlNWTU1KSzVNViIsImV4cCI6MTY0NjI5Mzk4OSwicGFyZW50IjoibWluaW9hZG1pbiJ9.kmC564DCOOiDUpl4FiAWDx0839tTtuuZmvxoN_tSxpnqOBt_W8zoZgASi-ag9jD29kUThnVjR4I92qIs-TTL9g",
-		AccountAccessKey:   "minioadmin",
+		STSAccessKeyID:     "JHWCTOHEC4EURPLMKFNJ",
+		STSSecretAccessKey: "GHbQ9uP0qIaripnoujoxicjHK5x5Z45LpaYvclR+",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJKSFdDVE9IRUM0RVVSUExNS0ZOSiIsImV4cCI6MTY0ODc5ODY5MiwicGFyZW50IjoidGVzdCJ9.0xXpeEetsWDo_29KpoMC4BzLj7N16Acm0zugW6npl3ZcjJ8YMFTcPXW8zhXOYFCRkorqhlbcPl9mIx9gcjiuxw",
+		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
 	name := "admin"
@@ -66,31 +64,4 @@ func Test_getRemoveUserResponse(t *testing.T) {
 		fmt.Println(err)
 	}
 	fmt.Println(err)
-}
-
-func Test_decryptClaims(t *testing.T) {
-	token := ""
-	claims, err := auth.SessionTokenAuthenticate(token)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(claims)
-}
-
-func Test_encryptClaims(t *testing.T) {
-	value := &credentials.Value{
-		AccessKeyID:     "",
-		SecretAccessKey: "",
-		SessionToken:    "",
-	}
-	accountAccessKey := "admin"
-	features := true
-	sessionFeatures := &auth.SessionFeatures{
-		HideMenu: features,
-	}
-	claims, err := auth.NewEncryptedTokenForClient(value, accountAccessKey, sessionFeatures)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(claims)
 }

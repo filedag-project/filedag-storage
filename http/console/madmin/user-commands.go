@@ -21,13 +21,89 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/console/madmin/tags"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 )
+
+// ListUsers - list all users.
+func (adm *AdminClient) ListUsers(ctx context.Context) (users []*iam.User, err error) {
+	reqData := requestData{
+		relPath: admin + adminAPIPrefix + AdminAPIVersionV1 + "/list-user",
+	}
+	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
+	defer closeResponse(resp)
+	if err != nil {
+		return users, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(resp)
+	fmt.Println(string(body))
+	if resp.StatusCode != http.StatusOK {
+		return users, httpRespToErrorResponse(resp)
+	}
+	var response ListUsersResponse
+	err = xml.Unmarshal(body, &response)
+	if err != nil {
+		return users, err
+	}
+	fmt.Println(response)
+	return users, nil
+}
+
+// AddUser - adds a user.
+func (adm *AdminClient) AddUser(ctx context.Context, accessKey, secretKey string) error {
+	return adm.SetUser(ctx, accessKey, secretKey, AccountEnabled)
+}
+
+// SetUser - update user secret key or account status.
+func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string, status AccountStatus) error {
+	queryValues := url.Values{}
+	queryValues.Set("accessKey", accessKey)
+	queryValues.Set("secretKey", secretKey)
+	reqData := requestData{
+		relPath:     admin + adminAPIPrefix + AdminAPIVersionV1 + "/add-user",
+		queryValues: queryValues,
+	}
+	resp, err := adm.executeMethod(ctx, http.MethodPost, reqData)
+	defer closeResponse(resp)
+	if err != nil {
+		return err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(resp)
+	fmt.Println(string(body))
+	if resp.StatusCode != http.StatusOK {
+		return httpRespToErrorResponse(resp)
+	}
+	return nil
+}
+
+// RemoveUser - remove a user.
+func (adm *AdminClient) RemoveUser(ctx context.Context, accessKey string) error {
+	queryValues := url.Values{}
+	queryValues.Set("accessKey", accessKey)
+	reqData := requestData{
+		relPath:     admin + adminAPIPrefix + AdminAPIVersionV1 + "/remove-user",
+		queryValues: queryValues,
+	}
+
+	// Execute DELETE on /minio/admin/v3/remove-user to remove a user.
+	resp, err := adm.executeMethod(ctx, http.MethodPost, reqData)
+	defer closeResponse(resp)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return httpRespToErrorResponse(resp)
+	}
+
+	return nil
+}
 
 // AccountAccess contains information about
 type AccountAccess struct {
@@ -73,106 +149,6 @@ type AccountOpts struct {
 	PrefixUsage bool
 }
 
-// AccountInfo returns the usage info for the authenticating account.
-func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (AccountInfo, error) {
-	q := make(url.Values)
-	if opts.PrefixUsage {
-		q.Set("prefix-usage", "true")
-	}
-	resp, err := adm.executeMethod(ctx, http.MethodGet,
-		requestData{
-			relPath:     "/",
-			queryValues: q,
-		},
-	)
-	//fmt.Println(resp.Body)
-	defer closeResponse(resp)
-	if err != nil {
-		return AccountInfo{}, err
-	}
-
-	// Check response http status code
-	if resp.StatusCode != http.StatusOK {
-		return AccountInfo{}, httpRespToErrorResponse(resp)
-	}
-
-	// Unmarshal the server's json response
-	var accountInfo AccountInfo
-
-	respBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return AccountInfo{}, err
-	}
-	fmt.Println(string(respBytes))
-	var response ListAllMyBucketsResult
-	err = xml.Unmarshal(respBytes, &response)
-	if err != nil {
-		return AccountInfo{}, err
-	}
-
-	return accountInfo, nil
-}
-
-type ListAllMyBucketsResult struct {
-	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListAllMyBucketsResult"`
-	Owner   *s3.Owner
-	Buckets []*s3.Bucket `xml:"Buckets>Bucket"`
-}
-
-// PutBucket returns the usage info for the authenticating account.
-func (adm *AdminClient) PutBucket(ctx context.Context, bucketName string, opts AccountOpts) error {
-
-	queryValues := url.Values{}
-	//queryValues.Set("bucketName", bucketName)
-
-	reqData := requestData{
-		//relPath:     adminAPIPrefix + "/add-user",
-		relPath:     "/" + bucketName,
-		queryValues: queryValues,
-	}
-
-	// Execute PUT on /minio/admin/v3/add-user to set a user.
-	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
-
-	defer closeResponse(resp)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
-	}
-
-	return nil
-}
-
-// RemoveBucket returns the usage info for the authenticating account.
-func (adm *AdminClient) RemoveBucket(ctx context.Context, bucketName string, opts AccountOpts) error {
-
-	queryValues := url.Values{}
-	//queryValues.Set("bucketName", bucketName)
-
-	reqData := requestData{
-		//relPath:     adminAPIPrefix + "/add-user",
-		relPath:     "/" + bucketName,
-		queryValues: queryValues,
-	}
-
-	// Execute PUT on /minio/admin/v3/add-user to set a user.
-	resp, err := adm.executeMethod(ctx, http.MethodDelete, reqData)
-
-	defer closeResponse(resp)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
-	}
-
-	return nil
-}
-
 // AccountStatus - account status.
 type AccountStatus string
 
@@ -188,63 +164,6 @@ type UserInfo struct {
 	PolicyName string        `json:"policyName,omitempty"`
 	Status     AccountStatus `json:"status"`
 	MemberOf   []string      `json:"memberOf,omitempty"`
-}
-
-// RemoveUser - remove a user.
-func (adm *AdminClient) RemoveUser(ctx context.Context, accessKey string) error {
-	queryValues := url.Values{}
-	queryValues.Set("accessKey", accessKey)
-
-	reqData := requestData{
-		relPath:     adminAPIPrefix + "/remove-user",
-		queryValues: queryValues,
-	}
-
-	// Execute DELETE on /minio/admin/v3/remove-user to remove a user.
-	resp, err := adm.executeMethod(ctx, http.MethodDelete, reqData)
-
-	defer closeResponse(resp)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
-	}
-
-	return nil
-}
-
-// ListUsers - list all users.
-func (adm *AdminClient) ListUsers(ctx context.Context) (map[string]UserInfo, error) {
-	reqData := requestData{
-		//relPath: adminAPIPrefix + "/user-list",
-		relPath: "/user-list",
-	}
-
-	// Execute GET on /minio/admin/v3/list-users
-	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
-
-	defer closeResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, httpRespToErrorResponse(resp)
-	}
-	//data := resp.Body
-	data, err := DecryptData(adm.getSecretKey(), resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	users := make(map[string]UserInfo)
-	if err = json.Unmarshal(data, &users); err != nil {
-		return nil, err
-	}
-
-	return users, nil
 }
 
 // GetUserInfo - get info on a user
@@ -286,50 +205,6 @@ func (adm *AdminClient) GetUserInfo(ctx context.Context, name string) (u UserInf
 type AddOrUpdateUserReq struct {
 	SecretKey string        `json:"secretKey,omitempty"`
 	Status    AccountStatus `json:"status"`
-}
-
-// SetUser - update user secret key or account status.
-func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string, status AccountStatus) error {
-	data, err := json.Marshal(AddOrUpdateUserReq{
-		SecretKey: secretKey,
-		Status:    status,
-	})
-	if err != nil {
-		return err
-	}
-	econfigBytes, err := EncryptData(adm.getSecretKey(), data)
-	if err != nil {
-		return err
-	}
-
-	queryValues := url.Values{}
-	queryValues.Set("accessKey", accessKey)
-
-	reqData := requestData{
-		//relPath:     adminAPIPrefix + "/add-user",
-		relPath:     "/add-user",
-		queryValues: queryValues,
-		content:     econfigBytes,
-	}
-
-	// Execute PUT on /minio/admin/v3/add-user to set a user.
-	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
-
-	defer closeResponse(resp)
-	if err != nil {
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
-	}
-
-	return nil
-}
-
-// AddUser - adds a user.
-func (adm *AdminClient) AddUser(ctx context.Context, accessKey, secretKey string) error {
-	return adm.SetUser(ctx, accessKey, secretKey, AccountEnabled)
 }
 
 // SetUserStatus - adds a status for a user.

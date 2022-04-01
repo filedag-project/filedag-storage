@@ -9,9 +9,9 @@ import (
 
 func Test_putBucketPolicyResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "GG377WW9TPE7G9AHQ0ZR",
-		STSSecretAccessKey: "5vXPZAiaKdN5+c4XN4lubOuMnCgKl1cB6Sa+blEN",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJHRzM3N1dXOVRQRTdHOUFIUTBaUiIsImV4cCI6MTY0ODcyNzkyMiwicGFyZW50IjoidGVzdDEifQ.V177tBgnH8KmsUA_0Arc1hkYgTjUkADgMnivvQsTEOxqwqphTN3K2xDwxhj1Vsbc9VW0xfD7NnoYxn8HXutJKA",
+		STSAccessKeyID:     "53BEEYC7TR1YSQ9SUYLW",
+		STSSecretAccessKey: "4DZJ98Txgy1TWGTdRHD1YZjFPbqelCoezzvOL3ha",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiI1M0JFRVlDN1RSMVlTUTlTVVlMVyIsImV4cCI6MTY0ODc4MjcwNiwicGFyZW50IjoidGVzdDEifQ._ULv3jwmU8sHlm30lMP_XLrjdcDw57NsOlc3jkSGC7p42IfdeRP4mnnbdZNrMdla-RXcdn1kqFjDvo3Ts9sZeg",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -26,15 +26,31 @@ func Test_putBucketPolicyResponse(t *testing.T) {
 
 func Test_getBucketPolicyResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "14TNGTIC75AF4NTQRRGT",
-		STSSecretAccessKey: "tfbPF4OJMaKA3n1DcdNN8GUHUmPKIkiaHxqyRD35",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiIxNFROR1RJQzc1QUY0TlRRUlJHVCIsImV4cCI6MTY0ODcyNzAzMywicGFyZW50IjoidGVzdCJ9.JvU8w7UGlaQB7vtXgojw8hsUk-WtB7rSnLD52l25kg_KCys6-tOLnHy-k9_XAWLG5SKlShU_riuC-Bk6SZjXaw",
+		STSAccessKeyID:     "53BEEYC7TR1YSQ9SUYLW",
+		STSSecretAccessKey: "4DZJ98Txgy1TWGTdRHD1YZjFPbqelCoezzvOL3ha",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiI1M0JFRVlDN1RSMVlTUTlTVVlMVyIsImV4cCI6MTY0ODc4MjcwNiwicGFyZW50IjoidGVzdDEifQ._ULv3jwmU8sHlm30lMP_XLrjdcDw57NsOlc3jkSGC7p42IfdeRP4mnnbdZNrMdla-RXcdn1kqFjDvo3Ts9sZeg",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
 	mClient, err := NewMinioAdminClient(session)
 	client := AdminClient{Client: mClient}
 	err = client.getBucketPolicy(context.Background(), "test22")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func Test_removeBucketPolicyResponse(t *testing.T) {
+	session := &models.Principal{
+		STSAccessKeyID:     "53BEEYC7TR1YSQ9SUYLW",
+		STSSecretAccessKey: "4DZJ98Txgy1TWGTdRHD1YZjFPbqelCoezzvOL3ha",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiI1M0JFRVlDN1RSMVlTUTlTVVlMVyIsImV4cCI6MTY0ODc4MjcwNiwicGFyZW50IjoidGVzdDEifQ._ULv3jwmU8sHlm30lMP_XLrjdcDw57NsOlc3jkSGC7p42IfdeRP4mnnbdZNrMdla-RXcdn1kqFjDvo3Ts9sZeg",
+		AccountAccessKey:   "test",
+		Hm:                 false,
+	}
+	mClient, err := NewMinioAdminClient(session)
+	client := AdminClient{Client: mClient}
+	err = client.removeBucketPolicy(context.Background(), "test22")
 	if err != nil {
 		fmt.Println(err)
 	}
