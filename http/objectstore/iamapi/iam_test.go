@@ -32,7 +32,7 @@ func TestIamApiServer_GetUserList(t *testing.T) {
 	fmt.Println(string(body))
 }
 func TestIamApiServer_AddUser(t *testing.T) {
-	u := "http://127.0.0.1:9985/admin/v1/add-user?accessKey=test1&secretKey=test12345"
+	u := "http://127.0.0.1:9985/admin/v1/add-user?accessKey=testnew&secretKey=test12345"
 	req := testsign.MustNewSignedV4Request(http.MethodPost, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 
 	//req.Header.Set("Content-Type", "text/plain")
