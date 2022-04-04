@@ -70,7 +70,7 @@ func TestIamApiServer_PutUserPolicy(t *testing.T) {
 	policy := `{"Version":"2008-10-17","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::test22/*"}]}`
 	urlValues.Set("policyDocument", policy)
 	urlValues.Set("userName", "test1")
-	urlValues.Set("policyName", "read")
+	urlValues.Set("policyName", "read2")
 	u := "http://127.0.0.1:9985/admin/v1/put-user-policy?"
 	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 

@@ -28,7 +28,6 @@ func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var resp ListUsersResponse
-	resp.SetRequestId()
 	resp.ListUsersResult.Users = iamApi.authSys.Iam.GetUserList(context.Background())
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
@@ -62,9 +61,8 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
-	var resp CreateUserResponse
+	var resp DeleteUserResponse
 	accessKey := r.FormValue("accessKey")
-	resp.CreateUserResult.User.UserName = &accessKey
 	err := iamApi.authSys.Iam.RemoveUser(context.Background(), accessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
@@ -140,11 +138,11 @@ func (iamApi *iamApiServer) ListUserPolicies(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
-	var members []Members
+	var members []string
 	for _, v := range policyNames {
-		members = append(members, Members{v})
+		members = append(members, v)
 	}
-	resp.ListUserPoliciesResult.PolicyNames = members
+	resp.ListUserPoliciesResult.PolicyNames.Member = members
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 
 }

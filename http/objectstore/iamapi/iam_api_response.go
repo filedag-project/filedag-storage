@@ -58,22 +58,6 @@ type DeleteUserResponse struct {
 	XMLName xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ DeleteUserResponse"`
 }
 
-type GetUserResponse struct {
-	CommonResponse
-	XMLName       xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ GetUserResponse"`
-	GetUserResult struct {
-		User iam.User `xml:"User"`
-	} `xml:"GetUserResult"`
-}
-
-type CreateAccessKeyResponse struct {
-	CommonResponse
-	XMLName               xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ CreateAccessKeyResponse"`
-	CreateAccessKeyResult struct {
-		AccessKey iam.AccessKey `xml:"AccessKey"`
-	} `xml:"CreateAccessKeyResult"`
-}
-
 type PutUserPolicyResponse struct {
 	CommonResponse
 	XMLName xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ PutUserPolicyResponse"`
@@ -103,14 +87,13 @@ type GetUserPolicyResponse struct {
 // </ResponseMetadata>
 //</ListUserPoliciesResponse>
 type ListUserPoliciesResponse struct {
-	CommonResponse
 	XMLName                xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/"`
 	ListUserPoliciesResult struct {
-		PolicyNames []Members `xml:"PolicyNames"`
+		PolicyNames struct {
+			Member []string `xml:"Member"`
+		} `xml:"PolicyNames"`
+		CommonResponse
 	} `xml:"ListUserPoliciesResponse"`
-}
-type Members struct {
-	Member string `xml:"member"`
 }
 
 type ErrorResponse struct {
