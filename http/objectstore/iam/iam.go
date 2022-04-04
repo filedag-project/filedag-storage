@@ -153,6 +153,15 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 	return nil
 }
 
+//UpdateUser Update User
+func (sys *IdentityAMSys) UpdateUser(ctx context.Context, cred auth.Credentials) error {
+	err := sys.store.saveUserIdentity(ctx, cred.AccessKey, UserIdentity{Credentials: cred})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetUser - get user credentials
 func (sys *IdentityAMSys) GetUser(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
 	m := auth.Credentials{}

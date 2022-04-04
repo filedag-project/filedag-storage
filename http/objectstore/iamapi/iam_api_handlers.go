@@ -265,10 +265,23 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 	response.WriteSuccessResponseJSON(w, data)
 }
 func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	ctx := context.Background()
+	cerd, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 
+	secret := r.FormValue("secret")
+	c, ok := iamApi.authSys.Iam.GetUser(ctx, cerd.AccessKey)
+	if !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
+		return
+	}
+	c.SecretKey = secret
+	err := iamApi.authSys.Iam.UpdateUser(ctx, c)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
 }
