@@ -107,7 +107,7 @@ type ListUserPoliciesResponse struct {
 	XMLName                xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/"`
 	ListUserPoliciesResult struct {
 		PolicyNames []Members `xml:"PolicyNames"`
-	} `xml:"GetUserPolicyResult"`
+	} `xml:"ListUserPoliciesResponse"`
 }
 type Members struct {
 	Member string `xml:"member"`
