@@ -285,3 +285,12 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 }
+func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+
+}
