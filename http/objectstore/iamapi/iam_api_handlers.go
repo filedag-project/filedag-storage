@@ -266,3 +266,11 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 	}
 	response.WriteSuccessResponseJSON(w, data)
 }
+func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+
+}
