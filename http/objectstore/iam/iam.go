@@ -138,8 +138,14 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 		return err
 	}
 	err = sys.store.createUserPolicy(ctx, accessKey, policy.DefaultPolicies[1].Name, policy.PolicyDocument{
-		Version:   policy.DefaultPolicies[1].Definition.Version,
-		Statement: policy.DefaultPolicies[1].Definition.Statements,
+		Version: policy.DefaultPolicies[1].Definition.Version,
+		Statement: []policy.Statement{{
+			SID:       policy.DefaultPolicies[1].Definition.Statements[0].SID,
+			Effect:    policy.DefaultPolicies[1].Definition.Statements[0].Effect,
+			Principal: policy.NewPrincipal(accessKey),
+			Actions:   policy.DefaultPolicies[1].Definition.Statements[0].Actions,
+			Resources: policy.DefaultPolicies[1].Definition.Statements[0].Resources},
+		},
 	})
 	if err != nil {
 		return err
