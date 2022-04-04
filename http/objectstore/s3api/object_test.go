@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DefaultTestAccessKey = "test1"
+	DefaultTestAccessKey = "testnew"
 	DefaultTestSecretKey = "test12345"
 )
 
