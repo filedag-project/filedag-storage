@@ -100,27 +100,6 @@ func encodeResponseJSON(response interface{}) []byte {
 	return bytesBuffer.Bytes()
 }
 
-//// WriteSuccessResponseJSON writes success headers and response if any,
-//// with content-type set to `application/json`.
-//func WriteSuccessResponseJSON(w http.ResponseWriter, response []byte) {
-//	writeResponseSimple(w, http.StatusOK, response, mimeJSON)
-//}
-//func writeResponseSimple(w http.ResponseWriter, statusCode int, response []byte, mType mimeType) {
-//	if mType != mimeNone {
-//		w.Header().Set(consts.ContentType, string(mType))
-//	}
-//	w.Header().Set(consts.ContentLength, strconv.Itoa(len(response)))
-//	w.WriteHeader(statusCode)
-//	if response != nil {
-//		w.Write(response)
-//	}
-//}
-//
-//// WriteSuccessNoContent writes success headers with http status 204
-//func WriteSuccessNoContent(w http.ResponseWriter) {
-//	writeResponseSimple(w, http.StatusNoContent, nil, mimeNone)
-//}
-
 //ListAllMyBucketsResult  List All Buckets Result
 type ListAllMyBucketsResult struct {
 	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListAllMyBucketsResult"`

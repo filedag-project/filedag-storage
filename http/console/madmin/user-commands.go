@@ -6,11 +6,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/filedag-project/filedag-storage/http/console/madmin/tags"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 // ListUsers - list all users.
@@ -95,39 +93,6 @@ func (adm *AdminClient) RemoveUser(ctx context.Context, accessKey string) error 
 type AccountAccess struct {
 	Read  bool `json:"read"`
 	Write bool `json:"write"`
-}
-
-// BucketDetails provides information about features currently
-// turned-on per bucket.
-type BucketDetails struct {
-	Versioning          bool         `json:"versioning"`
-	VersioningSuspended bool         `json:"versioningSuspended"`
-	Locking             bool         `json:"locking"`
-	Replication         bool         `json:"replication"`
-	Tagging             *tags.Tags   `json:"tags"`
-	Quota               *BucketQuota `json:"quota"`
-}
-
-// BucketAccessInfo represents bucket usage of a bucket, and its relevant
-// access type for an account
-type BucketAccessInfo struct {
-	Name                 string            `json:"name"`
-	Size                 uint64            `json:"size"`
-	Objects              uint64            `json:"objects"`
-	ObjectSizesHistogram map[string]uint64 `json:"objectHistogram"`
-	Details              *BucketDetails    `json:"details"`
-	PrefixUsage          map[string]uint64 `json:"prefixUsage"`
-	Created              time.Time         `json:"created"`
-	Access               AccountAccess     `json:"access"`
-}
-
-// AccountInfo represents the account usage info of an
-// account across buckets.
-type AccountInfo struct {
-	AccountName string
-	Server      BackendInfo
-	Policy      json.RawMessage // Use iam/policy.Parse to parse the result, to be done by the caller.
-	Buckets     []BucketAccessInfo
 }
 
 // AccountOpts allows for configurable behavior with "prefix-usage"

@@ -1,19 +1,3 @@
-// This file is part of MinIO Console Server
-// Copyright (c) 2021 MinIO, Inc.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 package restapi
 
 import (
@@ -59,7 +43,6 @@ import (
 //}
 
 // login performs a check of ConsoleCredentials against MinIO, generates some claims and returns the jwt
-// for subsequent authentication
 func login(credentials ConsoleCredentialsI, sessionFeatures *auth.SessionFeatures) (*string, error) {
 	// try to obtain consoleCredentials,
 	tokens, err := credentials.Get()
@@ -108,71 +91,3 @@ func getLoginResponse(lr *models.LoginRequest) (*models.LoginResponse, *models.E
 	}
 	return loginResponse, nil
 }
-
-//// getLoginDetailsResponse returns information regarding the Console authentication mechanism.
-//func getLoginDetailsResponse(r *http.Request) (*models.LoginDetails, *models.Error) {
-//	loginStrategy := models.LoginDetailsLoginStrategyForm
-//	redirectURL := ""
-//
-//	if oauth2.IsIDPEnabled() {
-//		loginStrategy = models.LoginDetailsLoginStrategyRedirect
-//		// initialize new oauth2 client
-//		oauth2Client, err := oauth2.NewOauth2ProviderClient(nil, r, GetConsoleHTTPClient())
-//		if err != nil {
-//			return nil, prepareError(err, errOauth2Provider)
-//		}
-//		// Validate user against IDP
-//		identityProvider := &auth.IdentityProvider{Client: oauth2Client}
-//		redirectURL = identityProvider.GenerateLoginURL()
-//	}
-//
-//	loginDetails := &models.LoginDetails{
-//		LoginStrategy: loginStrategy,
-//		Redirect:      redirectURL,
-//	}
-//	return loginDetails, nil
-//}
-//
-//// verifyUserAgainstIDP will verify user identity against the configured IDP and return MinIO credentials
-//func verifyUserAgainstIDP(ctx context.Context, provider auth.IdentityProviderI, code, state string) (*credentials.Credentials, error) {
-//	userCredentials, err := provider.VerifyIdentity(ctx, code, state)
-//	if err != nil {
-//		LogError("error validating user identity against idp: %v", err)
-//		return nil, errInvalidCredentials
-//	}
-//	return userCredentials, nil
-//}
-//
-//func getLoginOauth2AuthResponse(r *http.Request, lr *models.LoginOauth2AuthRequest) (*models.LoginResponse, *models.Error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-//	defer cancel()
-//	if oauth2.IsIDPEnabled() {
-//		// initialize new oauth2 client
-//		oauth2Client, err := oauth2.NewOauth2ProviderClient(nil, r, GetConsoleHTTPClient())
-//		if err != nil {
-//			return nil, prepareError(err)
-//		}
-//		// initialize new identity provider
-//		identityProvider := auth.IdentityProvider{Client: oauth2Client}
-//		// Validate user against IDP
-//		userCredentials, err := verifyUserAgainstIDP(ctx, identityProvider, *lr.Code, *lr.State)
-//		if err != nil {
-//			return nil, prepareError(err)
-//		}
-//		// initialize admin client
-//		// login user against console and generate session token
-//		token, err := login(&ConsoleCredentials{
-//			ConsoleCredentials: userCredentials,
-//			AccountAccessKey:   "",
-//		}, nil)
-//		if err != nil {
-//			return nil, prepareError(err)
-//		}
-//		// serialize output
-//		loginResponse := &models.LoginResponse{
-//			SessionID: *token,
-//		}
-//		return loginResponse, nil
-//	}
-//	return nil, prepareError(ErrorGeneric)
-//}

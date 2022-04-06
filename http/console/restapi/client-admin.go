@@ -1,19 +1,3 @@
-// This file is part of MinIO Console Server
-// Copyright (c) 2021 MinIO, Inc.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 package restapi
 
 import (
@@ -40,10 +24,6 @@ type MinioAdmin interface {
 	removeUser(ctx context.Context, accessKey string) error
 	getUserInfo(ctx context.Context, accessKey string) (*madmin.UserInfo, error)
 	setUserStatus(ctx context.Context, accessKey string, status madmin.AccountStatus) error
-	listGroups(ctx context.Context) ([]string, error)
-	updateGroupMembers(ctx context.Context, greq madmin.GroupAddRemove) error
-	getGroupDescription(ctx context.Context, group string) (*madmin.GroupDesc, error)
-	setGroupStatus(ctx context.Context, group string, status madmin.GroupStatus) error
 	listBucketsInfo(ctx context.Context) ([]*s3.Bucket, error)
 	putBucket(ctx context.Context, bucketName, location string, objectLocking bool) error
 	removeBucket(ctx context.Context, bucketName, location string, objectLocking bool) error
@@ -96,26 +76,6 @@ func (ac AdminClient) getUserInfo(ctx context.Context, accessKey string) (*madmi
 // implements madmin.SetUserStatus()
 func (ac AdminClient) setUserStatus(ctx context.Context, accessKey string, status madmin.AccountStatus) error {
 	return ac.Client.SetUserStatus(ctx, accessKey, status)
-}
-
-// implements madmin.ListGroups()
-func (ac AdminClient) listGroups(ctx context.Context) ([]string, error) {
-	return ac.Client.ListGroups(ctx)
-}
-
-// implements madmin.UpdateGroupMembers()
-func (ac AdminClient) updateGroupMembers(ctx context.Context, greq madmin.GroupAddRemove) error {
-	return ac.Client.UpdateGroupMembers(ctx, greq)
-}
-
-// implements madmin.GetGroupDescription(group)
-func (ac AdminClient) getGroupDescription(ctx context.Context, group string) (*madmin.GroupDesc, error) {
-	return ac.Client.GetGroupDescription(ctx, group)
-}
-
-// implements madmin.SetGroupStatus(group, status)
-func (ac AdminClient) setGroupStatus(ctx context.Context, group string, status madmin.GroupStatus) error {
-	return ac.Client.SetGroupStatus(ctx, group, status)
 }
 
 // implements madmin.ListServiceAccounts()
