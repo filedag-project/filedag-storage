@@ -2,6 +2,7 @@ package iamapi
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"io/ioutil"
 	"net/http"
@@ -71,6 +72,28 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 	urlValues.Set("newPassword", "test2222")
 	u := "http://127.0.0.1:9985/admin/v1/change-password?"
 	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", "test1", "test12345", t)
+
+	//req.Header.Set("Content-Type", "text/plain")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
+func TestIamApiServer_SetStatus(t *testing.T) {
+	urlValues := make(url.Values)
+	urlValues.Set("userName", "test1")
+	urlValues.Set("status", string(iam.AccountDisabled))
+	//urlValues.Set("status", string(iam.AccountEnabled))
+	u := "http://127.0.0.1:9985/admin/v1/update-accessKey_status?"
+	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", "test1", "test2222", t)
 
 	//req.Header.Set("Content-Type", "text/plain")
 	client := &http.Client{}
