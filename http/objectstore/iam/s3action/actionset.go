@@ -22,6 +22,9 @@ func (as ActionSet) Add(action Action) {
 
 // Contains - checks given action exists in the action set.
 func (as ActionSet) Contains(action Action) bool {
+	if action == "" {
+		return true
+	}
 	_, found := as[action]
 	return found
 }
