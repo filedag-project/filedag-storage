@@ -1,19 +1,3 @@
-// This file is part of MinIO Console Server
-// Copyright (c) 2021 MinIO, Inc.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 package restapi
 
 import (
@@ -23,6 +7,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/console/models"
 	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/admin_api"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/swag"
 
@@ -116,8 +101,6 @@ func getListUsersResponse(session *models.Principal) (*models.ListUsersResponse,
 	if err != nil {
 		return nil, prepareError(err)
 	}
-	// create a minioClient interface implementation
-	// defining the client to be used
 	adminClient := AdminClient{Client: mAdmin}
 
 	users, err := listUsers(ctx, adminClient)
@@ -131,30 +114,18 @@ func getListUsersResponse(session *models.Principal) (*models.ListUsersResponse,
 	return listUsersResponse, nil
 }
 
-// addUser invokes adding a users on `MinioAdmin` and builds the response `models.User`
+// addUser
 func addUser(ctx context.Context, client MinioAdmin, accessKey, secretKey *string, groups []string, policies []string) (*models.User, error) {
-	// Calls into MinIO to add a new user if there's an error return it
-	if err := client.addUser(ctx, *accessKey, *secretKey); err != nil {
+	_, err := client.addUser(ctx, *accessKey, *secretKey)
+	if err != nil {
 		return nil, err
 	}
 	// set groups for the newly created user
 	var userWithGroups *models.User
-	if len(groups) > 0 {
-		var errUG error
-		userWithGroups, errUG = updateUserGroups(ctx, client, *accessKey, groups)
-
-		if errUG != nil {
-			return nil, errUG
-		}
-	}
 	if len(policies) > 0 {
 		policyString := strings.Join(policies, ",")
 		fmt.Println(policyString)
-		//if err := setPolicy(ctx, client, policyString, *accessKey, "user"); err != nil {
-		//	return nil, err
-		//}
 	}
-
 	memberOf := []string{}
 	status := "enabled"
 	if userWithGroups != nil {
@@ -177,8 +148,6 @@ func getUserAddResponse(session *models.Principal, params admin_api.AddUserParam
 	if err != nil {
 		return nil, prepareError(err)
 	}
-	// create a minioClient interface implementation
-	// defining the client to be used
 	adminClient := AdminClient{Client: mAdmin}
 	var userExists bool
 
@@ -218,9 +187,6 @@ func getRemoveUserResponse(session *models.Principal, params admin_api.RemoveUse
 	if session.AccountAccessKey == params.Name {
 		return prepareError(errAvoidSelfAccountDelete)
 	}
-
-	// create a minioClient interface implementation
-	// defining the client to be used
 	adminClient := AdminClient{Client: mAdmin}
 
 	if err := removeUser(ctx, adminClient, params.Name); err != nil {
@@ -233,28 +199,21 @@ func getRemoveUserResponse(session *models.Principal, params admin_api.RemoveUse
 // getUserInfo calls MinIO server get the User Information
 func getUserInfo(ctx context.Context, client MinioAdmin, accessKey string) (*madmin.UserInfo, error) {
 	userInfo, err := client.getUserInfo(ctx, accessKey)
-
 	if err != nil {
 		return nil, err
 	}
-	return &userInfo, nil
+	return userInfo, nil
 }
 
 func getUserInfoResponse(session *models.Principal, params admin_api.GetUserInfoParams) (*models.User, *models.Error) {
 	ctx := context.Background()
-
 	mAdmin, err := NewMinioAdminClient(session)
 	if err != nil {
 		return nil, prepareError(err)
 	}
-
-	// create a minioClient interface implementation
-	// defining the client to be used
 	adminClient := AdminClient{Client: mAdmin}
-
 	user, err := getUserInfo(ctx, adminClient, params.Name)
 	if err != nil {
-		// User doesn't exist, return 404
 		if madmin.ToErrorResponse(err).Code == "XMinioAdminNoSuchUser" {
 			var errorCode int32 = 404
 			errorMessage := "User doesn't exist"
@@ -262,148 +221,16 @@ func getUserInfoResponse(session *models.Principal, params admin_api.GetUserInfo
 		}
 		return nil, prepareError(err)
 	}
-
-	var policies []string
-	if user.PolicyName == "" {
-		policies = []string{}
-	} else {
-		policies = strings.Split(user.PolicyName, ",")
-	}
-
 	hasPolicy := true
-
-	if len(policies) == 0 {
-		hasPolicy = false
-		for i := 0; i < len(user.MemberOf); i++ {
-			group, err := adminClient.getGroupDescription(ctx, user.MemberOf[i])
-			if err != nil {
-				continue
-			}
-			if group.Policy != "" {
-				hasPolicy = true
-				break
-			}
-		}
-	}
 
 	userInformation := &models.User{
 		AccessKey: params.Name,
-		MemberOf:  user.MemberOf,
-		Policy:    policies,
+		Policy:    user.PolicyName,
 		Status:    string(user.Status),
 		HasPolicy: hasPolicy,
 	}
 
 	return userInformation, nil
-}
-
-// updateUserGroups invokes getUserInfo() to get the old groups from the user,
-// then we merge the list with the new groups list to have a shorter iteration between groups and we do a comparison between the current and old groups.
-// We delete or update the groups according the location in each list and send the user with the new groups from `MinioAdmin` to the client
-func updateUserGroups(ctx context.Context, client MinioAdmin, user string, groupsToAssign []string) (*models.User, error) {
-	parallelUserUpdate := func(groupName string, originGroups []string) chan error {
-		chProcess := make(chan error)
-
-		go func() error {
-			defer close(chProcess)
-
-			//Compare if groupName is in the arrays
-			isGroupPersistent := IsElementInArray(groupsToAssign, groupName)
-			isInOriginGroups := IsElementInArray(originGroups, groupName)
-
-			if isGroupPersistent && isInOriginGroups { // Group is already assigned and doesn't need to be updated
-				chProcess <- nil
-
-				return nil
-			}
-
-			isRemove := false // User is added by default
-
-			// User is deleted from the group
-			if !isGroupPersistent {
-				isRemove = true
-			}
-
-			userToAddRemove := []string{user}
-
-			updateReturn := updateGroupMembers(ctx, client, groupName, userToAddRemove, isRemove)
-
-			chProcess <- updateReturn
-
-			return updateReturn
-		}()
-
-		return chProcess
-	}
-
-	userInfoOr, err := getUserInfo(ctx, client, user)
-	if err != nil {
-		return nil, err
-	}
-
-	memberOf := userInfoOr.MemberOf
-	mergedGroupArray := UniqueKeys(append(memberOf, groupsToAssign...))
-
-	var listOfUpdates []chan error
-
-	// Each group must be updated individually because there is no way to update all the groups at once for a user,
-	// we are using the same logic as 'mc admin group add' command
-	for _, groupN := range mergedGroupArray {
-		proc := parallelUserUpdate(groupN, memberOf)
-		listOfUpdates = append(listOfUpdates, proc)
-	}
-
-	channelHasError := false
-
-	for _, chanRet := range listOfUpdates {
-		locError := <-chanRet
-
-		if locError != nil {
-			channelHasError = true
-		}
-	}
-
-	if channelHasError {
-		errRt := errors.New(500, "there was an error updating the groups")
-		return nil, errRt
-	}
-
-	userInfo, err := getUserInfo(ctx, client, user)
-	if err != nil {
-		return nil, err
-	}
-
-	policies := strings.Split(userInfo.PolicyName, ",")
-
-	userReturn := &models.User{
-		AccessKey: user,
-		MemberOf:  userInfo.MemberOf,
-		Policy:    policies,
-		Status:    string(userInfo.Status),
-	}
-
-	return userReturn, nil
-}
-
-func getUpdateUserGroupsResponse(session *models.Principal, params admin_api.UpdateUserGroupsParams) (*models.User, *models.Error) {
-	ctx := context.Background()
-
-	mAdmin, err := NewMinioAdminClient(session)
-	if err != nil {
-		return nil, prepareError(err)
-	}
-
-	// create a minioClient interface implementation
-	// defining the client to be used
-	adminClient := AdminClient{Client: mAdmin}
-
-	user, err := updateUserGroups(ctx, adminClient, params.Name, params.Body.Groups)
-
-	if err != nil {
-		return nil, prepareError(err)
-	}
-
-	return user, nil
 }
 
 // setUserStatus invokes setUserStatus from madmin to update user status
@@ -421,73 +248,128 @@ func setUserStatus(ctx context.Context, client MinioAdmin, user string, status s
 	return client.setUserStatus(ctx, user, setStatus)
 }
 
-func getUpdateUserResponse(session *models.Principal, params admin_api.UpdateUserInfoParams) (*models.User, *models.Error) {
-	ctx := context.Background()
+// getUserSetPolicyResponse calls setUserAccessPolicy() to set a access policy to a user
+//   and returns the serialized output.
+func getUserSetPolicyResponse(session *models.Principal, userName string, req *models.SetUserPolicyRequest) *models.Error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
 
 	mAdmin, err := NewMinioAdminClient(session)
 	if err != nil {
-		return nil, prepareError(err)
+		return nil
 	}
-
-	// create a minioClient interface implementation
-	// defining the client to be used
 	adminClient := AdminClient{Client: mAdmin}
 
-	name := params.Name
-	status := *params.Body.Status
-	groups := params.Body.Groups
-
-	if err := setUserStatus(ctx, adminClient, name, status); err != nil {
-		return nil, prepareError(err)
+	if err := setUserAccessPolicy(ctx, adminClient, userName, *req.Access, req.Name, req.Definition); err != nil {
+		return prepareError(err)
 	}
-
-	userElem, errUG := updateUserGroups(ctx, adminClient, name, groups)
-
-	if errUG != nil {
-		return nil, prepareError(errUG)
+	if err != nil {
+		return prepareError(err)
 	}
-	return userElem, nil
+	return nil
 }
 
-// addUsersListToGroups iterates over the user list & assigns the requested groups to each user.
-func addUsersListToGroups(ctx context.Context, client MinioAdmin, usersToUpdate []string, groupsToAssign []string) error {
-	// We update each group with the complete usersList
-	parallelGroupsUpdate := func(groupToAssign string) chan error {
-		groupProcess := make(chan error)
-
-		go func() {
-			defer close(groupProcess)
-			// We add the users array to the group.
-			err := updateGroupMembers(ctx, client, groupToAssign, usersToUpdate, false)
-
-			groupProcess <- err
-		}()
-		return groupProcess
+// setUserAccessPolicy set the access permissions on an existing user.
+func setUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string, access models.BucketAccess, policyName, policyDefinition string) error {
+	if strings.TrimSpace(userName) == "" {
+		return fmt.Errorf("error: user name not present")
 	}
-
-	var groupsUpdateList []chan error
-
-	// We get each group name & add users accordingly
-	for _, groupName := range groupsToAssign {
-		// We update the group
-		proc := parallelGroupsUpdate(groupName)
-		groupsUpdateList = append(groupsUpdateList, proc)
+	if strings.TrimSpace(string(access)) == "" {
+		return fmt.Errorf("error: user access not present")
 	}
-
-	errorsList := []string{} // We get the errors list because we want to have all errors at once.
-	for _, err := range groupsUpdateList {
-		errorFromUpdate := <-err // We store the error to avoid Data Race
-		if errorFromUpdate != nil {
-			// If there is an error, we store the errors strings so we can join them after we receive all errors
-			errorsList = append(errorsList, errorFromUpdate.Error()) // We wait until all the channels have been closed.
+	// Prepare policyJSON corresponding to the access type
+	if access != models.BucketAccessPRIVATE && access != models.BucketAccessPUBLIC && access != models.BucketAccessCUSTOM {
+		return fmt.Errorf("access: `%s` not supported", access)
+	}
+	if access == models.BucketAccessCUSTOM {
+		err := client.putUserPolicy(ctx, userName, policyName, policyDefinition)
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	// If there are errors, we throw the final error with the errors inside
-	if len(errorsList) > 0 {
-		errGen := fmt.Errorf("error in users-groups assignation: %q", strings.Join(errorsList[:], ","))
-		return errGen
+// getUserPolicyResponse
+func getUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicy, *models.Error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil, nil
 	}
+	adminClient := AdminClient{Client: mAdmin}
+	policy, err := getUserAccessPolicy(ctx, adminClient, userName)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	return policy, nil
+}
 
+// getUserAccessPolicy
+func getUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string) (*madmin.UserPolicy, error) {
+	if strings.TrimSpace(userName) == "" {
+		return nil, fmt.Errorf("error: user name not present")
+	}
+	userPolicy, err := client.getUserPolicy(ctx, userName)
+	if err != nil {
+		return nil, err
+	}
+	return userPolicy, nil
+}
+
+// listUserPolicyResponse
+func listUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicies, *models.Error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil, nil
+	}
+	adminClient := AdminClient{Client: mAdmin}
+	policy, err := listUserAccessPolicy(ctx, adminClient, userName)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	return policy, nil
+}
+
+// listUserAccessPolicy
+func listUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string) (*madmin.UserPolicies, error) {
+	if strings.TrimSpace(userName) == "" {
+		return nil, fmt.Errorf("error: user name not present")
+	}
+	userPolicy, err := client.listUserPolicy(ctx, userName)
+	if err != nil {
+		return nil, err
+	}
+	return userPolicy, nil
+}
+
+// removeUserPolicyResponse
+func removeUserPolicyResponse(session *models.Principal, userName, policyName string) *models.Error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil
+	}
+	adminClient := AdminClient{Client: mAdmin}
+	err = removeUserAccessPolicy(ctx, adminClient, userName, policyName)
+	if err != nil {
+		return prepareError(err)
+	}
+	return nil
+}
+
+// removeUserAccessPolicy
+func removeUserAccessPolicy(ctx context.Context, client MinioAdmin, userName, policyName string) error {
+	if strings.TrimSpace(userName) == "" {
+		return fmt.Errorf("error: bucket name not present")
+	}
+	err := client.removeUserPolicy(ctx, userName, policyName)
+	if err != nil {
+		return err
+	}
 	return nil
 }

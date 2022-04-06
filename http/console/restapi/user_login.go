@@ -75,17 +75,6 @@ func login(credentials ConsoleCredentialsI, sessionFeatures *auth.SessionFeature
 	return &token, nil
 }
 
-//// getAccountPolicy will return the associated policy of the current account
-//func getAccountPolicy(ctx context.Context, client MinioAdmin) (*iampolicy.Policy, error) {
-//	// Obtain the current policy assigned to this user
-//	// necessary for generating the list of allowed endpoints
-//	accountInfo, err := client.AccountInfo(ctx)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return iampolicy.ParseConfig(bytes.NewReader(accountInfo.Policy))
-//}
-
 // getConsoleCredentials will return ConsoleCredentials interface
 func getConsoleCredentials(accessKey, secretKey string) (*ConsoleCredentials, error) {
 	creds, err := NewConsoleCredentials(accessKey, secretKey, GetMinIORegion())

@@ -10,7 +10,8 @@ import (
 )
 
 // PutUserPolicy .
-func (adm *AdminClient) ListUserPolicy(ctx context.Context, userName string) error {
+func (adm *AdminClient) ListUserPolicy(ctx context.Context, userName string) (*UserPolicies, error) {
+	var userPolicies UserPolicies
 	queryValues := url.Values{}
 	queryValues.Set("userName", userName)
 	reqData := requestData{
@@ -20,7 +21,7 @@ func (adm *AdminClient) ListUserPolicy(ctx context.Context, userName string) err
 	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
 	defer closeResponse(resp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println(resp)
 	body, err := ioutil.ReadAll(resp.Body)
@@ -29,16 +30,17 @@ func (adm *AdminClient) ListUserPolicy(ctx context.Context, userName string) err
 	err = xml.Unmarshal(body, &response)
 	fmt.Println(response)
 	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
+		return &userPolicies, httpRespToErrorResponse(resp)
 	}
-	return nil
+	userPolicies = response.ListUserPoliciesResult
+	return &userPolicies, nil
 }
 
 // PutUserPolicy .
-func (adm *AdminClient) PutUserPolicy(ctx context.Context, userName, policyStr string) error {
+func (adm *AdminClient) PutUserPolicy(ctx context.Context, userName, policyName, policyStr string) error {
 	queryValues := url.Values{}
 	queryValues.Set("userName", userName)
-	queryValues.Set("policyName", "read")
+	queryValues.Set("policyName", policyName)
 	queryValues.Set("policyDocument", policyStr)
 	reqData := requestData{
 		relPath:     adminAPIPrefix + "admin/v1/put-user-policy",
@@ -57,7 +59,8 @@ func (adm *AdminClient) PutUserPolicy(ctx context.Context, userName, policyStr s
 }
 
 // GetUserPolicy .
-func (adm *AdminClient) GetUserPolicy(ctx context.Context, userName string) error {
+func (adm *AdminClient) GetUserPolicy(ctx context.Context, userName string) (*UserPolicy, error) {
+	var userPolicy UserPolicy
 	queryValues := make(url.Values)
 	queryValues.Set("userName", userName)
 	queryValues.Set("policyName", "read")
@@ -68,7 +71,7 @@ func (adm *AdminClient) GetUserPolicy(ctx context.Context, userName string) erro
 	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
 	defer closeResponse(resp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	fmt.Println(resp)
 	body, err := ioutil.ReadAll(resp.Body)
@@ -77,16 +80,18 @@ func (adm *AdminClient) GetUserPolicy(ctx context.Context, userName string) erro
 	err = xml.Unmarshal(body, &response)
 	fmt.Println(response)
 	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
+		return &userPolicy, httpRespToErrorResponse(resp)
 	}
-	return nil
+	userPolicy = response.GetUserPolicyResult
+	fmt.Println(userPolicy)
+	return &userPolicy, nil
 }
 
 // RemoveUserPolicy .
-func (adm *AdminClient) RemoveUserPolicy(ctx context.Context, userName string) error {
+func (adm *AdminClient) RemoveUserPolicy(ctx context.Context, userName, policyName string) error {
 	queryValues := make(url.Values)
 	queryValues.Set("userName", userName)
-	queryValues.Set("policyName", "read")
+	queryValues.Set("policyName", policyName)
 	reqData := requestData{
 		relPath:     adminAPIPrefix + "admin/v1/remove-user-policy",
 		queryValues: queryValues,

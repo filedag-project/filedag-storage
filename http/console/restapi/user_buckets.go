@@ -199,7 +199,7 @@ func getBucketSetPolicyResponse(session *models.Principal, bucketName string, re
 
 	mAdmin, err := NewMinioAdminClient(session)
 	if err != nil {
-		return nil, nil
+		return nil, prepareError(err)
 	}
 	adminClient := AdminClient{Client: mAdmin}
 

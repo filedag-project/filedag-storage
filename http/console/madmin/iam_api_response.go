@@ -89,6 +89,12 @@ type GetUserPolicyResponse struct {
 	} `xml:"GetUserPolicyResult"`
 }
 
+type UserPolicy struct {
+	UserName       string `xml:"UserName"`
+	PolicyName     string `xml:"PolicyName"`
+	PolicyDocument string `xml:"PolicyDocument"`
+}
+
 type ListUserPoliciesResponse struct {
 	CommonResponse
 	XMLName                xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ ListUserPoliciesResponse"`
@@ -98,6 +104,13 @@ type ListUserPoliciesResponse struct {
 		} `xml:"PolicyNames"`
 	}
 }
+
+type UserPolicies struct {
+	PolicyNames struct {
+		Member []string `xml:"Member"`
+	} `xml:"PolicyNames"`
+}
+
 type Members struct {
 	Member string `xml:"member"`
 }

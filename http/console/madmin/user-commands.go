@@ -1,19 +1,3 @@
-//
-// MinIO Object Storage (c) 2021 MinIO, Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-//
-
 package madmin
 
 import (
@@ -51,16 +35,17 @@ func (adm *AdminClient) ListUsers(ctx context.Context) (users []*iam.User, err e
 		return users, err
 	}
 	fmt.Println(response)
+	users = response.ListUsersResult.Users
 	return users, nil
 }
 
 // AddUser - adds a user.
-func (adm *AdminClient) AddUser(ctx context.Context, accessKey, secretKey string) error {
+func (adm *AdminClient) AddUser(ctx context.Context, accessKey, secretKey string) (*iam.User, error) {
 	return adm.SetUser(ctx, accessKey, secretKey, AccountEnabled)
 }
 
 // SetUser - update user secret key or account status.
-func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string, status AccountStatus) error {
+func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string, status AccountStatus) (user *iam.User, err error) {
 	queryValues := url.Values{}
 	queryValues.Set("accessKey", accessKey)
 	queryValues.Set("secretKey", secretKey)
@@ -71,15 +56,18 @@ func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string
 	resp, err := adm.executeMethod(ctx, http.MethodPost, reqData)
 	defer closeResponse(resp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	fmt.Println(resp)
 	fmt.Println(string(body))
+	var response CreateUserResponse
+	err = xml.Unmarshal(body, &response)
+	user = &response.CreateUserResult.User
 	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
+		return nil, httpRespToErrorResponse(resp)
 	}
-	return nil
+	return user, nil
 }
 
 // RemoveUser - remove a user.
@@ -90,8 +78,6 @@ func (adm *AdminClient) RemoveUser(ctx context.Context, accessKey string) error 
 		relPath:     admin + adminAPIPrefix + AdminAPIVersionV1 + "/remove-user",
 		queryValues: queryValues,
 	}
-
-	// Execute DELETE on /minio/admin/v3/remove-user to remove a user.
 	resp, err := adm.executeMethod(ctx, http.MethodPost, reqData)
 	defer closeResponse(resp)
 	if err != nil {
@@ -161,43 +147,40 @@ const (
 // UserInfo carries information about long term users.
 type UserInfo struct {
 	SecretKey  string        `json:"secretKey,omitempty"`
-	PolicyName string        `json:"policyName,omitempty"`
+	PolicyName []string      `json:"policyName,omitempty"`
 	Status     AccountStatus `json:"status"`
-	MemberOf   []string      `json:"memberOf,omitempty"`
 }
 
 // GetUserInfo - get info on a user
-func (adm *AdminClient) GetUserInfo(ctx context.Context, name string) (u UserInfo, err error) {
+func (adm *AdminClient) GetUserInfo(ctx context.Context, name string) (*UserInfo, error) {
+	var userInfo UserInfo
 	queryValues := url.Values{}
-	queryValues.Set("accessKey", name)
-
+	queryValues.Set("userName", name)
 	reqData := requestData{
-		relPath:     adminAPIPrefix + "/user-info",
+		relPath:     admin + adminAPIPrefix + AdminAPIVersionV1 + "/user-info",
 		queryValues: queryValues,
 	}
-
-	// Execute GET on /minio/admin/v3/user-info
 	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
 
 	defer closeResponse(resp)
 	if err != nil {
-		return u, err
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return u, httpRespToErrorResponse(resp)
+		return nil, httpRespToErrorResponse(resp)
 	}
-
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return u, err
+		return &userInfo, err
+	}
+	fmt.Println(resp.Body)
+
+	if err = json.Unmarshal(b, &userInfo); err != nil {
+		return &userInfo, err
 	}
 
-	if err = json.Unmarshal(b, &u); err != nil {
-		return u, err
-	}
-
-	return u, nil
+	return &userInfo, nil
 }
 
 // AddOrUpdateUserReq allows to update user details such as secret key and

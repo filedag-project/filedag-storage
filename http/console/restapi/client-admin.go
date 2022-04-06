@@ -29,16 +29,16 @@ import (
 	"net/http"
 )
 
-const globalAppName = "MinIO Console"
+const globalAppName = "Console"
 
 // MinioAdmin interface with all functions to be implemented
 // by mock when testing, it should include all MinioAdmin respective api calls
 // that are used within this project.
 type MinioAdmin interface {
 	listUsers(ctx context.Context) ([]*iam.User, error)
-	addUser(ctx context.Context, acessKey, SecretKey string) error
+	addUser(ctx context.Context, acessKey, SecretKey string) (*iam.User, error)
 	removeUser(ctx context.Context, accessKey string) error
-	getUserInfo(ctx context.Context, accessKey string) (madmin.UserInfo, error)
+	getUserInfo(ctx context.Context, accessKey string) (*madmin.UserInfo, error)
 	setUserStatus(ctx context.Context, accessKey string, status madmin.AccountStatus) error
 	listGroups(ctx context.Context) ([]string, error)
 	updateGroupMembers(ctx context.Context, greq madmin.GroupAddRemove) error
@@ -55,10 +55,10 @@ type MinioAdmin interface {
 	putBucketPolicy(ctx context.Context, bucketName, policyStr string) error
 	getBucketPolicy(ctx context.Context, bucketName string) (*policy.Policy, error)
 	removeBucketPolicy(ctx context.Context, bucketName string) error
-	putUserPolicy(ctx context.Context, bucketName, policyStr string) error
-	getUserPolicy(ctx context.Context, bucketName string) error
-	removeUserPolicy(ctx context.Context, bucketName string) error
-	listUserPolicy(ctx context.Context, bucketName string) error
+	putUserPolicy(ctx context.Context, bucketName, policyName, policyStr string) error
+	getUserPolicy(ctx context.Context, bucketName string) (*madmin.UserPolicy, error)
+	removeUserPolicy(ctx context.Context, bucketName, policyName string) error
+	listUserPolicy(ctx context.Context, bucketName string) (*madmin.UserPolicies, error)
 }
 
 // Interface implementation
@@ -69,7 +69,7 @@ type AdminClient struct {
 	Client *madmin.AdminClient
 }
 
-func (ac AdminClient) changePassword(ctx context.Context, accessKey, secretKey string) error {
+func (ac AdminClient) changePassword(ctx context.Context, accessKey, secretKey string) (*iam.User, error) {
 	return ac.Client.SetUser(ctx, accessKey, secretKey, madmin.AccountEnabled)
 }
 
@@ -79,7 +79,7 @@ func (ac AdminClient) listUsers(ctx context.Context) ([]*iam.User, error) {
 }
 
 // implements madmin.AddUser()
-func (ac AdminClient) addUser(ctx context.Context, accessKey, secretKey string) error {
+func (ac AdminClient) addUser(ctx context.Context, accessKey, secretKey string) (*iam.User, error) {
 	return ac.Client.AddUser(ctx, accessKey, secretKey)
 }
 
@@ -89,7 +89,7 @@ func (ac AdminClient) removeUser(ctx context.Context, accessKey string) error {
 }
 
 //implements madmin.GetUserInfo()
-func (ac AdminClient) getUserInfo(ctx context.Context, accessKey string) (madmin.UserInfo, error) {
+func (ac AdminClient) getUserInfo(ctx context.Context, accessKey string) (*madmin.UserInfo, error) {
 	return ac.Client.GetUserInfo(ctx, accessKey)
 }
 
@@ -190,19 +190,19 @@ func (ac AdminClient) removeBucketPolicy(ctx context.Context, bucketName string)
 	return ac.Client.RemoveBucketPolicy(ctx, bucketName)
 }
 
-func (ac AdminClient) putUserPolicy(ctx context.Context, bucketName, policyStr string) error {
-	return ac.Client.PutUserPolicy(ctx, bucketName, policyStr)
+func (ac AdminClient) putUserPolicy(ctx context.Context, bucketName, policyName, policyStr string) error {
+	return ac.Client.PutUserPolicy(ctx, bucketName, policyName, policyStr)
 }
 
-func (ac AdminClient) getUserPolicy(ctx context.Context, bucketName string) error {
+func (ac AdminClient) getUserPolicy(ctx context.Context, bucketName string) (*madmin.UserPolicy, error) {
 	return ac.Client.GetUserPolicy(ctx, bucketName)
 }
 
-func (ac AdminClient) removeUserPolicy(ctx context.Context, bucketName string) error {
-	return ac.Client.RemoveUserPolicy(ctx, bucketName)
+func (ac AdminClient) removeUserPolicy(ctx context.Context, bucketName, policyName string) error {
+	return ac.Client.RemoveUserPolicy(ctx, bucketName, policyName)
 }
 
-func (ac AdminClient) listUserPolicy(ctx context.Context, bucketName string) error {
+func (ac AdminClient) listUserPolicy(ctx context.Context, bucketName string) (*madmin.UserPolicies, error) {
 	return ac.Client.ListUserPolicy(ctx, bucketName)
 }
 
