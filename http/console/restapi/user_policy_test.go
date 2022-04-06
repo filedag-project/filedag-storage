@@ -7,6 +7,22 @@ import (
 	"testing"
 )
 
+func Test_listUserPolicyResponse(t *testing.T) {
+	session := &models.Principal{
+		STSAccessKeyID:     "RJ45Y2XHCLLUPAG7C8HE",
+		STSSecretAccessKey: "bD+ZA15CO2c0MC4NRKDcsouPam+WChiJXgjO9pQc",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJSSjQ1WTJYSENMTFVQQUc3QzhIRSIsImV4cCI6MTY0OTA2NjE0NiwicGFyZW50IjoidGVzdCJ9.SOxqKfxprwHF-fgqdG6fW20-6K1OqxcMAub4MV8tWjN0XiM0xwV7G2z3JF-EvJdjXRKQvT9GA41U1bsjxYHhpA",
+		AccountAccessKey:   "test",
+		Hm:                 false,
+	}
+	mClient, err := NewMinioAdminClient(session)
+	client := AdminClient{Client: mClient}
+	err = client.listUserPolicy(context.Background(), "test2")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func Test_putUserPolicyResponse(t *testing.T) {
 	session := &models.Principal{
 		STSAccessKeyID:     "UP1GTELGU4EBM81DI9B3",
@@ -26,9 +42,9 @@ func Test_putUserPolicyResponse(t *testing.T) {
 
 func Test_getUserPolicyResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "UP1GTELGU4EBM81DI9B3",
-		STSSecretAccessKey: "gF5YWrT9G6kQyReY7lakz2L8dkhOl1aFIv8bRfj9",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJVUDFHVEVMR1U0RUJNODFESTlCMyIsImV4cCI6MTY0ODgwNDg1MywicGFyZW50IjoidGVzdCJ9.a4Ay0dSzqP76AxoFl10E9MhyR3Vd2wjZfThDw1fSSokMVcx1_KmGN2J4pPnxhpvFs1Fw1zXw5J-jUOHqD5A55w",
+		STSAccessKeyID:     "RJ45Y2XHCLLUPAG7C8HE",
+		STSSecretAccessKey: "bD+ZA15CO2c0MC4NRKDcsouPam+WChiJXgjO9pQc",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJSSjQ1WTJYSENMTFVQQUc3QzhIRSIsImV4cCI6MTY0OTA2NjE0NiwicGFyZW50IjoidGVzdCJ9.SOxqKfxprwHF-fgqdG6fW20-6K1OqxcMAub4MV8tWjN0XiM0xwV7G2z3JF-EvJdjXRKQvT9GA41U1bsjxYHhpA",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}

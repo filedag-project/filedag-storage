@@ -91,10 +91,12 @@ type GetUserPolicyResponse struct {
 
 type ListUserPoliciesResponse struct {
 	CommonResponse
-	XMLName                xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/"`
+	XMLName                xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ ListUserPoliciesResponse"`
 	ListUserPoliciesResult struct {
-		PolicyNames []Members `xml:"PolicyNames"`
-	} `xml:"GetUserPolicyResult"`
+		PolicyNames struct {
+			Member []string `xml:"Member"`
+		} `xml:"PolicyNames"`
+	}
 }
 type Members struct {
 	Member string `xml:"member"`

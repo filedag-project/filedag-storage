@@ -65,3 +65,23 @@ func Test_getRemoveUserResponse(t *testing.T) {
 	}
 	fmt.Println(err)
 }
+
+func Test_getUserInfoResponse(t *testing.T) {
+	session := &models.Principal{
+		STSAccessKeyID:     "JHWCTOHEC4EURPLMKFNJ",
+		STSSecretAccessKey: "GHbQ9uP0qIaripnoujoxicjHK5x5Z45LpaYvclR+",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJKSFdDVE9IRUM0RVVSUExNS0ZOSiIsImV4cCI6MTY0ODc5ODY5MiwicGFyZW50IjoidGVzdCJ9.0xXpeEetsWDo_29KpoMC4BzLj7N16Acm0zugW6npl3ZcjJ8YMFTcPXW8zhXOYFCRkorqhlbcPl9mIx9gcjiuxw",
+		AccountAccessKey:   "test",
+		Hm:                 false,
+	}
+	name := "admin"
+	param := admin_api.GetUserInfoParams{
+		Name: name,
+	}
+
+	user, err := getUserInfoResponse(session, param)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(user)
+}

@@ -37,7 +37,8 @@ func (adm *AdminClient) PutBucketPolicy(ctx context.Context, bucketName, policyS
 }
 
 // GetBucketPolicy .
-func (adm *AdminClient) GetBucketPolicy(ctx context.Context, bucketName string) error {
+func (adm *AdminClient) GetBucketPolicy(ctx context.Context, bucketName string) (*policy.Policy, error) {
+	var response *policy.Policy
 	q := make(url.Values)
 	q.Set("policy", "")
 	reqData := requestData{
@@ -47,18 +48,17 @@ func (adm *AdminClient) GetBucketPolicy(ctx context.Context, bucketName string) 
 	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
 	defer closeResponse(resp)
 	if err != nil {
-		return err
+		return response, err
 	}
 	fmt.Println(resp)
 	body, err := ioutil.ReadAll(resp.Body)
 	fmt.Println(string(body))
-	var response policy.Policy
 	err = json.Unmarshal(body, &response)
 	fmt.Println(response)
 	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
+		return response, httpRespToErrorResponse(resp)
 	}
-	return nil
+	return response, nil
 }
 
 // RemoveBucketPolicy .

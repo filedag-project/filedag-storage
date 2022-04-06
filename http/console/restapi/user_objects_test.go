@@ -44,16 +44,18 @@ func Test_getDownloadObjectResponse(t *testing.T) {
 
 func Test_getListObjectResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "0A1WWEB961CSSLZ6E7UT",
-		STSSecretAccessKey: "++yo0SF0V5J8c+unVvnZO6MUsJlYkKY6I1UzMBd+",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiIwQTFXV0VCOTYxQ1NTTFo2RTdVVCIsImV4cCI6MTY0ODU1MzkxNiwicGFyZW50IjoidGVzdDEifQ.ifE6jEcUobnfl2M6rvlUxG_PwUzFqlMKGdvFI0cn2pBCHLlgyG71gahwOAjGvOIqhhURCnTLdCuOGlInmPnsIA",
+		STSAccessKeyID:     "IWR63YDFARH6NN4GF6KT",
+		STSSecretAccessKey: "GA3za0znWojV5lo4xXFgFna145eYZJUsV9fzI+2g",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJJV1I2M1lERkFSSDZOTjRHRjZLVCIsImV4cCI6MTY0OTIyMzcwOSwicGFyZW50IjoidGVzdCJ9.a5RERMlZsMx9pDfrN8MypZz7Z9WzzW1d9PXGnstbpTw63JiABMaRduy6lIbjypVcWrnPudvSQq-MD3pjt2lERw",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	mClient, err := NewMinioAdminClient(session)
-	client := AdminClient{Client: mClient}
-	err = client.listObject(context.Background(), "testName")
+	params := models.ListObjectsParams{
+		BucketName: "test22",
+	}
+	objects, err := getListObjectsResponse(session, params)
 	if err != nil {
 		fmt.Println(err)
 	}
+	fmt.Println(objects)
 }

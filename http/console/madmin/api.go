@@ -481,23 +481,13 @@ func (adm AdminClient) newRequest(ctx context.Context, method string, reqData re
 		method = "POST"
 	}
 
-	//if _, ok := reqData.queryValues["contentLength"] ; ok{
-	//	contentLength, err := strconv.ParseInt(reqData.queryValues.Get("contentLength"),10,64)
-	//	if  err != nil {
-	//		fmt.Println(err)
-	//	}
-	//	req.ContentLength = contentLength
-	//}
-
 	// Default all requests to ""
 	location := ""
-
 	// Construct a new target URL.
 	targetURL, err := adm.makeTargetURL(reqData)
 	if err != nil {
 		return nil, err
 	}
-
 	// Initialize a new HTTP request for the method.
 	req, err = http.NewRequestWithContext(ctx, method, targetURL.String(), nil)
 	if err != nil {

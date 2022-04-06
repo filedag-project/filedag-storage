@@ -10,8 +10,9 @@ import (
 	"net/url"
 )
 
-// AccountInfo returns the usage info for the authenticating account.
-func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (AccountInfo, error) {
+// ListBucketsInfo returns the usage info for the authenticating account.
+func (adm *AdminClient) ListBucketsInfo(ctx context.Context, opts AccountOpts) ([]*s3.Bucket, error) {
+	var buckets []*s3.Bucket
 	q := make(url.Values)
 	if opts.PrefixUsage {
 		q.Set("prefix-usage", "true")
@@ -25,29 +26,24 @@ func (adm *AdminClient) AccountInfo(ctx context.Context, opts AccountOpts) (Acco
 	//fmt.Println(resp.Body)
 	defer closeResponse(resp)
 	if err != nil {
-		return AccountInfo{}, err
+		return buckets, err
 	}
-
 	// Check response http status code
 	if resp.StatusCode != http.StatusOK {
-		return AccountInfo{}, httpRespToErrorResponse(resp)
+		return buckets, httpRespToErrorResponse(resp)
 	}
-
-	// Unmarshal the server's json response
-	var accountInfo AccountInfo
-
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return AccountInfo{}, err
+		return buckets, err
 	}
 	fmt.Println(string(respBytes))
 	var response ListAllMyBucketsResult
 	err = xml.Unmarshal(respBytes, &response)
 	if err != nil {
-		return AccountInfo{}, err
+		return buckets, err
 	}
-
-	return accountInfo, nil
+	buckets = response.Buckets
+	return buckets, nil
 }
 
 type ListAllMyBucketsResult struct {

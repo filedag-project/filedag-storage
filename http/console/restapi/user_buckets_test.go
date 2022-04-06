@@ -1,6 +1,7 @@
 package restapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/console/models"
 	"testing"
@@ -8,9 +9,9 @@ import (
 
 func Test_getListBucketsResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "14TNGTIC75AF4NTQRRGT",
-		STSSecretAccessKey: "tfbPF4OJMaKA3n1DcdNN8GUHUmPKIkiaHxqyRD35",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiIxNFROR1RJQzc1QUY0TlRRUlJHVCIsImV4cCI6MTY0ODcyNzAzMywicGFyZW50IjoidGVzdCJ9.JvU8w7UGlaQB7vtXgojw8hsUk-WtB7rSnLD52l25kg_KCys6-tOLnHy-k9_XAWLG5SKlShU_riuC-Bk6SZjXaw",
+		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
+		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -18,18 +19,21 @@ func Test_getListBucketsResponse(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(info)
+	if info != nil {
+		bytes, _ := json.Marshal(info)
+		fmt.Println("listBuckets", string(bytes))
+	}
 }
 
-func Test_getMakeBucketResponse(t *testing.T) {
+func Test_getCreateBucketResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "23F021N2VZEUTF9DXRZK",
-		STSSecretAccessKey: "OJp+6hFC1Z3XzjRHVjiacmFzWAFk5prBhQpjBJdb",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiIyM0YwMjFOMlZaRVVURjlEWFJaSyIsImV4cCI6MTY0ODcxOTcwNiwicGFyZW50IjoidGVzdCJ9.cQoY1yWHJo4Z77IytMGtHqkVO1-SGV4i47swTiog_WTiZ7KkTUtfcxvYKzp4dcQpd3y6OnCYtDvTqQMVpn6akA",
+		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
+		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	err := getMakeBucketResponse(session, "test22", "", false)
+	err := getCreateBucketResponse(session, "testN", "", false)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -37,13 +41,68 @@ func Test_getMakeBucketResponse(t *testing.T) {
 
 func Test_getDeleteBucketResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "4D3OPGC2ZBA1MM07NS9R",
-		STSSecretAccessKey: "rXBvmgbEkb9A0v05KYN6uVprPRDbDr+CiVlNmoSK",
-		STSSessionToken:    "rXBvmgbEkb9A0v05KYN6uVprPRDbDr+CiVlNmoSK eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiI0RDNPUEdDMlpCQTFNTTA3TlM5UiIsImV4cCI6MTY0ODAwNTg2NywicGFyZW50IjoidGVzdCJ9.A6AzQXStykxB6IGQ4HMgo6lDP2Amet5WDBXDNAU8M6SxWSI7z7DTeIRMtcGW-ciXAXnqya6UOSOcMtbgheUfWQ",
+		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
+		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	err := getDeleteBucketResponse(session, "testName2")
+	err := getDeleteBucketResponse(session, "testN")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func Test_putBucketPolicyResponse(t *testing.T) {
+	session := &models.Principal{
+		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
+		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		AccountAccessKey:   "test",
+		Hm:                 false,
+	}
+	policy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testN/*"}]}`
+	var str = "CUSTOM"
+	custom := models.BucketAccess(str)
+	request := &models.SetBucketPolicyRequest{
+		Access:     &custom,
+		Definition: policy,
+	}
+	bucket, err := getBucketSetPolicyResponse(session, "testN", request)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(bucket)
+}
+
+func Test_getBucketPolicyResponse(t *testing.T) {
+	session := &models.Principal{
+		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
+		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		AccountAccessKey:   "test",
+		Hm:                 false,
+	}
+
+	policy, err := getBucketPolicyResponse(session, "testN")
+	if err != nil {
+		fmt.Println(err)
+	}
+	if policy != nil {
+		bytes, _ := json.Marshal(policy)
+		fmt.Println("policy:", string(bytes))
+	}
+}
+
+func Test_removeBucketPolicyResponse(t *testing.T) {
+	session := &models.Principal{
+		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
+		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		AccountAccessKey:   "test",
+		Hm:                 false,
+	}
+	err := removeBucketPolicyResponse(session, "testN")
 	if err != nil {
 		fmt.Println(err)
 	}

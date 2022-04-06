@@ -10,6 +10,31 @@ import (
 )
 
 // PutUserPolicy .
+func (adm *AdminClient) ListUserPolicy(ctx context.Context, userName string) error {
+	queryValues := url.Values{}
+	queryValues.Set("userName", userName)
+	reqData := requestData{
+		relPath:     adminAPIPrefix + "admin/v1/list-user-policy",
+		queryValues: queryValues,
+	}
+	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
+	defer closeResponse(resp)
+	if err != nil {
+		return err
+	}
+	fmt.Println(resp)
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
+	var response ListUserPoliciesResponse
+	err = xml.Unmarshal(body, &response)
+	fmt.Println(response)
+	if resp.StatusCode != http.StatusOK {
+		return httpRespToErrorResponse(resp)
+	}
+	return nil
+}
+
+// PutUserPolicy .
 func (adm *AdminClient) PutUserPolicy(ctx context.Context, userName, policyStr string) error {
 	queryValues := url.Values{}
 	queryValues.Set("userName", userName)

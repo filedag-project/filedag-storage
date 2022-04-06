@@ -2,7 +2,9 @@ package madmin
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/console/madmin/object"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,7 +14,6 @@ import (
 
 // PutObject .
 func (adm *AdminClient) PutObject(ctx context.Context, bucketName, objectName string, reader io.Reader, objectSize int64) error {
-
 	queryValues := url.Values{}
 	contentLength := strconv.FormatInt(objectSize, 10)
 	queryValues.Set("contentLength", contentLength)
@@ -21,7 +22,6 @@ func (adm *AdminClient) PutObject(ctx context.Context, bucketName, objectName st
 		relPath: adminAPIPrefix + bucketName + adminAPIPrefix + objectName,
 		content: payloadBytes,
 	}
-
 	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
 
 	defer closeResponse(resp)
@@ -105,20 +105,27 @@ func (adm *AdminClient) HeadObject(ctx context.Context, bucketName, objectName s
 }
 
 // ListObject .
-func (adm *AdminClient) ListObject(ctx context.Context, bucketName string) error {
+func (adm *AdminClient) ListObject(ctx context.Context, bucketName string) ([]object.Object, error) {
+	var objects []object.Object
 	reqData := requestData{
 		relPath: adminAPIPrefix + bucketName,
 	}
 	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
 	defer closeResponse(resp)
 	if err != nil {
-		return err
+		return objects, err
 	}
 	fmt.Println(resp)
 	body, err := ioutil.ReadAll(resp.Body)
 	fmt.Println(string(body))
-	if resp.StatusCode != http.StatusOK {
-		return httpRespToErrorResponse(resp)
+	var response object.ListObjectsResponse
+	err = xml.Unmarshal(body, &response)
+	if err != nil {
+		return objects, err
 	}
-	return nil
+	if resp.StatusCode != http.StatusOK {
+		return objects, httpRespToErrorResponse(resp)
+	}
+	objects = response.Contents
+	return objects, nil
 }

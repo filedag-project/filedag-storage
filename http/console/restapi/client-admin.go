@@ -19,8 +19,11 @@ package restapi
 import (
 	"context"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/console/credentials"
 	"github.com/filedag-project/filedag-storage/http/console/madmin"
+	"github.com/filedag-project/filedag-storage/http/console/madmin/object"
+	"github.com/filedag-project/filedag-storage/http/console/madmin/policy"
 	"github.com/filedag-project/filedag-storage/http/console/models"
 	"io"
 	"net/http"
@@ -41,20 +44,21 @@ type MinioAdmin interface {
 	updateGroupMembers(ctx context.Context, greq madmin.GroupAddRemove) error
 	getGroupDescription(ctx context.Context, group string) (*madmin.GroupDesc, error)
 	setGroupStatus(ctx context.Context, group string, status madmin.GroupStatus) error
-	accountInfo(ctx context.Context) (madmin.AccountInfo, error)
+	listBucketsInfo(ctx context.Context) ([]*s3.Bucket, error)
 	putBucket(ctx context.Context, bucketName, location string, objectLocking bool) error
 	removeBucket(ctx context.Context, bucketName, location string, objectLocking bool) error
 	putObject(ctx context.Context, bucketName, objectName string, reader io.Reader, objectSize int64) error
 	getObject(ctx context.Context, bucketName, objectName string) error
 	removeObject(ctx context.Context, bucketName, objectName string) error
 	copyObject(ctx context.Context, bucketName, objectName string) error
-	listObject(ctx context.Context, bucketName string) error
+	listObject(ctx context.Context, bucketName string) ([]object.Object, error)
 	putBucketPolicy(ctx context.Context, bucketName, policyStr string) error
-	getBucketPolicy(ctx context.Context, bucketName string) error
+	getBucketPolicy(ctx context.Context, bucketName string) (*policy.Policy, error)
 	removeBucketPolicy(ctx context.Context, bucketName string) error
 	putUserPolicy(ctx context.Context, bucketName, policyStr string) error
 	getUserPolicy(ctx context.Context, bucketName string) error
 	removeUserPolicy(ctx context.Context, bucketName string) error
+	listUserPolicy(ctx context.Context, bucketName string) error
 }
 
 // Interface implementation
@@ -136,8 +140,8 @@ func (ac AdminClient) updateServiceAccount(ctx context.Context, serviceAccount s
 }
 
 // AccountInfo implements madmin.AccountInfo()
-func (ac AdminClient) accountInfo(ctx context.Context) (madmin.AccountInfo, error) {
-	return ac.Client.AccountInfo(ctx, madmin.AccountOpts{})
+func (ac AdminClient) listBucketsInfo(ctx context.Context) ([]*s3.Bucket, error) {
+	return ac.Client.ListBucketsInfo(ctx, madmin.AccountOpts{})
 }
 
 // implements minio.MakeBucketWithContext(ctx, bucketName, location, objectLocking)
@@ -170,7 +174,7 @@ func (ac AdminClient) headObject(ctx context.Context, bucketName, objectName str
 	return ac.Client.HeadObject(ctx, bucketName, objectName)
 }
 
-func (ac AdminClient) listObject(ctx context.Context, bucketName string) error {
+func (ac AdminClient) listObject(ctx context.Context, bucketName string) ([]object.Object, error) {
 	return ac.Client.ListObject(ctx, bucketName)
 }
 
@@ -178,7 +182,7 @@ func (ac AdminClient) putBucketPolicy(ctx context.Context, bucketName, policyStr
 	return ac.Client.PutBucketPolicy(ctx, bucketName, policyStr)
 }
 
-func (ac AdminClient) getBucketPolicy(ctx context.Context, bucketName string) error {
+func (ac AdminClient) getBucketPolicy(ctx context.Context, bucketName string) (*policy.Policy, error) {
 	return ac.Client.GetBucketPolicy(ctx, bucketName)
 }
 
@@ -196,6 +200,10 @@ func (ac AdminClient) getUserPolicy(ctx context.Context, bucketName string) erro
 
 func (ac AdminClient) removeUserPolicy(ctx context.Context, bucketName string) error {
 	return ac.Client.RemoveUserPolicy(ctx, bucketName)
+}
+
+func (ac AdminClient) listUserPolicy(ctx context.Context, bucketName string) error {
+	return ac.Client.ListUserPolicy(ctx, bucketName)
 }
 
 func NewMinioAdminClient(sessionClaims *models.Principal) (*madmin.AdminClient, error) {

@@ -19,11 +19,13 @@ package restapi
 import (
 	"context"
 	"encoding/base64"
+	"github.com/filedag-project/filedag-storage/http/console/madmin/object"
 	"github.com/filedag-project/filedag-storage/http/console/models"
 	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/user_api"
 	"io"
 	"path"
 	"strconv"
+	"time"
 )
 
 //
@@ -176,122 +178,77 @@ import (
 //		return user_api.NewGetObjectMetadataOK().WithPayload(resp)
 //	})
 //}
-//
-//// getListObjectsResponse returns a list of objects
-//func getListObjectsResponse(session *models.Principal, params user_api.ListObjectsParams) (*models.ListObjectsResponse, *models.Error) {
-//	var prefix string
-//	var recursive bool
-//	var withVersions bool
-//	var withMetadata bool
-//	if params.Prefix != nil {
-//		encodedPrefix := SanitizeEncodedPrefix(*params.Prefix)
-//		decodedPrefix, err := base64.StdEncoding.DecodeString(encodedPrefix)
-//		if err != nil {
-//			return nil, prepareError(err)
-//		}
-//		prefix = string(decodedPrefix)
-//	}
-//	if params.Recursive != nil {
-//		recursive = *params.Recursive
-//	}
-//	if params.WithVersions != nil {
-//		withVersions = *params.WithVersions
-//	}
-//	if params.WithMetadata != nil {
-//		withMetadata = *params.WithMetadata
-//	}
-//	// bucket request needed to proceed
-//	if params.BucketName == "" {
-//		return nil, prepareError(errBucketNameNotInRequest)
-//	}
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	objs, err := listBucketObjects(params.HTTPRequest.Context(), minioClient, params.BucketName, prefix, recursive, withVersions, withMetadata)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//
-//	resp := &models.ListObjectsResponse{
-//		Objects: objs,
-//		Total:   int64(len(objs)),
-//	}
-//	return resp, nil
-//}
-//
-//// listBucketObjects gets an array of objects in a bucket
-//func listBucketObjects(ctx context.Context, client MinioClient, bucketName string, prefix string, recursive, withVersions bool, withMetadata bool) ([]*models.BucketObject, error) {
-//	var objects []*models.BucketObject
-//	opts := minio.ListObjectsOptions{
-//		Prefix:       prefix,
-//		Recursive:    recursive,
-//		WithVersions: withVersions,
-//		WithMetadata: withMetadata,
-//	}
-//	if withMetadata {
-//		opts.MaxKeys = 1
-//	}
-//	for lsObj := range client.listObjects(ctx, bucketName, opts) {
-//		if lsObj.Err != nil {
-//			return nil, lsObj.Err
-//		}
-//
-//		obj := &models.BucketObject{
-//			Name:           lsObj.Key,
-//			Size:           lsObj.Size,
-//			LastModified:   lsObj.LastModified.Format(time.RFC3339),
-//			ContentType:    lsObj.ContentType,
-//			VersionID:      lsObj.VersionID,
-//			IsLatest:       lsObj.IsLatest,
-//			IsDeleteMarker: lsObj.IsDeleteMarker,
-//			UserTags:       lsObj.UserTags,
-//			UserMetadata:   lsObj.UserMetadata,
-//		}
-//		// only if single object with or without versions; get legalhold, retention and tags
-//		if !lsObj.IsDeleteMarker && prefix != "" && !strings.HasSuffix(prefix, "/") {
-//			// Add Legal Hold Status if available
-//			legalHoldStatus, err := client.getObjectLegalHold(ctx, bucketName, lsObj.Key, minio.GetObjectLegalHoldOptions{VersionID: lsObj.VersionID})
-//			if err != nil {
-//				errResp := minio.ToErrorResponse(probe.NewError(err).ToGoError())
-//				if errResp.Code != "InvalidRequest" && errResp.Code != "NoSuchObjectLockConfiguration" {
-//					LogError("error getting legal hold status for %s : %v", lsObj.VersionID, err)
-//				}
-//			} else {
-//				if legalHoldStatus != nil {
-//					obj.LegalHoldStatus = string(*legalHoldStatus)
-//				}
-//			}
-//			// Add Retention Status if available
-//			retention, retUntilDate, err := client.getObjectRetention(ctx, bucketName, lsObj.Key, lsObj.VersionID)
-//			if err != nil {
-//				errResp := minio.ToErrorResponse(probe.NewError(err).ToGoError())
-//				if errResp.Code != "InvalidRequest" && errResp.Code != "NoSuchObjectLockConfiguration" {
-//					LogError("error getting retention status for %s : %v", lsObj.VersionID, err)
-//				}
-//			} else {
-//				if retention != nil && retUntilDate != nil {
-//					date := *retUntilDate
-//					obj.RetentionMode = string(*retention)
-//					obj.RetentionUntilDate = date.Format(time.RFC3339)
-//				}
-//			}
-//			tags, err := client.getObjectTagging(ctx, bucketName, lsObj.Key, minio.GetObjectTaggingOptions{VersionID: lsObj.VersionID})
-//			if err != nil {
-//				LogError("error getting object tags for %s : %v", lsObj.VersionID, err)
-//			} else {
-//				obj.Tags = tags.ToMap()
-//			}
-//		}
-//		objects = append(objects, obj)
-//	}
-//	return objects, nil
-//}
-//
+
+// getListObjectsResponse returns a list of objects
+func getListObjectsResponse(session *models.Principal, params models.ListObjectsParams) (*models.ListObjectsResponse, *models.Error) {
+	var prefix string
+	var recursive bool
+	var withVersions bool
+	var withMetadata bool
+	if params.Prefix != nil {
+		encodedPrefix := SanitizeEncodedPrefix(*params.Prefix)
+		decodedPrefix, err := base64.StdEncoding.DecodeString(encodedPrefix)
+		if err != nil {
+			return nil, prepareError(err)
+		}
+		prefix = string(decodedPrefix)
+	}
+	if params.Recursive != nil {
+		recursive = *params.Recursive
+	}
+	if params.WithVersions != nil {
+		withVersions = *params.WithVersions
+	}
+	if params.WithMetadata != nil {
+		withMetadata = *params.WithMetadata
+	}
+	// bucket request needed to proceed
+	if params.BucketName == "" {
+		return nil, prepareError(errBucketNameNotInRequest)
+	}
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	// create a minioClient interface implementation
+	// defining the client to be used
+	adminClient := AdminClient{Client: mAdmin}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+	objs, err := listBucketObjects(ctx, adminClient, params.BucketName, prefix, recursive, withVersions, withMetadata)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+
+	resp := &models.ListObjectsResponse{
+		Objects: objs,
+		Total:   int64(len(objs)),
+	}
+	return resp, nil
+}
+
+// listBucketObjects gets an array of objects in a bucket
+func listBucketObjects(ctx context.Context, client AdminClient, bucketName string, prefix string, recursive, withVersions bool, withMetadata bool) ([]*object.Object, error) {
+	var objects []*object.Object
+	//opts := minio.ListObjectsOptions{
+	//	Prefix:       prefix,
+	//	Recursive:    recursive,
+	//	WithVersions: withVersions,
+	//	WithMetadata: withMetadata,
+	//}
+	//if withMetadata {
+	//	opts.MaxKeys = 1
+	//}
+	listObjects, err := client.listObject(ctx, bucketName)
+	if err != nil {
+		return nil, err
+	}
+	for _, lsObj := range listObjects {
+		objects = append(objects, &lsObj)
+	}
+	return objects, nil
+}
+
 //type httpRange struct {
 //	Start  int64
 //	Length int64

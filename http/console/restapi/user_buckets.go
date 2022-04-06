@@ -1,25 +1,12 @@
-// This file is part of MinIO Console Server
-// Copyright (c) 2021 MinIO, Inc.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 package restapi
 
 import (
 	"context"
+	"fmt"
+	"github.com/filedag-project/filedag-storage/http/console/madmin/policy"
 	"github.com/filedag-project/filedag-storage/http/console/models"
 	"github.com/go-openapi/swag"
+	"strings"
 	"time"
 )
 
@@ -32,7 +19,7 @@ import (
 //		}
 //		return user_api.NewListBucketsOK().WithPayload(listBucketsResponse)
 //	})
-//	// make bucket
+//	// create bucket
 //	api.UserAPIMakeBucketHandler = user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams, session *models.Principal) middleware.Responder {
 //		if err := getMakeBucketResponse(session, params.Body); err != nil {
 //			return user_api.NewMakeBucketDefault(int(err.Code)).WithPayload(err)
@@ -112,285 +99,9 @@ import (
 //		}
 //		return user_api.NewEnableBucketEncryptionOK()
 //	})
-//	// disable bucket encryption
-//	api.UserAPIDisableBucketEncryptionHandler = user_api.DisableBucketEncryptionHandlerFunc(func(params user_api.DisableBucketEncryptionParams, session *models.Principal) middleware.Responder {
-//		if err := disableBucketEncryptionResponse(session, params); err != nil {
-//			return user_api.NewDisableBucketEncryptionDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewDisableBucketEncryptionOK()
-//	})
-//	// get bucket encryption info
-//	api.UserAPIGetBucketEncryptionInfoHandler = user_api.GetBucketEncryptionInfoHandlerFunc(func(params user_api.GetBucketEncryptionInfoParams, session *models.Principal) middleware.Responder {
-//		response, err := getBucketEncryptionInfoResponse(session, params)
-//		if err != nil {
-//			return user_api.NewGetBucketEncryptionInfoDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewGetBucketEncryptionInfoOK().WithPayload(response)
-//	})
-//	// set bucket retention config
-//	api.UserAPISetBucketRetentionConfigHandler = user_api.SetBucketRetentionConfigHandlerFunc(func(params user_api.SetBucketRetentionConfigParams, session *models.Principal) middleware.Responder {
-//		if err := getSetBucketRetentionConfigResponse(session, params); err != nil {
-//			return user_api.NewSetBucketRetentionConfigDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewSetBucketRetentionConfigOK()
-//	})
-//	// get bucket retention config
-//	api.UserAPIGetBucketRetentionConfigHandler = user_api.GetBucketRetentionConfigHandlerFunc(func(params user_api.GetBucketRetentionConfigParams, session *models.Principal) middleware.Responder {
-//		response, err := getBucketRetentionConfigResponse(session, params.BucketName)
-//		if err != nil {
-//			return user_api.NewGetBucketRetentionConfigDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewGetBucketRetentionConfigOK().WithPayload(response)
-//	})
-//	// get bucket object locking status
-//	api.UserAPIGetBucketObjectLockingStatusHandler = user_api.GetBucketObjectLockingStatusHandlerFunc(func(params user_api.GetBucketObjectLockingStatusParams, session *models.Principal) middleware.Responder {
-//		getBucketObjectLockingStatus, err := getBucketObjectLockingResponse(session, params.BucketName)
-//		if err != nil {
-//			return user_api.NewGetBucketObjectLockingStatusDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
-//		}
-//		return user_api.NewGetBucketObjectLockingStatusOK().WithPayload(getBucketObjectLockingStatus)
-//	})
-//	// get objects rewind for a bucket
-//	api.UserAPIGetBucketRewindHandler = user_api.GetBucketRewindHandlerFunc(func(params user_api.GetBucketRewindParams, session *models.Principal) middleware.Responder {
-//		getBucketRewind, err := getBucketRewindResponse(session, params)
-//		if err != nil {
-//			return user_api.NewGetBucketRewindDefault(500).WithPayload(err)
-//		}
-//		return user_api.NewGetBucketRewindOK().WithPayload(getBucketRewind)
-//	})
-//}
-//
-//type VersionState string
-//
-//const (
-//	VersionEnable  VersionState = "enable"
-//	VersionSuspend              = "suspend"
-//)
-
-//// removeBucket deletes a bucket
-//func doSetVersioning(client MCClient, state VersionState) error {
-//	err := client.setVersioning(context.Background(), string(state))
-//	if err != nil {
-//		LogError("error setting versioning for bucket: %s", err.Cause)
-//		return err.Cause
-//	}
-//
-//	return nil
-//}
-//
-//func setBucketVersioningResponse(session *models.Principal, bucketName string, params *user_api.SetBucketVersioningParams) *models.Error {
-//	s3Client, err := newS3BucketClient(session, bucketName, "")
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//	// create a mc S3Client interface implementation
-//	// defining the client to be used
-//	amcClient := mcClient{client: s3Client}
-//
-//	var versioningState VersionState = VersionSuspend
-//
-//	if params.Body.Versioning {
-//		versioningState = VersionEnable
-//	}
-//
-//	if err := doSetVersioning(amcClient, versioningState); err != nil {
-//		return prepareError(err)
-//	}
-//	return nil
-//}
-//
-//func getBucketReplicationResponse(session *models.Principal, bucketName string) (*models.BucketReplicationResponse, error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		LogError("error creating MinIO Client: %v", err)
-//		return nil, err
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	// we will tolerate this call failing
-//	res, err := minioClient.getBucketReplication(ctx, bucketName)
-//	if err != nil {
-//		LogError("error versioning bucket: %v", err)
-//	}
-//
-//	var rules []*models.BucketReplicationRule
-//
-//	for _, rule := range res.Rules {
-//		repDelMarkerStatus := false
-//		if rule.DeleteMarkerReplication.Status == "enable" {
-//			repDelMarkerStatus = true
-//		}
-//		repDelStatus := false
-//		if rule.DeleteReplication.Status == "enable" {
-//			repDelMarkerStatus = true
-//		}
-//
-//		rules = append(rules, &models.BucketReplicationRule{
-//			DeleteMarkerReplication: repDelMarkerStatus,
-//			DeletesReplication:      repDelStatus,
-//			Destination:             &models.BucketReplicationDestination{Bucket: rule.Destination.Bucket},
-//			Tags:                    rule.Tags(),
-//			Prefix:                  rule.Prefix(),
-//			ID:                      rule.ID,
-//			Priority:                int32(rule.Priority),
-//			Status:                  string(rule.Status),
-//			StorageClass:            rule.Destination.StorageClass,
-//		})
-//	}
-//
-//	// serialize output
-//	bucketRResponse := &models.BucketReplicationResponse{
-//		Rules: rules,
-//	}
-//	return bucketRResponse, nil
-//}
-//
-//func getBucketReplicationRuleResponse(session *models.Principal, bucketName, ruleID string) (*models.BucketReplicationRule, error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		LogError("error creating MinIO Client: %v", err)
-//		return nil, err
-//	}
-//	// create a minioClient interface implementation
-//
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	replicationRules, err := minioClient.getBucketReplication(ctx, bucketName)
-//
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	var foundRule replication.Rule
-//	found := false
-//
-//	for i := range replicationRules.Rules {
-//		if replicationRules.Rules[i].ID == ruleID {
-//			foundRule = replicationRules.Rules[i]
-//			found = true
-//			break
-//		}
-//	}
-//
-//	if !found {
-//		return nil, errors.New("no rule is set with this ID")
-//	}
-//
-//	repDelMarkerStatus := false
-//	if foundRule.DeleteMarkerReplication.Status == "Enabled" {
-//		repDelMarkerStatus = true
-//	}
-//	repDelStatus := false
-//	if foundRule.DeleteReplication.Status == "Enabled" {
-//		repDelStatus = true
-//	}
-//	existingObjects := false
-//	if foundRule.ExistingObjectReplication.Status == "Enabled" {
-//		existingObjects = true
-//	}
-//	metadataModifications := false
-//	if foundRule.SourceSelectionCriteria.ReplicaModifications.Status == "Enabled" {
-//		metadataModifications = true
-//	}
-//
-//	returnRule := &models.BucketReplicationRule{
-//		DeleteMarkerReplication: repDelMarkerStatus,
-//		DeletesReplication:      repDelStatus,
-//		Destination:             &models.BucketReplicationDestination{Bucket: foundRule.Destination.Bucket},
-//		Tags:                    foundRule.Tags(),
-//		Prefix:                  foundRule.Prefix(),
-//		ID:                      foundRule.ID,
-//		Priority:                int32(foundRule.Priority),
-//		Status:                  string(foundRule.Status),
-//		StorageClass:            foundRule.Destination.StorageClass,
-//		ExistingObjects:         existingObjects,
-//		MetadataReplication:     metadataModifications,
-//	}
-//
-//	return returnRule, nil
 //}
 
-//func getBucketVersionedResponse(session *models.Principal, bucketName string) (*models.BucketVersioningResponse, error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		LogError("error creating MinIO Client: %v", err)
-//		return nil, err
-//	}
-//
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	// we will tolerate this call failing
-//	res, err := minioClient.getBucketVersioning(ctx, bucketName)
-//	if err != nil {
-//		LogError("error versioning bucket: %v", err)
-//	}
-//
-//	// serialize output
-//	bucketVResponse := &models.BucketVersioningResponse{
-//		IsVersioned: res.Status == "Enabled",
-//	}
-//	return bucketVResponse, nil
-//}
-
-// getAccountBuckets fetches a list of all buckets allowed to that particular client from MinIO Servers
-func getAccountBuckets(ctx context.Context, client MinioAdmin) ([]*models.Bucket, error) {
-	info, err := client.accountInfo(ctx)
-	if err != nil {
-		return []*models.Bucket{}, err
-	}
-	var bucketInfos []*models.Bucket
-	for _, bucket := range info.Buckets {
-		bucketElem := &models.Bucket{
-			CreationDate: bucket.Created.Format(time.RFC3339),
-			Details: &models.BucketDetails{
-				Quota: nil,
-			},
-			RwAccess: &models.BucketRwAccess{
-				Read:  bucket.Access.Read,
-				Write: bucket.Access.Write,
-			},
-			Name:    swag.String(bucket.Name),
-			Objects: int64(bucket.Objects),
-			Size:    int64(bucket.Size),
-		}
-
-		if bucket.Details != nil {
-			if bucket.Details.Tagging != nil {
-				bucketElem.Details.Tags = bucket.Details.Tagging.ToMap()
-			}
-
-			bucketElem.Details.Locking = bucket.Details.Locking
-			bucketElem.Details.Replication = bucket.Details.Replication
-			bucketElem.Details.Versioning = bucket.Details.Versioning
-			bucketElem.Details.VersioningSuspended = bucket.Details.VersioningSuspended
-			if bucket.Details.Quota != nil {
-				bucketElem.Details.Quota = &models.BucketDetailsQuota{
-					Quota: int64(bucket.Details.Quota.Quota),
-					Type:  string(bucket.Details.Quota.Type),
-				}
-			}
-		}
-
-		bucketInfos = append(bucketInfos, bucketElem)
-	}
-	return bucketInfos, nil
-}
-
-// getListBucketsResponse performs listBuckets() and serializes it to the handler's output
+// getListBucketsResponse
 func getListBucketsResponse(session *models.Principal) (*models.ListBucketsResponse, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
@@ -399,14 +110,11 @@ func getListBucketsResponse(session *models.Principal) (*models.ListBucketsRespo
 	if err != nil {
 		return nil, prepareError(err)
 	}
-	// create a minioClient interface implementation
-	// defining the client to be used
 	adminClient := AdminClient{Client: mAdmin}
-	buckets, err := getAccountBuckets(ctx, adminClient)
+	buckets, err := getlistBuckets(ctx, adminClient)
 	if err != nil {
 		return nil, prepareError(err)
 	}
-
 	// serialize output
 	listBucketsResponse := &models.ListBucketsResponse{
 		Buckets: buckets,
@@ -415,14 +123,28 @@ func getListBucketsResponse(session *models.Principal) (*models.ListBucketsRespo
 	return listBucketsResponse, nil
 }
 
-//// makeBucket creates a bucket for an specific minio client
-//func makeBucket(ctx context.Context, client MinioClient, bucketName string, objectLocking bool) error {
-//	// creates a new bucket with bucketName with a context to control cancellations and timeouts.
-//	return client.makeBucketWithContext(ctx, bucketName, "", objectLocking)
-//}
-//
-// getMakeBucketResponse performs makeBucket() to create a bucket with its access policy
-func getMakeBucketResponse(session *models.Principal, buchetName, location string, opts bool) *models.Error {
+// getlistBuckets
+func getlistBuckets(ctx context.Context, client MinioAdmin) ([]*models.Bucket, error) {
+	info, err := client.listBucketsInfo(ctx)
+	if err != nil {
+		return []*models.Bucket{}, err
+	}
+	var bucketInfos []*models.Bucket
+	for _, bucket := range info {
+		bucketElem := &models.Bucket{
+			CreationDate: bucket.CreationDate.Format(time.RFC3339),
+			Details: &models.BucketDetails{
+				Quota: nil,
+			},
+			Name: swag.String(*bucket.Name),
+		}
+		bucketInfos = append(bucketInfos, bucketElem)
+	}
+	return bucketInfos, nil
+}
+
+// getCreateBucketResponse performs putBucket() to create a bucket with its access policy
+func getCreateBucketResponse(session *models.Principal, buchetName, location string, opts bool) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
@@ -438,7 +160,7 @@ func getMakeBucketResponse(session *models.Principal, buchetName, location strin
 	return nil
 }
 
-// getAccountBuckets fetches a list of all buckets allowed to that particular client from MinIO Servers
+// putBucket
 func putBucket(ctx context.Context, client MinioAdmin, buchetName, location string, bool bool) error {
 	err := client.putBucket(ctx, buchetName, location, bool)
 	if err != nil {
@@ -447,14 +169,9 @@ func putBucket(ctx context.Context, client MinioAdmin, buchetName, location stri
 	return err
 }
 
-// removeBucket deletes a bucket
-func removeBucket(client MinioAdmin, bucketName string) error {
-	return client.removeBucket(context.Background(), bucketName, "", false)
-}
-
 // getDeleteBucketResponse performs removeBucket() to delete a bucket
 func getDeleteBucketResponse(session *models.Principal, buchetName string) *models.Error {
-	_, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	mAdmin, err := NewMinioAdminClient(session)
@@ -462,493 +179,114 @@ func getDeleteBucketResponse(session *models.Principal, buchetName string) *mode
 		return nil
 	}
 	adminClient := AdminClient{Client: mAdmin}
-	err = removeBucket(adminClient, buchetName)
+	err = removeBucket(ctx, adminClient, buchetName)
 	if err != nil {
 		return prepareError(err)
 	}
 	return nil
 }
 
-//// setBucketAccessPolicy set the access permissions on an existing bucket.
-//func setBucketAccessPolicy(ctx context.Context, client MinioClient, bucketName string, access models.BucketAccess, policyDefinition string) error {
-//	if strings.TrimSpace(bucketName) == "" {
-//		return fmt.Errorf("error: bucket name not present")
-//	}
-//	if strings.TrimSpace(string(access)) == "" {
-//		return fmt.Errorf("error: bucket access not present")
-//	}
-//	// Prepare policyJSON corresponding to the access type
-//	if access != models.BucketAccessPRIVATE && access != models.BucketAccessPUBLIC && access != models.BucketAccessCUSTOM {
-//		return fmt.Errorf("access: `%s` not supported", access)
-//	}
-//
-//	bucketAccessPolicy := policy.BucketAccessPolicy{Version: minioIAMPolicy.DefaultVersion}
-//	if access == models.BucketAccessCUSTOM {
-//		err := client.setBucketPolicyWithContext(ctx, bucketName, policyDefinition)
-//		if err != nil {
-//			return err
-//		}
-//		return nil
-//	}
-//	bucketPolicy := consoleAccess2policyAccess(access)
-//	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements,
-//		bucketPolicy, bucketName, "")
-//	policyJSON, err := json.Marshal(bucketAccessPolicy)
-//	if err != nil {
-//		return err
-//	}
-//	return client.setBucketPolicyWithContext(ctx, bucketName, string(policyJSON))
-//}
-//
-//// getBucketSetPolicyResponse calls setBucketAccessPolicy() to set a access policy to a bucket
-////   and returns the serialized output.
-//func getBucketSetPolicyResponse(session *models.Principal, bucketName string, req *models.SetBucketPolicyRequest) (*models.Bucket, *models.Error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//
-//	// get updated bucket details and return it
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	mAdmin, err := NewMinioAdminClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	adminClient := AdminClient{Client: mAdmin}
-//
-//	if err := setBucketAccessPolicy(ctx, minioClient, bucketName, *req.Access, req.Definition); err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// set bucket access policy
-//	bucket, err := getBucketInfo(ctx, minioClient, adminClient, bucketName)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	return bucket, nil
-//}
-//
-//// putBucketTags sets tags for a bucket
-//func getPutBucketTagsResponse(session *models.Principal, bucketName string, req *models.PutBucketTagsRequest) *models.Error {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	newTagSet, err := tags.NewTags(req.Tags, true)
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//
-//	err = minioClient.SetBucketTagging(ctx, bucketName, newTagSet)
-//
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//	return nil
-//}
-//
+// removeBucket deletes a bucket
+func removeBucket(ctx context.Context, client MinioAdmin, bucketName string) error {
+	return client.removeBucket(ctx, bucketName, "", false)
+}
 
-//// getBucketInfo return bucket information including name, policy access, size and creation date
-//func getBucketInfo(ctx context.Context, client MinioClient, adminClient MinioAdmin, bucketName string) (*models.Bucket, error) {
-//	var bucketAccess models.BucketAccess
-//	policyStr, err := client.getBucketPolicy(context.Background(), bucketName)
-//	if err != nil {
-//		// we can tolerate this error
-//		LogError("error getting bucket policy: %v", err)
-//	}
-//
-//	if policyStr == "" {
-//		bucketAccess = models.BucketAccessPRIVATE
-//	} else {
-//		var p policy.BucketAccessPolicy
-//		if err = json.Unmarshal([]byte(policyStr), &p); err != nil {
-//			return nil, err
-//		}
-//		policyAccess := policy.GetPolicy(p.Statements, bucketName, "")
-//		if len(p.Statements) > 0 && policyAccess == policy.BucketPolicyNone {
-//			bucketAccess = models.BucketAccessCUSTOM
-//		} else {
-//			bucketAccess = policyAccess2consoleAccess(policyAccess)
-//		}
-//	}
-//	bucketTags, err := client.GetBucketTagging(ctx, bucketName)
-//	if err != nil {
-//		// we can tolerate this error
-//		LogError("error getting bucket tags: %v", err)
-//	}
-//	bucketDetails := &models.BucketDetails{}
-//	if bucketTags != nil {
-//		bucketDetails.Tags = bucketTags.ToMap()
-//	}
-//
-//	info, err := adminClient.AccountInfo(ctx)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	var bucketInfo madmin.BucketAccessInfo
-//
-//	for _, bucket := range info.Buckets {
-//		if bucket.Name == bucketName {
-//			bucketInfo = bucket
-//		}
-//	}
-//
-//	return &models.Bucket{
-//		Name:         &bucketName,
-//		Access:       &bucketAccess,
-//		Definition:   policyStr,
-//		CreationDate: bucketInfo.Created.Format(time.RFC3339),
-//		Size:         int64(bucketInfo.Size),
-//		Details:      bucketDetails,
-//		Objects:      int64(bucketInfo.Objects),
-//	}, nil
-//}
-//
-//// getBucketInfoResponse calls getBucketInfo() to get the bucket's info
-//func getBucketInfoResponse(session *models.Principal, params user_api.BucketInfoParams) (*models.Bucket, *models.Error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	mAdmin, err := NewMinioAdminClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	adminClient := AdminClient{Client: mAdmin}
-//
-//	bucket, err := getBucketInfo(ctx, minioClient, adminClient, params.Name)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	return bucket, nil
-//
-//}
-//
-//// policyAccess2consoleAccess gets the equivalent of policy.BucketPolicy to models.BucketAccess
-//func policyAccess2consoleAccess(bucketPolicy policy.BucketPolicy) (bucketAccess models.BucketAccess) {
-//	switch bucketPolicy {
-//	case policy.BucketPolicyReadWrite:
-//		bucketAccess = models.BucketAccessPUBLIC
-//	case policy.BucketPolicyNone:
-//		bucketAccess = models.BucketAccessPRIVATE
-//	default:
-//		bucketAccess = models.BucketAccessCUSTOM
-//	}
-//	return bucketAccess
-//}
-//
-//// consoleAccess2policyAccess gets the equivalent of models.BucketAccess to policy.BucketPolicy
-//func consoleAccess2policyAccess(bucketAccess models.BucketAccess) (bucketPolicy policy.BucketPolicy) {
-//	switch bucketAccess {
-//	case models.BucketAccessPUBLIC:
-//		bucketPolicy = policy.BucketPolicyReadWrite
-//	case models.BucketAccessPRIVATE:
-//		bucketPolicy = policy.BucketPolicyNone
-//	}
-//	return bucketPolicy
-//}
-//
-//// enableBucketEncryption will enable bucket encryption based on two encryption algorithms, sse-s3 (server side encryption with external KMS) or sse-kms (aws s3 kms key)
-//func enableBucketEncryption(ctx context.Context, client MinioClient, bucketName string, encryptionType models.BucketEncryptionType, kmsKeyID string) error {
-//	var config *sse.Configuration
-//	switch encryptionType {
-//	case models.BucketEncryptionTypeSseDashKms:
-//		config = sse.NewConfigurationSSEKMS(kmsKeyID)
-//	case models.BucketEncryptionTypeSseDashS3:
-//		config = sse.NewConfigurationSSES3()
-//	default:
-//		return errInvalidEncryptionAlgorithm
-//	}
-//	return client.setBucketEncryption(ctx, bucketName, config)
-//}
-//
-//// enableBucketEncryptionResponse calls enableBucketEncryption() to create new encryption configuration for provided bucket name
-//func enableBucketEncryptionResponse(session *models.Principal, params user_api.EnableBucketEncryptionParams) *models.Error {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//	if err := enableBucketEncryption(ctx, minioClient, params.BucketName, *params.Body.EncType, params.Body.KmsKeyID); err != nil {
-//		return prepareError(err)
-//	}
-//	return nil
-//}
-//
-//// disableBucketEncryption will disable bucket for the provided bucket name
-//func disableBucketEncryption(ctx context.Context, client MinioClient, bucketName string) error {
-//	return client.removeBucketEncryption(ctx, bucketName)
-//}
-//
-//// disableBucketEncryptionResponse calls disableBucketEncryption()
-//func disableBucketEncryptionResponse(session *models.Principal, params user_api.DisableBucketEncryptionParams) *models.Error {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//	if err := disableBucketEncryption(ctx, minioClient, params.BucketName); err != nil {
-//		return prepareError(err)
-//	}
-//	return nil
-//}
-//
-//func getBucketEncryptionInfo(ctx context.Context, client MinioClient, bucketName string) (*models.BucketEncryptionInfo, error) {
-//	bucketInfo, err := client.getBucketEncryption(ctx, bucketName)
-//	if err != nil {
-//		return nil, err
-//	}
-//	if len(bucketInfo.Rules) == 0 {
-//		return nil, ErrorGeneric
-//	}
-//	return &models.BucketEncryptionInfo{Algorithm: bucketInfo.Rules[0].Apply.SSEAlgorithm, KmsMasterKeyID: bucketInfo.Rules[0].Apply.KmsMasterKeyID}, nil
-//}
-//
-//func getBucketEncryptionInfoResponse(session *models.Principal, params user_api.GetBucketEncryptionInfoParams) (*models.BucketEncryptionInfo, *models.Error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//	bucketInfo, err := getBucketEncryptionInfo(ctx, minioClient, params.BucketName)
-//	if err != nil {
-//		return nil, prepareError(errSSENotConfigured, err)
-//	}
-//	return bucketInfo, nil
-//}
-//
-//// setBucketRetentionConfig sets object lock configuration on a bucket
-//func setBucketRetentionConfig(ctx context.Context, client MinioClient, bucketName string, mode models.ObjectRetentionMode, unit models.ObjectRetentionUnit, validity *int32) error {
-//	if validity == nil {
-//		return errors.New("retention validity can't be nil")
-//	}
-//
-//	var retentionMode minio.RetentionMode
-//	switch mode {
-//	case models.ObjectRetentionModeGovernance:
-//		retentionMode = minio.Governance
-//	case models.ObjectRetentionModeCompliance:
-//		retentionMode = minio.Compliance
-//	default:
-//		return errors.New("invalid retention mode")
-//	}
-//
-//	var retentionUnit minio.ValidityUnit
-//	switch unit {
-//	case models.ObjectRetentionUnitDays:
-//		retentionUnit = minio.Days
-//	case models.ObjectRetentionUnitYears:
-//		retentionUnit = minio.Years
-//	default:
-//		return errors.New("invalid retention unit")
-//	}
-//
-//	retentionValidity := uint(*validity)
-//	return client.setObjectLockConfig(ctx, bucketName, &retentionMode, &retentionValidity, &retentionUnit)
-//}
-//
-//func getSetBucketRetentionConfigResponse(session *models.Principal, params user_api.SetBucketRetentionConfigParams) *models.Error {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//	err = setBucketRetentionConfig(ctx, minioClient, params.BucketName, *params.Body.Mode, *params.Body.Unit, params.Body.Validity)
-//	if err != nil {
-//		return prepareError(err)
-//	}
-//	return nil
-//}
-//
-//func getBucketRetentionConfig(ctx context.Context, client MinioClient, bucketName string) (*models.GetBucketRetentionConfig, error) {
-//	m, v, u, err := client.getBucketObjectLockConfig(ctx, bucketName)
-//	if err != nil {
-//		errResp := minio.ToErrorResponse(probe.NewError(err).ToGoError())
-//		if errResp.Code == "ObjectLockConfigurationNotFoundError" {
-//			return &models.GetBucketRetentionConfig{}, nil
-//		}
-//		return nil, err
-//	}
-//
-//	// These values can be empty when all are empty, it means
-//	// object was created with object locking enabled but
-//	// does not have any default object locking configuration.
-//	if m == nil && v == nil && u == nil {
-//		return &models.GetBucketRetentionConfig{}, nil
-//	}
-//
-//	var mode models.ObjectRetentionMode
-//	var unit models.ObjectRetentionUnit
-//
-//	if m != nil {
-//		switch *m {
-//		case minio.Governance:
-//			mode = models.ObjectRetentionModeGovernance
-//		case minio.Compliance:
-//			mode = models.ObjectRetentionModeCompliance
-//		default:
-//			return nil, errors.New("invalid retention mode")
-//		}
-//	}
-//
-//	if u != nil {
-//		switch *u {
-//		case minio.Days:
-//			unit = models.ObjectRetentionUnitDays
-//		case minio.Years:
-//			unit = models.ObjectRetentionUnitYears
-//		default:
-//			return nil, errors.New("invalid retention unit")
-//		}
-//	}
-//
-//	var validity int32
-//	if v != nil {
-//		validity = int32(*v)
-//	}
-//
-//	config := &models.GetBucketRetentionConfig{
-//		Mode:     mode,
-//		Unit:     unit,
-//		Validity: validity,
-//	}
-//	return config, nil
-//}
-//
-//func getBucketRetentionConfigResponse(session *models.Principal, bucketName string) (*models.GetBucketRetentionConfig, *models.Error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	config, err := getBucketRetentionConfig(ctx, minioClient, bucketName)
-//	if err != nil {
-//		return nil, prepareError(err)
-//	}
-//	return config, nil
-//}
-//
-//func getBucketObjectLockingResponse(session *models.Principal, bucketName string) (*models.BucketObLockingResponse, error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//
-//	mClient, err := newMinioClient(session)
-//	if err != nil {
-//		LogError("error creating MinIO Client: %v", err)
-//		return nil, err
-//	}
-//	// create a minioClient interface implementation
-//	// defining the client to be used
-//	minioClient := minioClient{client: mClient}
-//
-//	// we will tolerate this call failing
-//	_, _, _, _, err = minioClient.getObjectLockConfig(ctx, bucketName)
-//	if err != nil {
-//		if minio.ToErrorResponse(err).Code == "ObjectLockConfigurationNotFoundError" {
-//			return &models.BucketObLockingResponse{
-//				ObjectLockingEnabled: false,
-//			}, nil
-//		}
-//		return nil, err
-//	}
-//
-//	// serialize output
-//	return &models.BucketObLockingResponse{
-//		ObjectLockingEnabled: true,
-//	}, nil
-//}
-//
-//func getBucketRewindResponse(session *models.Principal, params user_api.GetBucketRewindParams) (*models.RewindResponse, *models.Error) {
-//	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-//	defer cancel()
-//	var prefix = ""
-//	if params.Prefix != nil {
-//		encodedPrefix := SanitizeEncodedPrefix(*params.Prefix)
-//		decodedPrefix, err := base64.StdEncoding.DecodeString(encodedPrefix)
-//		if err != nil {
-//			return nil, prepareError(err)
-//		}
-//		prefix = string(decodedPrefix)
-//	}
-//	s3Client, err := newS3BucketClient(session, params.BucketName, prefix)
-//	if err != nil {
-//		LogError("error creating S3Client: %v", err)
-//		return nil, prepareError(err)
-//	}
-//
-//	// create a mc S3Client interface implementation
-//	// defining the client to be used
-//	mcClient := mcClient{client: s3Client}
-//
-//	parsedDate, errDate := time.Parse(time.RFC3339, params.Date)
-//
-//	if errDate != nil {
-//		return nil, prepareError(errDate)
-//	}
-//
-//	var rewindItems []*models.RewindItem
-//
-//	for content := range mcClient.client.List(ctx, cmd.ListOptions{TimeRef: parsedDate, WithDeleteMarkers: true}) {
-//		// build object name
-//		name := strings.Replace(content.URL.Path, fmt.Sprintf("/%s/", params.BucketName), "", -1)
-//
-//		listElement := &models.RewindItem{
-//			LastModified: content.Time.Format(time.RFC3339),
-//			Size:         content.Size,
-//			VersionID:    content.VersionID,
-//			DeleteFlag:   content.IsDeleteMarker,
-//			Action:       "",
-//			Name:         name,
-//		}
-//
-//		rewindItems = append(rewindItems, listElement)
-//	}
-//
-//	return &models.RewindResponse{
-//		Objects: rewindItems,
-//	}, nil
-//}
+// getBucketSetPolicyResponse calls setBucketAccessPolicy() to set a access policy to a bucket
+//   and returns the serialized output.
+func getBucketSetPolicyResponse(session *models.Principal, bucketName string, req *models.SetBucketPolicyRequest) (*models.Bucket, *models.Error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil, nil
+	}
+	adminClient := AdminClient{Client: mAdmin}
+
+	if err := setBucketAccessPolicy(ctx, adminClient, bucketName, *req.Access, req.Definition); err != nil {
+		return nil, prepareError(err)
+	}
+	// set bucket access policy
+	//bucket, err := getBucketInfo(ctx, adminClient, adminClient, bucketName)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	return nil, nil
+}
+
+// setBucketAccessPolicy set the access permissions on an existing bucket.
+func setBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName string, access models.BucketAccess, policyDefinition string) error {
+	if strings.TrimSpace(bucketName) == "" {
+		return fmt.Errorf("error: bucket name not present")
+	}
+	if strings.TrimSpace(string(access)) == "" {
+		return fmt.Errorf("error: bucket access not present")
+	}
+	// Prepare policyJSON corresponding to the access type
+	if access != models.BucketAccessPRIVATE && access != models.BucketAccessPUBLIC && access != models.BucketAccessCUSTOM {
+		return fmt.Errorf("access: `%s` not supported", access)
+	}
+	if access == models.BucketAccessCUSTOM {
+		err := client.putBucketPolicy(ctx, bucketName, policyDefinition)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getBucketPolicyResponse
+func getBucketPolicyResponse(session *models.Principal, bucketName string) (*policy.Policy, *models.Error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil, nil
+	}
+	adminClient := AdminClient{Client: mAdmin}
+	policy, err := getBucketAccessPolicy(ctx, adminClient, bucketName)
+	if err != nil {
+		return nil, prepareError(err)
+	}
+	return policy, nil
+}
+
+// getBucketAccessPolicy
+func getBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName string) (*policy.Policy, error) {
+	if strings.TrimSpace(bucketName) == "" {
+		return nil, fmt.Errorf("error: bucket name not present")
+	}
+	policy, err := client.getBucketPolicy(ctx, bucketName)
+	if err != nil {
+		return nil, err
+	}
+	return policy, nil
+}
+
+// removeBucketPolicyResponse
+func removeBucketPolicyResponse(session *models.Principal, bucketName string) *models.Error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+	mAdmin, err := NewMinioAdminClient(session)
+	if err != nil {
+		return nil
+	}
+	adminClient := AdminClient{Client: mAdmin}
+	err = removeBucketAccessPolicy(ctx, adminClient, bucketName)
+	if err != nil {
+		return prepareError(err)
+	}
+	return nil
+}
+
+// removeBucketAccessPolicy
+func removeBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName string) error {
+	if strings.TrimSpace(bucketName) == "" {
+		return fmt.Errorf("error: bucket name not present")
+	}
+	err := client.removeBucketPolicy(ctx, bucketName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
