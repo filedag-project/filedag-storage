@@ -5,6 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
+	"strconv"
 )
 
 func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
@@ -14,6 +15,16 @@ func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
+	groupName := r.FormValue("groupName")
+	version := r.FormValue("version")
+	atoi, _ := strconv.Atoi(version)
+	err := iamApi.authSys.Iam.CreateGroup(ctx, groupName, atoi)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	var resp CreateGroupResponse
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {

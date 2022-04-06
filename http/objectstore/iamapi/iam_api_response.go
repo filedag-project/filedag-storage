@@ -95,6 +95,18 @@ type ListUserPoliciesResponse struct {
 		} `xml:"PolicyNames"`
 	}
 }
+type CreateGroupResponse struct {
+	CommonResponse
+	XMLName           xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ CreateGroupResponse "`
+	CreateGroupResult struct {
+		Group struct {
+			Path      string `xml:"Path"`
+			GroupName string `xml:"GroupName"`
+			GroupId   string `xml:"GroupId"`
+			Arn       string `xml:"Arn"`
+		} `xml:"Group"`
+	}
+}
 
 type ErrorResponse struct {
 	CommonResponse

@@ -257,3 +257,11 @@ func (sys *IdentityAMSys) SetTempUser(ctx context.Context, accessKey string, cre
 	}
 	return nil
 }
+
+func (sys *IdentityAMSys) CreateGroup(ctx context.Context, groupName string, version int) error {
+	err := sys.store.CreateGroup(ctx, groupName, version)
+	if err != nil {
+		return err
+	}
+	return nil
+}
