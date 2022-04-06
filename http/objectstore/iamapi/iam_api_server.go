@@ -36,7 +36,7 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	apiRouter.Methods(http.MethodPost).Path("/creat-policy").HandlerFunc(iamApi.CreatePolicy).Queries("policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("userName", "{userName:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(iamApi.ChangePassword).Queries("newPassword", "{newPassword:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(iamApi.SetStatus).Queries("userName", "{userName:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(iamApi.SetStatus).Queries("userName", "{userName:.*}", "status", "{status:.*}")
 
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 }

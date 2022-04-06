@@ -266,14 +266,14 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 }
 func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	cerd, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 
 	secret := r.FormValue("secret")
-	c, ok := iamApi.authSys.Iam.GetUser(ctx, cerd.AccessKey)
+	c, ok := iamApi.authSys.Iam.GetUser(ctx, cred.AccessKey)
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
 		return
@@ -290,6 +290,20 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+
+	user := r.FormValue("userName")
+	status := r.FormValue("status")
+	c, ok := iamApi.authSys.Iam.GetUser(ctx, user)
+	if !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
+		return
+	}
+	c.Status = status
+	err := iamApi.authSys.Iam.UpdateUser(ctx, c)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 
