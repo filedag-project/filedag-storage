@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/gorilla/mux"
@@ -222,42 +223,19 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
 		return
 	}
-	bucketMetas, err := iamApi.authSys.PolicySys.GetAllBucketOfUser(cred.AccessKey)
+	polices, err := iamApi.authSys.Iam.GetUserPolices(ctx, userName)
 	if err != nil {
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrInternalError), r.URL, r.Host)
 		return
 	}
-	var bucketAccessInfos []BucketAccessInfo
-	for _, meta := range bucketMetas {
-		bucketAccessInfos = append(bucketAccessInfos, BucketAccessInfo{
-			Name:                 meta.Name,
-			Size:                 0,
-			Objects:              0,
-			ObjectSizesHistogram: nil,
-			Details:              nil,
-			PrefixUsage:          nil,
-			Created:              meta.Created,
-			Access: AccountAccess{
-				Read:  true,
-				Write: true,
-			},
-		})
-	}
+
 	user := iam.UserInfo{
 		SecretKey:  cred.SecretKey,
-		PolicyName: "policy",
+		PolicyName: polices,
 		Status:     iam.AccountStatus(cred.Status),
-		MemberOf:   nil,
-	}
-	indent, err := json.MarshalIndent(user.PolicyName, "", " ")
-
-	var accountInfo = AccountInfo{
-		AccountName: userName,
-		Policy:      indent,
-		Buckets:     bucketAccessInfos,
 	}
 
-	data, err := json.Marshal(accountInfo)
+	data, err := json.Marshal(user)
 	if err != nil {
 		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
 		return
@@ -272,7 +250,10 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	secret := r.FormValue("secret")
+	secret := r.FormValue("newPassword")
+	if !auth.IsSecretKeyValid(secret) {
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+	}
 	c, ok := iamApi.authSys.Iam.GetUser(ctx, cred.AccessKey)
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)

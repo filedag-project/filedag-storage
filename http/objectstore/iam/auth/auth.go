@@ -121,7 +121,7 @@ func createCredentials(accessKey, secretKey string) (cred Credentials, err error
 	if !IsAccessKeyValid(accessKey) {
 		return cred, errInvalidAccessKeyLength
 	}
-	if !isSecretKeyValid(secretKey) {
+	if !IsSecretKeyValid(secretKey) {
 		return cred, errInvalidSecretKeyLength
 	}
 	cred.AccessKey = accessKey
@@ -226,8 +226,8 @@ func IsAccessKeyValid(accessKey string) bool {
 	return len(accessKey) >= accessKeyMinLen
 }
 
-// isSecretKeyValid - validate secret key for right length.
-func isSecretKeyValid(secretKey string) bool {
+// IsSecretKeyValid - validate secret key for right length.
+func IsSecretKeyValid(secretKey string) bool {
 	return len(secretKey) >= secretKeyMinLen
 }
 
@@ -237,7 +237,7 @@ func (cred *Credentials) IsValid() bool {
 	if cred.Status == AccountOff {
 		return false
 	}
-	return IsAccessKeyValid(cred.AccessKey) && isSecretKeyValid(cred.SecretKey) && !cred.IsExpired()
+	return IsAccessKeyValid(cred.AccessKey) && IsSecretKeyValid(cred.SecretKey) && !cred.IsExpired()
 }
 
 // IsExpired - returns whether Credential is expired or not.
