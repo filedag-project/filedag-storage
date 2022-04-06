@@ -71,7 +71,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 		return
 	}
 	// Success.
-	response.WriteSuccessNoContent(w)
+	response.WriteSuccessResponseEmpty(w, r)
 }
 
 //GetBucketPolicyHandler Get BucketPolicy
