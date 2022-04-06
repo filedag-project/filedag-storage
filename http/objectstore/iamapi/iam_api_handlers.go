@@ -284,6 +284,7 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
+	response.WriteSuccessResponseEmpty(w, r)
 }
 func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
@@ -306,5 +307,5 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-
+	response.WriteSuccessResponseEmpty(w, r)
 }
