@@ -40,6 +40,23 @@ func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
+	groupName := r.FormValue("groupName")
+	_, err := iamApi.authSys.Iam.GetGroup(ctx, groupName)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	var resp GetGroupResponse
+	resp.GroupResult = GetGroupResult{
+		G: Group{
+			Path:      "",
+			GroupName: groupName,
+			GroupId:   "",
+			Arn:       "",
+		},
+	}
+
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 // DeleteGroup

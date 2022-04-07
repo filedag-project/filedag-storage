@@ -71,3 +71,11 @@ func (store *iamStoreSys) CreateGroup(ctx context.Context, groupName string, ver
 	}
 	return nil
 }
+func (store *iamStoreSys) GetGroup(ctx context.Context, groupName string) (GroupInfo, error) {
+	var g GroupInfo
+	err := store.loadGroup(ctx, groupName, &g)
+	if err != nil {
+		return g, err
+	}
+	return g, nil
+}

@@ -265,3 +265,10 @@ func (sys *IdentityAMSys) CreateGroup(ctx context.Context, groupName string, ver
 	}
 	return nil
 }
+func (sys *IdentityAMSys) GetGroup(ctx context.Context, groupName string) (GroupInfo, error) {
+	g, err := sys.store.GetGroup(ctx, groupName)
+	if err != nil {
+		return g, err
+	}
+	return g, nil
+}

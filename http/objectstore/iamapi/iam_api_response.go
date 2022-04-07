@@ -95,19 +95,31 @@ type ListUserPoliciesResponse struct {
 		} `xml:"PolicyNames"`
 	}
 }
+
+// CreateGroupResponse CreateGroup Response
 type CreateGroupResponse struct {
 	CommonResponse
 	XMLName           xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ CreateGroupResponse "`
 	CreateGroupResult struct {
-		Group struct {
-			Path      string `xml:"Path"`
-			GroupName string `xml:"GroupName"`
-			GroupId   string `xml:"GroupId"`
-			Arn       string `xml:"Arn"`
-		} `xml:"Group"`
-	}
+		G Group `xml:"Group"`
+	} `xml:"CreateGroupResult"`
 }
 
+// GetGroupResponse GetGroup Response
+type GetGroupResponse struct {
+	CommonResponse
+	XMLName     xml.Name       `xml:"https://iam.amazonaws.com/doc/2010-05-08/ GetGroupResponse "`
+	GroupResult GetGroupResult `xml:"GetGroupResult"`
+}
+type GetGroupResult struct {
+	G Group `xml:"Group"`
+}
+type Group struct {
+	Path      string `xml:"Path"`
+	GroupName string `xml:"GroupName"`
+	GroupId   string `xml:"GroupId"`
+	Arn       string `xml:"Arn"`
+}
 type ErrorResponse struct {
 	CommonResponse
 	XMLName xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ ErrorResponse"`
