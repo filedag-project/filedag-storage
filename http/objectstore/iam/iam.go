@@ -279,3 +279,14 @@ func (sys *IdentityAMSys) DeleteGroup(ctx context.Context, groupName string) err
 	}
 	return nil
 }
+func (sys *IdentityAMSys) ListGroups(ctx context.Context, path string) ([]GroupInfo, error) {
+	m, err := sys.store.loadGroups(ctx)
+	var s []GroupInfo
+	for _, v := range m {
+		s = append(s, v)
+	}
+	if err != nil {
+		return s, err
+	}
+	return s, nil
+}

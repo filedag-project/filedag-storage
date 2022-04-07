@@ -41,7 +41,7 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	apiRouter.Methods(http.MethodPost).Path("/creat-group").HandlerFunc(iamApi.CreatGroup).Queries("groupName", "{groupName:.*}", "version", "{version:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/get_group").HandlerFunc(iamApi.GetGroup).Queries("groupName", "{groupName:.*}", "version", "{version:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/delete-group").HandlerFunc(iamApi.DeleteGroup).Queries("groupName", "{groupName:.*}", "version", "{version:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/list-groups").HandlerFunc(iamApi.ListGroups).Queries("userName", "{userName:.*}", "status", "{status:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/list-groups").HandlerFunc(iamApi.ListGroups).Queries("pathPrefix", "{pathPrefix:.*}")
 
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 }

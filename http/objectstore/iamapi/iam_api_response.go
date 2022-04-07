@@ -120,6 +120,16 @@ type Group struct {
 	GroupId   string `xml:"GroupId"`
 	Arn       string `xml:"Arn"`
 }
+
+// ListGroupsResponse listGroup Response
+type ListGroupsResponse struct {
+	CommonResponse
+	XMLName     xml.Name         `xml:"https://iam.amazonaws.com/doc/2010-05-08/ GetGroupResponse "`
+	GroupResult ListGroupsResult `xml:"ListGroupsResult"`
+}
+type ListGroupsResult struct {
+	Groups []Group `xml:"Groups"`
+}
 type ErrorResponse struct {
 	CommonResponse
 	XMLName xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ ErrorResponse"`
