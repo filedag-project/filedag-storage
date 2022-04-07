@@ -11,6 +11,7 @@ type GroupDesc struct {
 
 // GroupInfo contains info about a group
 type GroupInfo struct {
+	Name    string   `json:"name"`
 	Version int      `json:"version"`
 	Status  string   `json:"status"`
 	Members []string `json:"members"`

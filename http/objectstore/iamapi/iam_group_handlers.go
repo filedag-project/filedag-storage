@@ -47,7 +47,7 @@ func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var resp GetGroupResponse
-	resp.GroupResult = GetGroupResult{
+	resp.GroupResult = GroupResult{
 		G: Group{
 			Path:      "",
 			GroupName: groupName,
@@ -85,17 +85,26 @@ func (iamApi *iamApiServer) DeleteGroup(w http.ResponseWriter, r *http.Request) 
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListGroups.html
 func (iamApi *iamApiServer) ListGroups(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	//_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
-	//if s3err != api_errors.ErrNone {
-	//	response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
-	//	return
-	//}
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
 	p := r.FormValue("pathPrefix")
-	_, err := iamApi.authSys.Iam.ListGroups(ctx, p)
+	gi, err := iamApi.authSys.Iam.ListGroups(ctx, p)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	var resp ListGroupsResponse
+	for _, g := range gi {
+		resp.GroupResult.Groups = append(resp.GroupResult.Groups, GroupMember{GM: Group{
+			Path:      p,
+			GroupName: g.Name,
+			GroupId:   strconv.Itoa(g.Version),
+			Arn:       "",
+		}})
+	}
+
 	response.WriteSuccessResponseXML(w, r, resp)
 }
