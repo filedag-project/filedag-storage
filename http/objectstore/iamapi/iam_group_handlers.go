@@ -69,6 +69,14 @@ func (iamApi *iamApiServer) DeleteGroup(w http.ResponseWriter, r *http.Request) 
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
+	groupName := r.FormValue("groupName")
+	err := iamApi.authSys.Iam.DeleteGroup(ctx, groupName)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+
+	response.WriteSuccessResponseEmpty(w, r)
 }
 
 // ListGroups

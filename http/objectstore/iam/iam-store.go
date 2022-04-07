@@ -79,3 +79,10 @@ func (store *iamStoreSys) GetGroup(ctx context.Context, groupName string) (Group
 	}
 	return g, nil
 }
+func (store *iamStoreSys) DeleteGroup(ctx context.Context, groupName string) error {
+	err := store.removeGroupInfo(ctx, groupName)
+	if err != nil {
+		return err
+	}
+	return nil
+}

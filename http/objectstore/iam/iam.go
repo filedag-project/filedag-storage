@@ -272,3 +272,10 @@ func (sys *IdentityAMSys) GetGroup(ctx context.Context, groupName string) (Group
 	}
 	return g, nil
 }
+func (sys *IdentityAMSys) DeleteGroup(ctx context.Context, groupName string) error {
+	err := sys.store.DeleteGroup(ctx, groupName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
