@@ -8,6 +8,9 @@ import (
 	"strconv"
 )
 
+// CreatGroup
+//Creates a new group.
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateGroup.html
 func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
@@ -27,6 +30,9 @@ func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 
+// GetGroup
+//Returns a list of IAM users that are in the specified IAM group. You can paginate the results using the MaxItems and Marker parameters.
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_GetGroup.html
 func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
@@ -36,6 +42,9 @@ func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteGroup
+//Deletes the specified IAM group. The group must not contain any users or have any attached policies.
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_DeleteGroup.html
 func (iamApi *iamApiServer) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
@@ -45,6 +54,10 @@ func (iamApi *iamApiServer) DeleteGroup(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// ListGroups
+//Lists the IAM groups that have the specified path prefix.
+//You can paginate the results using the MaxItems and Marker parameters.
+//https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListGroups.html
 func (iamApi *iamApiServer) ListGroups(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
