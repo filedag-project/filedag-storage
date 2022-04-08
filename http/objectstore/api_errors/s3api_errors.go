@@ -538,19 +538,12 @@ type STSError struct {
 	HTTPStatusCode int
 }
 
-// Error codes, non exhaustive list - http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html
+// Error codes,list - http://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html
 const (
 	ErrSTSNone STSErrorCode = iota
 	ErrSTSAccessDenied
 	ErrSTSMissingParameter
 	ErrSTSInvalidParameterValue
-	ErrSTSWebIdentityExpiredToken
-	ErrSTSClientGrantsExpiredToken
-	ErrSTSInvalidClientGrantsToken
-	ErrSTSMalformedPolicyDocument
-	ErrSTSInsecureConnection
-	ErrSTSInvalidClientCertificate
-	ErrSTSNotInitialized
 	ErrSTSInternalError
 )
 
@@ -582,41 +575,6 @@ var StsErrCodes = stsErrorCodeMap{
 		Code:           "InvalidParameterValue",
 		Description:    "An invalid or out-of-range value was supplied for the input parameter.",
 		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrSTSWebIdentityExpiredToken: {
-		Code:           "ExpiredToken",
-		Description:    "The web identity token that was passed is expired or is not valid. Get a new identity token from the identity provider and then retry the request.",
-		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrSTSClientGrantsExpiredToken: {
-		Code:           "ExpiredToken",
-		Description:    "The client grants that was passed is expired or is not valid. Get a new client grants token from the identity provider and then retry the request.",
-		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrSTSInvalidClientGrantsToken: {
-		Code:           "InvalidClientGrantsToken",
-		Description:    "The client grants token that was passed could not be validated.",
-		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrSTSMalformedPolicyDocument: {
-		Code:           "MalformedPolicyDocument",
-		Description:    "The request was rejected because the policy document was malformed.",
-		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrSTSInsecureConnection: {
-		Code:           "InsecureConnection",
-		Description:    "The request was made over a plain HTTP connection. A TLS connection is required.",
-		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrSTSInvalidClientCertificate: {
-		Code:           "InvalidClientCertificate",
-		Description:    "The provided client certificate is invalid. Retry with a different certificate.",
-		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrSTSNotInitialized: {
-		Code:           "STSNotInitialized",
-		Description:    "STS API not initialized, please try again.",
-		HTTPStatusCode: http.StatusServiceUnavailable,
 	},
 	ErrSTSInternalError: {
 		Code:           "InternalError",

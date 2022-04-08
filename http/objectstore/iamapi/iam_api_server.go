@@ -1,7 +1,5 @@
 package iamapi
 
-// https://docs.aws.amazon.com/cli/latest/reference/iam/list-roles.html
-
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
