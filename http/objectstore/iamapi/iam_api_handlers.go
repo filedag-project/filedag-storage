@@ -139,6 +139,18 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 	response.WriteSuccessResponseEmpty(w, r)
 }
 
+func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Request) {
+
+}
+
 //GetUserList get all user
 func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) {
 	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
