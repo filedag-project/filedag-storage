@@ -61,6 +61,7 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 }
 func (store *iamStoreSys) CreateGroup(ctx context.Context, groupName string, version int) error {
 	var g = GroupInfo{
+		Name:    groupName,
 		Version: version,
 		Status:  "on",
 		Members: nil,
