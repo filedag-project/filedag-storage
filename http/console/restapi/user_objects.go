@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-// getListObjectsResponse returns a list of objects
-func getListObjectsResponse(session *models.Principal, params models.ListObjectsParams) (*models.ListObjectsResponse, *models.Error) {
+// GetListObjectsResponse returns a list of objects
+func (apiServer *ApiServer) GetListObjectsResponse(session *models.Principal, params models.ListObjectsParams) (*models.ListObjectsResponse, *models.Error) {
 	var prefix string
 	var recursive bool
 	var withVersions bool
