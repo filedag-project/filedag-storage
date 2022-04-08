@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/console/models"
-	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/admin_api"
 	"testing"
 )
 
@@ -16,7 +15,8 @@ func Test_getListUsersResponse(t *testing.T) {
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	users, err := getListUsersResponse(session)
+	apiServer := ApiServer{}
+	users, err := apiServer.GetListUsersResponse(session)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -37,14 +37,14 @@ func Test_getUserAddResponse(t *testing.T) {
 	}
 	accessKey := "admin"
 	secretKey := "admin1234"
-	param := admin_api.AddUserParams{
+	param := models.AddUserParams{
 		Body: &models.AddUserRequest{
 			AccessKey: &accessKey,
 			SecretKey: &secretKey,
 		},
 	}
-
-	user, err := getUserAddResponse(session, param)
+	apiServer := ApiServer{}
+	user, err := apiServer.GetUserAddResponse(session, param)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -63,11 +63,11 @@ func Test_getRemoveUserResponse(t *testing.T) {
 		Hm:                 false,
 	}
 	name := "admin"
-	param := admin_api.RemoveUserParams{
+	param := models.RemoveUserParams{
 		Name: name,
 	}
-
-	err := getRemoveUserResponse(session, param)
+	apiServer := ApiServer{}
+	err := apiServer.RemoveUserResponse(session, param)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -83,11 +83,11 @@ func Test_getUserInfoResponse(t *testing.T) {
 		Hm:                 false,
 	}
 	name := "admin"
-	param := admin_api.GetUserInfoParams{
+	param := models.GetUserInfoParams{
 		Name: name,
 	}
-
-	user, err := getUserInfoResponse(session, param)
+	apiServer := ApiServer{}
+	user, err := apiServer.GetUserInfoResponse(session, param)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -108,12 +108,13 @@ func Test_putUserPolicyResponse(t *testing.T) {
 	policy := `{"Version":"2008-10-17","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::test22/*"}]}`
 	var str = "CUSTOM"
 	custom := models.BucketAccess(str)
-	request := &models.SetUserPolicyRequest{
+	request := &models.SetUserPolicyParams{
 		Access:     &custom,
 		Name:       "read",
 		Definition: policy,
 	}
-	err := getUserSetPolicyResponse(session, "test2", request)
+	apiServer := ApiServer{}
+	err := apiServer.GetUserSetPolicyResponse(session, "test2", request)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -127,7 +128,8 @@ func Test_listUserPolicyResponse(t *testing.T) {
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	userPolicys, err := listUserPolicyResponse(session, "test2")
+	apiServer := ApiServer{}
+	userPolicys, err := apiServer.ListUserPolicyResponse(session, "test2")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -145,7 +147,8 @@ func Test_getUserPolicyResponse(t *testing.T) {
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	userPolicy, err := getUserPolicyResponse(session, "test2")
+	apiServer := ApiServer{}
+	userPolicy, err := apiServer.GetUserPolicyResponse(session, "test2")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -163,7 +166,8 @@ func Test_removeUserPolicyResponse(t *testing.T) {
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	err := removeUserPolicyResponse(session, "test2", "read")
+	apiServer := ApiServer{}
+	err := apiServer.RemoveUserPolicyResponse(session, "test2", "read")
 	if err != nil {
 		fmt.Println(err)
 	}

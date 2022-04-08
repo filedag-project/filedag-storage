@@ -30,16 +30,16 @@ import (
 )
 
 // GetUserInfoHandlerFunc turns a function with the right signature into a get user info handler
-type GetUserInfoHandlerFunc func(GetUserInfoParams, *models.Principal) middleware.Responder
+type GetUserInfoHandlerFunc func(models.GetUserInfoParams, *models.Principal) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn GetUserInfoHandlerFunc) Handle(params GetUserInfoParams, principal *models.Principal) middleware.Responder {
+func (fn GetUserInfoHandlerFunc) Handle(params models.GetUserInfoParams, principal *models.Principal) middleware.Responder {
 	return fn(params, principal)
 }
 
 // GetUserInfoHandler interface for that can handle valid get user info params
 type GetUserInfoHandler interface {
-	Handle(GetUserInfoParams, *models.Principal) middleware.Responder
+	Handle(models.GetUserInfoParams, *models.Principal) middleware.Responder
 }
 
 // NewGetUserInfo creates a new http.Handler for the get user info operation
@@ -62,7 +62,7 @@ func (o *GetUserInfo) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if rCtx != nil {
 		*r = *rCtx
 	}
-	var Params = NewGetUserInfoParams()
+	var Params = models.NewGetUserInfoParams()
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)

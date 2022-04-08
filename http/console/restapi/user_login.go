@@ -5,6 +5,9 @@ import (
 	"github.com/filedag-project/filedag-storage/http/console/pkg/auth"
 )
 
+type ApiServer struct {
+}
+
 // login
 func login(credentials ConsoleCredentialsI, sessionFeatures *auth.SessionFeatures) (*string, error) {
 	// try to obtain consoleCredentials,
@@ -33,8 +36,8 @@ func getConsoleCredentials(accessKey, secretKey string) (*ConsoleCredentials, er
 	}, nil
 }
 
-// getLoginResponse performs login() and serializes it to the handler's output
-func getLoginResponse(lr *models.LoginRequest) (*models.LoginResponse, *models.Error) {
+// GetLoginResponse performs login() and serializes it to the handler's output
+func (apiServer *ApiServer) GetLoginResponse(lr *models.LoginRequest) (*models.LoginResponse, *models.Error) {
 	// prepare console credentials
 	consoleCreds, err := getConsoleCredentials(*lr.AccessKey, *lr.SecretKey)
 	if err != nil {

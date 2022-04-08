@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/console/madmin"
 	"github.com/filedag-project/filedag-storage/http/console/models"
-	"github.com/filedag-project/filedag-storage/http/console/restapi/operations/admin_api"
 	"strings"
 	"time"
 
@@ -33,8 +32,8 @@ func listUsers(ctx context.Context, client Admin) ([]*models.User, error) {
 	return users, nil
 }
 
-// getListUsersResponse performs listUsers() and serializes it to the handler's output
-func getListUsersResponse(session *models.Principal) (*models.ListUsersResponse, *models.Error) {
+// GetListUsersResponse performs listUsers() and serializes it to the handler's output
+func (apiServer *ApiServer) GetListUsersResponse(session *models.Principal) (*models.ListUsersResponse, *models.Error) {
 	ctx := context.Background()
 	mAdmin, err := NewAdminClient(session)
 	if err != nil {
@@ -80,7 +79,7 @@ func addUser(ctx context.Context, client Admin, accessKey, secretKey *string, gr
 	return userRet, nil
 }
 
-func getUserAddResponse(session *models.Principal, params admin_api.AddUserParams) (*models.User, *models.Error) {
+func (apiServer *ApiServer) GetUserAddResponse(session *models.Principal, params models.AddUserParams) (*models.User, *models.Error) {
 	ctx := context.Background()
 	mAdmin, err := NewAdminClient(session)
 	if err != nil {
@@ -114,7 +113,7 @@ func removeUser(ctx context.Context, client Admin, accessKey string) error {
 	return client.removeUser(ctx, accessKey)
 }
 
-func getRemoveUserResponse(session *models.Principal, params admin_api.RemoveUserParams) *models.Error {
+func (apiServer *ApiServer) RemoveUserResponse(session *models.Principal, params models.RemoveUserParams) *models.Error {
 	ctx := context.Background()
 
 	mAdmin, err := NewAdminClient(session)
@@ -143,7 +142,7 @@ func getUserInfo(ctx context.Context, client Admin, accessKey string) (*madmin.U
 	return userInfo, nil
 }
 
-func getUserInfoResponse(session *models.Principal, params admin_api.GetUserInfoParams) (*models.User, *models.Error) {
+func (apiServer *ApiServer) GetUserInfoResponse(session *models.Principal, params models.GetUserInfoParams) (*models.User, *models.Error) {
 	ctx := context.Background()
 	mAdmin, err := NewAdminClient(session)
 	if err != nil {
@@ -186,12 +185,11 @@ func setUserStatus(ctx context.Context, client Admin, user string, status string
 	return client.setUserStatus(ctx, user, setStatus)
 }
 
-// getUserSetPolicyResponse calls setUserAccessPolicy() to set a access policy to a user
+// GetUserSetPolicyResponse calls setUserAccessPolicy() to set a access policy to a user
 //   and returns the serialized output.
-func getUserSetPolicyResponse(session *models.Principal, userName string, req *models.SetUserPolicyRequest) *models.Error {
+func (apiServer *ApiServer) GetUserSetPolicyResponse(session *models.Principal, userName string, req *models.SetUserPolicyParams) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
-
 	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil
@@ -228,8 +226,8 @@ func setUserAccessPolicy(ctx context.Context, client Admin, userName string, acc
 	return nil
 }
 
-// getUserPolicyResponse
-func getUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicy, *models.Error) {
+// GetUserPolicyResponse
+func (apiServer *ApiServer) GetUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicy, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	mAdmin, err := NewAdminClient(session)
@@ -256,8 +254,8 @@ func getUserAccessPolicy(ctx context.Context, client Admin, userName string) (*m
 	return userPolicy, nil
 }
 
-// listUserPolicyResponse
-func listUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicies, *models.Error) {
+// ListUserPolicyResponse
+func (apiServer *ApiServer) ListUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicies, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	mAdmin, err := NewAdminClient(session)
@@ -284,8 +282,8 @@ func listUserAccessPolicy(ctx context.Context, client Admin, userName string) (*
 	return userPolicy, nil
 }
 
-// removeUserPolicyResponse
-func removeUserPolicyResponse(session *models.Principal, userName, policyName string) *models.Error {
+// RemoveUserPolicyResponse
+func (apiServer *ApiServer) RemoveUserPolicyResponse(session *models.Principal, userName, policyName string) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	mAdmin, err := NewAdminClient(session)

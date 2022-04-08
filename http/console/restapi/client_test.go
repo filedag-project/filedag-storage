@@ -26,7 +26,8 @@ func Test_getLoginResponse(t *testing.T) {
 		AccessKey: &accessKey,
 		SecretKey: &secretKey,
 	}
-	response, err := getLoginResponse(loginRequest)
+	apiServer := ApiServer{}
+	response, err := apiServer.GetLoginResponse(loginRequest)
 	if err != nil {
 		fmt.Println(err)
 	}
