@@ -8,11 +8,6 @@ import (
 )
 
 func prepareSTSClientTransport(insecure bool) *http.Transport {
-	// This takes github.com/minio/madmin-go/transport.go as an example
-	//
-	// DefaultTransport - this default transport is similar to
-	// http.DefaultTransport but with additional param  DisableCompression
-	// is set to true to avoid decompressing content with 'gzip' encoding.
 	DefaultTransport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -42,7 +37,6 @@ func prepareSTSClientTransport(insecure bool) *http.Transport {
 // custom configurations include the use of CA certificates
 func PrepareConsoleHTTPClient(insecure bool) *http.Client {
 	transport := prepareSTSClientTransport(insecure)
-	// Return http client with default configuration
 	c := &http.Client{
 		Transport: transport,
 	}

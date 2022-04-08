@@ -15,12 +15,10 @@ import (
 
 const globalAppName = "Console"
 
-// MinioAdmin interface with all functions to be implemented
-// by mock when testing, it should include all MinioAdmin respective api calls
-// that are used within this project.
-type MinioAdmin interface {
+// Admin interface with all functions to be implemented
+type Admin interface {
 	listUsers(ctx context.Context) ([]*iam.User, error)
-	addUser(ctx context.Context, acessKey, SecretKey string) (*iam.User, error)
+	addUser(ctx context.Context, accessKey, SecretKey string) (*iam.User, error)
 	removeUser(ctx context.Context, accessKey string) error
 	getUserInfo(ctx context.Context, accessKey string) (*madmin.UserInfo, error)
 	setUserStatus(ctx context.Context, accessKey string, status madmin.AccountStatus) error
@@ -35,16 +33,12 @@ type MinioAdmin interface {
 	putBucketPolicy(ctx context.Context, bucketName, policyStr string) error
 	getBucketPolicy(ctx context.Context, bucketName string) (*policy.Policy, error)
 	removeBucketPolicy(ctx context.Context, bucketName string) error
-	putUserPolicy(ctx context.Context, bucketName, policyName, policyStr string) error
-	getUserPolicy(ctx context.Context, bucketName string) (*madmin.UserPolicy, error)
-	removeUserPolicy(ctx context.Context, bucketName, policyName string) error
-	listUserPolicy(ctx context.Context, bucketName string) (*madmin.UserPolicies, error)
+	putUserPolicy(ctx context.Context, userName, policyName, policyStr string) error
+	getUserPolicy(ctx context.Context, userName string) (*madmin.UserPolicy, error)
+	removeUserPolicy(ctx context.Context, userName, policyName string) error
+	listUserPolicy(ctx context.Context, userName string) (*madmin.UserPolicies, error)
 }
 
-// Interface implementation
-//
-// Define the structure of a minIO Client and define the functions that are actually used
-// from minIO api.
 type AdminClient struct {
 	Client *madmin.AdminClient
 }
@@ -166,7 +160,7 @@ func (ac AdminClient) listUserPolicy(ctx context.Context, bucketName string) (*m
 	return ac.Client.ListUserPolicy(ctx, bucketName)
 }
 
-func NewMinioAdminClient(sessionClaims *models.Principal) (*madmin.AdminClient, error) {
+func NewAdminClient(sessionClaims *models.Principal) (*madmin.AdminClient, error) {
 	adminClient, err := newAdminFromClaims(sessionClaims)
 	if err != nil {
 		return nil, err
@@ -176,8 +170,8 @@ func NewMinioAdminClient(sessionClaims *models.Principal) (*madmin.AdminClient, 
 
 // newAdminFromClaims creates a minio admin from Decrypted claims using Assume role credentials
 func newAdminFromClaims(claims *models.Principal) (*madmin.AdminClient, error) {
-	tlsEnabled := getMinIOEndpointIsSecure()
-	endpoint := getMinIOEndpoint()
+	tlsEnabled := getEndpointIsSecure()
+	endpoint := getEndpoint()
 
 	adminClient, err := madmin.NewWithOptions(endpoint, &madmin.Options{
 		Creds:  credentials.NewStaticV4(claims.STSAccessKeyID, claims.STSSecretAccessKey, claims.STSSessionToken),
@@ -211,7 +205,6 @@ var httpClient *http.Client
 // GetConsoleHTTPClient will initialize the console HTTP Client with fully populated custom TLS
 // Transport that with loads certs at
 // - ${HOME}/.console/certs/CAs
-// - ${HOME}/.minio/certs/CAs
 func GetConsoleHTTPClient() *http.Client {
 	if httpClient == nil {
 		httpClient = PrepareConsoleHTTPClient(false)

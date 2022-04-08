@@ -29,28 +29,24 @@ var (
 	ConsoleResourceName = "console-ui"
 )
 
-func getMinIOServer() string {
-	return strings.TrimSpace(env.Get(ConsoleMinIOServer, "http://127.0.0.1:9985"))
+func getServer() string {
+	return strings.TrimSpace(env.Get(ConsoleServer, "http://127.0.0.1:9985"))
 }
 
-func getSubnetProxy() string {
-	return strings.TrimSpace(env.Get(ConsoleSubnetProxy, ""))
+func GetRegion() string {
+	return strings.TrimSpace(env.Get(ConsoleRegion, "us-east-1"))
 }
 
-func GetMinIORegion() string {
-	return strings.TrimSpace(env.Get(ConsoleMinIORegion, ""))
-}
-
-func getMinIOEndpoint() string {
-	u, err := url.Parse(getMinIOServer())
+func getEndpoint() string {
+	u, err := url.Parse(getServer())
 	if err != nil {
 		panic(err)
 	}
 	return u.Host
 }
 
-func getMinIOEndpointIsSecure() bool {
-	u, err := url.Parse(getMinIOServer())
+func getEndpointIsSecure() bool {
+	u, err := url.Parse(getServer())
 	if err != nil {
 		panic(err)
 	}

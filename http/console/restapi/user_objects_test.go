@@ -3,6 +3,7 @@ package restapi
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/console/models"
 	"io/ioutil"
@@ -17,7 +18,7 @@ func Test_getUploadObjectResponse(t *testing.T) {
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	mClient, err := NewMinioAdminClient(session)
+	mClient, err := NewAdminClient(session)
 	client := AdminClient{Client: mClient}
 	r1, _ := ioutil.ReadFile("user_objects.go")
 	err = client.putObject(context.Background(), "testName", "name.go", bytes.NewReader(r1), int64(len(r1)))
@@ -34,7 +35,7 @@ func Test_getDownloadObjectResponse(t *testing.T) {
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	mClient, err := NewMinioAdminClient(session)
+	mClient, err := NewAdminClient(session)
 	client := AdminClient{Client: mClient}
 	err = client.getObject(context.Background(), "testName", "name.go")
 	if err != nil {
@@ -44,9 +45,9 @@ func Test_getDownloadObjectResponse(t *testing.T) {
 
 func Test_getListObjectResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "IWR63YDFARH6NN4GF6KT",
-		STSSecretAccessKey: "GA3za0znWojV5lo4xXFgFna145eYZJUsV9fzI+2g",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJJV1I2M1lERkFSSDZOTjRHRjZLVCIsImV4cCI6MTY0OTIyMzcwOSwicGFyZW50IjoidGVzdCJ9.a5RERMlZsMx9pDfrN8MypZz7Z9WzzW1d9PXGnstbpTw63JiABMaRduy6lIbjypVcWrnPudvSQq-MD3pjt2lERw",
+		STSAccessKeyID:     "M0MXISFDO8JQ51HK8AFJ",
+		STSSecretAccessKey: "Aj575Ec17PUrdRHbXRL+KW3tH7hocDhJRyQt2yQh",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJNME1YSVNGRE84SlE1MUhLOEFGSiIsImV4cCI6MTY0OTI0MjU3MywicGFyZW50IjoidGVzdCJ9.VwJq5ZQpiT59tPcGbrFydEq_o7W-E_CtbLALxz1WqrP_D3tQbB28EvCsEUvVOYuwV0KsfKKrIsDxeOHNSHxo2w",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -57,5 +58,8 @@ func Test_getListObjectResponse(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(objects)
+	if objects != nil {
+		bytes, _ := json.Marshal(objects)
+		fmt.Println("objects:", string(bytes))
+	}
 }

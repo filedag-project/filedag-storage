@@ -14,68 +14,7 @@ import (
 	"github.com/go-openapi/errors"
 )
 
-// Policy evaluated constants
-const (
-	Unknown = 0
-	Allow   = 1
-	Deny    = -1
-)
-
-//func registerUsersHandlers(api *operations.ConsoleAPI) {
-//// List Users
-//api.AdminAPIListUsersHandler = admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams, session *models.Principal) middleware.Responder {
-//	listUsersResponse, err := getListUsersResponse(session)
-//	if err != nil {
-//		return admin_api.NewListUsersDefault(int(err.Code)).WithPayload(err)
-//	}
-//	return admin_api.NewListUsersOK().WithPayload(listUsersResponse)
-//})
-//// Add User
-//api.AdminAPIAddUserHandler = admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams, session *models.Principal) middleware.Responder {
-//	userResponse, err := getUserAddResponse(session, params)
-//	if err != nil {
-//		return admin_api.NewAddUserDefault(int(err.Code)).WithPayload(err)
-//	}
-//	return admin_api.NewAddUserCreated().WithPayload(userResponse)
-//})
-//// Remove User
-//api.AdminAPIRemoveUserHandler = admin_api.RemoveUserHandlerFunc(func(params admin_api.RemoveUserParams, session *models.Principal) middleware.Responder {
-//	err := getRemoveUserResponse(session, params)
-//	if err != nil {
-//		return admin_api.NewRemoveUserDefault(int(err.Code)).WithPayload(err)
-//	}
-//	return admin_api.NewRemoveUserNoContent()
-//})
-//// Update User-Groups
-//api.AdminAPIUpdateUserGroupsHandler = admin_api.UpdateUserGroupsHandlerFunc(func(params admin_api.UpdateUserGroupsParams, session *models.Principal) middleware.Responder {
-//	userUpdateResponse, err := getUpdateUserGroupsResponse(session, params)
-//	if err != nil {
-//		return admin_api.NewUpdateUserGroupsDefault(int(err.Code)).WithPayload(err)
-//	}
-//
-//	return admin_api.NewUpdateUserGroupsOK().WithPayload(userUpdateResponse)
-//})
-//// Get User
-//api.AdminAPIGetUserInfoHandler = admin_api.GetUserInfoHandlerFunc(func(params admin_api.GetUserInfoParams, session *models.Principal) middleware.Responder {
-//	userInfoResponse, err := getUserInfoResponse(session, params)
-//	if err != nil {
-//		return admin_api.NewGetUserInfoDefault(int(err.Code)).WithPayload(err)
-//	}
-//
-//	return admin_api.NewGetUserInfoOK().WithPayload(userInfoResponse)
-//})
-//// Update User
-//api.AdminAPIUpdateUserInfoHandler = admin_api.UpdateUserInfoHandlerFunc(func(params admin_api.UpdateUserInfoParams, session *models.Principal) middleware.Responder {
-//	userUpdateResponse, err := getUpdateUserResponse(session, params)
-//	if err != nil {
-//		return admin_api.NewUpdateUserInfoDefault(int(err.Code)).WithPayload(err)
-//	}
-//
-//	return admin_api.NewUpdateUserInfoOK().WithPayload(userUpdateResponse)
-//})
-//}
-
-func listUsers(ctx context.Context, client MinioAdmin) ([]*models.User, error) {
+func listUsers(ctx context.Context, client Admin) ([]*models.User, error) {
 	userList, err := client.listUsers(ctx)
 	if err != nil {
 		return []*models.User{}, err
@@ -97,7 +36,7 @@ func listUsers(ctx context.Context, client MinioAdmin) ([]*models.User, error) {
 // getListUsersResponse performs listUsers() and serializes it to the handler's output
 func getListUsersResponse(session *models.Principal) (*models.ListUsersResponse, *models.Error) {
 	ctx := context.Background()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, prepareError(err)
 	}
@@ -115,12 +54,11 @@ func getListUsersResponse(session *models.Principal) (*models.ListUsersResponse,
 }
 
 // addUser
-func addUser(ctx context.Context, client MinioAdmin, accessKey, secretKey *string, groups []string, policies []string) (*models.User, error) {
+func addUser(ctx context.Context, client Admin, accessKey, secretKey *string, groups []string, policies []string) (*models.User, error) {
 	_, err := client.addUser(ctx, *accessKey, *secretKey)
 	if err != nil {
 		return nil, err
 	}
-	// set groups for the newly created user
 	var userWithGroups *models.User
 	if len(policies) > 0 {
 		policyString := strings.Join(policies, ",")
@@ -144,7 +82,7 @@ func addUser(ctx context.Context, client MinioAdmin, accessKey, secretKey *strin
 
 func getUserAddResponse(session *models.Principal, params admin_api.AddUserParams) (*models.User, *models.Error) {
 	ctx := context.Background()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, prepareError(err)
 	}
@@ -171,15 +109,15 @@ func getUserAddResponse(session *models.Principal, params admin_api.AddUserParam
 	return user, nil
 }
 
-//removeUser invokes removing an user on `MinioAdmin`, then we return the response from API
-func removeUser(ctx context.Context, client MinioAdmin, accessKey string) error {
+//removeUser invokes removing an user on `Admin`, then we return the response from API
+func removeUser(ctx context.Context, client Admin, accessKey string) error {
 	return client.removeUser(ctx, accessKey)
 }
 
 func getRemoveUserResponse(session *models.Principal, params admin_api.RemoveUserParams) *models.Error {
 	ctx := context.Background()
 
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return prepareError(err)
 	}
@@ -196,8 +134,8 @@ func getRemoveUserResponse(session *models.Principal, params admin_api.RemoveUse
 	return nil
 }
 
-// getUserInfo calls MinIO server get the User Information
-func getUserInfo(ctx context.Context, client MinioAdmin, accessKey string) (*madmin.UserInfo, error) {
+// getUserInfo
+func getUserInfo(ctx context.Context, client Admin, accessKey string) (*madmin.UserInfo, error) {
 	userInfo, err := client.getUserInfo(ctx, accessKey)
 	if err != nil {
 		return nil, err
@@ -207,7 +145,7 @@ func getUserInfo(ctx context.Context, client MinioAdmin, accessKey string) (*mad
 
 func getUserInfoResponse(session *models.Principal, params admin_api.GetUserInfoParams) (*models.User, *models.Error) {
 	ctx := context.Background()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, prepareError(err)
 	}
@@ -233,8 +171,8 @@ func getUserInfoResponse(session *models.Principal, params admin_api.GetUserInfo
 	return userInformation, nil
 }
 
-// setUserStatus invokes setUserStatus from madmin to update user status
-func setUserStatus(ctx context.Context, client MinioAdmin, user string, status string) error {
+// setUserStatus invokes setUserStatus from admin to update user status
+func setUserStatus(ctx context.Context, client Admin, user string, status string) error {
 	var setStatus madmin.AccountStatus
 	switch status {
 	case "enabled":
@@ -254,7 +192,7 @@ func getUserSetPolicyResponse(session *models.Principal, userName string, req *m
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil
 	}
@@ -270,7 +208,7 @@ func getUserSetPolicyResponse(session *models.Principal, userName string, req *m
 }
 
 // setUserAccessPolicy set the access permissions on an existing user.
-func setUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string, access models.BucketAccess, policyName, policyDefinition string) error {
+func setUserAccessPolicy(ctx context.Context, client Admin, userName string, access models.BucketAccess, policyName, policyDefinition string) error {
 	if strings.TrimSpace(userName) == "" {
 		return fmt.Errorf("error: user name not present")
 	}
@@ -294,7 +232,7 @@ func setUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string
 func getUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicy, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, nil
 	}
@@ -307,7 +245,7 @@ func getUserPolicyResponse(session *models.Principal, userName string) (*madmin.
 }
 
 // getUserAccessPolicy
-func getUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string) (*madmin.UserPolicy, error) {
+func getUserAccessPolicy(ctx context.Context, client Admin, userName string) (*madmin.UserPolicy, error) {
 	if strings.TrimSpace(userName) == "" {
 		return nil, fmt.Errorf("error: user name not present")
 	}
@@ -322,7 +260,7 @@ func getUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string
 func listUserPolicyResponse(session *models.Principal, userName string) (*madmin.UserPolicies, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, nil
 	}
@@ -335,7 +273,7 @@ func listUserPolicyResponse(session *models.Principal, userName string) (*madmin
 }
 
 // listUserAccessPolicy
-func listUserAccessPolicy(ctx context.Context, client MinioAdmin, userName string) (*madmin.UserPolicies, error) {
+func listUserAccessPolicy(ctx context.Context, client Admin, userName string) (*madmin.UserPolicies, error) {
 	if strings.TrimSpace(userName) == "" {
 		return nil, fmt.Errorf("error: user name not present")
 	}
@@ -350,7 +288,7 @@ func listUserAccessPolicy(ctx context.Context, client MinioAdmin, userName strin
 func removeUserPolicyResponse(session *models.Principal, userName, policyName string) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil
 	}
@@ -363,9 +301,9 @@ func removeUserPolicyResponse(session *models.Principal, userName, policyName st
 }
 
 // removeUserAccessPolicy
-func removeUserAccessPolicy(ctx context.Context, client MinioAdmin, userName, policyName string) error {
+func removeUserAccessPolicy(ctx context.Context, client Admin, userName, policyName string) error {
 	if strings.TrimSpace(userName) == "" {
-		return fmt.Errorf("error: bucket name not present")
+		return fmt.Errorf("error: user name not present")
 	}
 	err := client.removeUserPolicy(ctx, userName, policyName)
 	if err != nil {

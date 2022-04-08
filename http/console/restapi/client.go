@@ -67,7 +67,7 @@ func NewConsoleCredentials(accessKey, secretKey, location string) (*credentials.
 	}
 	stsAssumeRole := &credentials.STSAssumeRole{
 		Client:      GetConsoleHTTPClient(),
-		STSEndpoint: getMinIOServer(),
+		STSEndpoint: getServer(),
 		Options:     opts,
 	}
 	consoleSTSWrapper := consoleSTSAssumeRole{stsAssumeRole: stsAssumeRole}
@@ -82,7 +82,7 @@ func getConsoleCredentialsFromSession(claims *models.Principal) *credentials.Cre
 
 // computeObjectURLWithoutEncode returns a MinIO url containing the object filename without encoding
 func computeObjectURLWithoutEncode(bucketName, prefix string) (string, error) {
-	endpoint := getMinIOServer()
+	endpoint := getServer()
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return "", fmt.Errorf("the provided endpoint is invalid")

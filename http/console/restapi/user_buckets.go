@@ -10,103 +10,12 @@ import (
 	"time"
 )
 
-//func registerBucketsHandlers(api *operations.ConsoleAPI) {
-//	// list buckets
-//	api.UserAPIListBucketsHandler = user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams, session *models.Principal) middleware.Responder {
-//		listBucketsResponse, err := getListBucketsResponse(session)
-//		if err != nil {
-//			return user_api.NewListBucketsDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewListBucketsOK().WithPayload(listBucketsResponse)
-//	})
-//	// create bucket
-//	api.UserAPIMakeBucketHandler = user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams, session *models.Principal) middleware.Responder {
-//		if err := getMakeBucketResponse(session, params.Body); err != nil {
-//			return user_api.NewMakeBucketDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewMakeBucketCreated()
-//	})
-//	// delete bucket
-//	api.UserAPIDeleteBucketHandler = user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams, session *models.Principal) middleware.Responder {
-//		if err := getDeleteBucketResponse(session, params); err != nil {
-//			return user_api.NewMakeBucketDefault(int(err.Code)).WithPayload(err)
-//
-//		}
-//		return user_api.NewDeleteBucketNoContent()
-//	})
-//	// get bucket info
-//	api.UserAPIBucketInfoHandler = user_api.BucketInfoHandlerFunc(func(params user_api.BucketInfoParams, session *models.Principal) middleware.Responder {
-//		bucketInfoResp, err := getBucketInfoResponse(session, params)
-//		if err != nil {
-//			return user_api.NewBucketInfoDefault(int(err.Code)).WithPayload(err)
-//		}
-//
-//		return user_api.NewBucketInfoOK().WithPayload(bucketInfoResp)
-//	})
-//	// set bucket policy
-//	api.UserAPIBucketSetPolicyHandler = user_api.BucketSetPolicyHandlerFunc(func(params user_api.BucketSetPolicyParams, session *models.Principal) middleware.Responder {
-//		bucketSetPolicyResp, err := getBucketSetPolicyResponse(session, params.Name, params.Body)
-//		if err != nil {
-//			return user_api.NewBucketSetPolicyDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewBucketSetPolicyOK().WithPayload(bucketSetPolicyResp)
-//	})
-//	// set bucket tags
-//	api.UserAPIPutBucketTagsHandler = user_api.PutBucketTagsHandlerFunc(func(params user_api.PutBucketTagsParams, session *models.Principal) middleware.Responder {
-//		err := getPutBucketTagsResponse(session, params.BucketName, params.Body)
-//		if err != nil {
-//			return user_api.NewPutBucketTagsDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewPutBucketTagsOK()
-//	})
-//	// get bucket versioning
-//	api.UserAPIGetBucketVersioningHandler = user_api.GetBucketVersioningHandlerFunc(func(params user_api.GetBucketVersioningParams, session *models.Principal) middleware.Responder {
-//		getBucketVersioning, err := getBucketVersionedResponse(session, params.BucketName)
-//		if err != nil {
-//			return user_api.NewGetBucketVersioningDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
-//		}
-//		return user_api.NewGetBucketVersioningOK().WithPayload(getBucketVersioning)
-//	})
-//	// update bucket versioning
-//	api.UserAPISetBucketVersioningHandler = user_api.SetBucketVersioningHandlerFunc(func(params user_api.SetBucketVersioningParams, session *models.Principal) middleware.Responder {
-//		err := setBucketVersioningResponse(session, params.BucketName, &params)
-//		if err != nil {
-//			return user_api.NewSetBucketVersioningDefault(500).WithPayload(err)
-//		}
-//		return user_api.NewSetBucketVersioningCreated()
-//	})
-//	// get bucket replication
-//	api.UserAPIGetBucketReplicationHandler = user_api.GetBucketReplicationHandlerFunc(func(params user_api.GetBucketReplicationParams, session *models.Principal) middleware.Responder {
-//		getBucketReplication, err := getBucketReplicationResponse(session, params.BucketName)
-//		if err != nil {
-//			return user_api.NewGetBucketReplicationDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
-//		}
-//		return user_api.NewGetBucketReplicationOK().WithPayload(getBucketReplication)
-//	})
-//	// get single bucket replication rule
-//	api.UserAPIGetBucketReplicationRuleHandler = user_api.GetBucketReplicationRuleHandlerFunc(func(params user_api.GetBucketReplicationRuleParams, session *models.Principal) middleware.Responder {
-//		getBucketReplicationRule, err := getBucketReplicationRuleResponse(session, params.BucketName, params.RuleID)
-//		if err != nil {
-//			return user_api.NewGetBucketReplicationRuleDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
-//		}
-//		return user_api.NewGetBucketReplicationRuleOK().WithPayload(getBucketReplicationRule)
-//	})
-//
-//	// enable bucket encryption
-//	api.UserAPIEnableBucketEncryptionHandler = user_api.EnableBucketEncryptionHandlerFunc(func(params user_api.EnableBucketEncryptionParams, session *models.Principal) middleware.Responder {
-//		if err := enableBucketEncryptionResponse(session, params); err != nil {
-//			return user_api.NewEnableBucketEncryptionDefault(int(err.Code)).WithPayload(err)
-//		}
-//		return user_api.NewEnableBucketEncryptionOK()
-//	})
-//}
-
 // getListBucketsResponse
 func getListBucketsResponse(session *models.Principal) (*models.ListBucketsResponse, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, prepareError(err)
 	}
@@ -124,7 +33,7 @@ func getListBucketsResponse(session *models.Principal) (*models.ListBucketsRespo
 }
 
 // getlistBuckets
-func getlistBuckets(ctx context.Context, client MinioAdmin) ([]*models.Bucket, error) {
+func getlistBuckets(ctx context.Context, client Admin) ([]*models.Bucket, error) {
 	info, err := client.listBucketsInfo(ctx)
 	if err != nil {
 		return []*models.Bucket{}, err
@@ -148,7 +57,7 @@ func getCreateBucketResponse(session *models.Principal, buchetName, location str
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil
 	}
@@ -161,7 +70,7 @@ func getCreateBucketResponse(session *models.Principal, buchetName, location str
 }
 
 // putBucket
-func putBucket(ctx context.Context, client MinioAdmin, buchetName, location string, bool bool) error {
+func putBucket(ctx context.Context, client Admin, buchetName, location string, bool bool) error {
 	err := client.putBucket(ctx, buchetName, location, bool)
 	if err != nil {
 		return err
@@ -174,7 +83,7 @@ func getDeleteBucketResponse(session *models.Principal, buchetName string) *mode
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil
 	}
@@ -187,7 +96,7 @@ func getDeleteBucketResponse(session *models.Principal, buchetName string) *mode
 }
 
 // removeBucket deletes a bucket
-func removeBucket(ctx context.Context, client MinioAdmin, bucketName string) error {
+func removeBucket(ctx context.Context, client Admin, bucketName string) error {
 	return client.removeBucket(ctx, bucketName, "", false)
 }
 
@@ -197,7 +106,7 @@ func getBucketSetPolicyResponse(session *models.Principal, bucketName string, re
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, prepareError(err)
 	}
@@ -215,7 +124,7 @@ func getBucketSetPolicyResponse(session *models.Principal, bucketName string, re
 }
 
 // setBucketAccessPolicy set the access permissions on an existing bucket.
-func setBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName string, access models.BucketAccess, policyDefinition string) error {
+func setBucketAccessPolicy(ctx context.Context, client Admin, bucketName string, access models.BucketAccess, policyDefinition string) error {
 	if strings.TrimSpace(bucketName) == "" {
 		return fmt.Errorf("error: bucket name not present")
 	}
@@ -239,7 +148,7 @@ func setBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName st
 func getBucketPolicyResponse(session *models.Principal, bucketName string) (*policy.Policy, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil, nil
 	}
@@ -252,7 +161,7 @@ func getBucketPolicyResponse(session *models.Principal, bucketName string) (*pol
 }
 
 // getBucketAccessPolicy
-func getBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName string) (*policy.Policy, error) {
+func getBucketAccessPolicy(ctx context.Context, client Admin, bucketName string) (*policy.Policy, error) {
 	if strings.TrimSpace(bucketName) == "" {
 		return nil, fmt.Errorf("error: bucket name not present")
 	}
@@ -267,7 +176,7 @@ func getBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName st
 func removeBucketPolicyResponse(session *models.Principal, bucketName string) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
-	mAdmin, err := NewMinioAdminClient(session)
+	mAdmin, err := NewAdminClient(session)
 	if err != nil {
 		return nil
 	}
@@ -280,7 +189,7 @@ func removeBucketPolicyResponse(session *models.Principal, bucketName string) *m
 }
 
 // removeBucketAccessPolicy
-func removeBucketAccessPolicy(ctx context.Context, client MinioAdmin, bucketName string) error {
+func removeBucketAccessPolicy(ctx context.Context, client Admin, bucketName string) error {
 	if strings.TrimSpace(bucketName) == "" {
 		return fmt.Errorf("error: bucket name not present")
 	}
