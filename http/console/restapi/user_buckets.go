@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-// getListBucketsResponse
-func getListBucketsResponse(session *models.Principal) (*models.ListBucketsResponse, *models.Error) {
+// GetListBucketsResponse
+func (apiServer *ApiServer) GetListBucketsResponse(session *models.Principal) (*models.ListBucketsResponse, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
@@ -52,8 +52,8 @@ func getlistBuckets(ctx context.Context, client Admin) ([]*models.Bucket, error)
 	return bucketInfos, nil
 }
 
-// getCreateBucketResponse performs putBucket() to create a bucket with its access policy
-func getCreateBucketResponse(session *models.Principal, buchetName, location string, opts bool) *models.Error {
+// GetCreateBucketResponse performs putBucket() to create a bucket with its access policy
+func (apiServer *ApiServer) GetCreateBucketResponse(session *models.Principal, buchetName, location string, opts bool) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
@@ -78,8 +78,8 @@ func putBucket(ctx context.Context, client Admin, buchetName, location string, b
 	return err
 }
 
-// getDeleteBucketResponse performs removeBucket() to delete a bucket
-func getDeleteBucketResponse(session *models.Principal, buchetName string) *models.Error {
+// GetDeleteBucketResponse performs removeBucket() to delete a bucket
+func (apiServer *ApiServer) GetDeleteBucketResponse(session *models.Principal, buchetName string) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
@@ -102,7 +102,7 @@ func removeBucket(ctx context.Context, client Admin, bucketName string) error {
 
 // getBucketSetPolicyResponse calls setBucketAccessPolicy() to set a access policy to a bucket
 //   and returns the serialized output.
-func getBucketSetPolicyResponse(session *models.Principal, bucketName string, req *models.SetBucketPolicyRequest) (*models.Bucket, *models.Error) {
+func (apiServer *ApiServer) GetBucketSetPolicyResponse(session *models.Principal, req *models.SetBucketPolicyParams) (*models.Bucket, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
@@ -112,7 +112,7 @@ func getBucketSetPolicyResponse(session *models.Principal, bucketName string, re
 	}
 	adminClient := AdminClient{Client: mAdmin}
 
-	if err := setBucketAccessPolicy(ctx, adminClient, bucketName, *req.Access, req.Definition); err != nil {
+	if err := setBucketAccessPolicy(ctx, adminClient, req.BucketName, *req.Access, req.Definition); err != nil {
 		return nil, prepareError(err)
 	}
 	// set bucket access policy
@@ -144,8 +144,8 @@ func setBucketAccessPolicy(ctx context.Context, client Admin, bucketName string,
 	return nil
 }
 
-// getBucketPolicyResponse
-func getBucketPolicyResponse(session *models.Principal, bucketName string) (*policy.Policy, *models.Error) {
+// GetBucketPolicyResponse
+func (apiServer *ApiServer) GetBucketPolicyResponse(session *models.Principal, bucketName string) (*policy.Policy, *models.Error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	mAdmin, err := NewAdminClient(session)
@@ -172,8 +172,8 @@ func getBucketAccessPolicy(ctx context.Context, client Admin, bucketName string)
 	return policy, nil
 }
 
-// removeBucketPolicyResponse
-func removeBucketPolicyResponse(session *models.Principal, bucketName string) *models.Error {
+// RemoveBucketPolicyResponse
+func (apiServer *ApiServer) RemoveBucketPolicyResponse(session *models.Principal, bucketName string) *models.Error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	mAdmin, err := NewAdminClient(session)

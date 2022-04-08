@@ -15,8 +15,8 @@ import (
 // SetBucketPolicyRequest set bucket policy request
 //
 // swagger:model setBucketPolicyRequest
-type SetBucketPolicyRequest struct {
-
+type SetBucketPolicyParams struct {
+	BucketName string `json:"bucket_name"`
 	// access
 	// Required: true
 	Access *BucketAccess `json:"access"`
@@ -26,7 +26,7 @@ type SetBucketPolicyRequest struct {
 }
 
 // Validate validates this set bucket policy request
-func (m *SetBucketPolicyRequest) Validate(formats strfmt.Registry) error {
+func (m *SetBucketPolicyParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateAccess(formats); err != nil {
@@ -39,7 +39,7 @@ func (m *SetBucketPolicyRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *SetBucketPolicyRequest) validateAccess(formats strfmt.Registry) error {
+func (m *SetBucketPolicyParams) validateAccess(formats strfmt.Registry) error {
 
 	if err := validate.Required("access", "body", m.Access); err != nil {
 		return err
@@ -64,7 +64,7 @@ func (m *SetBucketPolicyRequest) validateAccess(formats strfmt.Registry) error {
 }
 
 // ContextValidate validate this set bucket policy request based on the context it is used
-func (m *SetBucketPolicyRequest) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+func (m *SetBucketPolicyParams) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.contextValidateAccess(ctx, formats); err != nil {
@@ -77,7 +77,7 @@ func (m *SetBucketPolicyRequest) ContextValidate(ctx context.Context, formats st
 	return nil
 }
 
-func (m *SetBucketPolicyRequest) contextValidateAccess(ctx context.Context, formats strfmt.Registry) error {
+func (m *SetBucketPolicyParams) contextValidateAccess(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Access != nil {
 		if err := m.Access.ContextValidate(ctx, formats); err != nil {
@@ -94,7 +94,7 @@ func (m *SetBucketPolicyRequest) contextValidateAccess(ctx context.Context, form
 }
 
 // MarshalBinary interface implementation
-func (m *SetBucketPolicyRequest) MarshalBinary() ([]byte, error) {
+func (m *SetBucketPolicyParams) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -102,8 +102,8 @@ func (m *SetBucketPolicyRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *SetBucketPolicyRequest) UnmarshalBinary(b []byte) error {
-	var res SetBucketPolicyRequest
+func (m *SetBucketPolicyParams) UnmarshalBinary(b []byte) error {
+	var res SetBucketPolicyParams
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -244,7 +244,7 @@ type BucketDetails struct {
 	Replication bool `json:"replication,omitempty"`
 
 	// tags
-	Tags map[string]string `json:"tags,omitempty"`
+	//Tags map[string]string `json:"tags,omitempty"`
 
 	// versioning
 	Versioning bool `json:"versioning,omitempty"`
