@@ -22,17 +22,18 @@ type ULevelDB struct {
 }
 
 // OpenDb open a db client
-func OpenDb(path string) *ULevelDB {
+func OpenDb(path string) (*ULevelDB, error) {
 	newDb, err := leveldb.OpenFile(path, nil)
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
 		newDb, err = leveldb.RecoverFile(path, nil)
 	}
 	if err != nil {
 		log.Errorf("Open Db path: %v,err:%v,", path, err)
+		return nil, err
 	}
 	uLevelDB := ULevelDB{}
 	uLevelDB.DB = newDb
-	return &uLevelDB
+	return &uLevelDB, nil
 }
 
 //Close db close

@@ -23,7 +23,12 @@ const (
 
 //startServer Start a IamServer
 func startServer() {
-	uleveldb.DBClient = uleveldb.OpenDb(os.Getenv(dbPath))
+	var err error
+	uleveldb.DBClient, err = uleveldb.OpenDb(os.Getenv(dbPath))
+	if err != nil {
+		return
+	}
+	defer uleveldb.DBClient.Close()
 	router := mux.NewRouter()
 	iamapi.NewIamApiServer(router)
 	s3api.NewS3Server(router)
@@ -31,12 +36,11 @@ func startServer() {
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
 	}
-	err := http.ListenAndServe(os.Getenv(fileDagStoragePort), router)
+	err = http.ListenAndServe(os.Getenv(fileDagStoragePort), router)
 	if err != nil {
 		log.Errorf("Listen And Serve err%v", err)
 		return
 	}
-	defer uleveldb.DBClient.Close()
 }
 
 var startCmd = &cli.Command{
