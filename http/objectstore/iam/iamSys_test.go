@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -9,9 +10,9 @@ import (
 
 func TestIsAllowed(t *testing.T) {
 	var iamSys IdentityAMSys
-	uleveldb.DBClient = uleveldb.OpenDb("/tmp/leveldb2/test")
+	uleveldb.DBClient, _ = uleveldb.OpenDb("/tmp/leveldb2/test")
 	iamSys.Init()
-	a := iamSys.IsAllowed(auth.Args{
+	a := iamSys.IsAllowed(context.Background(), auth.Args{
 		AccountName: "test",
 		Groups:      nil,
 		Action:      "",

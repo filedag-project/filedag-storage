@@ -10,7 +10,7 @@ import (
 func TestLoadUser(t *testing.T) {
 	var iamSys IdentityAMSys
 	iamSys.Init()
-	//err := iamSys.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.Credentials{
+	//err := iamSys.saveUserIdentity(r.Context(), "test", UserIdentity{Credentials: auth.Credentials{
 	//	AccessKey:    "test",
 	//	SecretKey:    "test secret",
 	//	Expiration:   time.Now(),
@@ -28,13 +28,13 @@ func TestLoadUser(t *testing.T) {
 		return
 	}
 	//fmt.Println(m)
-	//a, err := iamSys.loadUsers(context.Background())
+	//a, err := iamSys.loadUsers(r.Context())
 	//if err != nil {
 	//	fmt.Println(err)
 	//	return
 	//}
 	//fmt.Println(a)
-	//err := iamSys.removeUserIdentity(context.Background(), "s")
+	//err := iamSys.removeUserIdentity(r.Context(), "s")
 	//if err != nil {
 	//	return
 	//}
