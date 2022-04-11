@@ -1,6 +1,6 @@
 # Object Store
-- Object Store 用户、地域、桶、对象等基本数据结构实现
-- Object Store 用户认证 api 实现
-- Object Store 桶相关操作 api 实现
-- Object Store 对象操作 api 实现
-- Object Store 权限操作 api 实现
+- Object Store Implementation of basic data structures such as users, regions, buckets, and object
+- Object Store User authentication api implementation
+- Object Store Bucket related operation api implementation
+- Object Store object manipulation api implementation
+- Object Store policy operation api implementation
