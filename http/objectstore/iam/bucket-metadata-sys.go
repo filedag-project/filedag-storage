@@ -121,8 +121,8 @@ func (sys *bucketMetadataSys) GetBucketMeta(bucket, username string, meta *Bucke
 	return nil
 }
 
-// HeadBucketMeta metadata for a bucket.
-func (sys *bucketMetadataSys) HeadBucketMeta(bucket, username string) bool {
+// HasBucketMeta metadata for a bucket.
+func (sys *bucketMetadataSys) HasBucketMeta(bucket, username string) bool {
 	var meta BucketMetadata
 	err := sys.db.Get(bucketPrefix+username+"-"+bucket, &meta)
 	if err != nil {

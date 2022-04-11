@@ -2,7 +2,6 @@ package response
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -89,16 +88,16 @@ func WriteSuccessResponseEmpty(w http.ResponseWriter, r *http.Request) {
 
 // WriteErrorResponseJSON - writes error response in JSON format;
 // useful for admin APIs.
-func WriteErrorResponseJSON(ctx context.Context, w http.ResponseWriter, err api_errors.APIError, reqURL *url.URL, host string) {
+func WriteErrorResponseJSON(w http.ResponseWriter, err api_errors.APIError, reqURL *url.URL, host string) {
 	// Generate error response.
-	errorResponse := getAPIErrorResponse(ctx, err, reqURL.Path, w.Header().Get(consts.AmzRequestID), host)
+	errorResponse := getAPIErrorResponse(err, reqURL.Path, w.Header().Get(consts.AmzRequestID), host)
 	encodedErrorResponse := encodeResponseJSON(errorResponse)
 	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeJSON)
 }
 
 // getErrorResponse gets in standard error and resource value and
 // provides a encodable populated response values
-func getAPIErrorResponse(ctx context.Context, err api_errors.APIError, resource, requestID, hostID string) APIErrorResponse {
+func getAPIErrorResponse(err api_errors.APIError, resource, requestID, hostID string) APIErrorResponse {
 	return APIErrorResponse{
 		Code:      err.Code,
 		Message:   err.Description,

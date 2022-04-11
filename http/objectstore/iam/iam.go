@@ -43,14 +43,14 @@ func (sys *IdentityAMSys) initStore() {
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
-func (sys *IdentityAMSys) IsAllowed(args auth.Args) bool {
+func (sys *IdentityAMSys) IsAllowed(ctx context.Context, args auth.Args) bool {
 
 	// Policies don't apply to the owner.
 	if args.IsOwner {
 		return true
 	}
 	// If the credential is temporary, perform STS related checks.
-	ok, parentUser, err := sys.IsTempUser(args.AccountName)
+	ok, parentUser, err := sys.IsTempUser(ctx, args.AccountName)
 	if err != nil {
 		return false
 	}
@@ -58,7 +58,7 @@ func (sys *IdentityAMSys) IsAllowed(args auth.Args) bool {
 		return sys.IsAllowedSTS(args, parentUser)
 	}
 	// Continue with the assumption of a regular user
-	ps, _, err := sys.store.getUserPolices(context.Background(), args.AccountName)
+	ps, _, err := sys.store.getUserPolices(ctx, args.AccountName)
 	if err != nil {
 		return false
 	}
@@ -79,13 +79,13 @@ func (sys *IdentityAMSys) IsAllowedSTS(args auth.Args, parentUser string) bool {
 }
 
 // IsTempUser - returns if given key is a temporary user.
-func (sys *IdentityAMSys) IsTempUser(name string) (bool, string, error) {
-	cred, found := sys.GetUser(context.Background(), name)
+func (sys *IdentityAMSys) IsTempUser(ctx context.Context, name string) (bool, string, error) {
+	cred, found := sys.GetUser(ctx, name)
 	if !found {
 		return false, "", errNoSuchUser
 	}
 	if cred.IsExpired() {
-		err := sys.store.removeUserIdentity(context.Background(), name)
+		err := sys.store.removeUserIdentity(ctx, name)
 		if err != nil {
 			return false, "", err
 		}

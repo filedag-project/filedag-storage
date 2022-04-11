@@ -109,7 +109,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 		return cred, owner, api_errors.ErrAccessDenied
 	}
 
-	if s.Iam.IsAllowed(auth.Args{
+	if s.Iam.IsAllowed(r.Context(), auth.Args{
 		AccountName: cred.AccessKey,
 		Action:      action,
 		BucketName:  bucketName,
@@ -124,7 +124,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 	if action == s3action.ListBucketVersionsAction {
 		// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
 		// verify as a fallback.
-		if s.Iam.IsAllowed(auth.Args{
+		if s.Iam.IsAllowed(r.Context(), auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      s3action.ListBucketAction,
 			BucketName:  bucketName,

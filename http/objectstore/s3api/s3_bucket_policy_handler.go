@@ -2,7 +2,6 @@ package s3api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"github.com/dustin/go-humanize"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
@@ -20,9 +19,9 @@ const maxBucketPolicySize = 20 * humanize.KiByte
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketPolicy.html
 func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	log.Infof("PutBucketPolicyHandler %s", bucket)
-	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutBucketPolicyAction, bucket, "")
+	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
 	if errc != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return
@@ -48,7 +47,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err = s3a.authSys.PolicySys.UpdatePolicy(ctx, cred.AccessKey, bucket, bucketPolicy); err != nil {
+	if err = s3a.authSys.PolicySys.UpdatePolicy(r.Context(), cred.AccessKey, bucket, bucketPolicy); err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -59,14 +58,14 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_DeleteBucketPolicy.html
 func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	log.Infof("DeleteBucketPolicyHandler %s", bucket)
-	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.DeleteBucketPolicyAction, bucket, "")
+	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketPolicyAction, bucket, "")
 	if errc != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
-	if err := s3a.authSys.PolicySys.DeletePolicy(ctx, cred.AccessKey, bucket, nil); err != nil {
+	if err := s3a.authSys.PolicySys.DeletePolicy(r.Context(), cred.AccessKey, bucket, nil); err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
 		return
 	}
@@ -79,7 +78,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("PutBucketPolicyHandler %s", bucket)
-	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.GetBucketPolicyAction, bucket, "")
+	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
 	if errc != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return

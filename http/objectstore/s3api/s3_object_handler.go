@@ -1,7 +1,6 @@
 package s3api
 
 import (
-	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
@@ -65,7 +64,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrEntityTooLarge)
 		return
 	}
-	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(context.Background(), r, s3action.PutObjectAction, "testbuckets", "")
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutObjectAction, "testbuckets", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
@@ -97,10 +96,10 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html
 func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -139,10 +138,10 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 // The HEAD operation retrieves metadata from an object without returning the object itself.
 func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -176,10 +175,10 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html
 func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -213,10 +212,10 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 //   - X-Amz-Copy-Source-Server-Side-Encryption-Customer-Key
 func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request) {
 	dstBucket, dstObject := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, dstBucket, dstObject)
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, dstBucket, dstObject)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -286,10 +285,10 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 
 func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, "")
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, "")
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -336,10 +335,10 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 
 func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
-	var ctx = context.Background()
+
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return

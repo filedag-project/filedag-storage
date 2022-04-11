@@ -21,20 +21,19 @@ const (
 // credentials for regular users .
 // https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html
 func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
 	// Check auth here (otherwise r.Form will have unexpected values from
 	// the call to `parseForm` below), but return failure only after we are
 	// able to validate that it is a valid STS request, so that we are able
 	// to send an appropriate audit log.
-	user, isErrCodeSTS, stsErr := s3a.checkAssumeRoleAuth(ctx, r)
+	user, isErrCodeSTS, stsErr := s3a.checkAssumeRoleAuth(r.Context(), r)
 
 	if err := parseForm(r); err != nil {
-		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSInvalidParameterValue, err)
+		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInvalidParameterValue, err)
 		return
 	}
 
 	if r.Form.Get(consts.StsVersion) != consts.StsAPIVersion {
-		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSMissingParameter, fmt.Errorf("invalid STS API version %s3a, expecting %s3a", r.Form.Get(consts.StsAPIVersion), consts.StsAPIVersion))
+		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSMissingParameter, fmt.Errorf("invalid STS API version %s3a, expecting %s3a", r.Form.Get(consts.StsAPIVersion), consts.StsAPIVersion))
 		return
 	}
 
@@ -42,14 +41,14 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	switch action {
 	case consts.AssumeRole:
 	default:
-		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSInvalidParameterValue, fmt.Errorf("unsupported action %s3a", action))
+		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInvalidParameterValue, fmt.Errorf("unsupported action %s3a", action))
 		return
 	}
 
 	// Validate the authentication result here so that failures will be
 	// audit-logged.
 	if stsErr != api_errors.ErrSTSNone {
-		response.WriteSTSErrorResponse(ctx, w, isErrCodeSTS, stsErr, nil)
+		response.WriteSTSErrorResponse(r.Context(), w, isErrCodeSTS, stsErr, nil)
 		return
 	}
 	defaultExpiryDuration := time.Duration(60) * time.Minute // Defaults to 1hr.
@@ -62,15 +61,15 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	secret := auth.GetDefaultActiveCred().SecretKey
 	cred, err := auth.GetNewCredentialsWithMetadata(m, secret)
 	if err != nil {
-		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSInternalError, err)
+		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInternalError, err)
 		return
 	}
 	// Set the parent of the temporary access key, so that it's access
 	// policy is inherited from `user.AccessKey`.
 	cred.ParentUser = user.AccessKey
 	// Set the newly generated credentials.
-	if err = s3a.authSys.Iam.SetTempUser(ctx, cred.AccessKey, cred, ""); err != nil {
-		response.WriteSTSErrorResponse(ctx, w, true, api_errors.ErrSTSInternalError, err)
+	if err = s3a.authSys.Iam.SetTempUser(r.Context(), cred.AccessKey, cred, ""); err != nil {
+		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInternalError, err)
 		return
 	}
 	assumeRoleResponse := &response.AssumeRoleResponse{

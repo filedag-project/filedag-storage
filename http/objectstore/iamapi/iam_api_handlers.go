@@ -1,7 +1,6 @@
 package iamapi
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
@@ -18,7 +17,7 @@ const (
 
 // CreateUser  add user
 func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
-	_, ok, _ := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, ok, _ := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -28,7 +27,7 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	accessKey := vars["accessKey"]
 	secretKey := vars["secretKey"]
 	resp.CreateUserResult.User.UserName = &accessKey
-	err := iamApi.authSys.Iam.AddUser(context.Background(), accessKey, secretKey)
+	err := iamApi.authSys.Iam.AddUser(r.Context(), accessKey, secretKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -38,14 +37,14 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 //DeleteUser delete user
 func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 	var resp DeleteUserResponse
 	accessKey := r.FormValue("accessKey")
-	err := iamApi.authSys.Iam.RemoveUser(context.Background(), accessKey)
+	err := iamApi.authSys.Iam.RemoveUser(r.Context(), accessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -55,21 +54,21 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 //GetUserInfo get user info
 func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 	userName := r.FormValue("userName")
-	ctx := context.Background()
-	cred, ok := iamApi.authSys.Iam.GetUserInfo(ctx, userName)
+
+	cred, ok := iamApi.authSys.Iam.GetUserInfo(r.Context(), userName)
 	if !ok {
-		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
 		return
 	}
-	polices, err := iamApi.authSys.Iam.GetUserPolices(ctx, userName)
+	polices, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), userName)
 	if err != nil {
-		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrInternalError), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrInternalError), r.URL, r.Host)
 		return
 	}
 
@@ -81,7 +80,7 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 
 	data, err := json.Marshal(user)
 	if err != nil {
-		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
 		return
 	}
 	response.WriteSuccessResponseJSON(w, data)
@@ -89,8 +88,7 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 
 // ChangePassword change password
 func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -100,13 +98,13 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 	if !auth.IsSecretKeyValid(secret) {
 		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
 	}
-	c, ok := iamApi.authSys.Iam.GetUser(ctx, cred.AccessKey)
+	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), cred.AccessKey)
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
 		return
 	}
 	c.SecretKey = secret
-	err := iamApi.authSys.Iam.UpdateUser(ctx, c)
+	err := iamApi.authSys.Iam.UpdateUser(r.Context(), c)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -116,8 +114,7 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 
 // SetStatus set user status
 func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -125,13 +122,13 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 
 	user := r.FormValue("userName")
 	status := r.FormValue("status")
-	c, ok := iamApi.authSys.Iam.GetUser(ctx, user)
+	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), user)
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
 		return
 	}
 	c.Status = status
-	err := iamApi.authSys.Iam.UpdateUser(ctx, c)
+	err := iamApi.authSys.Iam.UpdateUser(r.Context(), c)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -140,7 +137,7 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
-	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -150,7 +147,7 @@ func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
 	userName := vars["userName"]
 	secretKey := vars["secretKey"]
 	resp.CreateUserResult.User.UserName = &userName
-	err := iamApi.authSys.Iam.AddSubUser(context.Background(), userName, secretKey, cred.AccessKey)
+	err := iamApi.authSys.Iam.AddSubUser(r.Context(), userName, secretKey, cred.AccessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -159,8 +156,7 @@ func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -168,7 +164,7 @@ func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request
 	var resp CreateUserResponse
 	vars := mux.Vars(r)
 	userName := vars["userName"]
-	c, ok := iamApi.authSys.Iam.GetUser(ctx, userName)
+	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), userName)
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -177,7 +173,7 @@ func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
-	err := iamApi.authSys.Iam.RemoveUser(ctx, userName)
+	err := iamApi.authSys.Iam.RemoveUser(r.Context(), userName)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -186,21 +182,20 @@ func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request
 }
 
 func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 	userName := r.FormValue("userName")
-	ctx := context.Background()
-	cred, ok := iamApi.authSys.Iam.GetUserInfo(ctx, userName)
+	cred, ok := iamApi.authSys.Iam.GetUserInfo(r.Context(), userName)
 	if !ok {
-		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
 		return
 	}
-	polices, err := iamApi.authSys.Iam.GetUserPolices(ctx, userName)
+	polices, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), userName)
 	if err != nil {
-		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrInternalError), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrInternalError), r.URL, r.Host)
 		return
 	}
 
@@ -212,7 +207,7 @@ func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Reques
 
 	data, err := json.Marshal(user)
 	if err != nil {
-		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
 		return
 	}
 	response.WriteSuccessResponseJSON(w, data)
@@ -220,20 +215,20 @@ func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Reques
 
 //GetUserList get all user
 func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 	var resp ListUsersResponse
-	resp.ListUsersResult.Users = iamApi.authSys.Iam.GetUserList(context.Background())
+	resp.ListUsersResult.Users = iamApi.authSys.Iam.GetUserList(r.Context())
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 //PutUserPolicy Put UserPolicy
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_PutUserPolicy.html
 func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -248,7 +243,7 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	err = iamApi.authSys.Iam.PutUserPolicy(context.Background(), userName, policyName, policyDocument)
+	err = iamApi.authSys.Iam.PutUserPolicy(r.Context(), userName, policyName, policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -259,7 +254,7 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 //GetUserPolicy  Get UserPolicy
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_GetUserPolicy.html
 func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -271,7 +266,7 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 	resp.GetUserPolicyResult.UserName = userName
 	resp.GetUserPolicyResult.PolicyName = policyName
 	policyDocument := policy.PolicyDocument{Version: policyDocumentVersion}
-	err := iamApi.authSys.Iam.GetUserPolicy(context.Background(), userName, policyName, &policyDocument)
+	err := iamApi.authSys.Iam.GetUserPolicy(r.Context(), userName, policyName, &policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -284,7 +279,7 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 //ListUserPolicies  Get User all Policy
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListUserPolicies.html
 func (iamApi *iamApiServer) ListUserPolicies(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -292,7 +287,7 @@ func (iamApi *iamApiServer) ListUserPolicies(w http.ResponseWriter, r *http.Requ
 	var resp ListUserPoliciesResponse
 	userName := r.FormValue("userName")
 
-	policyNames, err := iamApi.authSys.Iam.GetUserPolices(context.Background(), userName)
+	policyNames, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), userName)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -309,7 +304,7 @@ func (iamApi *iamApiServer) ListUserPolicies(w http.ResponseWriter, r *http.Requ
 //DeleteUserPolicy Remove UserPolicy
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_DeleteUserPolicy.html
 func (iamApi *iamApiServer) DeleteUserPolicy(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -317,7 +312,7 @@ func (iamApi *iamApiServer) DeleteUserPolicy(w http.ResponseWriter, r *http.Requ
 	var resp PutUserPolicyResponse
 	userName := r.FormValue("userName")
 	policyName := r.FormValue("policyName")
-	err := iamApi.authSys.Iam.RemoveUserPolicy(context.Background(), userName, policyName)
+	err := iamApi.authSys.Iam.RemoveUserPolicy(r.Context(), userName, policyName)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -335,7 +330,7 @@ func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, e
 
 /*//CreatePolicy Create Policy
 func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -354,7 +349,7 @@ func (iamApi *iamApiServer) CreatePolicy(w http.ResponseWriter, r *http.Request)
 	resp.CreatePolicyResult.Policy.PolicyId = &policyId
 	policyLock.Lock()
 	defer policyLock.Unlock()
-	err = iamApi.authSys.Iam.CreatePolicy(context.Background(), policyName, policyDocument)
+	err = iamApi.authSys.Iam.CreatePolicy(r.Context(), policyName, policyDocument)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return

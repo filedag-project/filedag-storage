@@ -1,7 +1,6 @@
 package iamapi
 
 import (
-	"context"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
@@ -12,8 +11,7 @@ import (
 //Creates a new group.
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateGroup.html
 func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
@@ -21,7 +19,7 @@ func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
 	groupName := r.FormValue("groupName")
 	version := r.FormValue("version")
 	atoi, _ := strconv.Atoi(version)
-	err := iamApi.authSys.Iam.CreateGroup(ctx, groupName, atoi)
+	err := iamApi.authSys.Iam.CreateGroup(r.Context(), groupName, atoi)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -34,14 +32,13 @@ func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
 //Returns a list of IAM users that are in the specified IAM group. You can paginate the results using the MaxItems and Marker parameters.
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_GetGroup.html
 func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 	groupName := r.FormValue("groupName")
-	_, err := iamApi.authSys.Iam.GetGroup(ctx, groupName)
+	_, err := iamApi.authSys.Iam.GetGroup(r.Context(), groupName)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -63,14 +60,13 @@ func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {
 //Deletes the specified IAM group. The group must not contain any users or have any attached policies.
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_DeleteGroup.html
 func (iamApi *iamApiServer) DeleteGroup(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 	groupName := r.FormValue("groupName")
-	err := iamApi.authSys.Iam.DeleteGroup(ctx, groupName)
+	err := iamApi.authSys.Iam.DeleteGroup(r.Context(), groupName)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -84,14 +80,13 @@ func (iamApi *iamApiServer) DeleteGroup(w http.ResponseWriter, r *http.Request) 
 //You can paginate the results using the MaxItems and Marker parameters.
 //https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListGroups.html
 func (iamApi *iamApiServer) ListGroups(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 	p := r.FormValue("pathPrefix")
-	gi, err := iamApi.authSys.Iam.ListGroups(ctx, p)
+	gi, err := iamApi.authSys.Iam.ListGroups(r.Context(), p)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
