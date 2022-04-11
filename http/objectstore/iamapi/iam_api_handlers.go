@@ -186,7 +186,36 @@ func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request
 }
 
 func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+	userName := r.FormValue("userName")
+	ctx := context.Background()
+	cred, ok := iamApi.authSys.Iam.GetUserInfo(ctx, userName)
+	if !ok {
+		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrAccessKeyDisabled), r.URL, r.Host)
+		return
+	}
+	polices, err := iamApi.authSys.Iam.GetUserPolices(ctx, userName)
+	if err != nil {
+		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrInternalError), r.URL, r.Host)
+		return
+	}
 
+	user := iam.UserInfo{
+		SecretKey:  cred.SecretKey,
+		PolicyName: polices,
+		Status:     iam.AccountStatus(cred.Status),
+	}
+
+	data, err := json.Marshal(user)
+	if err != nil {
+		response.WriteErrorResponseJSON(ctx, w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
+		return
+	}
+	response.WriteSuccessResponseJSON(w, data)
 }
 
 //GetUserList get all user
