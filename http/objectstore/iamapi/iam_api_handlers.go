@@ -140,8 +140,8 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
-	cred, ok, _ := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
-	if !ok {
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
@@ -159,7 +159,30 @@ func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request) {
-
+	ctx := context.Background()
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(ctx, r, "", "", "")
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+	var resp CreateUserResponse
+	vars := mux.Vars(r)
+	userName := vars["userName"]
+	c, ok := iamApi.authSys.Iam.GetUser(ctx, userName)
+	if !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	if c.ParentUser != cred.AccessKey {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+	err := iamApi.authSys.Iam.RemoveUser(ctx, userName)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Request) {
