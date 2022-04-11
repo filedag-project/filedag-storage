@@ -140,7 +140,22 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
-
+	cred, ok, _ := iamApi.authSys.CheckRequestAuthTypeCredential(context.Background(), r, "", "", "")
+	if !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+	var resp CreateUserResponse
+	vars := mux.Vars(r)
+	userName := vars["userName"]
+	secretKey := vars["secretKey"]
+	resp.CreateUserResult.User.UserName = &userName
+	err := iamApi.authSys.Iam.AddSubUser(context.Background(), userName, secretKey, cred.AccessKey)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
 func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request) {

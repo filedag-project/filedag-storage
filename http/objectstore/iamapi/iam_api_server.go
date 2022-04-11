@@ -31,7 +31,7 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("userName", "{userName:.*}")
 
 	//sub user
-	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(iamApi.AddSubUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(iamApi.AddSubUser).Queries("userName", "{userName:.*}", "secretKey", "{secretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user").HandlerFunc(iamApi.DeleteSubUser).Queries("accessKey", "{accessKey:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/sub-user-info").HandlerFunc(iamApi.GetSubUserInfo).Queries("userName", "{userName:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/list-users").HandlerFunc(iamApi.GetUserList)

@@ -153,6 +153,23 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 	return nil
 }
 
+//AddSubUser add user
+func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, parentUser string) error {
+	m := make(map[string]interface{})
+	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
+	if err != nil {
+		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
+		return err
+	}
+	credentials.ParentUser = parentUser
+	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
+	if err != nil {
+		log.Errorf("save UserIdentity err:%v", err)
+		return err
+	}
+	return nil
+}
+
 //UpdateUser Update User
 func (sys *IdentityAMSys) UpdateUser(ctx context.Context, cred auth.Credentials) error {
 	err := sys.store.saveUserIdentity(ctx, cred.AccessKey, UserIdentity{Credentials: cred})
