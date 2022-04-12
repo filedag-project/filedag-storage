@@ -34,12 +34,12 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(iamApi.AddSubUser).Queries("userName", "{userName:.*}", "secretKey", "{secretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user").HandlerFunc(iamApi.DeleteSubUser).Queries("userName", "{userName:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/sub-user-info").HandlerFunc(iamApi.GetSubUserInfo).Queries("userName", "{userName:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/list-users").HandlerFunc(iamApi.GetUserList)
+	apiRouter.Methods(http.MethodGet).Path("/list-all-sub-users").HandlerFunc(iamApi.GetUserList)
 
-	apiRouter.Methods(http.MethodPost).Path("/put-user-policy").HandlerFunc(iamApi.PutUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/get-user-policy").HandlerFunc(iamApi.GetUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/list-user-policy").HandlerFunc(iamApi.ListUserPolicies).Queries("userName", "{userName:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/remove-user-policy").HandlerFunc(iamApi.DeleteUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/put-sub-user-policy").HandlerFunc(iamApi.PutUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/get-sub-user-policy").HandlerFunc(iamApi.GetUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/list-sub-user-policy").HandlerFunc(iamApi.ListUserPolicies).Queries("userName", "{userName:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user-policy").HandlerFunc(iamApi.DeleteUserPolicy).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
 
 	//apiRouter.Methods(http.MethodPost).Path("/creat-policy").HandlerFunc(iamApi.CreatePolicy).Queries("policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 
