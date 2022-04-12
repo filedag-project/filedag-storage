@@ -27,8 +27,8 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iamApi.CreateUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(iamApi.DeleteUser).Queries("accessKey", "{accessKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(iamApi.ChangePassword).Queries("newPassword", "{newPassword:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(iamApi.SetStatus).Queries("userName", "{userName:.*}", "status", "{status:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("userName", "{userName:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(iamApi.SetStatus).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("accessKey", "{accessKey:.*}")
 
 	//sub user
 	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(iamApi.AddSubUser).Queries("userName", "{userName:.*}", "secretKey", "{secretKey:.*}")

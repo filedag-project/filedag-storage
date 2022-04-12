@@ -59,7 +59,7 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
-	userName := r.FormValue("userName")
+	userName := r.FormValue("accessKey")
 
 	cred, ok := iamApi.authSys.Iam.GetUserInfo(r.Context(), userName)
 	if !ok {
@@ -120,7 +120,7 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := r.FormValue("userName")
+	user := r.FormValue("accessKey")
 	status := r.FormValue("status")
 	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), user)
 	if !ok {
