@@ -2,6 +2,7 @@ package s3api
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"github.com/gorilla/mux"
@@ -23,6 +24,7 @@ func TestMain(m *testing.M) {
 	}
 	defer uleveldb.DBClient.Close()
 	NewS3Server(router)
+	iamapi.NewIamApiServer(router)
 	// mock a response logger
 	w = httptest.NewRecorder()
 	os.Exit(m.Run())
