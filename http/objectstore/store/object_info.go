@@ -2,7 +2,6 @@ package store
 
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
-	"io"
 	"time"
 )
 
@@ -17,23 +16,11 @@ import (
 // 	VersionID = {string} ""
 // 	IsLatest = {bool} false
 // 	DeleteMarker = {bool} false
-// 	RestoreExpires = {time.Time} 0001-01-01 00:00:00 +0000
-// 	RestoreOngoing = {bool} false
 // 	ContentType = {string} "application/x-msdownload"
 // 	ContentEncoding = {string} ""
 // 	Expires = {time.Time} 0001-01-01 00:00:00 +0000
-// 	StorageClass = {string} "STANDARD"
-// 	UserDefined = {map[string]string}
-// 	UserTags = {string} ""
 // 	Parts = {[]ObjectPartInfo} nil
-// 	Writer = {io.WriteCloser} nil
-// 	Reader = {*hash.Reader | 0x0} nil
-// 	putObjReader = {*putObjReader | 0x0} nil
 // 	AccTime = {time.Time} 0001-01-01 00:00:00 +0000
-// 	Legacy = {bool} false
-// 	VersionPurgeStatusInternal = {string} ""
-// 	VersionPurgeStatus = {VersionPurgeStatusType} ""
-// 	NumVersions = {int} 0
 // 	SuccessorModTime = {time.Time} 0001-01-01 00:00:00 +0000
 //}
 type ObjectInfo struct {
@@ -66,12 +53,6 @@ type ObjectInfo struct {
 	// to a delete marker on an object.
 	DeleteMarker bool
 
-	// RestoreExpires indicates date a restored object expires
-	RestoreExpires time.Time
-
-	// RestoreOngoing indicates if a restore is in progress
-	RestoreOngoing bool
-
 	// A standard MIME type describing the format of the object.
 	ContentType string
 
@@ -83,34 +64,12 @@ type ObjectInfo struct {
 	// Date and time at which the object is no longer able to be cached
 	Expires time.Time
 
-	// Specify object storage class
-	StorageClass string
-
-	// User-Defined metadata
-	UserDefined map[string]string
-
-	// User-Defined object tags
-	UserTags string
-
 	// List of individual parts, maximum size of upto 10,000
 	Parts []objectPartInfo `json:"-"`
-
-	// Implements writer and reader used by CopyObject API
-	Writer       io.WriteCloser `json:"-"`
-	Reader       *hash.Reader   `json:"-"`
-	PutObjReader *putObjReader  `json:"-"`
 
 	// Date and time when the object was last accessed.
 	AccTime time.Time
 
-	Legacy bool // indicates object on disk is in legacy data format
-
-	// internal representation of version purge status
-	VersionPurgeStatusInternal string
-	VersionPurgeStatus         versionPurgeStatusType
-
-	// The total count of all versions of this object
-	NumVersions int
 	//  The mod time of the successor object version if any
 	SuccessorModTime time.Time
 }
