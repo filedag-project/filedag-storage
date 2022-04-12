@@ -6,7 +6,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -25,36 +24,40 @@ func TestMain(m *testing.M) {
 	defer uleveldb.DBClient.Close()
 	NewS3Server(router)
 	iamapi.NewIamApiServer(router)
-	// mock a response logger
-	w = httptest.NewRecorder()
 	os.Exit(m.Run())
 }
 func TestS3ApiServer_ListBucketHandler(t *testing.T) {
 	// mock an HTTP request
-	req := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, "/testbucket", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// mock a response logger
+	w = httptest.NewRecorder()
 	// Let the server process the mock request and record the returned response content
-	router.ServeHTTP(w, req)
+	router.ServeHTTP(w, reqPutBucket)
 	// Check if the status code is as expected
-	assert.Equal(t, http.StatusOK, w.Code)
+	//assert.Equal(t, http.StatusOK, w.Code)
+	// Parse and verify that the response content is compounded as expected
+	fmt.Println(w.Body.String())
+
+	reqListBucket := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// mock a response logger
+	w = httptest.NewRecorder()
+	// Let the server process the mock request and record the returned response content
+	router.ServeHTTP(w, reqListBucket)
+	// Check if the status code is as expected
+	//assert.Equal(t, http.StatusOK, w.Code)
+	// Parse and verify that the response content is compounded as expected
+	fmt.Println(w.Body.String())
+
+	reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "testbucket", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// mock a response logger
+	w = httptest.NewRecorder()
+	// Let the server process the mock request and record the returned response content
+	router.ServeHTTP(w, reqDeleteBucket)
+	// Check if the status code is as expected
+	//assert.Equal(t, http.StatusOK, w.Code)
 	// Parse and verify that the response content is compounded as expected
 	fmt.Println(w.Body.String())
 }
-
-//req := testsign.MustNewSignedV4Request(http.MethodGet, "/test", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-////req.Header.Set("Content-Type", "text/plain")
-//apiRouter := mux.NewRouter().SkipClean(true)
-//apiRouter.ServeHTTP(w, req)
-//client := &http.Client{}
-//res, err := client.Do(req)
-//if err != nil {
-//	fmt.Println(err)
-//	return
-//}
-//defer res.Body.Close()
-//body, err := ioutil.ReadAll(res.Body)
-//
-//fmt.Println(res)
-//fmt.Println(string(body))
 
 //func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
 //	u := "http://127.0.0.1:9985/test22"
