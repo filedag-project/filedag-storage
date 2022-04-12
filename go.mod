@@ -15,6 +15,7 @@ require (
 	github.com/ipfs/go-ipfs-blockstore v1.1.2
 	github.com/ipfs/go-log/v2 v2.5.0
 	github.com/json-iterator/go v1.1.12
+	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
@@ -22,6 +23,7 @@ require (
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/uuid v1.1.1 // indirect
@@ -47,6 +49,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.14 // indirect
 	github.com/multiformats/go-varint v0.0.5 // indirect
 	github.com/opentracing/opentracing-go v1.0.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -59,4 +62,5 @@ require (
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

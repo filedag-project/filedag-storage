@@ -1,10 +1,10 @@
 package s3api
 
-//const (
-//	DefaultTestAccessKey = "testnew"
-//	DefaultTestSecretKey = "test12345"
-//)
-//
+const (
+	DefaultTestAccessKey = "test"
+	DefaultTestSecretKey = "test"
+)
+
 //func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 //	u := "http://127.0.0.1:9985/test22/1.txt"
 //	r1, _ := ioutil.ReadFile("./object_test.go")
