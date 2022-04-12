@@ -35,17 +35,9 @@ func SetObjectHeaders(w http.ResponseWriter, r *http.Request, objInfo store.Obje
 		w.Header().Set(consts.Expires, objInfo.Expires.UTC().Format(http.TimeFormat))
 	}
 
-	// Set tag count if object has tags
-	if len(objInfo.UserTags) > 0 {
-		tags, _ := url.ParseQuery(objInfo.UserTags)
-		if len(tags) > 0 {
-			w.Header()[consts.AmzTagCount] = []string{strconv.Itoa(len(tags))}
-		}
-	}
-
 	var rangeLen int64
 
-	// Set content length.
+	// Set content length
 	w.Header().Set(consts.ContentLength, strconv.FormatInt(rangeLen, 10))
 
 	// Set the relevant version ID as part of the response header.
