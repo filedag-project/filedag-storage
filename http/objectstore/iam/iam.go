@@ -99,7 +99,7 @@ func (sys *IdentityAMSys) IsTempUser(ctx context.Context, name string) (bool, st
 }
 
 // GetUserList all user
-func (sys *IdentityAMSys) GetUserList(ctx context.Context) []*iam.User {
+func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) []*iam.User {
 	var u []*iam.User
 	users, err := sys.store.loadUsers(ctx)
 	if err != nil {
@@ -107,6 +107,9 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context) []*iam.User {
 	}
 	for _, cerd := range users {
 		if cerd.IsExpired() {
+			continue
+		}
+		if cerd.ParentUser != accressKey {
 			continue
 		}
 		var a = &iam.User{
