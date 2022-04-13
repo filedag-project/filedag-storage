@@ -3,7 +3,9 @@ package s3api
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
+	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -26,7 +28,7 @@ func TestMain(m *testing.M) {
 	iamapi.NewIamApiServer(router)
 	os.Exit(m.Run())
 }
-func TestS3ApiServer_ListBucketHandler(t *testing.T) {
+func TestS3ApiServer_BucketHandler(t *testing.T) {
 	// mock an HTTP request
 	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, "/testbucket", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// mock a response logger
@@ -36,6 +38,7 @@ func TestS3ApiServer_ListBucketHandler(t *testing.T) {
 	// Check if the status code is as expected
 	//assert.Equal(t, http.StatusOK, w.Code)
 	// Parse and verify that the response content is compounded as expected
+
 	fmt.Println(w.Body.String())
 
 	reqListBucket := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
@@ -46,9 +49,11 @@ func TestS3ApiServer_ListBucketHandler(t *testing.T) {
 	// Check if the status code is as expected
 	//assert.Equal(t, http.StatusOK, w.Code)
 	// Parse and verify that the response content is compounded as expected
-	fmt.Println(w.Body.String())
+	var resp response.ListAllMyBucketsResult
+	utils.XmlDecoder(w.Body, &resp, reqPutBucket.ContentLength)
+	fmt.Println("list", resp)
 
-	reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "testbucket", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "/testbucket", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// mock a response logger
 	w = httptest.NewRecorder()
 	// Let the server process the mock request and record the returned response content
@@ -57,6 +62,16 @@ func TestS3ApiServer_ListBucketHandler(t *testing.T) {
 	//assert.Equal(t, http.StatusOK, w.Code)
 	// Parse and verify that the response content is compounded as expected
 	fmt.Println(w.Body.String())
+	// mock a response logger
+	w = httptest.NewRecorder()
+	// Let the server process the mock request and record the returned response content
+	router.ServeHTTP(w, reqListBucket)
+	// Check if the status code is as expected
+	//assert.Equal(t, http.StatusOK, w.Code)
+	// Parse and verify that the response content is compounded as expected
+	resp2 := response.ListAllMyBucketsResult{}
+	utils.XmlDecoder(w.Body, &resp2, reqPutBucket.ContentLength)
+	fmt.Println("list", resp2)
 }
 
 //func TestS3ApiServer_PutBucketPolicyHandler(t *testing.T) {
