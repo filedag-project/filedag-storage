@@ -9,7 +9,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
 	"github.com/gorilla/mux"
@@ -305,12 +304,13 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 
 	var objects []response.Object
 	for _, obj := range objs {
+		a := consts.DefaultOwnerID
 		var v = response.Object{
 			Key:          obj.Name,
 			LastModified: obj.SuccessorModTime.String(),
 			ETag:         obj.ETag,
 			Size:         obj.Size,
-			Owner:        s3.Owner{DisplayName: utils.String(consts.DefaultOwnerID), ID: utils.String(cred.AccessKey)},
+			Owner:        s3.Owner{DisplayName: &a, ID: &cred.AccessKey},
 			StorageClass: "",
 			UserMetadata: nil,
 		}
