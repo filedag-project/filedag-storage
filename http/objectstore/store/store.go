@@ -1,11 +1,15 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
 	"io/ioutil"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -13,18 +17,23 @@ import (
 //StorageSys store sys
 type StorageSys struct {
 	db      *uleveldb.ULevelDB
-	dagPool dagPoolClient
+	dagPool pool.DAGPool
 }
 
+const (
+	PoolStorePath = "POOL_STORE_PATH"
+	PoolBatchNum  = "POOL_BATCH_NUM"
+	PoolCaskNum   = "POOL_CASK_NUM"
+)
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
 
 //StoreObject store object
-func (s *StorageSys) StoreObject(user, bucket, object string, reader io.Reader) (ObjectInfo, error) {
+func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser) (ObjectInfo, error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	cid, err := s.dagPool.PutFile(bucket, object, reader)
+	cid, err := s.dagPool.Add(ctx, reader)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -54,20 +63,30 @@ func (s *StorageSys) StoreObject(user, bucket, object string, reader io.Reader) 
 }
 
 //GetObject Get object
-func (s *StorageSys) GetObject(user, bucket, object string) (ObjectInfo, io.Reader, error) {
-	reader, err := s.dagPool.GetFile(bucket, object)
+func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
 	meta := ObjectInfo{}
-	err = s.db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	err := s.db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
+	reader, err := s.dagPool.Get(ctx, meta.ETag)
 	return meta, reader, nil
+}
+
+// HasObject has Object ?
+func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string) (ObjectInfo, bool) {
+	meta := ObjectInfo{}
+	err := s.db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	if err != nil {
+		return ObjectInfo{}, false
+	}
+	return meta, true
 }
 
 //DeleteObject Get object
 func (s *StorageSys) DeleteObject(user, bucket, object string) error {
-	err := s.dagPool.DelFile(bucket, object)
-	err = s.db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
+	//err := s.dagPool.DelFile(bucket, object)
+	err := s.db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
 	if err != nil {
 		return err
 	}
@@ -91,15 +110,27 @@ func (s *StorageSys) ListObject(user, bucket string) ([]ObjectInfo, error) {
 
 //MkBucket store object
 func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
-	err := s.dagPool.MkBucket(bucket)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 //Init storage sys
-func (s *StorageSys) Init() {
+func (s *StorageSys) Init() error {
 	s.db = uleveldb.DBClient
+	batchNum, err := strconv.Atoi(os.Getenv(PoolBatchNum))
+	if err != nil {
+		return err
+	}
+	caskNum, err := strconv.Atoi(os.Getenv(PoolCaskNum))
+	if err != nil {
+		return err
+	}
+	s.dagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
+		StorePath: os.Getenv(PoolStorePath),
+		BatchNum:  batchNum,
+		CaskNum:   caskNum,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

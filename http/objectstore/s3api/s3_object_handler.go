@@ -79,7 +79,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer dataReader.Close()
-	objInfo, err2 := s3a.store.StoreObject(cred.AccessKey, bucket, object, hashReader)
+	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrPutObjectFail)
 		return
@@ -107,7 +107,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	objInfo, reader, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
+	objInfo, reader, err := s3a.store.GetObject(r.Context(), cred.AccessKey, bucket, object)
 	if err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrGetObjectFail)
 		return
@@ -149,15 +149,15 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
-	if err != nil {
+	objInfo, ok := s3a.store.HasObject(r.Context(), cred.AccessKey, bucket, object)
+	if !ok {
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrGetObjectFail)
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
 
 	// Set standard object headers.
-	if err = response.SetObjectHeaders(w, r, objInfo); err != nil {
+	if err := response.SetObjectHeaders(w, r, objInfo); err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrSetHeader)
 		return
 	}
@@ -186,12 +186,12 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	objInfo, _, err := s3a.store.GetObject(cred.AccessKey, bucket, object)
-	if err != nil {
+	objInfo, ok := s3a.store.HasObject(r.Context(), cred.AccessKey, bucket, object)
+	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrGetObjectFail)
 		return
 	}
-	err = s3a.store.DeleteObject(cred.AccessKey, bucket, object)
+	err := s3a.store.DeleteObject(cred.AccessKey, bucket, object)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrDeleteObjectFail)
 		return
@@ -238,13 +238,13 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 	log.Infof("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
 
-	_, i, err := s3a.store.GetObject(cred.AccessKey, srcBucket, srcObject)
+	_, i, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
 	if err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrGetObjectFail)
 		return
 	}
 	if (srcBucket == dstBucket && srcObject == dstObject || cpSrcPath == "") && isReplace(r) {
-		object, err := s3a.store.StoreObject(cred.AccessKey, dstBucket, dstObject, i)
+		object, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i)
 		if err != nil {
 			return
 		}
@@ -265,7 +265,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrInvalidCopyDest)
 		return
 	}
-	obj, err := s3a.store.StoreObject(cred.AccessKey, dstBucket, dstObject, i)
+	obj, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i)
 
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrPutObjectFail)
