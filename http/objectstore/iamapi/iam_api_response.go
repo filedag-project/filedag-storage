@@ -99,7 +99,7 @@ type ListUserPoliciesResponse struct {
 // CreateGroupResponse CreateGroup Response
 type CreateGroupResponse struct {
 	CommonResponse
-	XMLName           xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ CreateGroupResponse "`
+	XMLName           xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ CreateGroupResponse"`
 	CreateGroupResult struct {
 		G Group `xml:"Group"`
 	} `xml:"CreateGroupResult"`
@@ -108,7 +108,7 @@ type CreateGroupResponse struct {
 // GetGroupResponse GetGroup Response
 type GetGroupResponse struct {
 	CommonResponse
-	XMLName     xml.Name    `xml:"https://iam.amazonaws.com/doc/2010-05-08/ GetGroupResponse "`
+	XMLName     xml.Name    `xml:"https://iam.amazonaws.com/doc/2010-05-08/ GetGroupResponse"`
 	GroupResult GroupResult `xml:"GroupResult"`
 }
 type GroupResult struct {
@@ -124,7 +124,7 @@ type Group struct {
 // ListGroupsResponse listGroup Response
 type ListGroupsResponse struct {
 	CommonResponse
-	XMLName     xml.Name         `xml:"https://iam.amazonaws.com/doc/2010-05-08/ GetGroupResponse "`
+	XMLName     xml.Name         `xml:"https://iam.amazonaws.com/doc/2010-05-08/ GetGroupResponse"`
 	GroupResult ListGroupsResult `xml:"ListGroupsResult"`
 }
 type GroupMember struct {
