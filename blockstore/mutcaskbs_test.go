@@ -2,7 +2,6 @@ package blockstore
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"testing"
@@ -40,16 +39,16 @@ func TestMutcaskbs(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to init mutcaskbs")
 	}
-	ctx := context.TODO()
+	//ctx := context.TODO()
 	// test put block data
 	for _, blo := range blockdatas {
-		if err := bstore.Put(ctx, blo); err != nil {
+		if err := bstore.Put(blo); err != nil {
 			t.Fatal(fmt.Sprintf("Put failed: %s", err))
 		}
 	}
 	// test get block data
 	for _, blo := range blockdatas {
-		b, err := bstore.Get(ctx, blo.Cid())
+		b, err := bstore.Get(blo.Cid())
 		if err != nil {
 			t.Fatal(fmt.Sprintf("Get failed: %s", err))
 		}
