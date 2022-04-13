@@ -1,62 +1,74 @@
 package iamapi
 
-//const (
-//	DefaultTestAccessKey = "test"
-//	DefaultTestSecretKey = "test"
-//)
-//
-//func TestIamApiServer_GetUserList(t *testing.T) {
-//	u := "http://127.0.0.1:9985/admin/v1/list-user"
-//	req := testsign.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-//
-//	//req.Header.Set("Content-Type", "text/plain")
-//	client := &http.Client{}
-//	res, err := client.Do(req)
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//	defer res.Body.Close()
-//	body, err := ioutil.ReadAll(res.Body)
-//
-//	fmt.Println(res)
-//	fmt.Println(string(body))
-//}
-//func TestIamApiServer_AddUser(t *testing.T) {
-//	u := "http://127.0.0.1:9985/admin/v1/add-user?accessKey=test1&secretKey=test12345"
-//	req := testsign.MustNewSignedV4Request(http.MethodPost, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-//
-//	//req.Header.Set("Content-Type", "text/plain")
-//	client := &http.Client{}
-//	res, err := client.Do(req)
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//	defer res.Body.Close()
-//	body, err := ioutil.ReadAll(res.Body)
-//
-//	fmt.Println(res)
-//	fmt.Println(string(body))
-//}
-//func TestIamApiServer_RemoveUser(t *testing.T) {
-//	u := "http://127.0.0.1:9985/admin/v1/remove-user?accessKey=test1"
-//	req := testsign.MustNewSignedV4Request(http.MethodPost, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-//
-//	//req.Header.Set("Content-Type", "text/plain")
-//	client := &http.Client{}
-//	res, err := client.Do(req)
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//	defer res.Body.Close()
-//	body, err := ioutil.ReadAll(res.Body)
-//
-//	fmt.Println(res)
-//	fmt.Println(string(body))
-//}
-//
+import (
+	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+)
+
+const (
+	DefaultTestAccessKey = "test"
+	DefaultTestSecretKey = "test"
+)
+
+var w *httptest.ResponseRecorder
+var router = mux.NewRouter()
+
+func TestMain(m *testing.M) {
+	var err error
+	uleveldb.DBClient, err = uleveldb.OpenDb("./test")
+	if err != nil {
+		return
+	}
+	defer uleveldb.DBClient.Close()
+	NewIamApiServer(router)
+	s3api.NewS3Server(router)
+	os.Exit(m.Run())
+}
+
+func TestIamApiServer_GetUserList(t *testing.T) {
+	u := "http://127.0.0.1:9985/admin/v1/list-all-sub-users"
+	req := testsign.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	fmt.Println(w.Body.String())
+
+}
+func TestIamApiServer_AddUser(t *testing.T) {
+	u := "http://127.0.0.1:9985/admin/v1/add-user"
+	req := testsign.MustNewSignedV4Request(http.MethodPost, u+"?accessKey=test1&secretKey=test12345", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	fmt.Println(w.Body.String())
+}
+
+func TestIamApiServer_RemoveUser(t *testing.T) {
+	u := "http://127.0.0.1:9985/admin/v1/remove-user"
+	req := testsign.MustNewSignedV4Request(http.MethodPost, u+"?accessKey=test1", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	fmt.Println(w.Body.String())
+}
+
+func TestIamApiServer_UserInfo(t *testing.T) {
+	u := "http://127.0.0.1:9985/admin/v1/user-info"
+	req := testsign.MustNewSignedV4Request(http.MethodPost, u+"?accessKey=test1", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	fmt.Println(w.Body.String())
+}
+
 //func TestIamApiServer_ChangePassword(t *testing.T) {
 //	urlValues := make(url.Values)
 //	urlValues.Set("newPassword", "test2222")
