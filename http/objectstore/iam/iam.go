@@ -38,7 +38,11 @@ func (sys *IdentityAMSys) Init() {
 // initStore initializes IAM stores
 func (sys *IdentityAMSys) initStore() {
 	sys.store = &iamStoreSys{newIAMLevelDBStore()}
-
+	err := sys.store.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.GetDefaultActiveCred()})
+	if err != nil {
+		log.Errorf("add first user fail%v", err)
+		return
+	}
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
