@@ -218,10 +218,7 @@ func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, p
 
 // PutUserPolicy Create Policy
 func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	var pd policy.PolicyDocument
-	err := sys.GetUserPolicy(ctx, userName, policyName, &pd)
-	pd.Merge(policyDocument)
-	err = sys.store.createUserPolicy(ctx, userName, policyName, pd)
+	err := sys.store.createUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create UserPolicy err:%v", err)
 		return err

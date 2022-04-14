@@ -58,6 +58,11 @@ type DeleteUserResponse struct {
 	XMLName xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ DeleteUserResponse"`
 }
 
+type DeleteUserPolicyResponse struct {
+	CommonResponse
+	XMLName xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ DeleteUserPolicyResponse"`
+}
+
 type PutUserPolicyResponse struct {
 	CommonResponse
 	XMLName xml.Name `xml:"https://iam.amazonaws.com/doc/2010-05-08/ PutUserPolicyResponse"`

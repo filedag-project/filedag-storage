@@ -48,6 +48,8 @@ const (
 	ErrAccessDenied
 	ErrAuthorizationHeaderMalformed
 	ErrMethodNotAllowed
+	ErrNoSuchUserPolicy
+	ErrUserPolicyAlreadyExists
 	ErrBucketNotEmpty
 	ErrBucketAlreadyExists
 	ErrBucketAlreadyOwnedByYou
@@ -215,6 +217,16 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "PolicyTooLarge",
 		Description:    "Policy exceeds the maximum allowed document size.",
 		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrNoSuchUserPolicy: {
+		Code:           "NoSuchUserPolicy",
+		Description:    "The user policy does not exist",
+		HTTPStatusCode: http.StatusNotFound,
+	},
+	ErrUserPolicyAlreadyExists: {
+		Code:           "UserPolicyAlreadyExists",
+		Description:    "The same user policy already exists .",
+		HTTPStatusCode: http.StatusConflict,
 	},
 	ErrNoSuchBucket: {
 		Code:           "NoSuchBucket",
