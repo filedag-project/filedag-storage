@@ -4,22 +4,21 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
+	"io/ioutil"
 	"testing"
 )
 
 func TestSimplePool_Add(t *testing.T) {
 	dagPool, err := NewSimplePool(&SimplePoolConfig{
-		StorePath: "./",
+		StorePath: "./test",
 		BatchNum:  4,
 		CaskNum:   2,
 	})
 	if err != nil {
 		fmt.Println(err)
 	}
-	var a = []byte("12345")
-	hashReader, _ := hash.NewReader(bytes.NewReader(a), int64(len(a)), "", "", int64(len(a)))
-	add, err := dagPool.Add(context.Background(), hashReader)
+	r := ioutil.NopCloser(bytes.NewReader([]byte("hello world")))
+	add, err := dagPool.Add(context.Background(), r)
 	if err != nil {
 		fmt.Println(err)
 	}

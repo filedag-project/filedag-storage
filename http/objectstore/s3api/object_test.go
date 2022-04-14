@@ -18,7 +18,7 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	r1 := "123456"
 
 	req := testsign.MustNewSignedV4Request(http.MethodPut, u, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println("put:", reqTest(req).String())
+	fmt.Println("put:", reqTest(req).Body.String())
 
 }
 
