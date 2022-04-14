@@ -43,7 +43,7 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	router.ServeHTTP(w, r)
 	return w
 }
-func TestS3ApiServer_BucketHandler(t *testing.T) {
+func TestS3ApiServer_PutBucketHandler(t *testing.T) {
 	bucketName := "/testbucket"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -73,37 +73,193 @@ func TestS3ApiServer_BucketHandler(t *testing.T) {
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
 		// mock an HTTP request
-		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, "/testbucket", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		result := reqTest(reqPutBucket)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+	}
+
+}
+func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
+	bucketName := "/testbucket"
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		bucketName string
+		accessKey  string
+		secretKey  string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+		// Test case - 1.
+		// Fetching the entire Bucket and validating its contents.
+		{
+			bucketName:         bucketName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		// Test case - 2.
+		// wrong accessKey.
+		{
+			bucketName:         bucketName,
+			accessKey:          "1",
+			secretKey:          "1",
+			expectedRespStatus: http.StatusForbidden,
+		},
+		// Test case - 3.
+		// wrong accessKey.
+		{
+			bucketName:         "/1",
+			accessKey:          "1",
+			secretKey:          "1",
+			expectedRespStatus: http.StatusForbidden,
+		},
+	}
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		// mock an HTTP request
+		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result1 := reqTest(reqPutBucket)
 		if result1.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
 		}
 
-		reqHeadBucket := testsign.MustNewSignedV4Request(http.MethodHead, "/testbucket", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqHeadBucket := testsign.MustNewSignedV4Request(http.MethodHead, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result2 := reqTest(reqHeadBucket)
 		if result2.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result2.Code)
 		}
+	}
 
-		reqListBucket := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
-		result3 := reqTest(reqListBucket)
-		if result3.Code != testCase.expectedRespStatus {
-			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result3.Code)
+}
+func TestS3ApiServer_ListBucketHandler(t *testing.T) {
+	bucketName := "/testbucket"
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		isPut     bool
+		accessKey string
+		secretKey string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+
+		// Test case - 1.
+		// wrong accessKey.
+		{
+			isPut:              false,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		// Test case - 1.
+		// Fetching the entire Bucket and validating its contents.
+		{
+			isPut:              true,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		// Test case - 3.
+		// wrong accessKey.
+		{
+			isPut:              true,
+			accessKey:          "1",
+			secretKey:          "1",
+			expectedRespStatus: http.StatusForbidden,
+		},
+	}
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		// mock an HTTP request
+		if testCase.isPut {
+			reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+			result1 := reqTest(reqPutBucket)
+			if result1.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
+			}
 		}
-		var resp1 response.ListAllMyBucketsResult
-		utils.XmlDecoder(result3.Body, &resp1, reqListBucket.ContentLength)
-		fmt.Println("list:", resp1)
+		reqListBucket := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		result := reqTest(reqListBucket)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+		var resp response.ListAllMyBucketsResult
+		utils.XmlDecoder(result.Body, &resp, reqListBucket.ContentLength)
+		fmt.Printf("case:%v  list:%v\n", i+1, resp)
+
+		//reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "/testbucket", 0,
+		//	nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		//result4 := reqTest(reqDeleteBucket)
+		//if result4.Code != testCase.expectedRespStatus {
+		//	t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result4.Code)
+		//}
+		//
+		//resp2 := response.ListAllMyBucketsResult{}
+		//utils.XmlDecoder(reqTest(reqListBucket).Body, &resp2, reqListBucket.ContentLength)
+		//fmt.Printf("case:%v  list:%v\n", i+1,resp)
+	}
+
+}
+func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
+	bucketName := "/testbucket"
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		isPut     bool
+		accessKey string
+		secretKey string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+
+		// Test case - 1.
+		// wrong accessKey.
+		{
+			isPut:              false,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusNotFound,
+		},
+
+		// Test case - 2.
+		// wrong accessKey.
+		{
+			isPut:              true,
+			accessKey:          "1",
+			secretKey:          "1",
+			expectedRespStatus: http.StatusForbidden,
+		},
+		// Test case - 3.
+		// Fetching the entire Bucket and validating its contents.
+		{
+			isPut:              true,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+	}
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		// mock an HTTP request
+		if testCase.isPut {
+			reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+			result1 := reqTest(reqPutBucket)
+			if result1.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
+			}
+		}
 
 		reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "/testbucket", 0,
 			nil, "s3", testCase.accessKey, testCase.secretKey, t)
-		result4 := reqTest(reqDeleteBucket)
-		if result4.Code != testCase.expectedRespStatus {
-			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result4.Code)
+		result := reqTest(reqDeleteBucket)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 		}
+		reqListBucket := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 
-		resp2 := response.ListAllMyBucketsResult{}
-		utils.XmlDecoder(reqTest(reqListBucket).Body, &resp2, reqListBucket.ContentLength)
-		fmt.Println("list:", resp2)
+		resp1 := response.ListAllMyBucketsResult{}
+		utils.XmlDecoder(reqTest(reqListBucket).Body, &resp1, reqListBucket.ContentLength)
+		fmt.Printf("case:%v  list:%v\n", i+1, resp1)
 	}
 
 }

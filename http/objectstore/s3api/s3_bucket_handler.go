@@ -28,7 +28,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 	}
 	bucketMetas, erro := s3a.authSys.PolicySys.GetAllBucketOfUser(cred.AccessKey)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrGetBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	var buckets []*s3.Bucket
@@ -92,12 +92,12 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	// create the folder for bucket, but lazily create actual collection
 	if err := s3a.store.MkBucket("", bucket); err != nil {
 		log.Errorf("PutBucketHandler mkdir: %v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrPutBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey, region)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	// Make sure to add Location information here only for bucket
