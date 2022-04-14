@@ -95,6 +95,66 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	}
 
 }
+func TestS3ApiServer_GetObjectHandler(t *testing.T) {
+	bucketName := "/testbucket"
+	objectName := "/testobject"
+
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		bucketName string
+		objectName string
+		data       []byte
+		header     http.Header
+		accessKey  string
+		secretKey  string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+		// Test case - 1.
+		// Fetching the entire Bucket and validating its contents.
+		{
+			bucketName:         bucketName,
+			objectName:         objectName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		// Test case - 2.
+		// wrong accessKey.
+		{
+			bucketName:         bucketName,
+			objectName:         objectName,
+			accessKey:          "1",
+			secretKey:          "1",
+			expectedRespStatus: http.StatusForbidden,
+		},
+		{
+			bucketName:         "/11",
+			objectName:         objectName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusNotFound,
+		},
+	}
+	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	a := reqTest(reqPutBucket)
+	fmt.Println("putbucket:", a.Body.String())
+	r1 := "1234567"
+	reqputObject := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// Add test case specific headers to the request.
+	reqTest(reqputObject)
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		req := testsign.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		// Add test case specific headers to the request.
+		result := reqTest(req)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+		fmt.Printf("Case %d: put:%v\n", i+1, result.Body.String())
+	}
+
+}
 func addCustomHeaders(req *http.Request, customHeaders http.Header) {
 	for k, values := range customHeaders {
 		for _, value := range values {
