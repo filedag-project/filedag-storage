@@ -21,8 +21,8 @@ const (
 	fileDagStoragePort   = "FILE_DAG_STORAGE_PORT"
 	dbPath               = "DBPATH"
 	defaultPoolStorePath = "./"
-	defaultPoolBatchNum  = "10"
-	defaultPoolCaskNum   = "10"
+	defaultPoolBatchNum  = "4"
+	defaultPoolCaskNum   = "2"
 )
 
 //startServer Start a IamServer
