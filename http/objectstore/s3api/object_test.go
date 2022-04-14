@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
-	"io/ioutil"
 	"net/http"
 	"testing"
 )
@@ -16,9 +15,9 @@ const (
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	u := "/testbucket/1.txt"
-	r1, _ := ioutil.ReadFile("./object_test.go")
+	r1 := "123456"
 
-	req := testsign.MustNewSignedV4Request(http.MethodPut, u, int64(len(r1)), bytes.NewReader(r1), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("put:", reqTest(req).String())
 
 }
