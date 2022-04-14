@@ -225,7 +225,12 @@ func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var resp ListUsersResponse
-	resp.ListUsersResult.Users = iamApi.authSys.Iam.GetUserList(r.Context(), cred.AccessKey)
+	users, err := iamApi.authSys.Iam.GetUserList(r.Context(), cred.AccessKey)
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+		return
+	}
+	resp.ListUsersResult.Users = users
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 

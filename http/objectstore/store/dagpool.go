@@ -20,7 +20,7 @@ func (d dagPoolClient) PutFile(bucket, object string, reader io.Reader) (string,
 func (d dagPoolClient) GetFile(bucket, object string) (io.Reader, error) {
 	//todo implement me
 	//todo use reader
-	r1, _ := ioutil.ReadFile("./go.mod")
+	r1, _ := ioutil.ReadFile("../../go.mod")
 	return bytes.NewReader(r1), nil
 }
 
