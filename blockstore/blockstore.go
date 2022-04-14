@@ -31,7 +31,7 @@ func (bs *blostore) Has(cid cid.Cid) (bool, error) {
 	_, err := bs.kv.Size(cid.String())
 	if err != nil {
 		if err == storagekv.ErrNotFound {
-			return false, blockstore.ErrNotFound
+			return false, nil
 		}
 		return false, err
 	}
