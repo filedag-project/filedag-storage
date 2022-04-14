@@ -73,7 +73,8 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	dataReader := r.Body
-	hashReader, err1 := hash.NewReader(dataReader, size, clientETag.String(), "", size)
+
+	hashReader, err1 := hash.NewReader(dataReader, size, clientETag.String(), r.Header.Get(consts.AmzContentSha256), size)
 	if err1 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNewReaderFail)
 		return

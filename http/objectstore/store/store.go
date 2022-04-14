@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	logging "github.com/ipfs/go-log/v2"
 	"io"
 	"io/ioutil"
 	"os"
@@ -14,6 +15,8 @@ import (
 	"time"
 )
 
+var log = logging.Logger("store")
+
 //StorageSys store sys
 type StorageSys struct {
 	db      *uleveldb.ULevelDB
@@ -21,9 +24,12 @@ type StorageSys struct {
 }
 
 const (
-	PoolStorePath = "POOL_STORE_PATH"
-	PoolBatchNum  = "POOL_BATCH_NUM"
-	PoolCaskNum   = "POOL_CASK_NUM"
+	PoolStorePath        = "POOL_STORE_PATH"
+	PoolBatchNum         = "POOL_BATCH_NUM"
+	PoolCaskNum          = "POOL_CASK_NUM"
+	defaultPoolStorePath = "./"
+	defaultPoolBatchNum  = 4
+	defaultPoolCaskNum   = 2
 )
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
@@ -118,14 +124,21 @@ func (s *StorageSys) Init() error {
 	s.db = uleveldb.DBClient
 	batchNum, err := strconv.Atoi(os.Getenv(PoolBatchNum))
 	if err != nil {
-		return err
+		//log.Errorf("get PoolBatchNum err %v,use default",err)
+		batchNum = defaultPoolBatchNum
 	}
 	caskNum, err := strconv.Atoi(os.Getenv(PoolCaskNum))
 	if err != nil {
-		return err
+		//log.Errorf("get PoolCaskNum err %v,use default",err)
+		caskNum = defaultPoolCaskNum
+	}
+	var path string
+	if os.Getenv(PoolStorePath) == "" {
+		//log.Errorf("get PoolStorePath err %v,use default",err)
+		path = defaultPoolStorePath
 	}
 	s.dagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
-		StorePath: os.Getenv(PoolStorePath),
+		StorePath: path,
 		BatchNum:  batchNum,
 		CaskNum:   caskNum,
 	})
