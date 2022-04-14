@@ -71,6 +71,9 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 //GetObject Get object
 func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
 	meta := ObjectInfo{}
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
 	err := s.db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
 	if err != nil {
 		return ObjectInfo{}, nil, err
