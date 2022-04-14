@@ -46,9 +46,17 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 			secretKey:          "1",
 			expectedRespStatus: http.StatusForbidden,
 		},
+		{
+			bucketName:         "/11",
+			objectName:         objectName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusNotFound,
+		},
 	}
 	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+	a := reqTest(reqPutBucket)
+	fmt.Println("putbucket:", a.Body.String())
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
 		req := testsign.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName, int64(len(r1)), bytes.NewReader(testCase.data), "s3", testCase.accessKey, testCase.secretKey, t)
@@ -56,7 +64,7 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 		}
-		fmt.Println("put:", reqTest(req).Body.String())
+		fmt.Printf("Case %d: put:%v\n", i+1, result.Body.String())
 	}
 
 }
