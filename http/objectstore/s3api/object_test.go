@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -269,6 +270,91 @@ func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 		}
 		fmt.Printf("Case %d: delete:%v\n", i+1, result.Body.String())
+	}
+
+}
+func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
+	bucketName := "/testbucket"
+	objectName := "/testobject"
+
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		bucketName    string
+		objectName    string
+		dstbucketName string
+		dstobjectName string
+		data          []byte
+		header        http.Header
+		accessKey     string
+		secretKey     string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+		// Test case - 1.
+		// Fetching the entire Bucket and validating its contents.
+		{
+			bucketName:         bucketName,
+			objectName:         objectName,
+			dstbucketName:      bucketName,
+			dstobjectName:      "/1.txt",
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		// Test case - 2.
+		// wrong accessKey.
+		{
+			bucketName:         bucketName,
+			objectName:         objectName,
+			dstbucketName:      bucketName,
+			dstobjectName:      "/1.txt",
+			accessKey:          "1",
+			secretKey:          "1",
+			expectedRespStatus: http.StatusForbidden,
+		},
+		{
+			bucketName:         "/11",
+			objectName:         objectName,
+			dstbucketName:      bucketName,
+			dstobjectName:      "/1.txt",
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusNotFound,
+		},
+		{
+			bucketName:         "",
+			objectName:         "",
+			dstbucketName:      bucketName,
+			dstobjectName:      "/1.txt",
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusBadRequest,
+		},
+		{
+			bucketName:         bucketName,
+			objectName:         objectName,
+			dstbucketName:      bucketName,
+			dstobjectName:      objectName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusBadRequest,
+		},
+	}
+	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+	r1 := "1234567"
+	reqputObject := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// Add test case specific headers to the request.
+	reqTest(reqputObject)
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		req := testsign.MustNewSignedV4Request(http.MethodPut, testCase.dstbucketName+testCase.dstobjectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		req.Header.Set("X-Amz-Copy-Source", url.QueryEscape(testCase.bucketName+testCase.objectName)) // Add test case specific headers to the request.
+		result := reqTest(req)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+		fmt.Printf("Case %d: copy:%v\n", i+1, result.Body.String())
 	}
 
 }
