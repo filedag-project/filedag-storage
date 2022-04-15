@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
 	"strings"
 	"testing"
 )
@@ -22,12 +21,16 @@ import (
 var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
-func TestMain(m *testing.M) {
-	dir, err := ioutil.ReadDir("./test")
-	for _, d := range dir {
-		os.RemoveAll(path.Join([]string{"./test", d.Name()}...))
+func tmpDirPath(t *testing.T) string {
+	tmpdir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatalf("failed to make temp dir: %s", err)
 	}
-	uleveldb.DBClient, err = uleveldb.OpenDb("./test")
+	return tmpdir
+}
+func TestMain(m *testing.M) {
+	var err error
+	uleveldb.DBClient, err = uleveldb.OpenDb(tmpDirPath(&testing.T{}))
 	if err != nil {
 		return
 	}

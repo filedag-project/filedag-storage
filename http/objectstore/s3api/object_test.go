@@ -151,7 +151,7 @@ func TestS3ApiServer_GetObjectHandler(t *testing.T) {
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 		}
-		fmt.Printf("Case %d: put:%v\n", i+1, result.Body.String())
+		fmt.Printf("Case %d: get:%v\n", i+1, result.Body.String())
 	}
 
 }
