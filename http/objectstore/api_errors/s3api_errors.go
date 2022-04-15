@@ -68,6 +68,8 @@ const (
 	ErrInvalidMaxParts
 	ErrInvalidPartNumberMarker
 	ErrInvalidPart
+	ErrIncorrectContinuationToken
+	ErrInvalidEncodingMethod
 	ErrInvalidServiceSTS
 	ErrMissingContentLength
 	ErrInvalidServiceS3
@@ -281,7 +283,16 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "One or more of the specified parts could not be found.  The part may not have been uploaded, or the specified entity tag may not match the part's entity tag.",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
-
+	ErrIncorrectContinuationToken: {
+		Code:           "InvalidArgument",
+		Description:    "The continuation token provided is incorrect",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrInvalidEncodingMethod: {
+		Code:           "InvalidArgument",
+		Description:    "Invalid Encoding Method specified in Request",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
 	ErrInvalidCopyDest: {
 		Code:           "InvalidRequest",
 		Description:    "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes.",

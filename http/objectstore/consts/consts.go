@@ -7,6 +7,9 @@ import (
 
 //some const
 const (
+	// Iso8601TimeFormat RFC3339 a subset of the ISO8601 timestamp format. e.g 2014-04-29T18:30:38Z
+	Iso8601TimeFormat = "2006-01-02T15:04:05.000Z" // Reply date format with nanosecond precision.
+
 	StreamingContentSHA256 = "STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
 
 	Authorization = "Authorization"
@@ -73,4 +76,6 @@ const (
 	AmzEncryptionAES        = "AES256"
 	ContentLanguage         = "Content-Language"
 	ContentDisposition      = "Content-Disposition"
+	MaxObjectList           = 1000 // Limit number of objects in a listObjectsResponse/listObjectsVersionsResponse.
+
 )

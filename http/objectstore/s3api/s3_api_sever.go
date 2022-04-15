@@ -33,6 +33,8 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	routers = append(routers, apiRouter.PathPrefix("/{bucket}").Subrouter())
 
 	for _, bucket := range routers {
+		// ListObjectsV2
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV2Handler).Queries("list-type", "2")
 		// CopyObject
 		bucket.Methods(http.MethodPut).Path("/{object:.+}").HeadersRegexp("X-Amz-Copy-Source", ".*?(\\/|%2F).*?").HandlerFunc(s3a.CopyObjectHandler)
 
@@ -81,11 +83,6 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		bucket.Methods(http.MethodHead).HandlerFunc(s3a.HeadBucketHandler)
 		// DeleteBucket
 		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketHandler)
-		// ListObjectsV1 (Legacy)
-		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV1Handler)
-		// ListObjectsV2
-		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV2Handler).Queries("list-type", "2")
-
 	}
 	// ListBuckets
 	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
