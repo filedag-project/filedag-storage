@@ -108,14 +108,12 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 	if err != nil {
 		return nil, err
 	}
-	for _, cerd := range users {
+	for i, _ := range users {
+		cerd := users[i]
 		if cerd.IsExpired() {
 			continue
 		}
-		//if cerd.ParentUser != accressKey {
-		//	continue
-		//}
-		var a = &iam.User{
+		var a = iam.User{
 			Arn:                 nil,
 			CreateDate:          &cerd.CreateTime,
 			PasswordLastUsed:    nil,
@@ -125,7 +123,7 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 			UserId:              &cerd.AccessKey,
 			UserName:            &cerd.AccessKey,
 		}
-		u = append(u, a)
+		u = append(u, &a)
 	}
 	return u, err
 }
