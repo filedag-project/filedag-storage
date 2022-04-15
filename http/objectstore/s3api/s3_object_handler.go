@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
@@ -9,12 +10,14 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -283,67 +286,51 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	response.WriteSuccessResponseXML(w, r, resp2)
 }
 
-func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
-
-	// Check for auth type to return S3 compatible error.
-	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, "")
-	if s3Error != api_errors.ErrNone {
-		response.WriteErrorResponse(w, r, s3Error)
-		return
-	}
-	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
-		return
-	}
-	objs, err := s3a.store.ListObject(cred.AccessKey, bucket)
-	if err != nil {
-		response.WriteErrorResponse(w, r, s3Error)
-		return
-	}
-
-	var objects []response.Object
-	for _, obj := range objs {
-		a := consts.DefaultOwnerID
-		var v = response.Object{
-			Key:          obj.Name,
-			LastModified: obj.SuccessorModTime.String(),
-			ETag:         obj.ETag,
-			Size:         obj.Size,
-			Owner:        s3.Owner{DisplayName: &a, ID: &cred.AccessKey},
-			StorageClass: "",
-			UserMetadata: nil,
-		}
-
-		objects = append(objects, v)
-	}
-	var resp = response.ListObjectsResponse{
-		Name:           bucket,
-		Prefix:         "",
-		Marker:         "",
-		NextMarker:     "",
-		MaxKeys:        0,
-		Delimiter:      "",
-		IsTruncated:    false,
-		Contents:       objects,
-		CommonPrefixes: nil,
-		EncodingType:   "",
-	}
-	// Write success response.
-	response.WriteSuccessResponseXML(w, r, resp)
-}
-
 func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
+	cerd, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
+	urlValues := r.Form
+
+	// Extract all the listObjectsV2 query params to their native values.
+	prefix, token, startAfter, delimiter, fetchOwner, maxKeys, encodingType, errCode := getListObjectsV2Args(urlValues)
+	if errCode != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, errCode)
+		return
+	}
+	// Validate the query params before beginning to serve the request.
+	// fetch-owner is not validated since it is a boolean
+	if s3Error := validateListObjectsArgs(token, delimiter, encodingType, maxKeys); s3Error != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+	var (
+		listObjectsV2Info store.ListObjectsV2Info
+		err               error
+	)
+
+	// Inititate a list objects operation based on the input params.
+	// On success would return back ListObjectsInfo object to be
+	// marshaled into S3 compatible XML header.
+	listObjectsV2Info, err = s3a.store.ListObjectsV2(r.Context(), cerd.AccessKey, bucket, prefix, token, delimiter, maxKeys, fetchOwner, startAfter)
+
+	if err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+
+	resp := GenerateListObjectsV2Response(bucket, prefix, token, listObjectsV2Info.NextContinuationToken, startAfter,
+		delimiter, encodingType, listObjectsV2Info.IsTruncated,
+		maxKeys, listObjectsV2Info.Objects, listObjectsV2Info.Prefixes)
+
+	// Write success response.
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 func getBucketAndObject(r *http.Request) (bucket, object string) {
@@ -399,4 +386,126 @@ func setEtag(w http.ResponseWriter, etag string) {
 }
 func isReplace(r *http.Request) bool {
 	return r.Header.Get("X-Amz-Metadata-Directive") == "REPLACE"
+}
+
+// Parse bucket url queries for ListObjects V2.
+func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimiter string, fetchOwner bool, maxkeys int, encodingType string, errCode api_errors.ErrorCode) {
+	errCode = api_errors.ErrNone
+
+	// The continuation-token cannot be empty.
+	if val, ok := values["continuation-token"]; ok {
+		if len(val[0]) == 0 {
+			errCode = api_errors.ErrIncorrectContinuationToken
+			return
+		}
+	}
+
+	if values.Get("max-keys") != "" {
+		var err error
+		if maxkeys, err = strconv.Atoi(values.Get("max-keys")); err != nil {
+			errCode = api_errors.ErrInvalidMaxKeys
+			return
+		}
+	} else {
+		maxkeys = consts.MaxObjectList
+	}
+
+	prefix = trimLeadingSlash(values.Get("prefix"))
+	startAfter = trimLeadingSlash(values.Get("start-after"))
+	delimiter = values.Get("delimiter")
+	fetchOwner = values.Get("fetch-owner") == "true"
+	encodingType = values.Get("encoding-type")
+
+	if token = values.Get("continuation-token"); token != "" {
+		decodedToken, err := base64.StdEncoding.DecodeString(token)
+		if err != nil {
+			errCode = api_errors.ErrIncorrectContinuationToken
+			return
+		}
+		token = string(decodedToken)
+	}
+	return
+}
+func trimLeadingSlash(ep string) string {
+	if len(ep) > 0 && ep[0] == '/' {
+		// Path ends with '/' preserve it
+		if ep[len(ep)-1] == '/' && len(ep) > 1 {
+			ep = path.Clean(ep)
+			ep += "/"
+		} else {
+			ep = path.Clean(ep)
+		}
+		ep = ep[1:]
+	}
+	return ep
+}
+
+// Validate all the ListObjects query arguments, returns an APIErrorCode
+// if one of the args do not meet the required conditions.
+// Special conditions required by MinIO server are as below
+// - delimiter if set should be equal to '/', otherwise the request is rejected.
+// - marker if set should have a common prefix with 'prefix' param, otherwise
+//   the request is rejected.
+func validateListObjectsArgs(marker, delimiter, encodingType string, maxKeys int) api_errors.ErrorCode {
+	// Max keys cannot be negative.
+	if maxKeys < 0 {
+		return api_errors.ErrInvalidMaxKeys
+	}
+
+	if encodingType != "" {
+		// AWS S3 spec only supports 'url' encoding type
+		if !strings.EqualFold(encodingType, "url") {
+			return api_errors.ErrInvalidEncodingMethod
+		}
+	}
+
+	return api_errors.ErrNone
+}
+
+// GenerateListObjectsV2Response Generates an ListObjectsV2 response for the said bucket with other enumerated options.
+func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter, delimiter, encodingType string, isTruncated bool, maxKeys int, objects []store.ObjectInfo, prefixes []string) response.ListObjectsV2Response {
+	contents := make([]response.Object, 0, len(objects))
+	a := consts.DefaultOwnerID
+	b := "fds"
+	owner := s3.Owner{
+		ID:          &a,
+		DisplayName: &b,
+	}
+	data := response.ListObjectsV2Response{}
+
+	for _, object := range objects {
+		content := response.Object{}
+		if object.Name == "" {
+			continue
+		}
+		content.Key = utils.S3EncodeName(object.Name, encodingType)
+		content.LastModified = object.ModTime.UTC().Format(consts.Iso8601TimeFormat)
+		if object.ETag != "" {
+			content.ETag = "\"" + object.ETag + "\""
+		}
+		content.Size = object.Size
+		content.Owner = owner
+		contents = append(contents, content)
+	}
+	data.Name = bucket
+	data.Contents = contents
+
+	data.EncodingType = encodingType
+	data.StartAfter = utils.S3EncodeName(startAfter, encodingType)
+	data.Delimiter = utils.S3EncodeName(delimiter, encodingType)
+	data.Prefix = utils.S3EncodeName(prefix, encodingType)
+	data.MaxKeys = maxKeys
+	data.ContinuationToken = base64.StdEncoding.EncodeToString([]byte(token))
+	data.NextContinuationToken = base64.StdEncoding.EncodeToString([]byte(nextToken))
+	data.IsTruncated = isTruncated
+
+	commonPrefixes := make([]response.CommonPrefix, 0, len(prefixes))
+	for _, prefix := range prefixes {
+		prefixItem := response.CommonPrefix{}
+		prefixItem.Prefix = utils.S3EncodeName(prefix, encodingType)
+		commonPrefixes = append(commonPrefixes, prefixItem)
+	}
+	data.CommonPrefixes = commonPrefixes
+	data.KeyCount = len(data.Contents) + len(data.CommonPrefixes)
+	return data
 }
