@@ -105,14 +105,14 @@ func TestIamApiServer_AddUser(t *testing.T) {
 	}
 }
 
-func TestIamApiServer_GetUserList2(t *testing.T) {
-	u := "http://127.0.0.1:9985/admin/v1/list-all-sub-users"
-	req := testsign.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	w = httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	fmt.Println(w.Body.String())
-}
+//func TestIamApiServer_GetUserList2(t *testing.T) {
+//	u := "http://127.0.0.1:9985/admin/v1/list-all-sub-users"
+//	req := testsign.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+//	w = httptest.NewRecorder()
+//	router.ServeHTTP(w, req)
+//	assert.Equal(t, http.StatusOK, w.Code)
+//	fmt.Println(w.Body.String())
+//}
 
 func TestIamApiServer_GetUserList(t *testing.T) {
 	// test cases with inputs and expected result for Bucket.

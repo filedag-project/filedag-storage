@@ -13,29 +13,89 @@ func TestIdentityAMSys_UserApi(t *testing.T) {
 	uleveldb.DBClient, _ = uleveldb.OpenDb(path)
 	var iamSys IdentityAMSys
 	iamSys.Init()
-	var accessKey = "test1"
-	var secretKey = "test12345"
-
-	//add user
-	err := iamSys.AddUser(context.Background(), accessKey, secretKey)
-	if err != nil {
-		fmt.Println(err)
+	//var accessKey = "test1"
+	//var secretKey = "test12345"
+	ctx := context.Background()
+	testCases := []struct {
+		isRemove  bool
+		accessKey string
+		secretKey string
+	}{
+		// Test case - 1.
+		// Fetching the entire User and validating its contents.
+		{
+			isRemove:  true,
+			accessKey: "adminTest1",
+			secretKey: "adminTest1",
+		},
+		// Test case - 2.
+		// wrong The same user name already exists ..
+		{
+			isRemove:  true,
+			accessKey: "adminTest2",
+			secretKey: "adminTest2",
+		},
+		// Test case - 3.
+		// error  access key length should be between 3 and 20.
+		{
+			isRemove:  false,
+			accessKey: "1",
+			secretKey: "test1234",
+		},
+		// Test case - 4.
+		// error  secret key length should be between 3 and 20.
+		{
+			isRemove:  false,
+			accessKey: "test2",
+			secretKey: "1",
+		},
 	}
-
-	//list user
-	users, err := iamSys.GetUserList(context.Background(), "")
-	if err != nil {
-		fmt.Println(users)
+	//add user
+	fmt.Println("********add user********")
+	for _, testCase := range testCases {
+		if testCase.isRemove {
+			//remove user
+			err := iamSys.RemoveUser(ctx, testCase.accessKey)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+		//add user
+		err := iamSys.AddUser(ctx, testCase.accessKey, testCase.secretKey)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	//get user
-	cred, bool := iamSys.GetUser(context.Background(), accessKey)
-	fmt.Println(bool, cred)
+	fmt.Println("********list user********")
+	for _, testCase := range testCases {
+		if testCase.isRemove {
+			//get user
+			cred, bool := iamSys.GetUser(ctx, testCase.accessKey)
+			if bool {
+				fmt.Println(bool, cred)
+			}
+		}
+	}
+
+	//list user
+	fmt.Println("********list user********")
+	users, err := iamSys.GetUserList(ctx, "")
+	if err != nil {
+		fmt.Println(users)
+	}
+	bytes, err := json.Marshal(users)
+	fmt.Println(string(bytes))
 
 	//remove user
-	err = iamSys.RemoveUser(context.Background(), accessKey)
-	if err != nil {
-		fmt.Println(err)
+	fmt.Println("********remove user********")
+	for _, testCase := range testCases {
+		//remove user
+		err := iamSys.RemoveUser(ctx, testCase.accessKey)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
