@@ -157,7 +157,15 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 	if err != nil {
 		return o, err
 	}
+	count := 0
 	for _, v := range objects {
+		if v.Name != after {
+			continue
+		}
+		if count > keys {
+			break
+		}
+		count++
 		o.ContinuationToken = token
 		o.IsTruncated = true
 		o.Objects = append(o.Objects, v)
