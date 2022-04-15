@@ -48,6 +48,8 @@ const (
 	ErrAccessDenied
 	ErrAuthorizationHeaderMalformed
 	ErrMethodNotAllowed
+	ErrNoSuchUser
+	ErrUserAlreadyExists
 	ErrNoSuchUserPolicy
 	ErrUserPolicyAlreadyExists
 	ErrBucketNotEmpty
@@ -220,10 +222,20 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Policy exceeds the maximum allowed document size.",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
+	ErrNoSuchUser: {
+		Code:           "NoSuchUser",
+		Description:    "The specified user does not exist",
+		HTTPStatusCode: http.StatusConflict,
+	},
+	ErrUserAlreadyExists: {
+		Code:           "UserAlreadyExists",
+		Description:    "The same user name already exists .",
+		HTTPStatusCode: http.StatusConflict,
+	},
 	ErrNoSuchUserPolicy: {
 		Code:           "NoSuchUserPolicy",
-		Description:    "The user policy does not exist",
-		HTTPStatusCode: http.StatusNotFound,
+		Description:    "The specified user policy does not exist",
+		HTTPStatusCode: http.StatusConflict,
 	},
 	ErrUserPolicyAlreadyExists: {
 		Code:           "UserPolicyAlreadyExists",
