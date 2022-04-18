@@ -216,7 +216,7 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	},
 	ErrUserAlreadyExists: {
 		Code:           "UserAlreadyExists",
-		Description:    "The same user name already exists .",
+		Description:    "The request was rejected because it attempted to create a resource that already exists .",
 		HTTPStatusCode: http.StatusConflict,
 	},
 	ErrNoSuchUserPolicy: {
