@@ -190,7 +190,7 @@ func (s *AuthSys) IsReqAuthenticated(ctx context.Context, r *http.Request, regio
 	// The verification happens implicit during reading.
 	reader, err := hash.NewReader(r.Body, -1, clientETag.String(), hex.EncodeToString(contentSHA256), -1)
 	if err != nil {
-		return api_errors.ErrNewReaderFail
+		return api_errors.ErrInternalError
 	}
 	r.Body = reader
 	return api_errors.ErrNone

@@ -33,7 +33,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 	bucketPolicyBytes, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrNewReaderFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrMalformedPolicy)
 		return
 	}
 	bucketPolicy, err := policy.ParseConfig(bytes.NewReader(bucketPolicyBytes), bucket)
@@ -66,7 +66,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 		return
 	}
 	if err := s3a.authSys.PolicySys.DeletePolicy(r.Context(), cred.AccessKey, bucket, nil); err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	// Success.

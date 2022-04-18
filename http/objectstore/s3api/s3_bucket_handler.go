@@ -63,7 +63,7 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 	}
 	bucketMetas, erro := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrGetBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 
@@ -152,7 +152,7 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	errc := s3a.authSys.PolicySys.Delete(r.Context(), cred.AccessKey, bucket)
 	if errc != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrDeleteBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	response.WriteSuccessResponseEmpty(w, r)
@@ -272,7 +272,7 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 
 	if err1 = s3a.authSys.PolicySys.UpdateBucketMeta(r.Context(), cred.AccessKey, bucket, tags); err1 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrUpdateBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 
@@ -298,7 +298,7 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 	meta, err2 := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
 	if err2 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrGetBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	if meta.TaggingConfig == nil {
@@ -333,7 +333,7 @@ func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *htt
 	}
 	err2 := s3a.authSys.PolicySys.UpdateBucketMeta(r.Context(), cred.AccessKey, bucket, nil)
 	if err2 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrUpdateBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 

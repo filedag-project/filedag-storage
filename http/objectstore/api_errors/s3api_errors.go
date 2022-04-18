@@ -85,7 +85,6 @@ const (
 	ErrAccessKeyDisabled
 	ErrJsonMarshal
 	ErrAuthHeaderEmpty
-	ErrSetHeader
 	ErrSignatureVersionNotSupported
 	ErrMalformedPOSTRequest
 	ErrPOSTFileRequired
@@ -109,13 +108,6 @@ const (
 	ErrNegativeExpires
 	ErrMaximumExpires
 	ErrSignatureDoesNotMatch
-	ErrPutBucketFail
-	ErrGetBucketFail
-	ErrDeleteBucketFail
-	ErrUpdateBucketFail
-	ErrPutObjectFail
-	ErrGetObjectFail
-	ErrDeleteObjectFail
 	ErrContentSHA256Mismatch
 	ErrRequestNotReadyYet
 	ErrMalformedPolicy
@@ -127,11 +119,6 @@ const (
 
 	ErrExistingObjectIsDirectory
 	ErrExistingObjectIsFile
-
-	ErrSetBucketPolicyFail
-
-	ErrNewReaderFail
-	ErrWriteByteToBodyFail
 )
 
 // error code to APIError structure, these fields carry respective
@@ -328,11 +315,6 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "Authorization header is invalid -- one and only one ' ' (space) required.",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
-	ErrSetHeader: {
-		Code:           "ErrSetHeader",
-		Description:    "set response header err",
-		HTTPStatusCode: http.StatusForbidden,
-	},
 	ErrSignatureVersionNotSupported: {
 		Code:           "InvalidRequest",
 		Description:    "The authorization mechanism you have provided is not supported. Please use AWS4-HMAC-SHA256.",
@@ -465,41 +447,6 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "The request signature we calculated does not match the signature you provided. Check your key and signing method.",
 		HTTPStatusCode: http.StatusForbidden,
 	},
-	ErrPutBucketFail: {
-		Code:           "PutBucketFail",
-		Description:    "Fail to put a bucket ",
-		HTTPStatusCode: http.StatusForbidden,
-	},
-	ErrPutObjectFail: {
-		Code:           "PutObjectFail",
-		Description:    "Fail to put a object ",
-		HTTPStatusCode: http.StatusForbidden,
-	},
-	ErrGetObjectFail: {
-		Code:           "GetObjectFail",
-		Description:    "Get a object fail",
-		HTTPStatusCode: http.StatusForbidden,
-	},
-	ErrGetBucketFail: {
-		Code:           "GetBucketFail",
-		Description:    "Get a Bucket fail",
-		HTTPStatusCode: http.StatusForbidden,
-	},
-	ErrDeleteObjectFail: {
-		Code:           "DeleteObjectFail",
-		Description:    "Delete a object fail",
-		HTTPStatusCode: http.StatusForbidden,
-	},
-	ErrDeleteBucketFail: {
-		Code:           "DeleteBucketFail",
-		Description:    "Delete a Bucket fail",
-		HTTPStatusCode: http.StatusForbidden,
-	},
-	ErrUpdateBucketFail: {
-		Code:           "UpdateBucketFail",
-		Description:    "Update a Bucket fail",
-		HTTPStatusCode: http.StatusForbidden,
-	},
 
 	ErrContentSHA256Mismatch: {
 		Code:           "XAmzContentSHA256Mismatch",
@@ -540,21 +487,6 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "ExistingObjectIsFile",
 		Description:    "Existing Object is a file.",
 		HTTPStatusCode: http.StatusConflict,
-	},
-	ErrSetBucketPolicyFail: {
-		Code:           "SetBucketPolicyFail",
-		Description:    "Set bucketPolicy fail.",
-		HTTPStatusCode: http.StatusConflict,
-	},
-	ErrNewReaderFail: {
-		Code:           "NewReaderFail",
-		Description:    "New a Reader fail",
-		HTTPStatusCode: http.StatusForbidden,
-	},
-	ErrWriteByteToBodyFail: {
-		Code:           "WriteByteToBodyFail",
-		Description:    "writer byte to http writer err",
-		HTTPStatusCode: http.StatusForbidden,
 	},
 }
 
