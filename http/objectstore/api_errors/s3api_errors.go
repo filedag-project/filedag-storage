@@ -405,6 +405,26 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Description:    "The lifecycle configuration does not exist",
 		HTTPStatusCode: http.StatusNotFound,
 	},
+	ErrNoSuchUser: {
+		Code:           "NoSuchUser",
+		Description:    "The specified user does not exist",
+		HTTPStatusCode: http.StatusConflict,
+	},
+	ErrUserAlreadyExists: {
+		Code:           "UserAlreadyExists",
+		Description:    "The request was rejected because it attempted to create a resource that already exists .",
+		HTTPStatusCode: http.StatusConflict,
+	},
+	ErrNoSuchUserPolicy: {
+		Code:           "NoSuchUserPolicy",
+		Description:    "The specified user policy does not exist",
+		HTTPStatusCode: http.StatusConflict,
+	},
+	ErrUserPolicyAlreadyExists: {
+		Code:           "UserPolicyAlreadyExists",
+		Description:    "The same user policy already exists .",
+		HTTPStatusCode: http.StatusConflict,
+	},
 	ErrNoSuchKey: {
 		Code:           "NoSuchKey",
 		Description:    "The specified key does not exist.",
@@ -1200,26 +1220,6 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "MalformedJSON",
 		Description:    "The JSON was not well-formed or did not validate against our published format.",
 		HTTPStatusCode: http.StatusBadRequest,
-	},
-	ErrNoSuchUser: {
-		Code:           "NoSuchUser",
-		Description:    "The specified user does not exist",
-		HTTPStatusCode: http.StatusConflict,
-	},
-	ErrUserAlreadyExists: {
-		Code:           "UserAlreadyExists",
-		Description:    "The same user name already exists .",
-		HTTPStatusCode: http.StatusConflict,
-	},
-	ErrNoSuchUserPolicy: {
-		Code:           "NoSuchUserPolicy",
-		Description:    "The specified user policy does not exist",
-		HTTPStatusCode: http.StatusConflict,
-	},
-	ErrUserPolicyAlreadyExists: {
-		Code:           "UserPolicyAlreadyExists",
-		Description:    "The same user policy already exists .",
-		HTTPStatusCode: http.StatusConflict,
 	},
 }
 
