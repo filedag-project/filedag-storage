@@ -52,6 +52,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 			}
 			size, err = strconv.ParseInt(sizeStr[0], 10, 64)
 			if err != nil {
+				log.Errorf("ParseInt err:%v", err)
 				response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 				return
 			}
@@ -79,12 +80,14 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 
 	hashReader, err1 := hash.NewReader(dataReader, size, clientETag.String(), r.Header.Get(consts.AmzContentSha256), size)
 	if err1 != nil {
+		log.Errorf("PutObjectHandler NewReader err:%v", err1)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	defer dataReader.Close()
 	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader)
 	if err2 != nil {
+		log.Errorf("PutObjectHandler StoreObject err:%v", err1)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -113,17 +116,16 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	}
 	objInfo, reader, err := s3a.store.GetObject(r.Context(), cred.AccessKey, bucket, object)
 	if err != nil {
+		log.Errorf("GetObjectHandler GetObject err:%v", err)
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
 
-	if err = response.SetObjectHeaders(w, r, objInfo); err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
-		return
-	}
+	response.SetObjectHeaders(w, r, objInfo)
 	r1, err := ioutil.ReadAll(reader)
 	if err != nil {
+		log.Errorf("GetObjectHandler reader readAll err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -131,6 +133,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	response.SetHeadGetRespHeaders(w, r.Form)
 	_, err = w.Write(r1)
 	if err != nil {
+		log.Errorf("GetObjectHandler header write err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -155,16 +158,13 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 	objInfo, ok := s3a.store.HasObject(r.Context(), cred.AccessKey, bucket, object)
 	if !ok {
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
 
 	// Set standard object headers.
-	if err := response.SetObjectHeaders(w, r, objInfo); err != nil {
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
-		return
-	}
+	response.SetObjectHeaders(w, r, objInfo)
 	// Set any additional requested response headers.
 	response.SetHeadGetRespHeaders(w, r.Form)
 
@@ -192,11 +192,12 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 	}
 	objInfo, ok := s3a.store.HasObject(r.Context(), cred.AccessKey, bucket, object)
 	if !ok {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchKey)
 		return
 	}
 	err := s3a.store.DeleteObject(cred.AccessKey, bucket, object)
 	if err != nil {
+		log.Errorf("DeleteObjectHandler DeleteObject  err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -241,10 +242,10 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	log.Infof("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
-
 	_, i, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
 	if err != nil {
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+		log.Errorf("CopyObjectHandler StoreObject err:%v", err)
+		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
 		return
 	}
 	if (srcBucket == dstBucket && srcObject == dstObject || cpSrcPath == "") && isReplace(r) {
@@ -270,7 +271,6 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	obj, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i)
-
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -398,7 +398,7 @@ func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimit
 	// The continuation-token cannot be empty.
 	if val, ok := values["continuation-token"]; ok {
 		if len(val[0]) == 0 {
-			errCode = api_errors.ErrIncorrectContinuationToken
+			errCode = api_errors.ErrInvalidToken
 			return
 		}
 	}

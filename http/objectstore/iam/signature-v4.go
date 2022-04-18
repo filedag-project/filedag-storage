@@ -346,7 +346,7 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 	// Parse date header.
 	t, e := time.Parse(iso8601Format, date)
 	if e != nil {
-		return api_errors.ErrMalformedDate
+		return api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	// Query string.

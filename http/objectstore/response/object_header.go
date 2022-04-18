@@ -10,7 +10,7 @@ import (
 )
 
 // SetObjectHeaders Write object header
-func SetObjectHeaders(w http.ResponseWriter, r *http.Request, objInfo store.ObjectInfo) (err error) {
+func SetObjectHeaders(w http.ResponseWriter, r *http.Request, objInfo store.ObjectInfo) {
 	// set common headers
 	setCommonHeaders(w, r)
 
@@ -45,7 +45,6 @@ func SetObjectHeaders(w http.ResponseWriter, r *http.Request, objInfo store.Obje
 		w.Header()[consts.AmzVersionID] = []string{objInfo.VersionID}
 	}
 
-	return nil
 }
 
 // SetHeadGetRespHeaders - set any requested parameters as response headers.

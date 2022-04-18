@@ -28,17 +28,17 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 	// Error out if Content-Length is beyond allowed size.
 	if r.ContentLength > maxBucketPolicySize {
-		response.WriteErrorResponse(w, r, api_errors.ErrPolicyTooLarge)
+		response.WriteErrorResponse(w, r, api_errors.ErrIncompleteBody)
 		return
 	}
 	bucketPolicyBytes, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrMalformedPolicy)
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidPolicyDocument)
 		return
 	}
 	bucketPolicy, err := policy.ParseConfig(bytes.NewReader(bucketPolicyBytes), bucket)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrJsonMarshal)
+		response.WriteErrorResponse(w, r, api_errors.ErrMalformedPolicy)
 		return
 	}
 	// Version in policy must not be empty
@@ -48,6 +48,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	if err = s3a.authSys.PolicySys.UpdatePolicy(r.Context(), cred.AccessKey, bucket, bucketPolicy); err != nil {
+		log.Errorf("PutBucketPolicyHandler UpdatePolicy err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -66,6 +67,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 		return
 	}
 	if err := s3a.authSys.PolicySys.DeletePolicy(r.Context(), cred.AccessKey, bucket, nil); err != nil {
+		log.Errorf("DeleteBucketPolicyHandler DeletePolicy err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -93,7 +95,7 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 
 	configData, err := json.Marshal(config)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrJsonMarshal)
+		response.WriteErrorResponse(w, r, api_errors.ErrMalformedJSON)
 		return
 	}
 

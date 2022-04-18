@@ -164,7 +164,7 @@ func (s *AuthSys) doesPresignV2SignatureMatch(r *http.Request) api_errors.ErrorC
 	// Make sure the request has not expired.
 	expiresInt, err := strconv.ParseInt(expires, 10, 64)
 	if err != nil {
-		return api_errors.ErrMalformedExpires
+		return api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	// Check if the presigned URL has expired.

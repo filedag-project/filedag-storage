@@ -96,7 +96,7 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 
 	data, err := json.Marshal(user)
 	if err != nil {
-		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrMalformedJSON), r.URL, r.Host)
 		return
 	}
 	response.WriteSuccessResponseJSON(w, data)
@@ -227,7 +227,7 @@ func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Reques
 
 	data, err := json.Marshal(user)
 	if err != nil {
-		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrJsonMarshal), r.URL, r.Host)
+		response.WriteErrorResponseJSON(w, api_errors.GetAPIError(api_errors.ErrMalformedJSON), r.URL, r.Host)
 		return
 	}
 	response.WriteSuccessResponseJSON(w, data)

@@ -63,7 +63,7 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 	}
 	bucketMetas, erro := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
 
@@ -95,8 +95,10 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
+	// todo check policy and bucket
 	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey, region)
 	if erro != nil {
+		log.Errorf("PutBucketHandler set default policy err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -152,6 +154,7 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	errc := s3a.authSys.PolicySys.Delete(r.Context(), cred.AccessKey, bucket)
 	if errc != nil {
+		log.Errorf("DeleteBucketHandler delete bucket err: %v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
