@@ -10,7 +10,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"github.com/gorilla/mux"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,16 +20,9 @@ import (
 var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
-func tmpDirPath(t *testing.T) string {
-	tmpdir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatalf("failed to make temp dir: %s", err)
-	}
-	return tmpdir
-}
 func TestMain(m *testing.M) {
 	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(tmpDirPath(&testing.T{}))
+	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	if err != nil {
 		return
 	}
