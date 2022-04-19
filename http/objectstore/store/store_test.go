@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestStorageSys_StoreObject(t *testing.T) {
+func TestStorageSys_Object(t *testing.T) {
 	var s StorageSys
 	var err error
 	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
@@ -25,8 +25,18 @@ func TestStorageSys_StoreObject(t *testing.T) {
 	r := ioutil.NopCloser(bytes.NewReader([]byte("hello world")))
 	object, err := s.StoreObject(context.Background(), "test", "testBucket", "testobject", r)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("StoreObject", err)
 		return
 	}
 	fmt.Println(object)
+	res, i, err := s.GetObject(context.Background(), "test", "testBucket", "testobject")
+	if err != nil {
+		fmt.Println("GetObject", err)
+		return
+	}
+	all, err := ioutil.ReadAll(i)
+	if err != nil {
+		return
+	}
+	fmt.Printf("res:%v,\ni:%v", res, string(all))
 }

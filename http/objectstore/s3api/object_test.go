@@ -427,6 +427,38 @@ func TestWholeNoUserAPI(t *testing.T) {
 	fmt.Println(reqTest(reqGetObject).Body.String())
 }
 
+func TestWholeProcess(t *testing.T) {
+	userName := "dean"
+	secret := "dean123456"
+	bucketName := "/testbucket"
+	objectName := "/testobject"
+	reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, "/admin/v1/add-user"+"?accessKey="+userName+"&secretKey="+secret, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	fmt.Println(reqTest(reqPutUser).Body.String())
+	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", userName, secret, t)
+	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+	r1 := "1234567"
+	reqputObject := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", userName, secret, t)
+	// Add test case specific headers to the request.
+	reqTest(reqputObject)
+	req := testsign.MustNewSignedV4Request(http.MethodGet, bucketName+objectName, 0, nil, "s3", userName, secret, t)
+	fmt.Println("getobject", reqTest(req).Body.String())
+}
+func TestS3ApiServer_PutObjectHandler2(t *testing.T) {
+	bucketName := "/testbucket"
+	objectName := "/testobject"
+	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+	r1 := "1234567"
+	reqputObject := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// Add test case specific headers to the request.
+	reqTest(reqputObject)
+	r2 := "123456"
+	reqputObject2 := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r2)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// Add test case specific headers to the request.
+	reqTest(reqputObject2)
+	req := testsign.MustNewSignedV4Request(http.MethodGet, bucketName+objectName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	fmt.Println(reqTest(req).Body.String())
+}
 func addCustomHeaders(req *http.Request, customHeaders http.Header) {
 	for k, values := range customHeaders {
 		for _, value := range values {
@@ -435,6 +467,26 @@ func addCustomHeaders(req *http.Request, customHeaders http.Header) {
 	}
 }
 
+/*func TestS3_PutObjectHandler(t *testing.T) {
+	u := "http://127.0.0.1:9985/test22/1.txt"
+	r1, _ := ioutil.ReadFile("./object_test.go")
+
+	req := testsign.MustNewSignedV4Request(http.MethodPut, u, int64(len(r1)), bytes.NewReader(r1), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+
+	//req.Header.Set("Content-Type", "text/plain")
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+
+}*/
 //func TestS3ApiServer_ListObjectsV1Handler(t *testing.T) {
 //	u := "http://127.0.0.1:9985/test22"
 //	req := testsign.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
