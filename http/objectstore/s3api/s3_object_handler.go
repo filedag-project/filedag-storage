@@ -114,7 +114,16 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	objInfo, reader, err := s3a.store.GetObject(r.Context(), cred.AccessKey, bucket, object)
+	userName := cred.AccessKey
+	if cred.AccessKey == "" {
+		meta, err := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
+		if err != nil {
+			response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+			return
+		}
+		userName = meta.Owner
+	}
+	objInfo, reader, err := s3a.store.GetObject(r.Context(), userName, bucket, object)
 	if err != nil {
 		log.Errorf("GetObjectHandler GetObject err:%v", err)
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
