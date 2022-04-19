@@ -25,7 +25,7 @@ var router = mux.NewRouter()
 
 func TestMain(m *testing.M) {
 	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb("./test")
+	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	if err != nil {
 		return
 	}
