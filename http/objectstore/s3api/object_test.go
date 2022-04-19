@@ -413,6 +413,20 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 	}
 
 }
+
+func TestWholeNoUserAPI(t *testing.T) {
+	bucketName := "/testbucket"
+	objectName := "/testobject"
+	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+	r1 := "1234567"
+	reqputObject := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// Add test case specific headers to the request.
+	reqTest(reqputObject)
+	reqGetObject, _ := http.NewRequest(http.MethodGet, bucketName+objectName, nil)
+	fmt.Println(reqTest(reqGetObject).Body.String())
+}
+
 func addCustomHeaders(req *http.Request, customHeaders http.Header) {
 	for k, values := range customHeaders {
 		for _, value := range values {
