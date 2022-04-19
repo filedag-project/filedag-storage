@@ -441,7 +441,7 @@ func TestWholeProcess(t *testing.T) {
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
 	req := testsign.MustNewSignedV4Request(http.MethodGet, bucketName+objectName, 0, nil, "s3", userName, secret, t)
-	fmt.Println(reqTest(req).Body.String())
+	fmt.Println("getobject", reqTest(req).Body.String())
 }
 func addCustomHeaders(req *http.Request, customHeaders http.Header) {
 	for k, values := range customHeaders {
