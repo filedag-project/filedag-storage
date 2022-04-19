@@ -451,13 +451,24 @@ func TestS3ApiServer_PutObjectHandler2(t *testing.T) {
 	r1 := "1234567"
 	reqputObject := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
-	reqTest(reqputObject)
+	re := reqTest(reqputObject)
+	if re.Code != http.StatusOK {
+		t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", 1, http.StatusOK, re.Code)
+	}
+
 	r2 := "123456"
 	reqputObject2 := testsign.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r2)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
-	reqTest(reqputObject2)
+	re = reqTest(reqputObject2)
+	if re.Code != http.StatusOK {
+		t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", 1, http.StatusOK, re.Code)
+	}
 	req := testsign.MustNewSignedV4Request(http.MethodGet, bucketName+objectName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println(reqTest(req).Body.String())
+	re = reqTest(req)
+	if re.Code != http.StatusOK {
+		t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", 1, http.StatusOK, re.Code)
+	}
+	fmt.Println(re.Body.String())
 }
 func addCustomHeaders(req *http.Request, customHeaders http.Header) {
 	for k, values := range customHeaders {
