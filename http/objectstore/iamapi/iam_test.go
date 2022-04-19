@@ -2,6 +2,7 @@ package iamapi
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
@@ -86,17 +87,10 @@ func TestIamApiServer_AddUser(t *testing.T) {
 		},
 	}
 	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
-	removeUrl := "http://127.0.0.1:9985/admin/v1/remove-user"
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
-		if testCase.isRemove {
-			reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPost, removeUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-			result1 := reqTest(reqPutBucket)
-			if result1.Code != testCase.expectedRespStatus {
-				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
-			}
-		}
 		// mock an HTTP request
+		// add user
 		reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result := reqTest(reqPutUser)
 		if result.Code != testCase.expectedRespStatus {
@@ -152,12 +146,14 @@ func TestIamApiServer_GetUserList(t *testing.T) {
 		// mock an HTTP request
 		if testCase.isPut {
 			// mock an HTTP request
+			// add user
 			reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 			result := reqTest(reqPutBucket)
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 			}
 		}
+		// list user
 		reqListUser := testsign.MustNewSignedV4Request(http.MethodGet, queryUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result := reqTest(reqListUser)
 		if result.Code != testCase.expectedRespStatus {
@@ -202,8 +198,19 @@ func TestIamApiServer_UserInfo(t *testing.T) {
 		},
 	}
 	u := "http://127.0.0.1:9985/admin/v1/user-info"
+	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
+		// mock an HTTP request
+		if testCase.isPut {
+			// add user
+			reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+			result := reqTest(reqPutUser)
+			if result.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+			}
+		}
+		//user info
 		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodGet, u+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result1 := reqTest(reqPutBucket)
 		if result1.Code != testCase.expectedRespStatus {
@@ -244,17 +251,20 @@ func TestIamApiServer_RemoveUser(t *testing.T) {
 			expectedRespStatus: http.StatusConflict,
 		},
 	}
+	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
 	removeUrl := "http://127.0.0.1:9985/admin/v1/remove-user"
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
 		// mock an HTTP request
-		//if testCase.isPut {
-		//	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
-		//	result1 := reqTest(reqPutBucket)
-		//	if result1.Code != testCase.expectedRespStatus {
-		//		t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
-		//	}
-		//}
+		if testCase.isPut {
+			// add user
+			reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+			result := reqTest(reqPutUser)
+			if result.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+			}
+		}
+		// remove user
 		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPost, removeUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result1 := reqTest(reqPutBucket)
 		if result1.Code != testCase.expectedRespStatus {
@@ -273,6 +283,95 @@ func TestIamApiServer_RemoveUser(t *testing.T) {
 //	assert.Equal(t, http.StatusOK, w.Code)
 //	fmt.Println(w.Body.String())
 //}
+
+// set status
+func TestIamApiServer_SetStatus(t *testing.T) {
+	testCases := []struct {
+		isRemove  bool
+		accessKey string
+		secretKey string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+		// Test case - 1.
+		// Fetching the entire User and validating its contents.
+		{
+			isRemove:           true,
+			accessKey:          "admin",
+			secretKey:          "admin1234",
+			expectedRespStatus: http.StatusOK,
+		},
+	}
+	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
+	setStatusUrl := "http://127.0.0.1:9985/admin/v1/update-accessKey_status?"
+	for i, testCase := range testCases {
+		// mock an HTTP request
+		//add user
+		reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		result := reqTest(reqPutUser)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+		//set status
+		urlValues := make(url.Values)
+		urlValues.Set("accessKey", testCase.accessKey)
+		urlValues.Set("status", string(iam.AccountDisabled))
+		//urlValues.Set("status", string(iam.AccountEnabled))
+		reqSetStatus := testsign.MustNewSignedV4Request(http.MethodPost, setStatusUrl+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		result = reqTest(reqSetStatus)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+
+	}
+}
+
+//change password
+func TestIamApiServer_ChangePassword(t *testing.T) {
+	testCases := []struct {
+		isRemove  bool
+		accessKey string
+		secretKey string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+		// Test case - 1.
+		// Fetching the entire User and validating its contents.
+		{
+			isRemove:           true,
+			accessKey:          "admin",
+			secretKey:          "admin1234",
+			expectedRespStatus: http.StatusOK,
+		},
+	}
+	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
+	changePassUrl := "http://127.0.0.1:9985/admin/v1/change-password?"
+	userInfoUrl := "http://127.0.0.1:9985/admin/v1/user-info"
+	for i, testCase := range testCases {
+		// mock an HTTP request
+		// add user
+		reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		result := reqTest(reqPutUser)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+		//change password
+		urlValues := make(url.Values)
+		urlValues.Set("newPassword", "admin12345")
+		//urlValues.Set("status", string(iam.AccountDisabled
+		reqChange := testsign.MustNewSignedV4Request(http.MethodPost, changePassUrl+urlValues.Encode(), 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		result = reqTest(reqChange)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+		//user info
+		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodGet, userInfoUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		result1 := reqTest(reqPutBucket)
+		if result1.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
+		}
+	}
+}
 
 func TestIamApiServer_PutUserPolicy(t *testing.T) {
 	urlValues := make(url.Values)
@@ -319,48 +418,6 @@ func TestIamApiServer_ListUserPolicy(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	fmt.Println(w.Body.String())
 }
-
-//func TestIamApiServer_ChangePassword(t *testing.T) {
-//	urlValues := make(url.Values)
-//	urlValues.Set("newPassword", "test2222")
-//	u := "http://127.0.0.1:9985/admin/v1/change-password?"
-//	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", "test1", "test12345", t)
-//
-//	//req.Header.Set("Content-Type", "text/plain")
-//	client := &http.Client{}
-//	res, err := client.Do(req)
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//	defer res.Body.Close()
-//	body, err := ioutil.ReadAll(res.Body)
-//
-//	fmt.Println(res)
-//	fmt.Println(string(body))
-//}
-//
-//func TestIamApiServer_SetStatus(t *testing.T) {
-//	urlValues := make(url.Values)
-//	urlValues.Set("userName", "test1")
-//	urlValues.Set("status", string(iam.AccountDisabled))
-//	//urlValues.Set("status", string(iam.AccountEnabled))
-//	u := "http://127.0.0.1:9985/admin/v1/update-accessKey_status?"
-//	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", "test1", "test2222", t)
-//
-//	//req.Header.Set("Content-Type", "text/plain")
-//	client := &http.Client{}
-//	res, err := client.Do(req)
-//	if err != nil {
-//		fmt.Println(err)
-//		return
-//	}
-//	defer res.Body.Close()
-//	body, err := ioutil.ReadAll(res.Body)
-//
-//	fmt.Println(res)
-//	fmt.Println(string(body))
-//}
 
 //func TestIamApiServer_GetUserInfo(t *testing.T) {
 //	urlValues := make(url.Values)
