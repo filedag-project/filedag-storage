@@ -190,6 +190,8 @@ func (s *StorageSys) Init() error {
 	if os.Getenv(PoolStorePath) == "" {
 		//log.Errorf("get PoolStorePath err %v,use default",err)
 		path = defaultPoolStorePath
+	} else {
+		path = os.Getenv(PoolStorePath)
 	}
 	s.dagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
 		StorePath: path,
