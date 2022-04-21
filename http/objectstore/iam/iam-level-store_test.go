@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
-var tmppath = utils.TmpDirPath(&testing.T{})
+var tmppath = "/tmp/leveldb2/test"
 
 func TestLoadUsers(t *testing.T) {
 	uleveldb.DBClient, _ = uleveldb.OpenDb(tmppath)
