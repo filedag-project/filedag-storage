@@ -10,7 +10,7 @@ import (
 )
 
 func TestIdentityAMSys_UserApi(t *testing.T) {
-	uleveldb.DBClient, _ = uleveldb.OpenDb(path)
+	uleveldb.DBClient, _ = uleveldb.OpenDb(tmppath)
 	var iamSys IdentityAMSys
 	iamSys.Init()
 	//var accessKey = "test1"
@@ -108,7 +108,7 @@ func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, e
 }
 
 func TestIdentityAMSys_UserPolicyApi(t *testing.T) {
-	uleveldb.DBClient, _ = uleveldb.OpenDb(path)
+	uleveldb.DBClient, _ = uleveldb.OpenDb(tmppath)
 	var iamSys IdentityAMSys
 	iamSys.Init()
 	var userName = "test1"

@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
-const (
-	path = "/tmp/test/fds.db"
-)
+var tmppath = utils.TmpDirPath(&testing.T{})
 
 func TestLoadUsers(t *testing.T) {
-	uleveldb.DBClient, _ = uleveldb.OpenDb(path)
+	uleveldb.DBClient, _ = uleveldb.OpenDb(tmppath)
 	var iamSys IdentityAMSys
 	iamSys.Init()
 	//add user
