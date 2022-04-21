@@ -339,7 +339,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 		// Fetching the entire User and validating its contents.
 		{
 			isRemove:           true,
-			accessKey:          "admin",
+			accessKey:          "changeTest",
 			secretKey:          "admin1234",
 			expectedRespStatus: http.StatusOK,
 		},
