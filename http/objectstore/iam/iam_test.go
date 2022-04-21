@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
 func TestIdentityAMSys_UserApi(t *testing.T) {
-	uleveldb.DBClient, _ = uleveldb.OpenDb(tmppath)
+	uleveldb.DBClient, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	var iamSys IdentityAMSys
 	iamSys.Init()
 	//var accessKey = "test1"
@@ -108,7 +109,7 @@ func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, e
 }
 
 func TestIdentityAMSys_UserPolicyApi(t *testing.T) {
-	uleveldb.DBClient, _ = uleveldb.OpenDb(tmppath)
+	uleveldb.DBClient, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	var iamSys IdentityAMSys
 	iamSys.Init()
 	var userName = "test1"
