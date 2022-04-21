@@ -177,23 +177,23 @@ func TestIamApiServer_UserInfo(t *testing.T) {
 		// Test case - 1.
 		{
 			isPut:              true,
-			accessKey:          "adminTest1",
-			secretKey:          "adminTest1",
+			accessKey:          "infoTest1",
+			secretKey:          "infoTest1",
 			expectedRespStatus: http.StatusOK,
 		},
 		// Test case - 2.
 		{
 			isPut:              true,
-			accessKey:          "adminTest2",
-			secretKey:          "adminTest2",
+			accessKey:          "infoTest2",
+			secretKey:          "infoTest2",
 			expectedRespStatus: http.StatusOK,
 		},
 		// Test case - 3.
 		// The specified user does not exist
 		{
 			isPut:              false,
-			accessKey:          "adminTest3",
-			secretKey:          "adminTest3",
+			accessKey:          "infoTest3",
+			secretKey:          "infoTest3",
 			expectedRespStatus: http.StatusConflict,
 		},
 	}
@@ -231,23 +231,23 @@ func TestIamApiServer_RemoveUser(t *testing.T) {
 		// Test case - 1.
 		{
 			isPut:              true,
-			accessKey:          "adminTest1",
-			secretKey:          "adminTest1",
+			accessKey:          "removeTest1",
+			secretKey:          "removeTest1",
 			expectedRespStatus: http.StatusOK,
 		},
 		// Test case - 2.
 		{
 			isPut:              true,
-			accessKey:          "adminTest2",
-			secretKey:          "adminTest2",
+			accessKey:          "removeTest2",
+			secretKey:          "removeTest2",
 			expectedRespStatus: http.StatusOK,
 		},
 		// Test case - 3.
 		// The specified user does not exist
 		{
 			isPut:              false,
-			accessKey:          "adminTest3",
-			secretKey:          "adminTest3",
+			accessKey:          "removeTest3",
+			secretKey:          "removeTest3",
 			expectedRespStatus: http.StatusConflict,
 		},
 	}
