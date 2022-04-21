@@ -269,11 +269,11 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var pd policy.PolicyDocument
-	err = iamApi.authSys.Iam.GetUserPolicy(r.Context(), userName, policyName, &pd)
-	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchUserPolicy)
-		return
-	}
+	_ = iamApi.authSys.Iam.GetUserPolicy(r.Context(), userName, policyName, &pd)
+	//if err != nil {
+	//	response.WriteErrorResponse(w, r, api_errors.ErrNoSuchUserPolicy)
+	//	return
+	//}
 	policyMergeDocument := pd.Merge(policyDocument)
 	if policyMergeDocument.Version == "" && policyMergeDocument.Statement == nil {
 		log.Error(errors.New("The same user policy already exists "))
