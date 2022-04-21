@@ -39,7 +39,7 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	return w
 }
 func TestS3ApiServer_PutBucketHandler(t *testing.T) {
-	bucketName := "/testbucket"
+	bucketName := "/testbucketput"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
 		bucketName string
@@ -77,7 +77,7 @@ func TestS3ApiServer_PutBucketHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
-	bucketName := "/testbucket"
+	bucketName := "/testbuckethead"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
 		bucketName string
@@ -129,7 +129,7 @@ func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_ListBucketHandler(t *testing.T) {
-	bucketName := "/testbucket"
+	bucketName := "/testbucketlist"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
 		isPut     bool
@@ -197,7 +197,7 @@ func TestS3ApiServer_ListBucketHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
-	bucketName := "/testbucket"
+	bucketName := "/testbucketdel"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
 		isPut     bool
@@ -244,7 +244,7 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 			}
 		}
 
-		reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "/testbucket", 0,
+		reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "/testbucketdel", 0,
 			nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result := reqTest(reqDeleteBucket)
 		if result.Code != testCase.expectedRespStatus {
@@ -260,7 +260,7 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 }
 
 func TestS3ApiServer_BucketPolicyHandler(t *testing.T) {
-	u := "/testbucket"
+	u := "/testbucketpoliy"
 	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 

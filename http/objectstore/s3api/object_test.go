@@ -15,8 +15,8 @@ const (
 )
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketputo"
+	objectName := "/testobjectputo"
 	r1 := "1234567"
 	copySourceHeader := http.Header{}
 	copySourceHeader.Set("X-Amz-Copy-Source", "somewhere")
@@ -96,8 +96,8 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_GetObjectHandler(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketfeto"
+	objectName := "/testobjectgeto"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -156,8 +156,8 @@ func TestS3ApiServer_GetObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_HeadObjectHandler(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketheado"
+	objectName := "/testobjectheado"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -215,8 +215,8 @@ func TestS3ApiServer_HeadObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketdelo"
+	objectName := "/testobjectdelo"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -274,8 +274,8 @@ func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketcopy"
+	objectName := "/testobjectcopy"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -359,8 +359,8 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketlist"
+	objectName := "/testobjectlist"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -415,8 +415,8 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 }
 
 func TestWholeNoUserAPI(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketwhole"
+	objectName := "/testobjectwhole"
 	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
@@ -444,8 +444,8 @@ func TestWholeProcess(t *testing.T) {
 	fmt.Println("getobject", reqTest(req).Body.String())
 }
 func TestS3ApiServer_PutObjectHandler2(t *testing.T) {
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "/testbucketput2"
+	objectName := "/testobjectput2"
 	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
