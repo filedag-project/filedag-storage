@@ -3,7 +3,6 @@ package iamapi
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
-	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
@@ -32,7 +31,7 @@ func TestMain(m *testing.M) {
 	}
 	defer uleveldb.DBClient.Close()
 	NewIamApiServer(router)
-	s3api.NewS3Server(router)
+	//s3api.NewS3Server(router)
 	os.Exit(m.Run())
 }
 
