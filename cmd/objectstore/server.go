@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
+	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
@@ -15,10 +16,13 @@ import (
 var log = logging.Logger("sever")
 
 const (
-	deFaultDBFILE      = "/tmp/leveldb2/fds.db"
-	defaultPort        = ":9985"
-	fileDagStoragePort = "FILE_DAG_STORAGE_PORT"
-	dbPath             = "DBPATH"
+	deFaultDBFILE        = "/tmp/leveldb2/fds.db"
+	defaultPort          = ":9985"
+	fileDagStoragePort   = "FILE_DAG_STORAGE_PORT"
+	dbPath               = "DBPATH"
+	defaultPoolStorePath = "./"
+	defaultPoolBatchNum  = "4"
+	defaultPoolCaskNum   = "2"
 )
 
 //startServer Start a IamServer
@@ -57,6 +61,21 @@ var startCmd = &cli.Command{
 			Usage: "set port eg.:9985",
 			Value: defaultPort,
 		},
+		&cli.StringFlag{
+			Name:  "pool-path",
+			Usage: "set pool path  eg.`.`",
+			Value: defaultPoolStorePath,
+		},
+		&cli.StringFlag{
+			Name:  "pool-batch-num",
+			Usage: "set pool batch num eg.10",
+			Value: defaultPoolBatchNum,
+		},
+		&cli.StringFlag{
+			Name:  "pool-cask-num",
+			Usage: "set pool cask num.:10",
+			Value: defaultPoolCaskNum,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 
@@ -68,6 +87,24 @@ var startCmd = &cli.Command{
 		}
 		if cctx.String("port") != "" {
 			err := os.Setenv(fileDagStoragePort, cctx.String("port"))
+			if err != nil {
+				return err
+			}
+		}
+		if cctx.String("pool-path") != "" {
+			err := os.Setenv(store.PoolStorePath, cctx.String("pool-path"))
+			if err != nil {
+				return err
+			}
+		}
+		if cctx.String("pool-batch-num") != "" {
+			err := os.Setenv(store.PoolBatchNum, cctx.String("pool-batch-num"))
+			if err != nil {
+				return err
+			}
+		}
+		if cctx.String("pool-cask-num") != "" {
+			err := os.Setenv(store.PoolCaskNum, cctx.String("pool-cask-num"))
 			if err != nil {
 				return err
 			}

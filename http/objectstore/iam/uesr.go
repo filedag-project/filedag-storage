@@ -7,8 +7,8 @@ type AccountStatus string
 
 // Account status per user.
 const (
-	AccountEnabled  AccountStatus = "enabled"
-	AccountDisabled AccountStatus = "disabled"
+	AccountEnabled  AccountStatus = "on"
+	AccountDisabled AccountStatus = "off"
 )
 
 // UserInfo carries information about long term users.

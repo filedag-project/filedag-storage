@@ -95,7 +95,7 @@ func parseCredentialHeader(credElement string, region string, stype serviceType)
 	var e error
 	cred.scope.date, e = time.Parse(yyyymmdd, credElements[0])
 	if e != nil {
-		return ch, api_errors.ErrMalformedCredentialDate
+		return ch, api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	cred.scope.region = credElements[1]
@@ -115,13 +115,13 @@ func parseCredentialHeader(credElement string, region string, stype serviceType)
 	if credElements[2] != string(stype) {
 		switch stype {
 		case ServiceSTS:
-			return ch, api_errors.ErrInvalidServiceSTS
+			return ch, api_errors.ErrAuthorizationHeaderMalformed
 		}
-		return ch, api_errors.ErrInvalidServiceS3
+		return ch, api_errors.ErrAuthorizationHeaderMalformed
 	}
 	cred.scope.service = credElements[2]
 	if credElements[3] != "aws4_request" {
-		return ch, api_errors.ErrInvalidRequestVersion
+		return ch, api_errors.ErrAuthorizationHeaderMalformed
 	}
 	cred.scope.request = credElements[3]
 	return cred, api_errors.ErrNone
@@ -203,7 +203,7 @@ func parsePreSignV4(query url.Values, region string, stype serviceType) (psv pre
 
 	// Verify if the query algorithm is supported or not.
 	if query.Get(consts.AmzAlgorithm) != signV4Algorithm {
-		return psv, api_errors.ErrInvalidQuerySignatureAlgo
+		return psv, api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	// Initialize signature version '4' structured header.
@@ -219,22 +219,22 @@ func parsePreSignV4(query url.Values, region string, stype serviceType) (psv pre
 	// Save date in native time.Time.
 	preSignV4Values.Date, e = time.Parse(iso8601Format, query.Get(consts.AmzDate))
 	if e != nil {
-		return psv, api_errors.ErrMalformedPresignedDate
+		return psv, api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	// Save expires in native time.Duration.
 	preSignV4Values.Expires, e = time.ParseDuration(query.Get(consts.AmzExpires) + "s")
 	if e != nil {
-		return psv, api_errors.ErrMalformedExpires
+		return psv, api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	if preSignV4Values.Expires < 0 {
-		return psv, api_errors.ErrNegativeExpires
+		return psv, api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	// Check if Expiry time is less than 7 days (value in seconds).
 	if preSignV4Values.Expires.Seconds() > 604800 {
-		return psv, api_errors.ErrMaximumExpires
+		return psv, api_errors.ErrAuthorizationHeaderMalformed
 	}
 
 	// Save signed headers.
