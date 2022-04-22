@@ -30,8 +30,6 @@ type IdentityAMSys struct {
 
 // Init - initializes IdentityAM config system
 func (sys *IdentityAMSys) Init() {
-	sys.Lock()
-	defer sys.Unlock()
 	sys.initStore()
 }
 

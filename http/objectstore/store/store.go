@@ -19,8 +19,8 @@ var log = logging.Logger("store")
 
 //StorageSys store sys
 type StorageSys struct {
-	db      *uleveldb.ULevelDB
-	dagPool pool.DAGPool
+	Db      *uleveldb.ULevelDB
+	DagPool pool.DAGPool
 }
 
 const (
@@ -39,7 +39,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	cid, err := s.dagPool.Add(ctx, reader)
+	cid, err := s.DagPool.Add(ctx, reader)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -61,7 +61,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		AccTime:          time.Unix(0, 0).UTC(),
 		SuccessorModTime: time.Now().UTC(),
 	}
-	err = s.db.Put(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), meta)
+	err = s.Db.Put(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), meta)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -74,11 +74,11 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err := s.db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	reader, err := s.dagPool.Get(ctx, meta.ETag)
+	reader, err := s.DagPool.Get(ctx, meta.ETag)
 	return meta, reader, nil
 }
 
@@ -88,7 +88,7 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err := s.db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
 	if err != nil {
 		return ObjectInfo{}, false
 	}
@@ -98,7 +98,7 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 //DeleteObject Get object
 func (s *StorageSys) DeleteObject(user, bucket, object string) error {
 	//err := s.dagPool.DelFile(bucket, object)
-	err := s.db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
+	err := s.Db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (s *StorageSys) DeleteObject(user, bucket, object string) error {
 //ListObject list user object
 func (s *StorageSys) ListObject(user, bucket string) ([]ObjectInfo, error) {
 	var objs []ObjectInfo
-	objMap, err := s.db.ReadAll(fmt.Sprintf(allObjectPrefixTemplate, user, bucket))
+	objMap, err := s.Db.ReadAll(fmt.Sprintf(allObjectPrefixTemplate, user, bucket))
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 
 //Init storage sys
 func (s *StorageSys) Init() error {
-	s.db = uleveldb.DBClient
+	s.Db = uleveldb.DBClient
 	batchNum, err := strconv.Atoi(os.Getenv(PoolBatchNum))
 	if err != nil {
 		//log.Errorf("get PoolBatchNum err %v,use default",err)
@@ -193,7 +193,7 @@ func (s *StorageSys) Init() error {
 	} else {
 		path = os.Getenv(PoolStorePath)
 	}
-	s.dagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
+	s.DagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
 		StorePath: path,
 		BatchNum:  batchNum,
 		CaskNum:   caskNum,
