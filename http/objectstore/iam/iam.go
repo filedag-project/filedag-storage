@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"sync"
 )
@@ -31,15 +30,17 @@ type IdentityAMSys struct {
 
 // Init - initializes IdentityAM config system
 func (sys *IdentityAMSys) Init() {
-	sys.Lock()
-	defer sys.Unlock()
 	sys.initStore()
 }
 
 // initStore initializes IAM stores
 func (sys *IdentityAMSys) initStore() {
 	sys.store = &iamStoreSys{newIAMLevelDBStore()}
-
+	err := sys.store.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.GetDefaultActiveCred()})
+	if err != nil {
+		log.Errorf("add first user fail%v", err)
+		return
+	}
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
@@ -99,29 +100,30 @@ func (sys *IdentityAMSys) IsTempUser(ctx context.Context, name string) (bool, st
 }
 
 // GetUserList all user
-func (sys *IdentityAMSys) GetUserList(ctx context.Context) []*iam.User {
+func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([]*iam.User, error) {
 	var u []*iam.User
 	users, err := sys.store.loadUsers(ctx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	for _, cerd := range users {
+	for i, _ := range users {
+		cerd := users[i]
 		if cerd.IsExpired() {
 			continue
 		}
-		var a = &iam.User{
+		var a = iam.User{
 			Arn:                 nil,
-			CreateDate:          utils.Time(cerd.CreateTime),
+			CreateDate:          &cerd.CreateTime,
 			PasswordLastUsed:    nil,
 			Path:                nil,
 			PermissionsBoundary: nil,
 			Tags:                nil,
-			UserId:              utils.String(cerd.AccessKey),
-			UserName:            utils.String(cerd.AccessKey),
+			UserId:              &cerd.AccessKey,
+			UserName:            &cerd.AccessKey,
 		}
-		u = append(u, a)
+		u = append(u, &a)
 	}
-	return u
+	return u, err
 }
 
 //AddUser add user
@@ -212,10 +214,7 @@ func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, p
 
 // PutUserPolicy Create Policy
 func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	var pd policy.PolicyDocument
-	err := sys.GetUserPolicy(ctx, userName, policyName, &pd)
-	pd.Merge(policyDocument)
-	err = sys.store.createUserPolicy(ctx, userName, policyName, pd)
+	err := sys.store.createUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create UserPolicy err:%v", err)
 		return err

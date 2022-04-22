@@ -28,7 +28,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 	}
 	bucketMetas, erro := s3a.authSys.PolicySys.GetAllBucketOfUser(cred.AccessKey)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrGetBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	var buckets []*s3.Bucket
@@ -63,7 +63,7 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 	}
 	bucketMetas, erro := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrGetBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
 
@@ -92,12 +92,14 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	// create the folder for bucket, but lazily create actual collection
 	if err := s3a.store.MkBucket("", bucket); err != nil {
 		log.Errorf("PutBucketHandler mkdir: %v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrPutBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
+	// todo check policy and bucket
 	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey, region)
 	if erro != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrSetBucketPolicyFail)
+		log.Errorf("PutBucketHandler set default policy err:%v", err)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	// Make sure to add Location information here only for bucket
@@ -152,7 +154,8 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	errc := s3a.authSys.PolicySys.Delete(r.Context(), cred.AccessKey, bucket)
 	if errc != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrDeleteBucketFail)
+		log.Errorf("DeleteBucketHandler delete bucket err: %v", err)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	response.WriteSuccessResponseEmpty(w, r)
@@ -272,7 +275,7 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 
 	if err1 = s3a.authSys.PolicySys.UpdateBucketMeta(r.Context(), cred.AccessKey, bucket, tags); err1 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrUpdateBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 
@@ -298,7 +301,7 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 	meta, err2 := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
 	if err2 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrGetBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	if meta.TaggingConfig == nil {
@@ -333,7 +336,7 @@ func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *htt
 	}
 	err2 := s3a.authSys.PolicySys.UpdateBucketMeta(r.Context(), cred.AccessKey, bucket, nil)
 	if err2 != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrUpdateBucketFail)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 

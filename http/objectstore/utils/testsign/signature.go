@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"io"
@@ -51,7 +50,6 @@ func MustNewSignedV4Request(method string, urlStr string, contentLength int64, b
 func signRequestV4(req *http.Request, accessKey, secretKey string, st serviceType) error {
 	// Get hashed payload.
 	hashedPayload := getContentSha256Cksum(req)
-	fmt.Println(hashedPayload)
 	currTime := time.Now()
 
 	// Set x-amz-date.
@@ -112,20 +110,15 @@ func signRequestV4(req *http.Request, accessKey, secretKey string, st serviceTyp
 		"aws4_request",
 	}, "/")
 	// Get canonical request.
-	fmt.Printf("headerMap:%+v,hashedPayload:%v,queryStr:%v,req.URL.Path:%v,req.Method:%v\n", headerMap, hashedPayload, queryStr, req.URL.Path, req.Method)
 	canonicalRequest := getCanonicalRequest(headerMap, hashedPayload, queryStr, req.URL.Path, req.Method)
 	// Get string to sign from canonical request.
-	fmt.Printf("canonicalRequest:%v,currTime:%v,scope:%v\n", canonicalRequest, currTime, scope)
 	stringToSign := getStringToSign(canonicalRequest, currTime, scope)
-	fmt.Println("stringToSign", stringToSign)
 
 	// Get hmac signing key.
 	signingKey := getSigningKey(secretKey, currTime, region, string(st))
-	fmt.Println("signingKey", signingKey)
 
 	// Calculate signature.
 	newSignature := getSignature(signingKey, stringToSign)
-	fmt.Println(newSignature)
 
 	parts := []string{
 		"AWS4-HMAC-SHA256" + " Credential=" + accessKey + "/" + scope,

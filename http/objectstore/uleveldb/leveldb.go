@@ -61,7 +61,6 @@ func (l *ULevelDB) Put(key string, value interface{}) error {
 func (l *ULevelDB) Get(key, value interface{}) error {
 	get, err := l.DB.Get([]byte(key.(string)), nil)
 	if err != nil {
-		log.Errorf(" Get error%v", err)
 		return err
 	}
 	err = json.Unmarshal(get, value)

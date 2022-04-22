@@ -52,6 +52,7 @@ type TagSet struct {
 type BucketMetadata struct {
 	Name          string
 	Region        string
+	Owner         string
 	Created       time.Time
 	PolicyConfig  *policy.Policy
 	TaggingConfig *Tags
@@ -65,7 +66,7 @@ func newBucketMetadata(name, region, accessKey string) BucketMetadata {
 		Statements: []policy.Statement{{
 			SID:       policy.DefaultPolicies[0].Definition.Statements[0].SID,
 			Effect:    policy.DefaultPolicies[0].Definition.Statements[0].Effect,
-			Principal: policy.NewPrincipal(accessKey),
+			Principal: policy.NewPrincipal("*"),
 			Actions:   policy.DefaultPolicies[0].Definition.Statements[0].Actions,
 			Resources: policy.NewResourceSet(policy.NewResource(name, "*")),
 		}},
@@ -73,6 +74,7 @@ func newBucketMetadata(name, region, accessKey string) BucketMetadata {
 	return BucketMetadata{
 		Name:         name,
 		Region:       region,
+		Owner:        accessKey,
 		Created:      time.Now().UTC(),
 		PolicyConfig: &p,
 	}
@@ -105,7 +107,7 @@ func (sys *bucketMetadataSys) GetMeta(bucket, accessKey string) (BucketMetadata,
 
 // SetBucketMeta - sets a new metadata in-db
 func (sys *bucketMetadataSys) SetBucketMeta(bucket, username string, meta BucketMetadata) error {
-	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
+	err := sys.db.Put(bucketPrefix+"-"+bucket, meta)
 	if err != nil {
 		return err
 	}
@@ -114,7 +116,7 @@ func (sys *bucketMetadataSys) SetBucketMeta(bucket, username string, meta Bucket
 
 // GetBucketMeta metadata for a bucket.
 func (sys *bucketMetadataSys) GetBucketMeta(bucket, username string, meta *BucketMetadata) error {
-	err := sys.db.Get(bucketPrefix+username+"-"+bucket, meta)
+	err := sys.db.Get(bucketPrefix+"-"+bucket, meta)
 	if err != nil {
 		return err
 	}
@@ -124,7 +126,7 @@ func (sys *bucketMetadataSys) GetBucketMeta(bucket, username string, meta *Bucke
 // HasBucketMeta metadata for a bucket.
 func (sys *bucketMetadataSys) HasBucketMeta(bucket, username string) bool {
 	var meta BucketMetadata
-	err := sys.db.Get(bucketPrefix+username+"-"+bucket, &meta)
+	err := sys.db.Get(bucketPrefix+"-"+bucket, &meta)
 	if err != nil {
 		return false
 	}
@@ -133,7 +135,7 @@ func (sys *bucketMetadataSys) HasBucketMeta(bucket, username string) bool {
 
 // DeleteBucketMeta bucket.
 func (sys *bucketMetadataSys) DeleteBucketMeta(username, bucket string) error {
-	err := sys.db.Delete(bucketPrefix + username + "-" + bucket)
+	err := sys.db.Delete(bucketPrefix + "-" + bucket)
 	if err != nil {
 		return err
 	}
@@ -142,7 +144,7 @@ func (sys *bucketMetadataSys) DeleteBucketMeta(username, bucket string) error {
 
 // UpdateBucketMeta  metadata for a bucket.
 func (sys *bucketMetadataSys) UpdateBucketMeta(username, bucket string, meta *BucketMetadata) error {
-	err := sys.db.Put(bucketPrefix+username+"-"+bucket, meta)
+	err := sys.db.Put(bucketPrefix+"-"+bucket, meta)
 	if err != nil {
 		return err
 	}
@@ -152,7 +154,7 @@ func (sys *bucketMetadataSys) UpdateBucketMeta(username, bucket string, meta *Bu
 // getAllBucketOfUser metadata for all bucket.
 func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]BucketMetadata, error) {
 	var m []BucketMetadata
-	mb, err := sys.db.ReadAll(bucketPrefix + username + "-")
+	mb, err := sys.db.ReadAll(bucketPrefix + "-")
 	if err != nil {
 		return nil, err
 	}
