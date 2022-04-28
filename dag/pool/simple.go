@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"io"
 
 	blo "github.com/filedag-project/filedag-storage/blockstore"
@@ -28,7 +29,7 @@ type simplePool struct {
 	importerBatchNum int
 }
 
-func NewSimplePool(cfg *SimplePoolConfig) (*simplePool, error) {
+func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 	if cfg.StorePath == "" {
 		return nil, xerrors.New("Need path to set store up for dag pool")
 	}

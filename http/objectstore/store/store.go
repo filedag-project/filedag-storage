@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool"
+	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"io"
@@ -193,7 +194,7 @@ func (s *StorageSys) Init() error {
 	} else {
 		path = os.Getenv(PoolStorePath)
 	}
-	s.DagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
+	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
 		StorePath: path,
 		BatchNum:  batchNum,
 		CaskNum:   caskNum,
