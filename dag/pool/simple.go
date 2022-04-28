@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
 
 	blo "github.com/filedag-project/filedag-storage/blockstore"
@@ -27,9 +28,11 @@ type simplePool struct {
 	dagserv          format.DAGService
 	cidBuilder       cid.Builder
 	importerBatchNum int
+	db               uleveldb.ULevelDB
 }
 
 func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
+
 	if cfg.StorePath == "" {
 		return nil, xerrors.New("Need path to set store up for dag pool")
 	}
@@ -58,7 +61,7 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 	return p, nil
 }
 
-func (p *simplePool) Add(ctx context.Context, r io.ReadCloser) (cidstr string, err error) {
+func (p *simplePool) Add(ctx context.Context, r io.ReadCloser, user, pass string) (cidstr string, err error) {
 	nd, err := filehelper.BalanceNode(r, p.dagserv, p.cidBuilder)
 	if err != nil {
 		return "", err
@@ -66,7 +69,7 @@ func (p *simplePool) Add(ctx context.Context, r io.ReadCloser) (cidstr string, e
 	return nd.String(), nil
 }
 
-func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int64) (cidstr string, err error) {
+func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int64, user, pass string) (cidstr string, err error) {
 	ndcid, err := importer.BalanceNode(ctx, r, fsize, p.dagserv, p.cidBuilder, p.importerBatchNum)
 	if err != nil {
 		return "", err
@@ -74,7 +77,7 @@ func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int
 	return ndcid.String(), nil
 }
 
-func (p *simplePool) Get(ctx context.Context, cidstr string) (r io.ReadSeekCloser, err error) {
+func (p *simplePool) Get(ctx context.Context, cidstr string, user, pass string) (r io.ReadSeekCloser, err error) {
 	cid, err := cid.Decode(cidstr)
 	if err != nil {
 		return nil, err
