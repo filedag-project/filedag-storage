@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool"
+	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
@@ -32,7 +33,7 @@ func TestMain(m *testing.M) {
 	var s3server s3ApiServer
 	s3server.authSys.Init()
 	s3server.store.Db = uleveldb.DBClient
-	s3server.store.DagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
+	s3server.store.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
 		StorePath: utils.TmpDirPath(&testing.T{}),
 		BatchNum:  4,
 		CaskNum:   2,

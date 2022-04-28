@@ -1,4 +1,4 @@
-package pool
+package config
 
 type SimplePoolConfig struct {
 	StorePath string // the path for kv db

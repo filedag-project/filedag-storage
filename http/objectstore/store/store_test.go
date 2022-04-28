@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool"
+	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"io/ioutil"
@@ -20,7 +21,7 @@ func TestStorageSys_Object(t *testing.T) {
 	}
 	defer uleveldb.DBClient.Close()
 	s.Db = uleveldb.DBClient
-	s.DagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
+	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
 		StorePath: utils.TmpDirPath(t),
 		BatchNum:  4,
 		CaskNum:   2,
