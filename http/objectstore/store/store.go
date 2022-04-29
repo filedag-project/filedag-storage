@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool"
+	pool "github.com/filedag-project/filedag-storage/dag"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
@@ -31,16 +31,24 @@ const (
 	defaultPoolStorePath = "./"
 	defaultPoolBatchNum  = 4
 	defaultPoolCaskNum   = 2
+	PoolUser             = "POOL_USER"
+	PoolPass             = "POOL_PASS"
 )
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
+
+func getPoolUser() (string, string) {
+	return os.Getenv(PoolUser), os.Getenv(PoolPass)
+}
+
+var poolUser, poolPass = getPoolUser()
 
 //StoreObject store object
 func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser) (ObjectInfo, error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	cid, err := s.DagPool.Add(ctx, reader, "", "")
+	cid, err := s.DagPool.Add(ctx, reader, poolUser, poolPass)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -79,7 +87,7 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	reader, err := s.DagPool.Get(ctx, meta.ETag, "", "")
+	reader, err := s.DagPool.Get(ctx, meta.ETag, poolUser, poolPass)
 	return meta, reader, nil
 }
 

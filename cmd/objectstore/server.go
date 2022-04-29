@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/xerrors"
 	"net/http"
 	"os"
 )
@@ -76,6 +77,14 @@ var startCmd = &cli.Command{
 			Usage: "set pool cask num.:10",
 			Value: defaultPoolCaskNum,
 		},
+		&cli.StringFlag{
+			Name:  "pool-user",
+			Usage: "set pool user",
+		},
+		&cli.StringFlag{
+			Name:  "pool-user-pass",
+			Usage: "set pool user pass",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 
@@ -105,6 +114,24 @@ var startCmd = &cli.Command{
 		}
 		if cctx.String("pool-cask-num") != "" {
 			err := os.Setenv(store.PoolCaskNum, cctx.String("pool-cask-num"))
+			if err != nil {
+				return err
+			}
+		}
+		if cctx.String("pool-user") != "" {
+			if cctx.String("pool-user-pass") == "" {
+				return xerrors.Errorf("you need set pool user")
+			}
+			err := os.Setenv(store.PoolUser, cctx.String("pool-user"))
+			if err != nil {
+				return err
+			}
+		}
+		if cctx.String("pool-user-pass") != "" {
+			if cctx.String("pool-user-pass") == "" {
+				return xerrors.Errorf("you need set pool user")
+			}
+			err := os.Setenv(store.PoolPass, cctx.String("pool-user-pass"))
 			if err != nil {
 				return err
 			}

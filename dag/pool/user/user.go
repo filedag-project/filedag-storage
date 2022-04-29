@@ -6,7 +6,7 @@ import (
 )
 
 type IdentityUser struct {
-	db uleveldb.ULevelDB
+	DB *uleveldb.ULevelDB
 }
 
 const dagPoolUser = "dagPoolUser/"
@@ -25,7 +25,7 @@ type DagPoolUser struct {
 
 // AddUser add user
 func (i *IdentityUser) AddUser(user DagPoolUser) error {
-	err := i.db.Put(dagPoolUser+user.username, user)
+	err := i.DB.Put(dagPoolUser+user.username, user)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (i *IdentityUser) AddUser(user DagPoolUser) error {
 
 // RemoveUser remove user
 func (i *IdentityUser) RemoveUser(username string) error {
-	err := i.db.Delete(dagPoolUser + username)
+	err := i.DB.Delete(dagPoolUser + username)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (i *IdentityUser) RemoveUser(username string) error {
 // QueryUser query user
 func (i *IdentityUser) QueryUser(username string) (DagPoolUser, error) {
 	var u DagPoolUser
-	err := i.db.Get(dagPoolUser+username, &u)
+	err := i.DB.Get(dagPoolUser+username, &u)
 	if err != nil {
 		return u, err
 	}
@@ -53,7 +53,7 @@ func (i *IdentityUser) QueryUser(username string) (DagPoolUser, error) {
 
 // UpdateUser Update user
 func (i *IdentityUser) UpdateUser(u DagPoolUser) error {
-	err := i.db.Put(dagPoolUser+u.username, u)
+	err := i.DB.Put(dagPoolUser+u.username, u)
 	if err != nil {
 		return err
 	}
@@ -71,4 +71,11 @@ func (i *IdentityUser) CheckUserPolicy(username, pass string, policy userpolicy.
 		return false
 	}
 	return true
+}
+func NewIdentityUser() (IdentityUser, error) {
+	db, err := uleveldb.OpenDb("./")
+	if err != nil {
+		return IdentityUser{}, err
+	}
+	return IdentityUser{db}, nil
 }
