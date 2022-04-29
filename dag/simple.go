@@ -2,34 +2,33 @@ package pool
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
-	"github.com/filedag-project/filedag-storage/dag/pool/user"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedrive-team/filehelper"
 	"io"
 
-	blo "github.com/filedag-project/filedag-storage/blockstore"
-	"github.com/filedrive-team/filehelper"
 	"github.com/filedrive-team/filehelper/importer"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	ufsio "github.com/ipfs/go-unixfs/io"
 	"golang.org/x/xerrors"
 )
 
 const importerBatchNum = 32
+const UnixfsLinksPerLevel = 1 << 10
+const UnixfsChunkSize uint64 = 1 << 20
 
 var _ DAGPool = (*simplePool)(nil)
 
 type simplePool struct {
 	bs               blockstore.Blockstore
-	dagserv          format.DAGService
+	dagserv          *pool.DagPool
 	cidBuilder       cid.Builder
 	importerBatchNum int
-	iam              user.IdentityUser
 }
 
 func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
@@ -41,7 +40,7 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 		cfg.BatchNum = importerBatchNum
 	}
 
-	bs, err := blo.NewMutcaskbs(&blo.Config{
+	bs, err := node.NewDagNode(&node.Config{
 		CaskNum: cfg.CaskNum,
 		Batch:   cfg.BatchNum,
 		Path:    cfg.StorePath,
@@ -53,19 +52,16 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &simplePool{
+	sp := &simplePool{
 		bs:               bs,
-		dagserv:          merkledag.NewDAGService(blockservice.New(bs, offline.Exchange(bs))),
+		dagserv:          pool.NewDagPoolService(blockservice.New(bs, offline.Exchange(bs))),
 		cidBuilder:       cidBuilder,
 		importerBatchNum: cfg.BatchNum,
 	}
-	return p, nil
+	return sp, nil
 }
 
 func (p *simplePool) Add(ctx context.Context, r io.ReadCloser, user, pass string) (cidstr string, err error) {
-	if !p.iam.CheckUserPolicy(user, pass, userpolicy.OnlyWrite) {
-		return "", userpolicy.AccessDenied
-	}
 	nd, err := filehelper.BalanceNode(r, p.dagserv, p.cidBuilder)
 	if err != nil {
 		return "", err
@@ -74,9 +70,7 @@ func (p *simplePool) Add(ctx context.Context, r io.ReadCloser, user, pass string
 }
 
 func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int64, user, pass string) (cidstr string, err error) {
-	if !p.iam.CheckUserPolicy(user, pass, userpolicy.OnlyWrite) {
-		return "", userpolicy.AccessDenied
-	}
+
 	ndcid, err := importer.BalanceNode(ctx, r, fsize, p.dagserv, p.cidBuilder, p.importerBatchNum)
 	if err != nil {
 		return "", err
@@ -85,14 +79,10 @@ func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int
 }
 
 func (p *simplePool) Get(ctx context.Context, cidstr string, user, pass string) (r io.ReadSeekCloser, err error) {
-	if !p.iam.CheckUserPolicy(user, pass, userpolicy.OnlyRead) {
-		return nil, userpolicy.AccessDenied
-	}
 	cid, err := cid.Decode(cidstr)
 	if err != nil {
 		return nil, err
 	}
-
 	dagNode, err := p.dagserv.Get(ctx, cid)
 	if err != nil {
 		return nil, err
