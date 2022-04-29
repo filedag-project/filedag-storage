@@ -11,6 +11,11 @@ type IdentityUser struct {
 
 const dagPoolUser = "dagPoolUser/"
 
+type User struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type DagPoolUser struct {
 	username string
 	password string

@@ -1,8 +1,8 @@
 package pool
 
 import (
-	"context"
-	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/pool/user"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	storagekv "github.com/filedag-project/filedag-storage/kv"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -12,37 +12,20 @@ import (
 	"sync"
 )
 
-const lockFileName = "repo.lock"
-
-var _ blockstore.Blockstore = (*dagpool)(nil)
-
-type dagpool struct {
-	kv    storagekv.KVDB
-	batch int
+type Dagpool struct {
+	kv       storagekv.KVDB
+	batch    int
+	identity user.IdentityUser
 }
 
-func NewDagPool(cfg *Config) (*dagpool, error) {
-	//if cfg.Batch == 0 {
-	//	cfg.Batch = default_batch_num
-	//}
-	//if cfg.CaskNum == 0 {
-	//	cfg.CaskNum = default_cask_num
-	//}
-	mc, err := node.NewDagNode(node.CaskNumConf(cfg.CaskNum), node.PathConf(cfg.Path))
-	if err != nil {
-		return nil, err
+func (d *Dagpool) DeleteNode(cid cid.Cid, user *user.User) error {
+	if !d.identity.CheckUserPolicy(user.Username, user.Password, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
 	}
-	return &dagpool{
-		batch: cfg.Batch,
-		kv:    mc,
-	}, nil
-}
-
-func (d *dagpool) DeleteBlock(cid cid.Cid) error {
 	return d.kv.Delete(cid.String())
 }
 
-func (d *dagpool) Has(cid cid.Cid) (bool, error) {
+func (d *Dagpool) Has(cid cid.Cid) (bool, error) {
 	_, err := d.kv.Size(cid.String())
 	if err != nil {
 		if err == storagekv.ErrNotFound {
@@ -54,7 +37,10 @@ func (d *dagpool) Has(cid cid.Cid) (bool, error) {
 	return true, nil
 }
 
-func (d *dagpool) Get(cid cid.Cid) (blocks.Block, error) {
+func (d *Dagpool) Get(cid cid.Cid, user *user.User) (blocks.Block, error) {
+	if !d.identity.CheckUserPolicy(user.Username, user.Password, userpolicy.OnlyWrite) {
+		return nil, userpolicy.AccessDenied
+	}
 	data, err := d.kv.Get(cid.String())
 	if err != nil {
 		if err == storagekv.ErrNotFound {
@@ -69,7 +55,10 @@ func (d *dagpool) Get(cid cid.Cid) (blocks.Block, error) {
 	return b, err
 }
 
-func (d *dagpool) GetSize(cid cid.Cid) (int, error) {
+func (d *Dagpool) GetSize(cid cid.Cid, user *user.User) (int, error) {
+	if !d.identity.CheckUserPolicy(user.Username, user.Password, userpolicy.OnlyWrite) {
+		return 0, userpolicy.AccessDenied
+	}
 	n, err := d.kv.Size(cid.String())
 	if err != nil && err == storagekv.ErrNotFound {
 		return -1, blockstore.ErrNotFound
@@ -77,17 +66,26 @@ func (d *dagpool) GetSize(cid cid.Cid) (int, error) {
 	return n, err
 }
 
-func (d *dagpool) Put(block blocks.Block) error {
+func (d *Dagpool) Put(block blocks.Block, user *user.User) error {
+	if !d.identity.CheckUserPolicy(user.Username, user.Password, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
+	}
+	//1、验证用户名
+	//2、添加引用计数
+	//3、存储
 	return d.kv.Put(block.Cid().String(), block.RawData())
 }
 
-func (d *dagpool) PutMany(blos []blocks.Block) error {
+func (d *Dagpool) PutMany(blos []blocks.Block, user *user.User) error {
+	if !d.identity.CheckUserPolicy(user.Username, user.Password, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
+	}
 	var errlist []string
 	var wg sync.WaitGroup
 	batchChan := make(chan struct{}, d.batch)
 	wg.Add(len(blos))
 	for _, blo := range blos {
-		go func(d *dagpool, block blocks.Block) {
+		go func(d *Dagpool, block blocks.Block) {
 			defer func() {
 				<-batchChan
 			}()
@@ -103,18 +101,4 @@ func (d *dagpool) PutMany(blos []blocks.Block) error {
 		return xerrors.New(strings.Join(errlist, "\n"))
 	}
 	return nil
-}
-
-func (d dagpool) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
-	panic("implement me")
-}
-
-func (d dagpool) HashOnRead(enabled bool) {
-	panic("implement me")
-}
-
-type Config struct {
-	Batch   int
-	Path    string
-	CaskNum int
 }
