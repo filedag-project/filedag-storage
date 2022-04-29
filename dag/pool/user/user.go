@@ -1,24 +1,20 @@
 package user
 
-import "github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+import (
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+)
 
-type dagPoolPolicy string
 type IdentityUser struct {
 	db uleveldb.ULevelDB
 }
 
 const dagPoolUser = "dagPoolUser/"
 
-var (
-	OnlyRead  dagPoolPolicy = "only-read"
-	OnlyWrite dagPoolPolicy = "only-write"
-	ReadWrite dagPoolPolicy = "read-write"
-)
-
 type DagPoolUser struct {
 	username string
 	password string
-	policy   dagPoolPolicy
+	policy   userpolicy.DagPoolPolicy
 	capacity uint64
 }
 
@@ -57,4 +53,17 @@ func (i *IdentityUser) UpdateUser(u DagPoolUser) error {
 		return err
 	}
 	return nil
+}
+func (i *IdentityUser) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
+	user, err := i.QueryUser(username)
+	if err != nil {
+		return false
+	}
+	if user.password != pass {
+		return false
+	}
+	if !user.policy.Allow(policy) {
+		return false
+	}
+	return true
 }
