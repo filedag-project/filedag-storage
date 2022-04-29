@@ -3,7 +3,8 @@ package pool
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/dag/pool/user"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"io"
 
 	blo "github.com/filedag-project/filedag-storage/blockstore"
@@ -28,7 +29,7 @@ type simplePool struct {
 	dagserv          format.DAGService
 	cidBuilder       cid.Builder
 	importerBatchNum int
-	db               uleveldb.ULevelDB
+	iam              user.IdentityUser
 }
 
 func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
@@ -62,6 +63,9 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 }
 
 func (p *simplePool) Add(ctx context.Context, r io.ReadCloser, user, pass string) (cidstr string, err error) {
+	if !p.iam.CheckUserPolicy(user, pass, userpolicy.OnlyWrite) {
+		return "", userpolicy.AccessDenied
+	}
 	nd, err := filehelper.BalanceNode(r, p.dagserv, p.cidBuilder)
 	if err != nil {
 		return "", err
@@ -70,6 +74,9 @@ func (p *simplePool) Add(ctx context.Context, r io.ReadCloser, user, pass string
 }
 
 func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int64, user, pass string) (cidstr string, err error) {
+	if !p.iam.CheckUserPolicy(user, pass, userpolicy.OnlyWrite) {
+		return "", userpolicy.AccessDenied
+	}
 	ndcid, err := importer.BalanceNode(ctx, r, fsize, p.dagserv, p.cidBuilder, p.importerBatchNum)
 	if err != nil {
 		return "", err
@@ -78,6 +85,9 @@ func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int
 }
 
 func (p *simplePool) Get(ctx context.Context, cidstr string, user, pass string) (r io.ReadSeekCloser, err error) {
+	if !p.iam.CheckUserPolicy(user, pass, userpolicy.OnlyRead) {
+		return nil, userpolicy.AccessDenied
+	}
 	cid, err := cid.Decode(cidstr)
 	if err != nil {
 		return nil, err

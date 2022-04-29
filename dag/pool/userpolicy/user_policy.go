@@ -1,5 +1,7 @@
 package userpolicy
 
+import "golang.org/x/xerrors"
+
 type DagPoolPolicy string
 
 var (
@@ -7,6 +9,7 @@ var (
 	OnlyWrite DagPoolPolicy = "only-write"
 	ReadWrite DagPoolPolicy = "read-write"
 )
+var AccessDenied = xerrors.Errorf("access denied")
 
 func (d *DagPoolPolicy) Allow(policy DagPoolPolicy) bool {
 	if *d == ReadWrite {
