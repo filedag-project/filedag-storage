@@ -23,7 +23,6 @@ type DagPool struct {
 	Blocks bserv.BlockService
 	iam    user.IdentityUser
 }
-type dagContext context.Context
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.

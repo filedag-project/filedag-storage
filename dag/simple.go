@@ -5,7 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
-	"github.com/filedrive-team/filehelper"
+	"github.com/filedag-project/filedag-storage/dag/pool/utils"
 	"io"
 
 	"github.com/filedrive-team/filehelper/importer"
@@ -61,16 +61,15 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 	return sp, nil
 }
 
-func (p *simplePool) Add(ctx context.Context, r io.ReadCloser, user, pass string) (cidstr string, err error) {
-	nd, err := filehelper.BalanceNode(r, p.dagserv, p.cidBuilder)
+func (p *simplePool) Add(ctx context.Context, r io.ReadCloser) (cidstr string, err error) {
+	nd, err := utils.BalanceNode(ctx, r, p.dagserv, p.cidBuilder)
 	if err != nil {
 		return "", err
 	}
 	return nd.String(), nil
 }
 
-func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int64, user, pass string) (cidstr string, err error) {
-
+func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int64) (cidstr string, err error) {
 	ndcid, err := importer.BalanceNode(ctx, r, fsize, p.dagserv, p.cidBuilder, p.importerBatchNum)
 	if err != nil {
 		return "", err
@@ -78,7 +77,7 @@ func (p *simplePool) AddWithSize(ctx context.Context, r io.ReadCloser, fsize int
 	return ndcid.String(), nil
 }
 
-func (p *simplePool) Get(ctx context.Context, cidstr string, user, pass string) (r io.ReadSeekCloser, err error) {
+func (p *simplePool) Get(ctx context.Context, cidstr string) (r io.ReadSeekCloser, err error) {
 	cid, err := cid.Decode(cidstr)
 	if err != nil {
 		return nil, err

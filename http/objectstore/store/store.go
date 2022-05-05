@@ -48,7 +48,8 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	cid, err := s.DagPool.Add(ctx, reader, poolUser, poolPass)
+	ctx = context.WithValue(ctx, "user", user+","+poolPass)
+	cid, err := s.DagPool.Add(ctx, reader)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -87,7 +88,8 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	reader, err := s.DagPool.Get(ctx, meta.ETag, poolUser, poolPass)
+	ctx = context.WithValue(ctx, "user", user+","+poolPass)
+	reader, err := s.DagPool.Get(ctx, meta.ETag)
 	return meta, reader, nil
 }
 
