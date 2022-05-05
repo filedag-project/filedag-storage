@@ -10,6 +10,8 @@ import (
 	cid "github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
+	"strings"
+
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
@@ -32,7 +34,11 @@ func NewDagPoolService(bs bserv.BlockService) *DagPool {
 
 // CheckPolicy check user policy
 func (d *DagPool) CheckPolicy(ctx context.Context, policy userpolicy.DagPoolPolicy) bool {
-	return d.iam.CheckUserPolicy((ctx.Value("user")).(string), (ctx.Value("pass")).(string), policy)
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return false
+	}
+	return d.iam.CheckUserPolicy(s[0], s[1], policy)
 }
 
 // Add adds a node to the DagPool, storing the block in the BlockService
