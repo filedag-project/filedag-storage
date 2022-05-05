@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool"
+	pool "github.com/filedag-project/filedag-storage/dag"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
@@ -29,7 +29,12 @@ func TestStorageSys_Object(t *testing.T) {
 	if err != nil {
 		return
 	}
-	r := ioutil.NopCloser(bytes.NewReader([]byte("hello world")))
+	file, err := ioutil.ReadFile("./store_test.go")
+	if err != nil {
+		return
+	}
+	file = bytes.Repeat(file, 10000)
+	r := ioutil.NopCloser(bytes.NewReader(file))
 	object, err := s.StoreObject(context.Background(), "test", "testBucket", "testobject", r)
 	if err != nil {
 		fmt.Println("StoreObject", err)
