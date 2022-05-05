@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/dag/pool/user"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	blocks "github.com/ipfs/go-block-format"
@@ -22,6 +23,7 @@ import (
 type DagPool struct {
 	Blocks bserv.BlockService
 	iam    user.IdentityUser
+	refer  referencecount.IdentityRefe
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -43,7 +45,10 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("DagPool is nil")
 	}
-
+	err := d.refer.AddReference(nd.Cid().String())
+	if err != nil {
+		return err
+	}
 	return d.Blocks.AddBlock(nd)
 }
 
@@ -51,6 +56,10 @@ func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
 	blks := make([]blocks.Block, len(nds))
 	for i, nd := range nds {
 		blks[i] = nd
+		err := d.refer.AddReference(nd.Cid().String())
+		if err != nil {
+			return err
+		}
 	}
 	return d.Blocks.AddBlocks(blks)
 }
@@ -89,6 +98,16 @@ func (d *DagPool) GetLinks(ctx context.Context, c cid.Cid) ([]*format.Link, erro
 }
 
 func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
+	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
+	}
+	if d == nil { // FIXME remove this assertion. protect with constructor invariant
+		return fmt.Errorf("DagPool is nil")
+	}
+	err := d.refer.RemoveReference(c.String())
+	if err != nil {
+		return err
+	}
 	return d.Blocks.DeleteBlock(c)
 }
 
@@ -98,9 +117,16 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 // This operation is not atomic. If it returns an error, some nodes may or may
 // not have been removed.
 func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
+	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
+	}
 	// TODO(#4608): make this batch all the way down.
 	for _, c := range cids {
 		if err := d.Blocks.DeleteBlock(c); err != nil {
+			return err
+		}
+		err := d.refer.RemoveReference(c.String())
+		if err != nil {
 			return err
 		}
 	}
