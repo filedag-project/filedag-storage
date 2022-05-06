@@ -6,6 +6,7 @@ import (
 	"fmt"
 	pool "github.com/filedag-project/filedag-storage/dag"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"io/ioutil"
@@ -39,6 +40,7 @@ func TestStorageSys_Object(t *testing.T) {
 	if err != nil {
 		return
 	}
+	s.DagPool.AddUser(context.TODO(), "test", "test123", userpolicy.ReadWrite, 100000)
 	file, err := ioutil.ReadFile("./store_test.go")
 	if err != nil {
 		return
@@ -52,14 +54,14 @@ func TestStorageSys_Object(t *testing.T) {
 		return
 	}
 	fmt.Println(object)
-	res, i, err := s.GetObject(context.Background(), "test", "testBucket", "testobject")
-	if err != nil {
-		fmt.Println("GetObject", err)
-		return
-	}
-	all, err := ioutil.ReadAll(i)
-	if err != nil {
-		return
-	}
-	fmt.Printf("res:%v,\ni:%v", res, string(all))
+	//res, i, err := s.GetObject(context.Background(), "test", "testBucket", "testobject")
+	//if err != nil {
+	//	fmt.Println("GetObject", err)
+	//	return
+	//}
+	//all, err := ioutil.ReadAll(i)
+	//if err != nil {
+	//	return
+	//}
+	//fmt.Printf("res:%v,\ni:%v", res, string(all))
 }
