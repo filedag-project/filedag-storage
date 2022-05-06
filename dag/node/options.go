@@ -5,8 +5,8 @@ type CaskConfig struct {
 	CaskNum uint32
 }
 
-func defaultConfig() *Config {
-	return &Config{
+func defaultConfig() *CaskConfig {
+	return &CaskConfig{
 		CaskNum: 256,
 	}
 }

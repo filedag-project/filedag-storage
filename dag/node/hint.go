@@ -101,7 +101,7 @@ func buildKeyMap(hint *os.File) (*KeyMap, error) {
 	return km, nil
 }
 
-func buildCaskMap(cfg *Config) (*CaskMap, error) {
+func buildCaskMap(cfg *CaskConfig) (*CaskMap, error) {
 	var err error
 	dirents, err := os.ReadDir(cfg.Path)
 	if err != nil {
