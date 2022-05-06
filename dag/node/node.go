@@ -23,6 +23,10 @@ type Config struct {
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
+	nodes []*SliceNode
+}
+
+type SliceNode struct {
 	sync.Mutex
 	cfg            *CaskConfig
 	caskMap        *CaskMap
@@ -48,14 +52,20 @@ func NewDagNode(cfg *Config) (*blostore, error) {
 	}, nil
 }
 
-func (d DagNode) DeleteBlock(cid cid.Cid) error {
+func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 	keyCode := sha256String(cid.String())
 	id := d.fileID(keyCode)
-	cask, has := d.caskMap.Get(id)
-	if !has {
-		return nil
+	for _, node := range d.nodes {
+		cask, has := node.caskMap.Get(id)
+		if !has {
+			return nil
+		}
+		err = cask.Delete(keyCode)
+		if err != nil {
+			break
+		}
 	}
-	return cask.Delete(keyCode)
+	return err
 }
 
 func (d DagNode) Has(cid cid.Cid) (bool, error) {
@@ -72,18 +82,24 @@ func (d DagNode) Has(cid cid.Cid) (bool, error) {
 
 func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	keyCode := sha256String(cid.String())
+	var err error
 	id := d.fileID(keyCode)
-	cask, has := d.caskMap.Get(id)
-	if !has {
-		fmt.Println("********")
-		return nil, kv.ErrNotFound
-	}
 	merged := make([][]byte, 8)
-	bytes, err := cask.Read(keyCode)
-	merged = append(merged, bytes)
-	enc, _ := reedsolomon.New(5, 3)
+	for _, node := range d.nodes {
+		cask, has := node.caskMap.Get(id)
+		if !has {
+			fmt.Println("********")
+			return nil, kv.ErrNotFound
+		}
+		bytes, err := cask.Read(keyCode)
+		if err != nil {
+			return nil, err
+		}
+		merged = append(merged, bytes)
+	}
+	enc, _ := reedsolomon.New(len(d.nodes), 3)
 	var data []byte
-	err = enc.EncodeIdx(data, 8, merged)
+	err = enc.EncodeIdx(data, len(d.nodes), merged)
 	if err != nil {
 		return nil, err
 	}
@@ -97,17 +113,26 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 	keyCode := sha256String(cid.String())
 	id := d.fileID(keyCode)
-	cask, has := d.caskMap.Get(id)
-	if !has {
-		return -1, kv.ErrNotFound
+	var err error
+	var count int
+	for _, node := range d.nodes {
+		cask, has := node.caskMap.Get(id)
+		if !has {
+			return -1, kv.ErrNotFound
+		}
+		size, err := cask.Size(keyCode)
+		if err != nil {
+			return 0, err
+		}
+		count = count + size
 	}
-	return cask.Size(keyCode)
+	return count, err
 }
 
 func (d DagNode) Put(block blocks.Block) (err error) {
 	keyCode := sha256String(block.Cid().String())
 	// Create an encoder with 5 data and 3 parity slices.
-	enc, _ := reedsolomon.New(5, 3)
+	enc, _ := reedsolomon.New(len(d.nodes), 3)
 	bytes := block.RawData()
 	shards, _ := enc.Split(bytes)
 	err = enc.Encode(shards)
@@ -118,24 +143,25 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	var cask *Cask
 	var has bool
 	id := d.fileID(keyCode)
-	cask, has = d.caskMap.Get(id)
-	if !has {
-		done := make(chan error)
-		d.createCaskChan <- &createCaskRequst{
-			id:   id,
-			done: done,
+	for i, node := range d.nodes {
+		cask, has = node.caskMap.Get(id)
+		if !has {
+			done := make(chan error)
+			node.createCaskChan <- &createCaskRequst{
+				id:   id,
+				done: done,
+			}
+			if err := <-done; err != ErrNone {
+				return err
+			}
+			cask, _ = node.caskMap.Get(id)
 		}
-		if err := <-done; err != ErrNone {
-			return err
-		}
-		cask, _ = d.caskMap.Get(id)
-	}
-	for _, shard := range shards {
-		err = cask.Put(keyCode, shard)
+		err = cask.Put(keyCode, shards[i])
 		if err != nil {
 			break
 		}
 	}
+
 	return err
 }
 
@@ -157,7 +183,7 @@ func sha256String(s string) string {
 
 func (d *DagNode) fileID(key string) uint32 {
 	crc := crc32.ChecksumIEEE([]byte(key))
-	return crc % d.cfg.CaskNum
+	return crc % d.nodes[0].cfg.CaskNum
 }
 
 type createCaskRequst struct {
