@@ -5,6 +5,8 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
+	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
@@ -28,6 +30,14 @@ type simplePool struct {
 	dagserv          *pool.DagPool
 	cidBuilder       cid.Builder
 	importerBatchNum int
+}
+
+func (p *simplePool) AddUser(ctx context.Context, user, pass string, policy userpolicy.DagPoolPolicy, cap uint64) error {
+	err := p.dagserv.Iam.AddUser(dagpooluser.DagPoolUser{Username: user, Password: pass, Policy: policy, Capacity: cap})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
