@@ -33,22 +33,21 @@ const (
 	defaultPoolCaskNum   = 2
 	PoolUser             = "POOL_USER"
 	PoolPass             = "POOL_PASS"
+	PoolDbpath           = "POOL_DBPATH"
 )
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
 
-func getPoolUser() (string, string) {
-	return os.Getenv(PoolUser), os.Getenv(PoolPass)
+func getPoolUser() string {
+	return os.Getenv(PoolUser) + "," + os.Getenv(PoolPass)
 }
-
-var poolUser, poolPass = getPoolUser()
 
 //StoreObject store object
 func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser) (ObjectInfo, error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	ctx = context.WithValue(ctx, "user", poolUser+","+poolPass)
+	ctx = context.WithValue(ctx, "user", getPoolUser())
 	cid, err := s.DagPool.Add(ctx, reader)
 	if err != nil {
 		return ObjectInfo{}, err
@@ -88,7 +87,7 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	ctx = context.WithValue(ctx, "user", poolUser+","+poolPass)
+	ctx = context.WithValue(ctx, "user", getPoolUser())
 	reader, err := s.DagPool.Get(ctx, meta.ETag)
 	return meta, reader, nil
 }
@@ -205,9 +204,10 @@ func (s *StorageSys) Init() error {
 		path = os.Getenv(PoolStorePath)
 	}
 	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
-		StorePath: path,
-		BatchNum:  batchNum,
-		CaskNum:   caskNum,
+		StorePath:   path,
+		BatchNum:    batchNum,
+		CaskNum:     caskNum,
+		LeveldbPath: os.Getenv(PoolDbpath),
 	})
 	if err != nil {
 		return err

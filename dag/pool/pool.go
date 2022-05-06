@@ -3,9 +3,10 @@ package pool
 import (
 	"context"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
-	"github.com/filedag-project/filedag-storage/dag/pool/user"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
@@ -24,14 +25,18 @@ import (
 //       able to free some of them when vm pressure is high
 type DagPool struct {
 	Blocks bserv.BlockService
-	iam    user.IdentityUser
+	Iam    dagpooluser.IdentityUserSys
 	refer  referencecount.IdentityRefe
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(bs bserv.BlockService) *DagPool {
-	return &DagPool{Blocks: bs}
+func NewDagPoolService(bs bserv.BlockService, db *uleveldb.ULevelDB) *DagPool {
+	i, err := dagpooluser.NewIdentityUserSys(db)
+	if err != nil {
+		return nil
+	}
+	return &DagPool{Blocks: bs, Iam: i}
 }
 
 // CheckPolicy check user policy
@@ -40,7 +45,7 @@ func (d *DagPool) CheckPolicy(ctx context.Context, policy userpolicy.DagPoolPoli
 	if len(s) != 2 {
 		return false
 	}
-	return d.iam.CheckUserPolicy(s[0], s[1], policy)
+	return d.Iam.CheckUserPolicy(s[0], s[1], policy)
 }
 
 // Add adds a node to the DagPool, storing the block in the BlockService

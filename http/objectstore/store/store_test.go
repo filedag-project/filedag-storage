@@ -9,12 +9,21 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
 func TestStorageSys_Object(t *testing.T) {
+	err := os.Setenv(PoolUser, "test")
+	if err != nil {
+		return
+	}
+	err = os.Setenv(PoolPass, "test123")
+	if err != nil {
+		return
+	}
+	os.Setenv(PoolDbpath, utils.TmpDirPath(t))
 	var s StorageSys
-	var err error
 	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(t))
 	if err != nil {
 		return
@@ -22,9 +31,10 @@ func TestStorageSys_Object(t *testing.T) {
 	defer uleveldb.DBClient.Close()
 	s.Db = uleveldb.DBClient
 	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
-		StorePath: utils.TmpDirPath(t),
-		BatchNum:  4,
-		CaskNum:   2,
+		StorePath:   utils.TmpDirPath(t),
+		BatchNum:    4,
+		CaskNum:     2,
+		LeveldbPath: os.Getenv(PoolDbpath),
 	})
 	if err != nil {
 		return
@@ -35,7 +45,8 @@ func TestStorageSys_Object(t *testing.T) {
 	}
 	file = bytes.Repeat(file, 10000)
 	r := ioutil.NopCloser(bytes.NewReader(file))
-	object, err := s.StoreObject(context.Background(), "test", "testBucket", "testobject", r)
+	ctx := context.Background()
+	object, err := s.StoreObject(ctx, "test", "testBucket", "testobject", r)
 	if err != nil {
 		fmt.Println("StoreObject", err)
 		return

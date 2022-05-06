@@ -6,6 +6,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/utils"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"io"
 
 	"github.com/filedrive-team/filehelper/importer"
@@ -19,8 +20,6 @@ import (
 )
 
 const importerBatchNum = 32
-const UnixfsLinksPerLevel = 1 << 10
-const UnixfsChunkSize uint64 = 1 << 20
 
 var _ DAGPool = (*simplePool)(nil)
 
@@ -39,7 +38,10 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 	if cfg.BatchNum == 0 {
 		cfg.BatchNum = importerBatchNum
 	}
-
+	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
+	if err != nil {
+		return nil, err
+	}
 	bs, err := node.NewDagNode(&node.Config{
 		CaskNum: cfg.CaskNum,
 		Batch:   cfg.BatchNum,
@@ -54,7 +56,7 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 	}
 	sp := &simplePool{
 		bs:               bs,
-		dagserv:          pool.NewDagPoolService(blockservice.New(bs, offline.Exchange(bs))),
+		dagserv:          pool.NewDagPoolService(blockservice.New(bs, offline.Exchange(bs)), db),
 		cidBuilder:       cidBuilder,
 		importerBatchNum: cfg.BatchNum,
 	}

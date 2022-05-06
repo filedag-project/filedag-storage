@@ -18,6 +18,7 @@ var log = logging.Logger("sever")
 
 const (
 	deFaultDBFILE        = "/tmp/leveldb2/fds.db"
+	deFaultPoolDBFILE    = "/tmp/leveldb2/pool.db"
 	defaultPort          = ":9985"
 	fileDagStoragePort   = "FILE_DAG_STORAGE_PORT"
 	dbPath               = "DBPATH"
@@ -58,6 +59,11 @@ var startCmd = &cli.Command{
 			Value: deFaultDBFILE,
 		},
 		&cli.StringFlag{
+			Name:  "pool-db-path",
+			Usage: "set pool db path",
+			Value: deFaultPoolDBFILE,
+		},
+		&cli.StringFlag{
 			Name:  "port",
 			Usage: "set port eg.:9985",
 			Value: defaultPort,
@@ -90,6 +96,12 @@ var startCmd = &cli.Command{
 
 		if cctx.String("db-path") != "" {
 			err := os.Setenv(dbPath, cctx.String("db-path"))
+			if err != nil {
+				return err
+			}
+		}
+		if cctx.String("pool-db-path") != "" {
+			err := os.Setenv(store.PoolDbpath, cctx.String("pool-db-path"))
 			if err != nil {
 				return err
 			}
