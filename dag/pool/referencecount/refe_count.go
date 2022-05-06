@@ -16,22 +16,23 @@ const dagPoolRefe = "dagPoolRefe/"
 func (i *IdentityRefe) AddReference(cid string) error {
 	cidCode := sha256String(cid)
 	var count int
-	_ = i.DB.Get(dagPoolRefe+cidCode, &count)
+	err := i.DB.Get(dagPoolRefe+cidCode, &count)
 	count++
-	err := i.DB.Put(dagPoolRefe+cidCode, count)
+	err = i.DB.Put(dagPoolRefe+cidCode, count)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i *IdentityRefe) QueryReference(cid string) error {
+func (i *IdentityRefe) QueryReference(cid string) (int, error) {
 	cidCode := sha256String(cid)
-	err := i.DB.Get(dagPoolRefe+cidCode, 1)
+	var count int
+	err := i.DB.Get(dagPoolRefe+cidCode, &count)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	return count, nil
 }
 
 func (i *IdentityRefe) RemoveReference(cid string) error {
@@ -50,6 +51,14 @@ func (i *IdentityRefe) RemoveReference(cid string) error {
 		return err
 	}
 	return nil
+}
+
+func NewIdentityRefe() (IdentityRefe, error) {
+	db, err := uleveldb.OpenDb("./")
+	if err != nil {
+		return IdentityRefe{}, err
+	}
+	return IdentityRefe{db}, nil
 }
 
 func sha256String(s string) string {
