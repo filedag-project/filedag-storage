@@ -36,7 +36,8 @@ func NewDagPoolService(bs bserv.BlockService, db *uleveldb.ULevelDB) *DagPool {
 	if err != nil {
 		return nil
 	}
-	return &DagPool{Blocks: bs, Iam: i}
+	r, err := referencecount.NewIdentityRefe(db)
+	return &DagPool{Blocks: bs, Iam: i, refer: r}
 }
 
 // CheckPolicy check user policy

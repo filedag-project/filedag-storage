@@ -53,11 +53,7 @@ func (i *IdentityRefe) RemoveReference(cid string) error {
 	return nil
 }
 
-func NewIdentityRefe() (IdentityRefe, error) {
-	db, err := uleveldb.OpenDb("./")
-	if err != nil {
-		return IdentityRefe{}, err
-	}
+func NewIdentityRefe(db *uleveldb.ULevelDB) (IdentityRefe, error) {
 	return IdentityRefe{db}, nil
 }
 
