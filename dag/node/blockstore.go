@@ -17,11 +17,11 @@ func (b blostore) DeleteBlock(cid cid.Cid) error {
 }
 
 func (b blostore) Has(cid cid.Cid) (bool, error) {
-	panic("implement me")
+	return true, nil
 }
 
 func (b blostore) Get(cid cid.Cid) (blocks.Block, error) {
-	panic("implement me")
+	return nil, nil
 }
 
 func (b blostore) GetSize(cid cid.Cid) (int, error) {
@@ -29,7 +29,7 @@ func (b blostore) GetSize(cid cid.Cid) (int, error) {
 }
 
 func (b blostore) Put(block blocks.Block) error {
-	panic("implement me")
+	return nil
 }
 
 func (b blostore) PutMany(blocks []blocks.Block) error {
