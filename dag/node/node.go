@@ -35,21 +35,20 @@ type SliceNode struct {
 	closeChan      chan struct{}
 }
 
-func NewDagNode(cfg *Config) (*blostore, error) {
+func NewDagNode(cfg *Config) (*DagNode, error) {
 	if cfg.Batch == 0 {
 		cfg.Batch = 4
 	}
 	if cfg.CaskNum == 0 {
 		cfg.CaskNum = 2
 	}
-	mc, err := mutcask.NewMutcask(mutcask.CaskNumConf(cfg.CaskNum), mutcask.PathConf(cfg.Path))
+	//todo need redefine config to init mul store
+	_, err := mutcask.NewMutcask(mutcask.CaskNumConf(cfg.CaskNum), mutcask.PathConf(cfg.Path))
 	if err != nil {
 		return nil, err
 	}
-	return &blostore{
-		batch: cfg.Batch,
-		kv:    mc,
-	}, nil
+	//todo init
+	return &DagNode{}, nil
 }
 
 func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {

@@ -24,6 +24,7 @@ require (
 	github.com/ipfs/go-unixfs v0.2.6
 	github.com/ipld/go-ipld-prime v0.12.2
 	github.com/json-iterator/go v1.1.12
+	github.com/klauspost/reedsolomon v1.9.16
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
@@ -55,7 +56,6 @@ require (
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
-	github.com/klauspost/reedsolomon v1.9.16 // indirect
 	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
