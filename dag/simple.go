@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	logging "github.com/ipfs/go-log/v2"
 	"io"
 
 	"github.com/filedrive-team/filehelper/importer"
@@ -23,6 +24,7 @@ import (
 
 const importerBatchNum = 32
 
+var log = logging.Logger("pool")
 var _ DAGPool = (*simplePool)(nil)
 
 type simplePool struct {
@@ -52,21 +54,25 @@ func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
 	if err != nil {
 		return nil, err
 	}
-	bs, err := node.NewDagNode(&node.Config{
-		CaskNum: cfg.CaskNum,
-		Batch:   cfg.BatchNum,
-		Path:    cfg.StorePath,
-	})
-	if err != nil {
-		return nil, err
+	var dn []blockservice.BlockService
+	for _, nc := range cfg.NodesConfig {
+		bs, err := node.NewDagNode(&node.Config{
+			CaskNum: nc.CaskNum,
+			Batch:   nc.Batch,
+			Path:    nc.Path,
+		})
+		if err != nil {
+			log.Errorf("new dagnode err:%v", err)
+			return nil, err
+		}
+		dn = append(dn, blockservice.New(bs, offline.Exchange(bs)))
 	}
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	if err != nil {
 		return nil, err
 	}
 	sp := &simplePool{
-		bs:               bs,
-		dagserv:          pool.NewDagPoolService(blockservice.New(bs, offline.Exchange(bs)), db),
+		dagserv:          pool.NewDagPoolService(dn, db),
 		cidBuilder:       cidBuilder,
 		importerBatchNum: cfg.BatchNum,
 	}
