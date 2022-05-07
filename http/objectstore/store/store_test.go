@@ -63,14 +63,15 @@ func TestStorageSys_Object(t *testing.T) {
 		return
 	}
 	fmt.Println(object)
-	//res, i, err := s.GetObject(context.Background(), "test", "testBucket", "testobject")
-	//if err != nil {
-	//	fmt.Println("GetObject", err)
-	//	return
-	//}
-	//all, err := ioutil.ReadAll(i)
-	//if err != nil {
-	//	return
-	//}
-	//fmt.Printf("res:%v,\ni:%v", res, string(all))
+	res, i, err := s.GetObject(ctx, "test", "testBucket", "testobject")
+	if err != nil {
+		fmt.Println("GetObject", err)
+		return
+	}
+	all, err := ioutil.ReadAll(i)
+	if err != nil {
+		return
+	}
+	fmt.Println(len(file))
+	fmt.Printf("res:%v,\ni:%v", res, len(all))
 }
