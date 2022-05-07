@@ -3,17 +3,22 @@ package pool
 import (
 	"context"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-blockservice"
 	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
+	"github.com/ipfs/go-merkledag"
 	"strings"
-
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
@@ -24,20 +29,43 @@ import (
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type DagPool struct {
-	Blocks []bserv.BlockService
-	Iam    dagpooluser.IdentityUserSys
-	refer  referencecount.IdentityRefe
+	Blocks           []bserv.BlockService
+	Iam              dagpooluser.IdentityUserSys
+	refer            referencecount.IdentityRefe
+	CidBuilder       cid.Builder
+	ImporterBatchNum int
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(bs []bserv.BlockService, db *uleveldb.ULevelDB) *DagPool {
+func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
+	cidBuilder, err := merkledag.PrefixForCidVersion(0)
+	if err != nil {
+		return nil, err
+	}
+	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
+	if err != nil {
+		return nil, err
+	}
 	i, err := dagpooluser.NewIdentityUserSys(db)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	r, err := referencecount.NewIdentityRefe(db)
-	return &DagPool{Blocks: bs, Iam: i, refer: r}
+	var dn []blockservice.BlockService
+	for _, nc := range cfg.NodesConfig {
+		bs, err := node.NewDagNode(&node.Config{
+			CaskNum: nc.CaskNum,
+			Batch:   nc.Batch,
+			Path:    nc.Path,
+		})
+		if err != nil {
+			log.Errorf("new dagnode err:%v", err)
+			return nil, err
+		}
+		dn = append(dn, blockservice.New(bs, offline.Exchange(bs)))
+	}
+	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum}, nil
 }
 
 // CheckPolicy check user policy

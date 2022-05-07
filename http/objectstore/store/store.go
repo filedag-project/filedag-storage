@@ -212,11 +212,9 @@ func (s *StorageSys) Init() error {
 		},
 	}
 	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
-		NodesConfig: nodec,
-		StorePath:   path,
-		BatchNum:    batchNum,
-		CaskNum:     caskNum,
-		LeveldbPath: os.Getenv(PoolDbpath),
+		NodesConfig:      nodec,
+		LeveldbPath:      os.Getenv(PoolDbpath),
+		ImporterBatchNum: batchNum,
 	})
 	if err != nil {
 		return err
