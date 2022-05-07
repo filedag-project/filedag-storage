@@ -1,8 +1,8 @@
 package node
 
 type CaskConfig struct {
-	Path    string
-	CaskNum uint32
+	Path    string `json:"path"`
+	CaskNum uint32 `json:"cask_num"`
 }
 
 func defaultConfig() *CaskConfig {

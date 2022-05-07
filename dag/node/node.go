@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/kv"
 	blocks "github.com/ipfs/go-block-format"
@@ -13,6 +14,7 @@ import (
 	"github.com/klauspost/reedsolomon"
 	"golang.org/x/xerrors"
 	"hash/crc32"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -48,15 +50,36 @@ func NewDagNode(cfg *Config) (*DagNode, error) {
 	if cfg.CaskNum == 0 {
 		cfg.CaskNum = 2
 	}
-	//todo need redefine config to init mul store
-	sc, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf(cfg.Path))
-	//sc2, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf(cfg.Path))
+	//type CaskConfigs struct {
+	//	cask_config []CaskConfig `json:"cask_config"`
+	//}
+	bytes, _ := json.Marshal(cfg)
+	fmt.Println(bytes)
+	file, err := ioutil.ReadFile("/Users/mingjun.han/goproject/aa/filedag-storage/dag/node/config.json")
+	caskConfigs := make([]CaskConfig, 0)
+	err = json.Unmarshal(file, &caskConfigs)
 	if err != nil {
 		return nil, err
 	}
-	//todo init
 	var s []*SliceNode
-	s = append(s, sc)
+	for _, config := range caskConfigs {
+		sc, err := NewSliceNode(CaskNumConf(int(config.CaskNum)), PathConf(config.Path))
+		if err != nil {
+			return nil, err
+		}
+		s = append(s, sc)
+	}
+	//todo need redefine config to init mul store
+	//sc, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf(cfg.Path))
+	//sc1, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf("/tmp/dag/data1"))
+	//sc2, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf("/tmp/dag/data2"))
+	//sc3, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf("/tmp/dag/data3"))
+	//if err != nil {
+	//	return nil, err
+	//}
+	////todo init
+	//
+	//s = append(s, sc1, sc2, sc3)
 	//s = append(s, sc2)
 	return &DagNode{s}, nil
 }
