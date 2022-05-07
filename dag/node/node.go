@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"fmt"
@@ -49,12 +50,14 @@ func NewDagNode(cfg *Config) (*DagNode, error) {
 	}
 	//todo need redefine config to init mul store
 	sc, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf(cfg.Path))
+	//sc2, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf(cfg.Path))
 	if err != nil {
 		return nil, err
 	}
 	//todo init
 	var s []*SliceNode
 	s = append(s, sc)
+	//s = append(s, sc2)
 	return &DagNode{s}, nil
 }
 func NewSliceNode(opts ...Option) (*SliceNode, error) {
@@ -185,7 +188,7 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	keyCode := sha256String(cid.String())
 	var err error
 	id := d.fileID(keyCode)
-	merged := make([][]byte, 8)
+	merged := make([][]byte, 0)
 	for _, node := range d.nodes {
 		cask, has := node.caskMap.Get(id)
 		if !has {
@@ -198,9 +201,10 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 		}
 		merged = append(merged, bytes)
 	}
-	enc, _ := reedsolomon.New(len(d.nodes), 3)
+	//enc, _ := reedsolomon.New(len(d.nodes), 0)
 	var data []byte
-	err = enc.EncodeIdx(data, len(d.nodes), merged)
+	//err = enc.EncodeIdx(data, len(d.nodes), merged)
+	data = bytes.Join(merged, []byte(""))
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +237,7 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 func (d DagNode) Put(block blocks.Block) (err error) {
 	keyCode := sha256String(block.Cid().String())
 	// Create an encoder with 5 data and 3 parity slices.
-	enc, _ := reedsolomon.New(len(d.nodes), 3)
+	enc, _ := reedsolomon.New(len(d.nodes), 0)
 	bytes := block.RawData()
 	shards, _ := enc.Split(bytes)
 	err = enc.Encode(shards)
