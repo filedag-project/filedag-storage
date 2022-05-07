@@ -40,11 +40,9 @@ func TestStorageSys_Object(t *testing.T) {
 		},
 	}
 	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
-		NodesConfig: nodec,
-		StorePath:   utils.TmpDirPath(t),
-		BatchNum:    4,
-		CaskNum:     2,
-		LeveldbPath: os.Getenv(PoolDbpath),
+		NodesConfig:      nodec,
+		LeveldbPath:      os.Getenv(PoolDbpath),
+		ImporterBatchNum: defaultPoolBatchNum,
 	})
 	if err != nil {
 		return
