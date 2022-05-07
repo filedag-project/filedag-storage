@@ -24,14 +24,14 @@ import (
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type DagPool struct {
-	Blocks bserv.BlockService
+	Blocks []bserv.BlockService
 	Iam    dagpooluser.IdentityUserSys
 	refer  referencecount.IdentityRefe
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(bs bserv.BlockService, db *uleveldb.ULevelDB) *DagPool {
+func NewDagPoolService(bs []bserv.BlockService, db *uleveldb.ULevelDB) *DagPool {
 	i, err := dagpooluser.NewIdentityUserSys(db)
 	if err != nil {
 		return nil
@@ -49,6 +49,12 @@ func (d *DagPool) CheckPolicy(ctx context.Context, policy userpolicy.DagPoolPoli
 	return d.Iam.CheckUserPolicy(s[0], s[1], policy)
 }
 
+// GetNode get the DagNode
+func (d *DagPool) GetNode(ctx context.Context) bserv.BlockService {
+	//todo mul node
+	return d.Blocks[0]
+}
+
 // Add adds a node to the DagPool, storing the block in the BlockService
 func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
@@ -61,7 +67,7 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 	if err != nil {
 		return err
 	}
-	return d.Blocks.AddBlock(nd)
+	return d.GetNode(ctx).AddBlock(nd)
 }
 
 func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
@@ -73,7 +79,7 @@ func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
 			return err
 		}
 	}
-	return d.Blocks.AddBlocks(blks)
+	return d.GetNode(ctx).AddBlocks(blks)
 }
 
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
@@ -85,7 +91,7 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	b, err := d.Blocks.GetBlock(ctx, c)
+	b, err := d.GetNode(ctx).GetBlock(ctx, c)
 	if err != nil {
 		if err == bserv.ErrNotFound {
 			return nil, format.ErrNotFound
@@ -120,7 +126,7 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	return d.Blocks.DeleteBlock(c)
+	return d.GetNode(ctx).DeleteBlock(c)
 }
 
 // RemoveMany removes multiple nodes from the DAG. It will likely be faster than
@@ -134,7 +140,7 @@ func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	}
 	// TODO(#4608): make this batch all the way down.
 	for _, c := range cids {
-		if err := d.Blocks.DeleteBlock(c); err != nil {
+		if err := d.GetNode(ctx).DeleteBlock(c); err != nil {
 			return err
 		}
 		err := d.refer.RemoveReference(c.String())
@@ -151,7 +157,7 @@ func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 // error indicating that it failed to do so. It is up to the caller to verify
 // that it received all nodes.
 func (d *DagPool) GetMany(ctx context.Context, keys []cid.Cid) <-chan *format.NodeOption {
-	return getNodesFromBG(ctx, d.Blocks, keys)
+	return getNodesFromBG(ctx, d.GetNode(ctx), keys)
 }
 
 func dedupKeys(keys []cid.Cid) []cid.Cid {
