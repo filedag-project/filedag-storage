@@ -22,7 +22,7 @@ const (
 	defaultPort          = ":9985"
 	fileDagStoragePort   = "FILE_DAG_STORAGE_PORT"
 	dbPath               = "DBPATH"
-	defaultPoolStorePath = "./"
+	defaultPoolStorePath = "./dag/node/config.json"
 	defaultPoolBatchNum  = "4"
 	defaultPoolCaskNum   = "2"
 )

@@ -43,7 +43,7 @@ func testInit(t *testing.T) (dagPool *simplePool, ctx context.Context) {
 	nodec := []node.Config{
 		{
 			Batch:   4,
-			Path:    utils.TmpDirPath(t),
+			Path:    "./node/config.json",
 			CaskNum: 2,
 		},
 	}

@@ -35,7 +35,7 @@ func TestStorageSys_Object(t *testing.T) {
 	nodec := []node.Config{
 		{
 			Batch:   4,
-			Path:    utils.TmpDirPath(t),
+			Path:    "testconfig.json",
 			CaskNum: 2,
 		},
 	}

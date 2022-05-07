@@ -1,0 +1,22 @@
+[
+    {
+      "cask_num":2,
+      "path":"/tmp/dag/data1"
+    },
+    {
+      "cask_num":2,
+      "path":"/tmp/dag/data2"
+    },
+    {
+      "cask_num":2,
+      "path":"/tmp/dag/data3"
+    },
+    {
+      "cask_num":2,
+      "path":"/tmp/dag/data4"
+    },
+    {
+      "cask_num":2,
+      "path":"/tmp/dag/data5"
+    }
+]

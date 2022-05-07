@@ -55,7 +55,7 @@ func NewDagNode(cfg *Config) (*DagNode, error) {
 	//}
 	bytes, _ := json.Marshal(cfg)
 	fmt.Println(bytes)
-	file, err := ioutil.ReadFile("/Users/mingjun.han/goproject/aa/filedag-storage/dag/node/config.json")
+	file, err := ioutil.ReadFile(cfg.Path)
 	caskConfigs := make([]CaskConfig, 0)
 	err = json.Unmarshal(file, &caskConfigs)
 	if err != nil {
