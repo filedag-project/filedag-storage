@@ -24,7 +24,7 @@ func TestSimplePool_Add(t *testing.T) {
 }
 func TestSimplePool_Get(t *testing.T) {
 	dagPool, ctx := testInit(t)
-	r := ioutil.NopCloser(bytes.NewReader([]byte("hello world123")))
+	r := ioutil.NopCloser(bytes.NewReader([]byte("hello world123444")))
 	add, err := dagPool.Add(ctx, r)
 	if err != nil {
 		fmt.Println(err)

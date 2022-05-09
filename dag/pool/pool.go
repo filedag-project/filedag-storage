@@ -34,6 +34,7 @@ type DagPool struct {
 	refer            referencecount.IdentityRefe
 	CidBuilder       cid.Builder
 	ImporterBatchNum int
+	TheNode          RecordSys
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -65,7 +66,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 		}
 		dn = append(dn, blockservice.New(bs, offline.Exchange(bs)))
 	}
-	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum}, nil
+	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, TheNode: NewRecordSys(db)}, nil
 }
 
 // CheckPolicy check user policy
@@ -78,8 +79,47 @@ func (d *DagPool) CheckPolicy(ctx context.Context, policy userpolicy.DagPoolPoli
 }
 
 // GetNode get the DagNode
-func (d *DagPool) GetNode(ctx context.Context) bserv.BlockService {
+func (d *DagPool) GetNode(ctx context.Context, c cid.Cid) bserv.BlockService {
 	//todo mul node
+	get, err := d.TheNode.Get(c.String())
+	if err != nil {
+		return nil
+	}
+	return d.Blocks[get]
+}
+
+// UseNode get the DagNode
+func (d *DagPool) UseNode(ctx context.Context, c cid.Cid) bserv.BlockService {
+	//todo mul node
+	err := d.TheNode.Add(c.String(), 0)
+	if err != nil {
+		return nil
+	}
+	return d.Blocks[0]
+}
+
+// GetNodes get the DagNode
+func (d *DagPool) GetNodes(ctx context.Context, cids []cid.Cid) map[bserv.BlockService][]cid.Cid {
+	//todo mul node
+	//
+	m := make(map[bserv.BlockService][]cid.Cid)
+	for _, c := range cids {
+		get, err := d.TheNode.Get(c.String())
+		if err != nil {
+			return nil
+		}
+		m[d.Blocks[get]] = append(m[d.Blocks[get]], c)
+	}
+	return m
+}
+
+// UseNodes get the DagNode
+func (d *DagPool) UseNodes(ctx context.Context, c []cid.Cid) bserv.BlockService {
+	//todo mul node
+	err := d.TheNode.Add(c[0].String(), 0)
+	if err != nil {
+		return nil
+	}
 	return d.Blocks[0]
 }
 
@@ -95,19 +135,21 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 	if err != nil {
 		return err
 	}
-	return d.GetNode(ctx).AddBlock(nd)
+	return d.UseNode(ctx, nd.Cid()).AddBlock(nd)
 }
 
 func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
 	blks := make([]blocks.Block, len(nds))
+	var cids []cid.Cid
 	for i, nd := range nds {
 		blks[i] = nd
 		err := d.refer.AddReference(nd.Cid().String())
 		if err != nil {
 			return err
 		}
+		cids = append(cids, nd.Cid())
 	}
-	return d.GetNode(ctx).AddBlocks(blks)
+	return d.UseNodes(ctx, cids).AddBlocks(blks)
 }
 
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
@@ -115,11 +157,10 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	if d == nil {
 		return nil, fmt.Errorf("DagPool is nil")
 	}
-
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	b, err := d.GetNode(ctx).GetBlock(ctx, c)
+	b, err := d.GetNode(ctx, c).GetBlock(ctx, c)
 	if err != nil {
 		if err == bserv.ErrNotFound {
 			return nil, format.ErrNotFound
@@ -154,7 +195,7 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	return d.GetNode(ctx).DeleteBlock(c)
+	return d.GetNode(ctx, c).DeleteBlock(c)
 }
 
 // RemoveMany removes multiple nodes from the DAG. It will likely be faster than
@@ -168,7 +209,7 @@ func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	}
 	// TODO(#4608): make this batch all the way down.
 	for _, c := range cids {
-		if err := d.GetNode(ctx).DeleteBlock(c); err != nil {
+		if err := d.GetNode(ctx, c).DeleteBlock(c); err != nil {
 			return err
 		}
 		err := d.refer.RemoveReference(c.String())
@@ -185,7 +226,12 @@ func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 // error indicating that it failed to do so. It is up to the caller to verify
 // that it received all nodes.
 func (d *DagPool) GetMany(ctx context.Context, keys []cid.Cid) <-chan *format.NodeOption {
-	return getNodesFromBG(ctx, d.GetNode(ctx), keys)
+	m := d.GetNodes(ctx, keys)
+	var a <-chan *format.NodeOption
+	for _, b := range d.Blocks {
+		a = getNodesFromBG(ctx, b, m[b])
+	}
+	return a
 }
 
 func dedupKeys(keys []cid.Cid) []cid.Cid {
@@ -199,10 +245,11 @@ func dedupKeys(keys []cid.Cid) []cid.Cid {
 	return set.Keys()
 }
 
-func getNodesFromBG(ctx context.Context, bs bserv.BlockGetter, keys []cid.Cid) <-chan *format.NodeOption {
+func getNodesFromBG(ctx context.Context, bs bserv.BlockService, keys []cid.Cid) <-chan *format.NodeOption {
 	keys = dedupKeys(keys)
 
 	out := make(chan *format.NodeOption, len(keys))
+
 	blocks := bs.GetBlocks(ctx, keys)
 	var count int
 
