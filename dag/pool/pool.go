@@ -139,6 +139,9 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 }
 
 func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
+	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
+	}
 	blks := make([]blocks.Block, len(nds))
 	var cids []cid.Cid
 	for i, nd := range nds {
@@ -154,6 +157,9 @@ func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
 
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
 func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
+	if !d.CheckPolicy(ctx, userpolicy.OnlyRead) {
+		return nil, userpolicy.AccessDenied
+	}
 	if d == nil {
 		return nil, fmt.Errorf("DagPool is nil")
 	}
@@ -226,6 +232,9 @@ func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 // error indicating that it failed to do so. It is up to the caller to verify
 // that it received all nodes.
 func (d *DagPool) GetMany(ctx context.Context, keys []cid.Cid) <-chan *format.NodeOption {
+	if !d.CheckPolicy(ctx, userpolicy.OnlyRead) {
+		return nil
+	}
 	m := d.GetNodes(ctx, keys)
 	var a <-chan *format.NodeOption
 	for _, b := range d.Blocks {
