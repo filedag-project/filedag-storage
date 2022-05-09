@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/kv"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -32,6 +33,7 @@ var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
 	nodes []*SliceNode
+	db    *uleveldb.ULevelDB
 }
 
 type SliceNode struct {
@@ -81,7 +83,8 @@ func NewDagNode(cfg *Config) (*DagNode, error) {
 	//
 	//s = append(s, sc1, sc2, sc3)
 	//s = append(s, sc2)
-	return &DagNode{s}, nil
+	db, _ := uleveldb.OpenDb("./")
+	return &DagNode{s, db}, nil
 }
 func NewSliceNode(opts ...Option) (*SliceNode, error) {
 	m := &SliceNode{
@@ -231,6 +234,12 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
+	var size int
+	err = d.db.Get(cid.String(), &size)
+	if err != nil {
+		return nil, err
+	}
+	data = data[:size]
 	b, err := blocks.NewBlockWithCid(data, cid)
 	if err == blocks.ErrWrongHash {
 		return nil, blockstore.ErrHashMismatch
@@ -258,6 +267,10 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 }
 
 func (d DagNode) Put(block blocks.Block) (err error) {
+	err = d.db.Put(block.Cid().String(), len(block.RawData()))
+	if err != nil {
+		return err
+	}
 	keyCode := sha256String(block.Cid().String())
 	// Create an encoder with 5 data and 3 parity slices.
 	enc, _ := reedsolomon.New(len(d.nodes), 0)
