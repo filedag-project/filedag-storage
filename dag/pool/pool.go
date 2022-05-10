@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
@@ -18,6 +19,7 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/go-merkledag"
+	"io/ioutil"
 	"strings"
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
@@ -39,11 +41,14 @@ type DagPool struct {
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
+func NewDagPoolService(path string) (*DagPool, error) {
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	if err != nil {
 		return nil, err
 	}
+	var cfg config.PoolConfig
+	file, err := ioutil.ReadFile(path)
+	json.Unmarshal(file, &cfg)
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err

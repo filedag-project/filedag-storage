@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/node"
-	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	chunker "github.com/ipfs/go-ipfs-chunker"
 	"io/ioutil"
 	"testing"
@@ -24,7 +21,8 @@ func TestSimplePool_Add(t *testing.T) {
 }
 func TestSimplePool_Get(t *testing.T) {
 	dagPool, ctx := testInit(t)
-	r := ioutil.NopCloser(bytes.NewReader([]byte("hello world123444")))
+	f, _ := ioutil.ReadFile("C:\\Users\\dean\\Downloads\\SunloginClient_12.5.1.45098_x64.exe")
+	r := ioutil.NopCloser(bytes.NewReader(f))
 	add, err := dagPool.Add(ctx, r)
 	if err != nil {
 		fmt.Println(err)
@@ -40,18 +38,8 @@ func TestSimplePool_Get(t *testing.T) {
 	fmt.Println(string(all))
 }
 func testInit(t *testing.T) (dagPool *simplePool, ctx context.Context) {
-	nodec := []node.Config{
-		{
-			Batch:   4,
-			Path:    "./node/config.json",
-			CaskNum: 2,
-		},
-	}
-	dagPool, err := NewSimplePool(&config.SimplePoolConfig{
-		NodesConfig:      nodec,
-		LeveldbPath:      utils.TmpDirPath(t),
-		ImporterBatchNum: 4,
-	})
+
+	dagPool, err := NewSimplePool("./pool/config/config.json")
 	if err != nil {
 		fmt.Println(err)
 	}

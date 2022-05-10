@@ -5,14 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	pool "github.com/filedag-project/filedag-storage/dag"
-	"github.com/filedag-project/filedag-storage/dag/node"
-	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"io"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -26,15 +23,15 @@ type StorageSys struct {
 }
 
 const (
-	PoolStorePath        = "POOL_STORE_PATH"
-	PoolBatchNum         = "POOL_BATCH_NUM"
-	PoolCaskNum          = "POOL_CASK_NUM"
-	defaultPoolStorePath = "./"
-	defaultPoolBatchNum  = 4
-	defaultPoolCaskNum   = 2
-	PoolUser             = "POOL_USER"
-	PoolPass             = "POOL_PASS"
-	PoolDbpath           = "POOL_DBPATH"
+	PoolStorePath         = "POOL_STORE_PATH"
+	PoolBatchNum          = "POOL_BATCH_NUM"
+	PoolCaskNum           = "POOL_CASK_NUM"
+	defaultPoolConfigPath = "./dag/pool/config/config.json"
+	defaultPoolBatchNum   = 4
+	defaultPoolCaskNum    = 2
+	PoolUser              = "POOL_USER"
+	PoolPass              = "POOL_PASS"
+	PoolDbpath            = "POOL_DBPATH"
 )
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
@@ -187,35 +184,9 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 //Init storage sys
 func (s *StorageSys) Init() error {
 	s.Db = uleveldb.DBClient
-	batchNum, err := strconv.Atoi(os.Getenv(PoolBatchNum))
-	if err != nil {
-		//log.Errorf("get PoolBatchNum err %v,use default",err)
-		batchNum = defaultPoolBatchNum
-	}
-	caskNum, err := strconv.Atoi(os.Getenv(PoolCaskNum))
-	if err != nil {
-		//log.Errorf("get PoolCaskNum err %v,use default",err)
-		caskNum = defaultPoolCaskNum
-	}
-	var path string
-	if os.Getenv(PoolStorePath) == "" {
-		//log.Errorf("get PoolStorePath err %v,use default",err)
-		path = defaultPoolStorePath
-	} else {
-		path = os.Getenv(PoolStorePath)
-	}
-	nodec := []node.Config{
-		{
-			Batch:   batchNum,
-			Path:    path,
-			CaskNum: caskNum,
-		},
-	}
-	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
-		NodesConfig:      nodec,
-		LeveldbPath:      os.Getenv(PoolDbpath),
-		ImporterBatchNum: batchNum,
-	})
+	path := defaultPoolConfigPath
+	var err error
+	s.DagPool, err = pool.NewSimplePool(path)
 	if err != nil {
 		return err
 	}

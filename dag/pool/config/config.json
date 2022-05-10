@@ -1,0 +1,11 @@
+{
+  "nodes_configs":[
+    {
+      "bach":4,
+      "path":"./node/config.json",
+      "cask_num": 2
+    }
+  ],
+  "leveldb_path":"/tmp/leveldb2/pool",
+  "importer_batch_num":4
+}

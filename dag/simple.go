@@ -3,7 +3,6 @@ package dag
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/utils"
@@ -30,12 +29,8 @@ func (p *simplePool) AddUser(ctx context.Context, user, pass string, policy user
 	return p.dagserv.Iam.AddUser(dagpooluser.DagPoolUser{Username: user, Password: pass, Policy: policy, Capacity: cap})
 }
 
-func NewSimplePool(cfg *config.SimplePoolConfig) (*simplePool, error) {
-	service, err := pool.NewDagPoolService(config.PoolConfig{
-		NodesConfig:      cfg.NodesConfig,
-		LeveldbPath:      cfg.LeveldbPath,
-		ImporterBatchNum: cfg.ImporterBatchNum,
-	})
+func NewSimplePool(path string) (*simplePool, error) {
+	service, err := pool.NewDagPoolService(path)
 	if err != nil {
 		return nil, err
 	}

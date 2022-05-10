@@ -24,9 +24,9 @@ import (
 const lockFileName = "repo.lock"
 
 type Config struct {
-	Batch   int
-	Path    string
-	CaskNum int
+	Batch   int    `json:"batch"`
+	Path    string `json:"path"`
+	CaskNum int    `json:"cask_num"`
 }
 
 var _ blockstore.Blockstore = (*DagNode)(nil)

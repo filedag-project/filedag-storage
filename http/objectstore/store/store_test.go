@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	pool "github.com/filedag-project/filedag-storage/dag"
-	"github.com/filedag-project/filedag-storage/dag/node"
-	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
@@ -32,18 +30,7 @@ func TestStorageSys_Object(t *testing.T) {
 	}
 	defer uleveldb.DBClient.Close()
 	s.Db = uleveldb.DBClient
-	nodec := []node.Config{
-		{
-			Batch:   4,
-			Path:    "testconfig.json",
-			CaskNum: 2,
-		},
-	}
-	s.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
-		NodesConfig:      nodec,
-		LeveldbPath:      os.Getenv(PoolDbpath),
-		ImporterBatchNum: defaultPoolBatchNum,
-	})
+	s.DagPool, err = pool.NewSimplePool("./config.json")
 	if err != nil {
 		return
 	}
