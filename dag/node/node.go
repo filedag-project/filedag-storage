@@ -32,8 +32,9 @@ type Config struct {
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
-	nodes []*SliceNode
-	db    *uleveldb.ULevelDB
+	nodes                    []*SliceNode
+	db                       *uleveldb.ULevelDB
+	dataBlocks, parityBlocks int
 }
 
 type SliceNode struct {
@@ -52,39 +53,29 @@ func NewDagNode(cfg *Config) (*DagNode, error) {
 	if cfg.CaskNum == 0 {
 		cfg.CaskNum = 2
 	}
-	//type CaskConfigs struct {
-	//	cask_config []CaskConfig `json:"cask_config"`
-	//}
+	type CaskConfigs struct {
+		Casks        []CaskConfig `json:"casks"`
+		DataBlocks   int          `json:"data_blocks"`
+		ParityBlocks int          `json:"parity_blocks"`
+	}
 	bytes, _ := json.Marshal(cfg)
 	fmt.Println(bytes)
 	file, err := ioutil.ReadFile(cfg.Path)
-	caskConfigs := make([]CaskConfig, 0)
+	caskConfigs := new(CaskConfigs)
 	err = json.Unmarshal(file, &caskConfigs)
 	if err != nil {
 		return nil, err
 	}
 	var s []*SliceNode
-	for _, config := range caskConfigs {
+	for _, config := range caskConfigs.Casks {
 		sc, err := NewSliceNode(CaskNumConf(int(config.CaskNum)), PathConf(config.Path))
 		if err != nil {
 			return nil, err
 		}
 		s = append(s, sc)
 	}
-	//todo need redefine config to init mul store
-	//sc, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf(cfg.Path))
-	//sc1, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf("/tmp/dag/data1"))
-	//sc2, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf("/tmp/dag/data2"))
-	//sc3, err := NewSliceNode(CaskNumConf(cfg.CaskNum), PathConf("/tmp/dag/data3"))
-	//if err != nil {
-	//	return nil, err
-	//}
-	////todo init
-	//
-	//s = append(s, sc1, sc2, sc3)
-	//s = append(s, sc2)
 	db, _ := uleveldb.OpenDb("./")
-	return &DagNode{s, db}, nil
+	return &DagNode{s, db, caskConfigs.DataBlocks, caskConfigs.ParityBlocks}, nil
 }
 func NewSliceNode(opts ...Option) (*SliceNode, error) {
 	m := &SliceNode{
@@ -273,7 +264,7 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	}
 	keyCode := sha256String(block.Cid().String())
 	// Create an encoder with 5 data and 3 parity slices.
-	enc, _ := reedsolomon.New(len(d.nodes), 0)
+	enc, _ := reedsolomon.New(d.dataBlocks, d.parityBlocks)
 	bytes := block.RawData()
 	shards, _ := enc.Split(bytes)
 	err = enc.Encode(shards)
