@@ -1,13 +1,17 @@
 package s3api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag"
+	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/config"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
+	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
@@ -33,15 +37,25 @@ func TestMain(m *testing.M) {
 	var s3server s3ApiServer
 	s3server.authSys.Init()
 	s3server.store.Db = uleveldb.DBClient
-	s3server.store.DagPool, err = pool.NewSimplePool(&config.SimplePoolConfig{
-		StorePath: utils.TmpDirPath(&testing.T{}),
-		BatchNum:  4,
-		CaskNum:   2,
-	})
+	err = os.Setenv(store.PoolUser, "test")
+	if err != nil {
+		return
+	}
+	err = os.Setenv(store.PoolPass, "test123")
+	if err != nil {
+		return
+	}
+	os.Setenv(store.PoolDbpath, utils.TmpDirPath(&testing.T{}))
+	os.Setenv(pool.DagNodeIpOrPath, utils.TmpDirPath(&testing.T{}))
+	os.Setenv(pool.DagPoolImporterBatchNum, "4")
+	os.Setenv(pool.DagPoolLeveldbPath, utils.TmpDirPath(&testing.T{}))
+	os.Setenv(node.NodeConfigPath, "testconfig.json")
+	s3server.store.DagPool, err = dag.NewSimplePool()
 	if err != nil {
 		log.Errorf("s3 store init err%v", err)
 		return
 	}
+	s3server.store.DagPool.AddUser(context.TODO(), "test", "test123", userpolicy.ReadWrite, 100000)
 	s3server.registerS3Router(router)
 	os.Exit(m.Run())
 }
