@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
@@ -9,7 +10,6 @@ import (
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/xerrors"
 	"net/http"
 	"os"
 )
@@ -59,29 +59,21 @@ var startCmd = &cli.Command{
 			Value: deFaultDBFILE,
 		},
 		&cli.StringFlag{
-			Name:  "pool-db-path",
-			Usage: "set pool db path",
-			Value: deFaultPoolDBFILE,
-		},
-		&cli.StringFlag{
 			Name:  "port",
 			Usage: "set port eg.:9985",
 			Value: defaultPort,
 		},
 		&cli.StringFlag{
-			Name:  "pool-path",
-			Usage: "set pool path  eg.`.`",
-			Value: defaultPoolStorePath,
+			Name:  "pool-db-path",
+			Usage: "set pool db path,if you need a local pool , use it",
+		},
+		&cli.StringFlag{
+			Name:  "pool-ip-path",
+			Usage: "set node path  if you need a local node , use it",
 		},
 		&cli.StringFlag{
 			Name:  "pool-batch-num",
-			Usage: "set pool batch num eg.10",
-			Value: defaultPoolBatchNum,
-		},
-		&cli.StringFlag{
-			Name:  "pool-cask-num",
-			Usage: "set pool cask num.:10",
-			Value: defaultPoolCaskNum,
+			Usage: "set pool batch num if you need a local pool , use it",
 		},
 		&cli.StringFlag{
 			Name:  "pool-user",
@@ -100,53 +92,27 @@ var startCmd = &cli.Command{
 				return err
 			}
 		}
-		if cctx.String("pool-db-path") != "" {
-			err := os.Setenv(store.PoolDbpath, cctx.String("pool-db-path"))
-			if err != nil {
-				return err
-			}
-		}
+
 		if cctx.String("port") != "" {
 			err := os.Setenv(fileDagStoragePort, cctx.String("port"))
 			if err != nil {
 				return err
 			}
 		}
-		if cctx.String("pool-path") != "" {
-			err := os.Setenv(store.PoolStorePath, cctx.String("pool-path"))
-			if err != nil {
-				return err
-			}
+		if cctx.String("pool-db-path") != "" {
+			os.Setenv(pool.DagPoolLeveldbPath, cctx.String("pool-db-path"))
+		}
+		if cctx.String("pool-ip-path") != "" {
+			os.Setenv(pool.DagNodeIpOrPath, cctx.String("pool-ip-path"))
 		}
 		if cctx.String("pool-batch-num") != "" {
-			err := os.Setenv(store.PoolBatchNum, cctx.String("pool-batch-num"))
-			if err != nil {
-				return err
-			}
-		}
-		if cctx.String("pool-cask-num") != "" {
-			err := os.Setenv(store.PoolCaskNum, cctx.String("pool-cask-num"))
-			if err != nil {
-				return err
-			}
+			os.Setenv(pool.DagPoolImporterBatchNum, cctx.String("pool-batch-num"))
 		}
 		if cctx.String("pool-user") != "" {
-			if cctx.String("pool-user-pass") == "" {
-				return xerrors.Errorf("you need set pool user")
-			}
-			err := os.Setenv(store.PoolUser, cctx.String("pool-user"))
-			if err != nil {
-				return err
-			}
+			os.Setenv(store.PoolUser, cctx.String("pool-user"))
 		}
 		if cctx.String("pool-user-pass") != "" {
-			if cctx.String("pool-user-pass") == "" {
-				return xerrors.Errorf("you need set pool user")
-			}
-			err := os.Setenv(store.PoolPass, cctx.String("pool-user-pass"))
-			if err != nil {
-				return err
-			}
+			os.Setenv(store.PoolPass, cctx.String("pool-user-pass"))
 		}
 		startServer()
 		return nil

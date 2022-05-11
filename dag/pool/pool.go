@@ -2,7 +2,6 @@ package pool
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
@@ -19,7 +18,8 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/go-merkledag"
-	"io/ioutil"
+	"os"
+	"strconv"
 	"strings"
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
@@ -39,16 +39,20 @@ type DagPool struct {
 	TheNode          RecordSys
 }
 
+const (
+	DagPoolLeveldbPath      = "POOL_LEVELDB_PATH"
+	DagNodeIpOrPath         = "POOL_IP_OR_PATH"
+	DagPoolImporterBatchNum = "POOL_IMPORTER_BATCH_NUM"
+)
+
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(path string) (*DagPool, error) {
+func NewDagPoolService() (*DagPool, error) {
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	if err != nil {
 		return nil, err
 	}
-	var cfg config.PoolConfig
-	file, err := ioutil.ReadFile(path)
-	json.Unmarshal(file, &cfg)
+	var cfg = GetPoolConfig()
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
@@ -59,12 +63,8 @@ func NewDagPoolService(path string) (*DagPool, error) {
 	}
 	r, err := referencecount.NewIdentityRefe(db)
 	var dn []blockservice.BlockService
-	for _, nc := range cfg.NodesConfig {
-		bs, err := node.NewDagNode(&node.Config{
-			CaskNum: nc.CaskNum,
-			Batch:   nc.Batch,
-			Path:    nc.Path,
-		})
+	for range cfg.IpOrPath {
+		bs, err := node.NewDagNode()
 		if err != nil {
 			log.Errorf("new dagnode err:%v", err)
 			return nil, err
@@ -72,6 +72,16 @@ func NewDagPoolService(path string) (*DagPool, error) {
 		dn = append(dn, blockservice.New(bs, offline.Exchange(bs)))
 	}
 	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, TheNode: NewRecordSys(db)}, nil
+}
+func GetPoolConfig() config.PoolConfig {
+	p := os.Getenv(DagNodeIpOrPath)
+	i := os.Getenv(DagPoolImporterBatchNum)
+	importerBatchNum, _ := strconv.Atoi(i)
+	return config.PoolConfig{
+		IpOrPath:         strings.Split(p, ","),
+		LeveldbPath:      os.Getenv(DagPoolLeveldbPath),
+		ImporterBatchNum: importerBatchNum,
+	}
 }
 
 // CheckPolicy check user policy

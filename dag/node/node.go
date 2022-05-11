@@ -31,6 +31,8 @@ type Config struct {
 
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
+const NodeConfigPath = "NODE_CONFIG_PATH"
+
 type DagNode struct {
 	nodes                    []*SliceNode
 	db                       *uleveldb.ULevelDB
@@ -46,21 +48,13 @@ type SliceNode struct {
 	closeChan      chan struct{}
 }
 
-func NewDagNode(cfg *Config) (*DagNode, error) {
-	if cfg.Batch == 0 {
-		cfg.Batch = 4
-	}
-	if cfg.CaskNum == 0 {
-		cfg.CaskNum = 2
-	}
+func NewDagNode() (*DagNode, error) {
 	type CaskConfigs struct {
 		Casks        []CaskConfig `json:"casks"`
 		DataBlocks   int          `json:"data_blocks"`
 		ParityBlocks int          `json:"parity_blocks"`
 	}
-	bytes, _ := json.Marshal(cfg)
-	fmt.Println(bytes)
-	file, err := ioutil.ReadFile(cfg.Path)
+	file, err := ioutil.ReadFile(getConfig())
 	caskConfigs := new(CaskConfigs)
 	err = json.Unmarshal(file, &caskConfigs)
 	if err != nil {
@@ -76,6 +70,9 @@ func NewDagNode(cfg *Config) (*DagNode, error) {
 	}
 	db, _ := uleveldb.OpenDb("./")
 	return &DagNode{s, db, caskConfigs.DataBlocks, caskConfigs.ParityBlocks}, nil
+}
+func getConfig() string {
+	return os.Getenv(NodeConfigPath)
 }
 func NewSliceNode(opts ...Option) (*SliceNode, error) {
 	m := &SliceNode{

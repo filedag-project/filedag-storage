@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	pool "github.com/filedag-project/filedag-storage/dag"
+	"github.com/filedag-project/filedag-storage/dag"
+	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"io"
@@ -19,19 +20,13 @@ var log = logging.Logger("store")
 //StorageSys store sys
 type StorageSys struct {
 	Db      *uleveldb.ULevelDB
-	DagPool pool.DAGPool
+	DagPool dag.DAGPool
 }
 
 const (
-	PoolStorePath         = "POOL_STORE_PATH"
-	PoolBatchNum          = "POOL_BATCH_NUM"
-	PoolCaskNum           = "POOL_CASK_NUM"
-	defaultPoolConfigPath = "./dag/pool/config/config.json"
-	defaultPoolBatchNum   = 4
-	defaultPoolCaskNum    = 2
-	PoolUser              = "POOL_USER"
-	PoolPass              = "POOL_PASS"
-	PoolDbpath            = "POOL_DBPATH"
+	PoolUser   = "POOL_USER"
+	PoolPass   = "POOL_PASS"
+	PoolDbpath = "POOL_DBPATH"
 )
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
@@ -184,11 +179,17 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 //Init storage sys
 func (s *StorageSys) Init() error {
 	s.Db = uleveldb.DBClient
-	path := defaultPoolConfigPath
 	var err error
-	s.DagPool, err = pool.NewSimplePool(path)
-	if err != nil {
-		return err
+	if os.Getenv(pool.DagPoolLeveldbPath) == "" {
+		getHttpServer()
+	} else {
+		s.DagPool, err = dag.NewSimplePool()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
+}
+func getHttpServer() {
+	//todo
 }

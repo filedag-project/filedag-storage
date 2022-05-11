@@ -9,7 +9,7 @@ type SimplePoolConfig struct {
 	ImporterBatchNum int
 }
 type PoolConfig struct {
-	NodesConfig []node.Config `json:"nodes_configs"`
+	IpOrPath []string `json:"ip_or_path"`
 	//todo more
 	LeveldbPath      string `json:"leveldb_path"`
 	ImporterBatchNum int    `json:"importer_batch_num"`

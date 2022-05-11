@@ -4,9 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	chunker "github.com/ipfs/go-ipfs-chunker"
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -38,8 +42,11 @@ func TestSimplePool_Get(t *testing.T) {
 	fmt.Println(string(all))
 }
 func testInit(t *testing.T) (dagPool *simplePool, ctx context.Context) {
-
-	dagPool, err := NewSimplePool("./pool/config/config.json")
+	os.Setenv(pool.DagNodeIpOrPath, utils.TmpDirPath(t))
+	os.Setenv(pool.DagPoolImporterBatchNum, "4")
+	os.Setenv(pool.DagPoolLeveldbPath, utils.TmpDirPath(t))
+	os.Setenv(node.NodeConfigPath, "config.json")
+	dagPool, err := NewSimplePool()
 	if err != nil {
 		fmt.Println(err)
 	}

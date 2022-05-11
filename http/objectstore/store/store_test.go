@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	pool "github.com/filedag-project/filedag-storage/dag"
+	"github.com/filedag-project/filedag-storage/dag"
+	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
@@ -23,6 +25,10 @@ func TestStorageSys_Object(t *testing.T) {
 		return
 	}
 	os.Setenv(PoolDbpath, utils.TmpDirPath(t))
+	os.Setenv(pool.DagNodeIpOrPath, utils.TmpDirPath(t))
+	os.Setenv(pool.DagPoolImporterBatchNum, "4")
+	os.Setenv(pool.DagPoolLeveldbPath, utils.TmpDirPath(t))
+	os.Setenv(node.NodeConfigPath, "config.json")
 	var s StorageSys
 	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(t))
 	if err != nil {
@@ -30,7 +36,7 @@ func TestStorageSys_Object(t *testing.T) {
 	}
 	defer uleveldb.DBClient.Close()
 	s.Db = uleveldb.DBClient
-	s.DagPool, err = pool.NewSimplePool("./config.json")
+	s.DagPool, err = dag.NewSimplePool()
 	if err != nil {
 		return
 	}

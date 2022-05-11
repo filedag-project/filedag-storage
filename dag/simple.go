@@ -11,7 +11,6 @@ import (
 
 	"github.com/filedrive-team/filehelper/importer"
 	"github.com/ipfs/go-cid"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	ufsio "github.com/ipfs/go-unixfs/io"
 )
 
@@ -21,7 +20,6 @@ var log = logging.Logger("pool")
 var _ DAGPool = (*simplePool)(nil)
 
 type simplePool struct {
-	bs      blockstore.Blockstore
 	dagserv *pool.DagPool
 }
 
@@ -29,8 +27,8 @@ func (p *simplePool) AddUser(ctx context.Context, user, pass string, policy user
 	return p.dagserv.Iam.AddUser(dagpooluser.DagPoolUser{Username: user, Password: pass, Policy: policy, Capacity: cap})
 }
 
-func NewSimplePool(path string) (*simplePool, error) {
-	service, err := pool.NewDagPoolService(path)
+func NewSimplePool() (*simplePool, error) {
+	service, err := pool.NewDagPoolService()
 	if err != nil {
 		return nil, err
 	}
