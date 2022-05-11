@@ -28,7 +28,7 @@ func TestStorageSys_Object(t *testing.T) {
 	os.Setenv(pool.DagNodeIpOrPath, utils.TmpDirPath(t))
 	os.Setenv(pool.DagPoolImporterBatchNum, "4")
 	os.Setenv(pool.DagPoolLeveldbPath, utils.TmpDirPath(t))
-	os.Setenv(node.NodeConfigPath, "config.json")
+	os.Setenv(node.NodeConfigPath, "testconfig.json")
 	var s StorageSys
 	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(t))
 	if err != nil {
