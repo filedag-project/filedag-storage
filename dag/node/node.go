@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/kv"
+	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	fslock "github.com/ipfs/go-fs-lock"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	"github.com/klauspost/reedsolomon"
 	"golang.org/x/xerrors"
 	"hash/crc32"
 	"io/ioutil"
@@ -202,6 +202,11 @@ func (d DagNode) Has(cid cid.Cid) (bool, error) {
 func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	keyCode := sha256String(cid.String())
 	var err error
+	var size int
+	err = d.db.Get(cid.String(), &size)
+	if err != nil {
+		return nil, err
+	}
 	id := d.fileID(keyCode)
 	merged := make([][]byte, 0)
 	for _, node := range d.nodes {
@@ -216,15 +221,10 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 		}
 		merged = append(merged, bytes)
 	}
-	//enc, _ := reedsolomon.New(len(d.nodes), 0)
+	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(size))
+	enc.DecodeDataBlocks(merged)
 	var data []byte
-	//err = enc.EncodeIdx(data, len(d.nodes), merged)
 	data = bytes.Join(merged, []byte(""))
-	if err != nil {
-		return nil, err
-	}
-	var size int
-	err = d.db.Get(cid.String(), &size)
 	if err != nil {
 		return nil, err
 	}
@@ -261,14 +261,23 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 		return err
 	}
 	keyCode := sha256String(block.Cid().String())
-	// Create an encoder with 5 data and 3 parity slices.
-	enc, _ := reedsolomon.New(d.dataBlocks, d.parityBlocks)
-	bytes := block.RawData()
-	shards, _ := enc.Split(bytes)
-	err = enc.Encode(shards)
-	ok, err := enc.Verify(shards)
+	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(len(block.RawData())))
+	if err != nil {
+		log.Errorf("newErasure fail :%v", err)
+		return err
+	}
+	shards, err := enc.EncodeData(block.RawData())
+	if err != nil {
+		log.Errorf("encodeData fail :%v", err)
+		return err
+	}
+	ok, err := enc.encoder().Verify(shards)
+	if err != nil {
+		log.Errorf("encode fail :%v", err)
+		return err
+	}
 	if ok && err == nil {
-		fmt.Println("encode ok")
+		log.Infof("encode ok, the data is the same format as Encode. No data is modified")
 	}
 	var cask *Cask
 	var has bool
