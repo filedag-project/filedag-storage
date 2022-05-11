@@ -39,7 +39,7 @@ func TestSimplePool_Get(t *testing.T) {
 	if err != nil {
 		return
 	}
-	fmt.Println(string(all))
+	fmt.Println(len(all))
 }
 func testInit(t *testing.T) (dagPool *simplePool, ctx context.Context) {
 	os.Setenv(pool.DagNodeIpOrPath, utils.TmpDirPath(t))

@@ -47,13 +47,14 @@ type SliceNode struct {
 	close          func()
 	closeChan      chan struct{}
 }
+type CaskConfigs struct {
+	Casks        []CaskConfig `json:"casks"`
+	DataBlocks   int          `json:"data_blocks"`
+	ParityBlocks int          `json:"parity_blocks"`
+	LevelDbPath  string       `json:"level_db_path"`
+}
 
 func NewDagNode() (*DagNode, error) {
-	type CaskConfigs struct {
-		Casks        []CaskConfig `json:"casks"`
-		DataBlocks   int          `json:"data_blocks"`
-		ParityBlocks int          `json:"parity_blocks"`
-	}
 	file, err := ioutil.ReadFile(getConfig())
 	caskConfigs := new(CaskConfigs)
 	err = json.Unmarshal(file, &caskConfigs)
@@ -68,7 +69,7 @@ func NewDagNode() (*DagNode, error) {
 		}
 		s = append(s, sc)
 	}
-	db, _ := uleveldb.OpenDb("./")
+	db, _ := uleveldb.OpenDb(caskConfigs.LevelDbPath)
 	return &DagNode{s, db, caskConfigs.DataBlocks, caskConfigs.ParityBlocks}, nil
 }
 func getConfig() string {
