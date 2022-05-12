@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package proto;      // 包名
+option go_package = '/server';    // 指定生成的go代码所存放的路径，不用提前创建
+
+service DagPool {
+  rpc Add (AddRequest) returns (AddReply) {}
+  rpc Get (GetRequest) returns (GetReply) {}
+  rpc Delete (DeleteRequest) returns (DeleteReply) {}
+}
+
+message AddRequest {
+  bytes block = 1;
+}
+
+message AddReply {
+  string cid = 1;
+}
+message GetRequest {
+  string cid = 1;
+}
+
+message GetReply {
+  bytes block = 1;
+}
+message DeleteRequest {
+  string cid = 1;
+}
+
+message DeleteReply {
+  string message = 1;
+}
