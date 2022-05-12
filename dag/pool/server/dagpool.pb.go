@@ -20,18 +20,74 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PoolUser struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Username string `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Pass     string `protobuf:"bytes,2,opt,name=pass,proto3" json:"pass,omitempty"`
+}
+
+func (x *PoolUser) Reset() {
+	*x = PoolUser{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_dagpool_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PoolUser) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PoolUser) ProtoMessage() {}
+
+func (x *PoolUser) ProtoReflect() protoreflect.Message {
+	mi := &file_dagpool_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PoolUser.ProtoReflect.Descriptor instead.
+func (*PoolUser) Descriptor() ([]byte, []int) {
+	return file_dagpool_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *PoolUser) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *PoolUser) GetPass() string {
+	if x != nil {
+		return x.Pass
+	}
+	return ""
+}
+
 type AddRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Block []byte `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	Block []byte    `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	User  *PoolUser `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 }
 
 func (x *AddRequest) Reset() {
 	*x = AddRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dagpool_proto_msgTypes[0]
+		mi := &file_dagpool_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -44,7 +100,7 @@ func (x *AddRequest) String() string {
 func (*AddRequest) ProtoMessage() {}
 
 func (x *AddRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dagpool_proto_msgTypes[0]
+	mi := &file_dagpool_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,12 +113,19 @@ func (x *AddRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddRequest.ProtoReflect.Descriptor instead.
 func (*AddRequest) Descriptor() ([]byte, []int) {
-	return file_dagpool_proto_rawDescGZIP(), []int{0}
+	return file_dagpool_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *AddRequest) GetBlock() []byte {
 	if x != nil {
 		return x.Block
+	}
+	return nil
+}
+
+func (x *AddRequest) GetUser() *PoolUser {
+	if x != nil {
+		return x.User
 	}
 	return nil
 }
@@ -73,12 +136,13 @@ type AddReply struct {
 	unknownFields protoimpl.UnknownFields
 
 	Cid string `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	Err string `protobuf:"bytes,2,opt,name=err,proto3" json:"err,omitempty"`
 }
 
 func (x *AddReply) Reset() {
 	*x = AddReply{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dagpool_proto_msgTypes[1]
+		mi := &file_dagpool_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -91,7 +155,7 @@ func (x *AddReply) String() string {
 func (*AddReply) ProtoMessage() {}
 
 func (x *AddReply) ProtoReflect() protoreflect.Message {
-	mi := &file_dagpool_proto_msgTypes[1]
+	mi := &file_dagpool_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -104,7 +168,7 @@ func (x *AddReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddReply.ProtoReflect.Descriptor instead.
 func (*AddReply) Descriptor() ([]byte, []int) {
-	return file_dagpool_proto_rawDescGZIP(), []int{1}
+	return file_dagpool_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AddReply) GetCid() string {
@@ -114,18 +178,26 @@ func (x *AddReply) GetCid() string {
 	return ""
 }
 
+func (x *AddReply) GetErr() string {
+	if x != nil {
+		return x.Err
+	}
+	return ""
+}
+
 type GetRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Cid string `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	Cid  string    `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	User *PoolUser `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 }
 
 func (x *GetRequest) Reset() {
 	*x = GetRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dagpool_proto_msgTypes[2]
+		mi := &file_dagpool_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -138,7 +210,7 @@ func (x *GetRequest) String() string {
 func (*GetRequest) ProtoMessage() {}
 
 func (x *GetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dagpool_proto_msgTypes[2]
+	mi := &file_dagpool_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -151,7 +223,7 @@ func (x *GetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
 func (*GetRequest) Descriptor() ([]byte, []int) {
-	return file_dagpool_proto_rawDescGZIP(), []int{2}
+	return file_dagpool_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRequest) GetCid() string {
@@ -161,18 +233,26 @@ func (x *GetRequest) GetCid() string {
 	return ""
 }
 
+func (x *GetRequest) GetUser() *PoolUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
 type GetReply struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
 	Block []byte `protobuf:"bytes,1,opt,name=block,proto3" json:"block,omitempty"`
+	Err   string `protobuf:"bytes,2,opt,name=err,proto3" json:"err,omitempty"`
 }
 
 func (x *GetReply) Reset() {
 	*x = GetReply{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dagpool_proto_msgTypes[3]
+		mi := &file_dagpool_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -185,7 +265,7 @@ func (x *GetReply) String() string {
 func (*GetReply) ProtoMessage() {}
 
 func (x *GetReply) ProtoReflect() protoreflect.Message {
-	mi := &file_dagpool_proto_msgTypes[3]
+	mi := &file_dagpool_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +278,7 @@ func (x *GetReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReply.ProtoReflect.Descriptor instead.
 func (*GetReply) Descriptor() ([]byte, []int) {
-	return file_dagpool_proto_rawDescGZIP(), []int{3}
+	return file_dagpool_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetReply) GetBlock() []byte {
@@ -208,18 +288,26 @@ func (x *GetReply) GetBlock() []byte {
 	return nil
 }
 
+func (x *GetReply) GetErr() string {
+	if x != nil {
+		return x.Err
+	}
+	return ""
+}
+
 type DeleteRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Cid string `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	Cid  string    `protobuf:"bytes,1,opt,name=cid,proto3" json:"cid,omitempty"`
+	User *PoolUser `protobuf:"bytes,2,opt,name=user,proto3" json:"user,omitempty"`
 }
 
 func (x *DeleteRequest) Reset() {
 	*x = DeleteRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dagpool_proto_msgTypes[4]
+		mi := &file_dagpool_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -232,7 +320,7 @@ func (x *DeleteRequest) String() string {
 func (*DeleteRequest) ProtoMessage() {}
 
 func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_dagpool_proto_msgTypes[4]
+	mi := &file_dagpool_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -245,7 +333,7 @@ func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRequest) Descriptor() ([]byte, []int) {
-	return file_dagpool_proto_rawDescGZIP(), []int{4}
+	return file_dagpool_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *DeleteRequest) GetCid() string {
@@ -255,18 +343,26 @@ func (x *DeleteRequest) GetCid() string {
 	return ""
 }
 
+func (x *DeleteRequest) GetUser() *PoolUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
 type DeleteReply struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
 	Message string `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Err     string `protobuf:"bytes,2,opt,name=err,proto3" json:"err,omitempty"`
 }
 
 func (x *DeleteReply) Reset() {
 	*x = DeleteReply{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dagpool_proto_msgTypes[5]
+		mi := &file_dagpool_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -279,7 +375,7 @@ func (x *DeleteReply) String() string {
 func (*DeleteReply) ProtoMessage() {}
 
 func (x *DeleteReply) ProtoReflect() protoreflect.Message {
-	mi := &file_dagpool_proto_msgTypes[5]
+	mi := &file_dagpool_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -292,7 +388,7 @@ func (x *DeleteReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteReply.ProtoReflect.Descriptor instead.
 func (*DeleteReply) Descriptor() ([]byte, []int) {
-	return file_dagpool_proto_rawDescGZIP(), []int{5}
+	return file_dagpool_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DeleteReply) GetMessage() string {
@@ -302,35 +398,56 @@ func (x *DeleteReply) GetMessage() string {
 	return ""
 }
 
+func (x *DeleteReply) GetErr() string {
+	if x != nil {
+		return x.Err
+	}
+	return ""
+}
+
 var File_dagpool_proto protoreflect.FileDescriptor
 
 var file_dagpool_proto_rawDesc = []byte{
 	0x0a, 0x0d, 0x64, 0x61, 0x67, 0x70, 0x6f, 0x6f, 0x6c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12,
-	0x05, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x22, 0x0a, 0x0a, 0x41, 0x64, 0x64, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x12, 0x14, 0x0a, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0c, 0x52, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x22, 0x1c, 0x0a, 0x08, 0x41, 0x64,
-	0x64, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x69, 0x64, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x64, 0x22, 0x1e, 0x0a, 0x0a, 0x47, 0x65, 0x74, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x69, 0x64, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x64, 0x22, 0x20, 0x0a, 0x08, 0x47, 0x65, 0x74, 0x52,
-	0x65, 0x70, 0x6c, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0c, 0x52, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x22, 0x21, 0x0a, 0x0d, 0x44, 0x65,
-	0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x63,
-	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x64, 0x22, 0x27, 0x0a,
-	0x0b, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x18, 0x0a, 0x07,
-	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d,
-	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x32, 0x99, 0x01, 0x0a, 0x07, 0x44, 0x61, 0x67, 0x50, 0x6f,
-	0x6f, 0x6c, 0x12, 0x2b, 0x0a, 0x03, 0x41, 0x64, 0x64, 0x12, 0x11, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2e, 0x41, 0x64, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12,
-	0x2b, 0x0a, 0x03, 0x47, 0x65, 0x74, 0x12, 0x11, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47,
-	0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x34, 0x0a, 0x06,
-	0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x12, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44,
-	0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x12, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79,
-	0x22, 0x00, 0x42, 0x09, 0x5a, 0x07, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x05, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x3a, 0x0a, 0x08, 0x50, 0x6f, 0x6f, 0x6c, 0x55, 0x73,
+	0x65, 0x72, 0x12, 0x1a, 0x0a, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x75, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x12,
+	0x0a, 0x04, 0x70, 0x61, 0x73, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61,
+	0x73, 0x73, 0x22, 0x47, 0x0a, 0x0a, 0x41, 0x64, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x14, 0x0a, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x12, 0x23, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6f, 0x6f,
+	0x6c, 0x55, 0x73, 0x65, 0x72, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x22, 0x2e, 0x0a, 0x08, 0x41,
+	0x64, 0x64, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x69, 0x64, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x22, 0x43, 0x0a, 0x0a, 0x47,
+	0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x69, 0x64,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x64, 0x12, 0x23, 0x0a, 0x04, 0x75,
+	0x73, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x2e, 0x50, 0x6f, 0x6f, 0x6c, 0x55, 0x73, 0x65, 0x72, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72,
+	0x22, 0x32, 0x0a, 0x08, 0x47, 0x65, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x14, 0x0a, 0x05,
+	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x62, 0x6c, 0x6f,
+	0x63, 0x6b, 0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x03, 0x65, 0x72, 0x72, 0x22, 0x46, 0x0a, 0x0d, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x03, 0x63, 0x69, 0x64, 0x12, 0x23, 0x0a, 0x04, 0x75, 0x73, 0x65, 0x72, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6f,
+	0x6f, 0x6c, 0x55, 0x73, 0x65, 0x72, 0x52, 0x04, 0x75, 0x73, 0x65, 0x72, 0x22, 0x39, 0x0a, 0x0b,
+	0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x18, 0x0a, 0x07, 0x6d,
+	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6d, 0x65,
+	0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x32, 0x99, 0x01, 0x0a, 0x07, 0x44, 0x61, 0x67, 0x50,
+	0x6f, 0x6f, 0x6c, 0x12, 0x2b, 0x0a, 0x03, 0x41, 0x64, 0x64, 0x12, 0x11, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x41, 0x64, 0x64, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00,
+	0x12, 0x2b, 0x0a, 0x03, 0x47, 0x65, 0x74, 0x12, 0x11, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
+	0x47, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x0f, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x34, 0x0a,
+	0x06, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x12, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
+	0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x12, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65, 0x52, 0x65, 0x70, 0x6c,
+	0x79, 0x22, 0x00, 0x42, 0x09, 0x5a, 0x07, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -345,27 +462,31 @@ func file_dagpool_proto_rawDescGZIP() []byte {
 	return file_dagpool_proto_rawDescData
 }
 
-var file_dagpool_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_dagpool_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_dagpool_proto_goTypes = []interface{}{
-	(*AddRequest)(nil),    // 0: proto.AddRequest
-	(*AddReply)(nil),      // 1: proto.AddReply
-	(*GetRequest)(nil),    // 2: proto.GetRequest
-	(*GetReply)(nil),      // 3: proto.GetReply
-	(*DeleteRequest)(nil), // 4: proto.DeleteRequest
-	(*DeleteReply)(nil),   // 5: proto.DeleteReply
+	(*PoolUser)(nil),      // 0: proto.PoolUser
+	(*AddRequest)(nil),    // 1: proto.AddRequest
+	(*AddReply)(nil),      // 2: proto.AddReply
+	(*GetRequest)(nil),    // 3: proto.GetRequest
+	(*GetReply)(nil),      // 4: proto.GetReply
+	(*DeleteRequest)(nil), // 5: proto.DeleteRequest
+	(*DeleteReply)(nil),   // 6: proto.DeleteReply
 }
 var file_dagpool_proto_depIdxs = []int32{
-	0, // 0: proto.DagPool.Add:input_type -> proto.AddRequest
-	2, // 1: proto.DagPool.Get:input_type -> proto.GetRequest
-	4, // 2: proto.DagPool.Delete:input_type -> proto.DeleteRequest
-	1, // 3: proto.DagPool.Add:output_type -> proto.AddReply
-	3, // 4: proto.DagPool.Get:output_type -> proto.GetReply
-	5, // 5: proto.DagPool.Delete:output_type -> proto.DeleteReply
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: proto.AddRequest.user:type_name -> proto.PoolUser
+	0, // 1: proto.GetRequest.user:type_name -> proto.PoolUser
+	0, // 2: proto.DeleteRequest.user:type_name -> proto.PoolUser
+	1, // 3: proto.DagPool.Add:input_type -> proto.AddRequest
+	3, // 4: proto.DagPool.Get:input_type -> proto.GetRequest
+	5, // 5: proto.DagPool.Delete:input_type -> proto.DeleteRequest
+	2, // 6: proto.DagPool.Add:output_type -> proto.AddReply
+	4, // 7: proto.DagPool.Get:output_type -> proto.GetReply
+	6, // 8: proto.DagPool.Delete:output_type -> proto.DeleteReply
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_dagpool_proto_init() }
@@ -375,7 +496,7 @@ func file_dagpool_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_dagpool_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddRequest); i {
+			switch v := v.(*PoolUser); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -387,7 +508,7 @@ func file_dagpool_proto_init() {
 			}
 		}
 		file_dagpool_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AddReply); i {
+			switch v := v.(*AddRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -399,7 +520,7 @@ func file_dagpool_proto_init() {
 			}
 		}
 		file_dagpool_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetRequest); i {
+			switch v := v.(*AddReply); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -411,7 +532,7 @@ func file_dagpool_proto_init() {
 			}
 		}
 		file_dagpool_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetReply); i {
+			switch v := v.(*GetRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -423,7 +544,7 @@ func file_dagpool_proto_init() {
 			}
 		}
 		file_dagpool_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*DeleteRequest); i {
+			switch v := v.(*GetReply); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -435,6 +556,18 @@ func file_dagpool_proto_init() {
 			}
 		}
 		file_dagpool_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DeleteRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_dagpool_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*DeleteReply); i {
 			case 0:
 				return &v.state
@@ -453,7 +586,7 @@ func file_dagpool_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_dagpool_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

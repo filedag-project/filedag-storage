@@ -1,20 +1,16 @@
-package server
+package dagpoolclient
 
 import (
 	"context"
 	"flag"
+	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"google.golang.org/grpc"
 	"log"
 	"time"
 )
 
-const (
-	defaultName = "world"
-)
-
 var (
 	addr = flag.String("addr", "localhost:50051", "the address to connect to")
-	name = flag.String("name", defaultName, "Name to greet")
 )
 
 func cli() {
@@ -27,12 +23,15 @@ func cli() {
 	}
 	defer conn.Close()
 	// 实例化client
-	c := NewDagPoolClient(conn)
+	c := server.NewDagPoolClient(conn)
 
 	// 调用rpc，等待同步响应
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.Add(ctx, &AddRequest{Block: []byte("123456")})
+	r, err := c.Add(ctx, &server.AddRequest{Block: []byte("123456"), User: &server.PoolUser{
+		Username: "test",
+		Pass:     "test",
+	}})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}

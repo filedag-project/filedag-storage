@@ -1,12 +1,9 @@
 package server
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestServer_SayHello(t *testing.T) {
+func TestUnimplementedDagPoolServer_Add(t *testing.T) {
 	ser()
-
-}
-func TestServer_SayHelloproto(t *testing.T) {
-	cli()
-
 }

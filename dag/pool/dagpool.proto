@@ -8,9 +8,13 @@ service DagPool {
   rpc Get (GetRequest) returns (GetReply) {}
   rpc Delete (DeleteRequest) returns (DeleteReply) {}
 }
-
+message PoolUser {
+  string username = 1;
+  string pass = 2;
+}
 message AddRequest {
   bytes block = 1;
+  PoolUser user =2;
 }
 
 message AddReply {
@@ -18,6 +22,7 @@ message AddReply {
 }
 message GetRequest {
   string cid = 1;
+  PoolUser user =2;
 }
 
 message GetReply {
@@ -25,6 +30,7 @@ message GetReply {
 }
 message DeleteRequest {
   string cid = 1;
+  PoolUser user =2;
 }
 
 message DeleteReply {

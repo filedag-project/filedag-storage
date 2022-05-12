@@ -7,7 +7,6 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
@@ -86,9 +85,6 @@ func GetPoolConfig() config.PoolConfig {
 
 // Add adds a node to the DagPool, storing the block in the BlockService
 func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
-	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
-		return userpolicy.AccessDenied
-	}
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("DagPool is nil")
 	}
@@ -100,9 +96,6 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 }
 
 func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
-	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
-		return userpolicy.AccessDenied
-	}
 	blks := make([]blocks.Block, len(nds))
 	var cids []cid.Cid
 	for i, nd := range nds {
@@ -118,9 +111,6 @@ func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
 
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
 func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
-	if !d.CheckPolicy(ctx, userpolicy.OnlyRead) {
-		return nil, userpolicy.AccessDenied
-	}
 	if d == nil {
 		return nil, fmt.Errorf("DagPool is nil")
 	}
@@ -152,9 +142,6 @@ func (d *DagPool) GetLinks(ctx context.Context, c cid.Cid) ([]*format.Link, erro
 }
 
 func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
-	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
-		return userpolicy.AccessDenied
-	}
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("DagPool is nil")
 	}
@@ -171,9 +158,6 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 // This operation is not atomic. If it returns an error, some nodes may or may
 // not have been removed.
 func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
-	if !d.CheckPolicy(ctx, userpolicy.OnlyWrite) {
-		return userpolicy.AccessDenied
-	}
 	// TODO(#4608): make this batch all the way down.
 	for _, c := range cids {
 		if err := d.GetNode(ctx, c).DeleteBlock(c); err != nil {
@@ -193,9 +177,6 @@ func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 // error indicating that it failed to do so. It is up to the caller to verify
 // that it received all nodes.
 func (d *DagPool) GetMany(ctx context.Context, keys []cid.Cid) <-chan *format.NodeOption {
-	if !d.CheckPolicy(ctx, userpolicy.OnlyRead) {
-		return nil
-	}
 	m := d.GetNodes(ctx, keys)
 	var a <-chan *format.NodeOption
 	for _, b := range d.Blocks {
@@ -260,122 +241,3 @@ type GetLinks func(context.Context, cid.Cid) ([]*format.Link, error)
 var _ format.LinkGetter = &DagPool{}
 var _ format.NodeGetter = &DagPool{}
 var _ format.DAGService = &DagPool{}
-
-//import (
-//	"context"
-//	"github.com/filedag-project/filedag-storage/dag/node"
-//	storagekv "github.com/filedag-project/filedag-storage/kv"
-//	blocks "github.com/ipfs/go-block-format"
-//	"github.com/ipfs/go-cid"
-//	blockstore "github.com/ipfs/go-ipfs-blockstore"
-//	"golang.org/x/xerrors"
-//	"strings"
-//	"sync"
-//)
-//
-//const lockFileName = "repo.lock"
-//
-//var _ blockstore.Blockstore = (*DagPool)(nil)
-//
-//type DagPool struct {
-//	kv    storagekv.KVDB
-//	batch int
-//}
-//
-//func NewDagPool(cfg *Config) (*DagPool, error) {
-//	//if cfg.Batch == 0 {
-//	//	cfg.Batch = default_batch_num
-//	//}
-//	//if cfg.CaskNum == 0 {
-//	//	cfg.CaskNum = default_cask_num
-//	//}
-//	mc, err := node.NewDagNode(node.CaskNumConf(cfg.CaskNum), node.PathConf(cfg.Path))
-//	if err != nil {
-//		return nil, err
-//	}
-//	return &DagPool{
-//		batch: cfg.Batch,
-//		kv:    mc,
-//	}, nil
-//}
-//
-//func (d *DagPool) DeleteBlock(cid cid.Cid) error {
-//	return d.kv.Delete(cid.String())
-//}
-//
-//func (d *DagPool) Has(cid cid.Cid) (bool, error) {
-//	_, err := d.kv.Size(cid.String())
-//	if err != nil {
-//		if err == storagekv.ErrNotFound {
-//			return false, nil
-//		}
-//		return false, err
-//	}
-//
-//	return true, nil
-//}
-//
-//func (d *DagPool) Get(cid cid.Cid) (blocks.Block, error) {
-//	data, err := d.kv.Get(cid.String())
-//	if err != nil {
-//		if err == storagekv.ErrNotFound {
-//			return nil, blockstore.ErrNotFound
-//		}
-//		return nil, err
-//	}
-//	b, err := blocks.NewBlockWithCid(data, cid)
-//	if err == blocks.ErrWrongHash {
-//		return nil, blockstore.ErrHashMismatch
-//	}
-//	return b, err
-//}
-//
-//func (d *DagPool) GetSize(cid cid.Cid) (int, error) {
-//	n, err := d.kv.Size(cid.String())
-//	if err != nil && err == storagekv.ErrNotFound {
-//		return -1, blockstore.ErrNotFound
-//	}
-//	return n, err
-//}
-//
-//func (d *DagPool) Put(block blocks.Block) error {
-//	return d.kv.Put(block.Cid().String(), block.RawData())
-//}
-//
-//func (d *DagPool) PutMany(blos []blocks.Block) error {
-//	var errlist []string
-//	var wg sync.WaitGroup
-//	batchChan := make(chan struct{}, d.batch)
-//	wg.Add(len(blos))
-//	for _, blo := range blos {
-//		go func(d *DagPool, block blocks.Block) {
-//			defer func() {
-//				<-batchChan
-//			}()
-//			batchChan <- struct{}{}
-//			err := d.kv.Put(blo.Cid().String(), blo.RawData())
-//			if err != nil {
-//				errlist = append(errlist, err.Error())
-//			}
-//		}(d, blo)
-//	}
-//	wg.Wait()
-//	if len(errlist) > 0 {
-//		return xerrors.New(strings.Join(errlist, "\n"))
-//	}
-//	return nil
-//}
-//
-//func (d DagPool) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
-//	panic("implement me")
-//}
-//
-//func (d DagPool) HashOnRead(enabled bool) {
-//	panic("implement me")
-//}
-//
-//type Config struct {
-//	Batch   int
-//	Path    string
-//	CaskNum int
-//}
