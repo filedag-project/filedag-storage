@@ -9,13 +9,14 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedrive-team/filehelper/importer"
+	logging "github.com/ipfs/go-log/v2"
 	pb "github.com/ipfs/go-unixfs/pb"
 	"google.golang.org/grpc"
-	"log"
 	"net"
 	"os"
 )
 
+var log = logging.Logger("pool-client")
 var (
 	port = flag.Int("port", 50051, "The server port")
 )
@@ -29,7 +30,7 @@ type server struct {
 func (s *server) Add(ctx context.Context, in *AddRequest) (*AddReply, error) {
 	data, err := importer.NewDagWithData(in.Block, pb.Data_File, s.dp.CidBuilder)
 	if err != nil {
-		return &AddReply{Cid: "", Err: err.Error()}, err
+		return &AddReply{Cid: ""}, err
 	}
 	if !s.dp.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &AddReply{Cid: ""}, err
@@ -38,7 +39,7 @@ func (s *server) Add(ctx context.Context, in *AddRequest) (*AddReply, error) {
 	if err != nil {
 		return &AddReply{Cid: ""}, err
 	}
-	return &AddReply{Cid: "Hello" + string(in.GetBlock())}, nil
+	return &AddReply{Cid: data.Cid().String()}, nil
 }
 
 func ser() {
@@ -67,7 +68,7 @@ func ser() {
 		Capacity: 0,
 	})
 	RegisterDagPoolServer(s, &server{dp: service})
-	log.Printf("server listening at %v", lis.Addr())
+	log.Infof("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

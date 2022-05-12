@@ -2,6 +2,6 @@ package dagpoolclient
 
 import "testing"
 
-func TestServer_SayHelloproto(t *testing.T) {
+func TestServer_Add(t *testing.T) {
 	cli()
 }

@@ -4,11 +4,12 @@ import (
 	"context"
 	"flag"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
+	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
-	"log"
 	"time"
 )
 
+var log = logging.Logger("pool-client")
 var (
 	addr = flag.String("addr", "localhost:50051", "the address to connect to")
 )
@@ -33,7 +34,7 @@ func cli() {
 		Pass:     "test",
 	}})
 	if err != nil {
-		log.Fatalf("could not greet: %v", err)
+		log.Fatalf("could not add: %v", err)
 	}
-	log.Printf("Greeting: %s", r.Cid)
+	log.Infof("add: %s", r.Cid)
 }
