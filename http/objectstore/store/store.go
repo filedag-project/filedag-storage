@@ -199,6 +199,3 @@ func (s *StorageSys) Init() error {
 	}
 	return nil
 }
-func getHttpServer() {
-	//todo
-}
