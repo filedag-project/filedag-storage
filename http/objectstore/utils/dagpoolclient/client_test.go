@@ -3,6 +3,7 @@ package dagpoolclient
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/dag/pool/utils"
@@ -19,6 +20,7 @@ func TestPoolClient_Add(t *testing.T) {
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 
 	// 建立连接
+	addr := flag.String("addr", "localhost:50051", "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -26,10 +28,17 @@ func TestPoolClient_Add(t *testing.T) {
 	defer conn.Close()
 	// 实例化client
 	c := server.NewDagPoolClient(conn)
-
-	node, err := utils.BalanceNode(context.TODO(), r, PoolClient{c}, cidBuilder)
+	pc := PoolClient{c, cidBuilder}
+	var ctx = context.Background()
+	ctx = context.WithValue(ctx, "user", "test,test123")
+	node, err := utils.BalanceNode(ctx, r, pc, cidBuilder)
 	if err != nil {
 		return
 	}
-	fmt.Println(string(node.RawData()))
+	fmt.Println("aaaaa", string(node.RawData()))
+	get, err := pc.Get(ctx, node.Cid())
+	if err != nil {
+		return
+	}
+	fmt.Println(get.String())
 }

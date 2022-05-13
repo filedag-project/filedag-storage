@@ -4,24 +4,52 @@ import (
 	"context"
 	"flag"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
+	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/go-merkledag"
 	"google.golang.org/grpc"
+	"strings"
 	"time"
 )
 
 var log = logging.Logger("pool-client")
-var (
-	addr = flag.String("addr", "localhost:50051", "the address to connect to")
-)
 
 type PoolClient struct {
-	pc server.DagPoolClient
+	pc         server.DagPoolClient
+	CidBuilder cid.Builder
+}
+
+func NewPoolClient(addr string) (*PoolClient, error) {
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	if err != nil {
+
+		log.Fatalf("did not connect: %v", err)
+		return nil, err
+	}
+	defer conn.Close()
+	// 实例化client
+	c := server.NewDagPoolClient(conn)
+	cidBuilder, err := merkledag.PrefixForCidVersion(0)
+	return &PoolClient{c, cidBuilder}, nil
 }
 
 func (p PoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
-	panic("implement me")
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return nil, userpolicy.AccessDenied
+	}
+	get, err := p.pc.Get(ctx, &server.GetRequest{Cid: cid.String(), User: &server.PoolUser{
+		Username: s[0],
+		Pass:     s[1],
+	}})
+	if err != nil {
+		return nil, err
+	}
+	return legacy.DecodeNode(ctx, blocks.NewBlock(get.Block))
 }
 
 func (p PoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
@@ -29,9 +57,13 @@ func (p PoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.
 }
 
 func (p PoolClient) Add(ctx context.Context, node format.Node) error {
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return userpolicy.AccessDenied
+	}
 	_, err := p.pc.Add(ctx, &server.AddRequest{Block: node.RawData(), User: &server.PoolUser{
-		Username: "test",
-		Pass:     "test",
+		Username: s[0],
+		Pass:     s[1],
 	}})
 	if err != nil {
 		return err
@@ -57,6 +89,7 @@ func cli() {
 	flag.Parse()
 
 	// 建立连接
+	addr := flag.String("addr", "localhost:50051", "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)

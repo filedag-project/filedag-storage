@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag"
-	"github.com/filedag-project/filedag-storage/dag/pool"
+	"github.com/filedag-project/filedag-storage/dag/pool/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils/dagpoolclient"
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	ufsio "github.com/ipfs/go-unixfs/io"
 	"io"
 	"io/ioutil"
 	"os"
@@ -20,13 +22,13 @@ var log = logging.Logger("store")
 //StorageSys store sys
 type StorageSys struct {
 	Db      *uleveldb.ULevelDB
-	DagPool dag.DAGPool
+	DagPool *dagpoolclient.PoolClient
 }
 
 const (
-	PoolUser   = "POOL_USER"
-	PoolPass   = "POOL_PASS"
-	PoolDbpath = "POOL_DBPATH"
+	PoolUser = "POOL_USER"
+	PoolPass = "POOL_PASS"
+	PoolAddr = "POOL_ADDR"
 )
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
@@ -41,7 +43,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		object = object[1:]
 	}
 	ctx = context.WithValue(ctx, "user", getPoolUser())
-	cid, err := s.DagPool.Add(ctx, reader)
+	node, err := utils.BalanceNode(ctx, reader, s.DagPool, s.DagPool.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -52,7 +54,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		ModTime:          time.Now().UTC(),
 		Size:             int64(len(all)),
 		IsDir:            false,
-		ETag:             cid,
+		ETag:             node.Cid().String(),
 		VersionID:        "",
 		IsLatest:         false,
 		DeleteMarker:     false,
@@ -81,7 +83,18 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 		return ObjectInfo{}, nil, err
 	}
 	ctx = context.WithValue(ctx, "user", getPoolUser())
-	reader, err := s.DagPool.Get(ctx, meta.ETag)
+	cid, err := cid.Decode(meta.ETag)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
+	dagNode, err := s.DagPool.Get(ctx, cid)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
+	reader, err := ufsio.NewDagReader(ctx, dagNode, s.DagPool)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
 	return meta, reader, nil
 }
 
@@ -180,13 +193,10 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 func (s *StorageSys) Init() error {
 	s.Db = uleveldb.DBClient
 	var err error
-	if os.Getenv(pool.DagPoolLeveldbPath) == "" {
-		getHttpServer()
-	} else {
-		s.DagPool, err = dag.NewSimplePool()
-		if err != nil {
-			return err
-		}
+
+	s.DagPool, err = dagpoolclient.NewPoolClient(os.Getenv(PoolAddr))
+	if err != nil {
+		return err
 	}
 	return nil
 }
