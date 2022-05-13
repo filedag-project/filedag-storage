@@ -12,11 +12,12 @@ import (
 )
 
 func TestPoolClient_Add(t *testing.T) {
+	server.StartTestServer(t)
 	r := bytes.NewReader([]byte("123456"))
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 
 	// 建立连接
-	addr := flag.String("addr", "localhost:50051", "the address to connect to")
+	addr := flag.String("addr", "localhost:50001", "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)

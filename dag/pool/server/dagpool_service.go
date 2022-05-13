@@ -6,8 +6,11 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedrive-team/filehelper/importer"
 	"github.com/ipfs/go-cid"
+	logging "github.com/ipfs/go-log/v2"
 	pb "github.com/ipfs/go-unixfs/pb"
 )
+
+var log = logging.Logger("dag-pool-server")
 
 // DagPoolService is used to implement DagPoolServer.
 type DagPoolService struct {
