@@ -16,14 +16,10 @@ import (
 var log = logging.Logger("sever")
 
 const (
-	deFaultDBFILE        = "/tmp/leveldb2/fds.db"
-	deFaultPoolDBFILE    = "/tmp/leveldb2/pool.db"
-	defaultPort          = ":9985"
-	fileDagStoragePort   = "FILE_DAG_STORAGE_PORT"
-	dbPath               = "DBPATH"
-	defaultPoolStorePath = "./dag/node/config.json"
-	defaultPoolBatchNum  = "4"
-	defaultPoolCaskNum   = "2"
+	deFaultDBFILE      = "/tmp/leveldb2/fds.db"
+	defaultPort        = ":9985"
+	fileDagStoragePort = "FILE_DAG_STORAGE_PORT"
+	dbPath             = "DBPATH"
 )
 
 //startServer Start a IamServer

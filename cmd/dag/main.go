@@ -5,13 +5,21 @@ import (
 	"os"
 )
 
+const (
+	defaultNodeConfig       = "dag/config/node_config.json"
+	defaultImporterBatchNum = "4"
+	defaultPoolDB           = "/tmp/leveldb2/pool.db"
+	defaultPoolAddr         = "localhost:50001"
+)
+
 func main() {
 	logging.SetLogLevel("*", "INFO")
-	os.Setenv(DagPoolLeveldbPath, "/tmp/leveldb2/pool")
+	os.Setenv(DagPoolLeveldbPath, defaultPoolDB)
 
-	os.Setenv(DagNodeConfig, "dag/config/node_config.json")
+	os.Setenv(DagNodeConfig, defaultNodeConfig)
 
-	os.Setenv(DagPoolImporterBatchNum, "4")
-	os.Setenv(DagPoolAddr, "localhost:50001")
+	os.Setenv(DagPoolImporterBatchNum, defaultImporterBatchNum)
+	os.Setenv(DagPoolAddr, defaultPoolAddr)
+
 	startDagPoolServer()
 }
