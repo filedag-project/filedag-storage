@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package proto;      // 包名
+option go_package = './';    // 指定生成的go代码所存放的路径，不用提前创建
+option cc_generic_services = true;
+
+service MutCask {
+  rpc Put (AddRequest) returns (AddResponse) {}
+  rpc Get (GetRequest) returns (GetResponse) {}
+  rpc Delete (DeleteRequest) returns (DeleteResponse) {}
+  rpc Size (SizeRequest) returns (SizeResponse) {}
+}
+
+message AddRequest {
+  string key = 1;
+  bytes dataBlock = 2;
+}
+
+message AddResponse {
+}
+
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  bytes dataBlock = 1;
+}
+
+message DeleteRequest {
+  string key = 1;
+}
+
+message DeleteResponse {
+}
+
+message SizeRequest {
+  string key = 1;
+}
+
+message SizeResponse {
+  int64 size = 1;
+}
