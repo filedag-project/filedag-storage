@@ -2,6 +2,7 @@ package node
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -16,19 +17,12 @@ func TestDagNode_put(t *testing.T) {
 
 	}
 	err = json.Unmarshal(file, &nc)
-	//for i, node := range nc.Nodes {
-	//	name := "addr" +fmt.Sprint(i)
-	//	addr := flag.String(name, fmt.Sprintf("%s:%s",node.Ip, node.Port), "the address to connect to")
-	//	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
-	//	fmt.Println(conn,err)
-	//}
-
 	dagNode, err := NewDagNode(nc)
 	data, err := ioutil.ReadFile("./node.go")
 	aa := cid.Cid{}
 	b, err := blocks.NewBlockWithCid(data, aa)
-	//if err == blocks.ErrWrongHash {
-	//	return nil, blockstore.ErrHashMismatch
-	//}
+	if err == blocks.ErrWrongHash {
+		fmt.Println(err)
+	}
 	dagNode.Put(b)
 }

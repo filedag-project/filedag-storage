@@ -23,7 +23,7 @@ const lockFileName = "repo.lock"
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
-	nodes                    []*proto.MutCaskClient
+	nodes                    []proto.MutCaskClient
 	db                       *uleveldb.ULevelDB
 	dataBlocks, parityBlocks int
 }
@@ -38,7 +38,7 @@ type SliceNode struct {
 }
 
 func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
-	var s []*proto.MutCaskClient
+	var s []proto.MutCaskClient
 	for i, c := range cfg.Nodes {
 		sc, err := InitSliceConn(fmt.Sprint(i), c.Ip, c.Port)
 		if err != nil {
@@ -50,16 +50,16 @@ func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
 }
 
-func InitSliceConn(index, ip, port string) (*proto.MutCaskClient, error) {
-	addr := flag.String("addr", fmt.Sprintf("%s:%s", ip, port), "the address to connect to")
+func InitSliceConn(index, ip, port string) (c proto.MutCaskClient, err error) {
+	addr := flag.String("addr"+fmt.Sprint(index), fmt.Sprintf("%s:%s", ip, port), "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		log.Errorf("did not connect: %v", err)
 	}
-	defer conn.Close()
+	//defer conn.Close()
 	// init client
-	c := proto.NewMutCaskClient(conn)
-	return &c, nil
+	c = proto.NewMutCaskClient(conn)
+	return c, nil
 }
 
 //func NewSliceNode(opts ...config.Option) (*SliceNode, error) {
@@ -162,7 +162,6 @@ func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
 	for _, node := range d.nodes {
-		node := *node
 		_, err := node.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
 		if err != nil {
 			break
@@ -194,7 +193,6 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	}
 	merged := make([][]byte, 0)
 	for _, node := range d.nodes {
-		node := *node
 		res, err := node.Get(ctx, &proto.GetRequest{Key: keyCode})
 		if err == nil {
 			log.Errorf("mutcask get :%v", err)
@@ -222,7 +220,6 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 	var err error
 	var count int64
 	for _, node := range d.nodes {
-		node := *node
 		size, err := node.Size(ctx, &proto.SizeRequest{
 			Key: keyCode,
 		})
@@ -259,8 +256,8 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	if ok && err == nil {
 		log.Infof("encode ok, the data is the same format as Encode. No data is modified")
 	}
-	for i, _ := range d.nodes {
-		_, err = (*d.nodes[i]).Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
+	for i, node := range d.nodes {
+		_, err = node.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
 		if err != nil {
 			break
 		}
