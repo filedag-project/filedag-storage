@@ -1,6 +1,7 @@
 package node
 
 import (
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"io"
 	"os"
 	"path/filepath"
@@ -101,7 +102,7 @@ func buildKeyMap(hint *os.File) (*KeyMap, error) {
 	return km, nil
 }
 
-func buildCaskMap(cfg *CaskConfig) (*CaskMap, error) {
+func buildCaskMap(cfg *config.CaskConfig) (*CaskMap, error) {
 	var err error
 	dirents, err := os.ReadDir(cfg.Path)
 	if err != nil {

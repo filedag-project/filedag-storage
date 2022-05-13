@@ -3,6 +3,7 @@ package node
 import (
 	"errors"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/kv"
 	"github.com/google/martian/log"
 	"strconv"
@@ -19,7 +20,7 @@ func (d DagNode) recoveryDisk(path, newPath string) error {
 			sliceNode = node
 		}
 	}
-	sliceNewNode, err := NewSliceNode(CaskNumConf(int(sliceNode.cfg.CaskNum)), PathConf(newPath))
+	sliceNewNode, err := NewSliceNode(config.CaskNumConf(int(sliceNode.cfg.CaskNum)), config.PathConf(newPath))
 	for key, value := range keyCodeMap {
 		keyCode := sha256String(key)
 		id := d.fileID(keyCode)

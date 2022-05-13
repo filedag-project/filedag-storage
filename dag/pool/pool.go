@@ -3,8 +3,8 @@ package pool
 import (
 	"context"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node"
-	"github.com/filedag-project/filedag-storage/dag/pool/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -17,9 +17,6 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	"github.com/ipfs/go-merkledag"
-	"os"
-	"strconv"
-	"strings"
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
@@ -38,20 +35,13 @@ type DagPool struct {
 	TheNode          RecordSys
 }
 
-const (
-	DagPoolLeveldbPath      = "POOL_LEVELDB_PATH"
-	DagNodeIpOrPath         = "POOL_IP_OR_PATH"
-	DagPoolImporterBatchNum = "POOL_IMPORTER_BATCH_NUM"
-)
-
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService() (*DagPool, error) {
+func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	if err != nil {
 		return nil, err
 	}
-	var cfg = GetPoolConfig()
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
@@ -62,8 +52,8 @@ func NewDagPoolService() (*DagPool, error) {
 	}
 	r, err := referencecount.NewIdentityRefe(db)
 	var dn []blockservice.BlockService
-	for range cfg.IpOrPath {
-		bs, err := node.NewDagNode()
+	for _, c := range cfg.DagNodeConfig {
+		bs, err := node.NewDagNode(c)
 		if err != nil {
 			log.Errorf("new dagnode err:%v", err)
 			return nil, err
@@ -71,16 +61,6 @@ func NewDagPoolService() (*DagPool, error) {
 		dn = append(dn, blockservice.New(bs, offline.Exchange(bs)))
 	}
 	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, TheNode: NewRecordSys(db)}, nil
-}
-func GetPoolConfig() config.PoolConfig {
-	p := os.Getenv(DagNodeIpOrPath)
-	i := os.Getenv(DagPoolImporterBatchNum)
-	importerBatchNum, _ := strconv.Atoi(i)
-	return config.PoolConfig{
-		IpOrPath:         strings.Split(p, ","),
-		LeveldbPath:      os.Getenv(DagPoolLeveldbPath),
-		ImporterBatchNum: importerBatchNum,
-	}
 }
 
 // Add adds a node to the DagPool, storing the block in the BlockService

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/kv"
 	"github.com/google/martian/log"
@@ -15,7 +15,6 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"golang.org/x/xerrors"
 	"hash/crc32"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -23,15 +22,7 @@ import (
 
 const lockFileName = "repo.lock"
 
-type Config struct {
-	Batch   int    `json:"batch"`
-	Path    string `json:"path"`
-	CaskNum int    `json:"cask_num"`
-}
-
 var _ blockstore.Blockstore = (*DagNode)(nil)
-
-const NodeConfigPath = "NODE_CONFIG_PATH"
 
 type DagNode struct {
 	nodes                    []*SliceNode
@@ -41,43 +32,28 @@ type DagNode struct {
 
 type SliceNode struct {
 	sync.Mutex
-	cfg            *CaskConfig
+	cfg            *config.CaskConfig
 	caskMap        *CaskMap
 	createCaskChan chan *createCaskRequst
 	close          func()
 	closeChan      chan struct{}
 }
-type CaskConfigs struct {
-	Casks        []CaskConfig `json:"casks"`
-	DataBlocks   int          `json:"data_blocks"`
-	ParityBlocks int          `json:"parity_blocks"`
-	LevelDbPath  string       `json:"level_db_path"`
-}
 
-func NewDagNode() (*DagNode, error) {
-	file, err := ioutil.ReadFile(getConfig())
-	caskConfigs := new(CaskConfigs)
-	err = json.Unmarshal(file, &caskConfigs)
-	if err != nil {
-		return nil, err
-	}
+func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
 	var s []*SliceNode
-	for _, config := range caskConfigs.Casks {
-		sc, err := NewSliceNode(CaskNumConf(int(config.CaskNum)), PathConf(config.Path))
+	for _, c := range cfg.Casks {
+		sc, err := NewSliceNode(config.CaskNumConf(int(c.CaskNum)), config.PathConf(c.Path))
 		if err != nil {
 			return nil, err
 		}
 		s = append(s, sc)
 	}
-	db, _ := uleveldb.OpenDb(caskConfigs.LevelDbPath)
-	return &DagNode{s, db, caskConfigs.DataBlocks, caskConfigs.ParityBlocks}, nil
+	db, _ := uleveldb.OpenDb(cfg.LevelDbPath)
+	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
 }
-func getConfig() string {
-	return os.Getenv(NodeConfigPath)
-}
-func NewSliceNode(opts ...Option) (*SliceNode, error) {
+func NewSliceNode(opts ...config.Option) (*SliceNode, error) {
 	m := &SliceNode{
-		cfg:            defaultConfig(),
+		cfg:            config.DefaultConfig(),
 		createCaskChan: make(chan *createCaskRequst),
 		closeChan:      make(chan struct{}),
 	}
@@ -338,86 +314,3 @@ func hasId(ids []uint32, id uint32) bool {
 	}
 	return false
 }
-
-//const lockFileName = "repo.lock"
-//
-//var _ kv.KVDB = (*dagnode)(nil)
-//
-//type dagnode struct {
-//	sync.Mutex
-//	cfg *Config
-//	//caskMap        *CaskMap
-//	createCaskChan chan *createCaskRequst
-//	close          func()
-//	closeChan      chan struct{}
-//}
-//
-//func NewDagNode(opts ...Option) (*dagnode, error) {
-//	m := &dagnode{
-//		cfg:            defaultConfig(),
-//		createCaskChan: make(chan *createCaskRequst),
-//		closeChan:      make(chan struct{}),
-//	}
-//	for _, opt := range opts {
-//		opt(m.cfg)
-//	}
-//	repoPath := m.cfg.Path
-//	if repoPath == "" {
-//		return nil, ErrPathUndefined
-//	}
-//	repo, err := os.Stat(repoPath)
-//	if err == nil && !repo.IsDir() {
-//		return nil, ErrPath
-//	}
-//	if err != nil {
-//		if !os.IsNotExist(err) {
-//			return nil, err
-//		}
-//		if err := os.Mkdir(repoPath, 0755); err != nil {
-//			return nil, err
-//		}
-//	}
-//	// try to get the repo lock
-//	locked, err := fslock.Locked(repoPath, lockFileName)
-//	if err != nil {
-//		return nil, xerrors.Errorf("could not check lock status: %w", err)
-//	}
-//	if locked {
-//		return nil, ErrRepoLocked
-//	}
-//
-//	//unlockRepo, err := fslock.Lock(repoPath, lockFileName)
-//	//if err != nil {
-//	//	return nil, xerrors.Errorf("could not lock the repo: %w", err)
-//	//}
-//	return m, nil
-//}
-//
-//type createCaskRequst struct {
-//	id   uint32
-//	done chan error
-//}
-//
-//func (d dagnode) Put(s string, bytes []byte) error {
-//	panic("implement me")
-//}
-//
-//func (d dagnode) Delete(s string) error {
-//	panic("implement me")
-//}
-//
-//func (d dagnode) Get(s string) ([]byte, error) {
-//	panic("implement me")
-//}
-//
-//func (d dagnode) Size(s string) (int, error) {
-//	panic("implement me")
-//}
-//
-//func (d dagnode) AllKeysChan(ctx context.Context) (chan string, error) {
-//	panic("implement me")
-//}
-//
-//func (d dagnode) Close() error {
-//	panic("implement me")
-//}

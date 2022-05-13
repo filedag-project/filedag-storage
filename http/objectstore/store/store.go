@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool/utils"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/dagpoolclient"
 	"github.com/ipfs/go-cid"
@@ -43,7 +42,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		object = object[1:]
 	}
 	ctx = context.WithValue(ctx, "user", getPoolUser())
-	node, err := utils.BalanceNode(ctx, reader, s.DagPool, s.DagPool.CidBuilder)
+	node, err := dagpoolclient.BalanceNode(ctx, reader, s.DagPool, s.DagPool.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}

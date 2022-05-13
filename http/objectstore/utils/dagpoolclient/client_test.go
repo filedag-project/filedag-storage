@@ -6,15 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
-	"github.com/filedag-project/filedag-storage/dag/pool/utils"
 	"github.com/ipfs/go-merkledag"
 	"google.golang.org/grpc"
 	"testing"
 )
 
-func TestServer_Add(t *testing.T) {
-	cli()
-}
 func TestPoolClient_Add(t *testing.T) {
 	r := bytes.NewReader([]byte("123456"))
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
@@ -31,7 +27,7 @@ func TestPoolClient_Add(t *testing.T) {
 	pc := PoolClient{c, cidBuilder}
 	var ctx = context.Background()
 	ctx = context.WithValue(ctx, "user", "test,test123")
-	node, err := utils.BalanceNode(ctx, r, pc, cidBuilder)
+	node, err := BalanceNode(ctx, r, pc, cidBuilder)
 	if err != nil {
 		return
 	}
