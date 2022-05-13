@@ -1,12 +1,8 @@
 package node
 
 import (
-	"github.com/filedag-project/filedag-storage/dag/config"
 	"io"
 	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
 	"sync"
 
 	"golang.org/x/xerrors"
@@ -100,56 +96,6 @@ func buildKeyMap(hint *os.File) (*KeyMap, error) {
 		km.Add(h.Key, h)
 	}
 	return km, nil
-}
-
-func buildCaskMap(cfg *config.CaskConfig) (*CaskMap, error) {
-	var err error
-	dirents, err := os.ReadDir(cfg.Path)
-	if err != nil {
-		return nil, err
-	}
-	cm := &CaskMap{}
-	cm.m = make(map[uint32]*Cask)
-	defer func() {
-		if err != nil {
-			cm.CloseAll()
-		}
-	}()
-
-	for _, ent := range dirents {
-		if !ent.IsDir() && strings.HasSuffix(ent.Name(), hintLogSuffix) {
-			name := strings.TrimSuffix(ent.Name(), hintLogSuffix)
-			id, err := strconv.ParseUint(name, 10, 32)
-			if err != nil {
-				return nil, err
-			}
-			cask := NewCask(uint32(id))
-			cm.Add(uint32(id), cask)
-			cask.hintLog, err = os.OpenFile(filepath.Join(cfg.Path, ent.Name()), os.O_RDWR, 0644)
-			if err != nil {
-				return nil, err
-			}
-			cask.hintLogSize, err = fileSize(cask.hintLog)
-			if err != nil {
-				return nil, err
-			}
-			cask.keyMap, err = buildKeyMap(cask.hintLog)
-			if err != nil {
-				return nil, err
-			}
-
-			cask.vLog, err = os.OpenFile(filepath.Join(cfg.Path, name+vLogSuffix), os.O_RDWR, 0644)
-			if err != nil {
-				return nil, err
-			}
-			cask.vLogSize, err = fileSize(cask.vLog)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return cm, nil
 }
 
 func fileSize(f *os.File) (uint64, error) {

@@ -17,6 +17,7 @@ message AddRequest {
 }
 
 message AddResponse {
+  string message = 1;
 }
 
 message GetRequest {
@@ -32,6 +33,7 @@ message DeleteRequest {
 }
 
 message DeleteResponse {
+  string message = 1;
 }
 
 message SizeRequest {

@@ -12,7 +12,7 @@ func main() {
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", server)
 	if err != nil {
-		Log(os.Stderr, "Fatal error:", err.Error())
+		//Log(os.Stderr, "Fatal error:", err.Error())
 		os.Exit(1)
 	}
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)

@@ -15,7 +15,7 @@ import (
 func TestStorageSys_Object(t *testing.T) {
 	//server.StartTestServer(t)
 	var s StorageSys
-	s.DagPool, _ = dagpoolclient.NewPoolClient("localhost:9002")
+	s.DagPool, _ = dagpoolclient.NewPoolClient("localhost:9090")
 	s.Db, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	os.Setenv(PoolUser, "pool")
 	os.Setenv(PoolPass, "pool")
