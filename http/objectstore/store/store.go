@@ -197,5 +197,6 @@ func (s *StorageSys) Init() error {
 	if err != nil {
 		return err
 	}
+	defer s.DagPool.Close(context.TODO())
 	return nil
 }

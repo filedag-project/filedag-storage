@@ -19,20 +19,24 @@ var log = logging.Logger("pool-client")
 type PoolClient struct {
 	pc         server.DagPoolClient
 	CidBuilder cid.Builder
+	conn       *grpc.ClientConn
+}
+
+func (p PoolClient) Close(ctx context.Context) {
+	p.conn.Close()
 }
 
 func NewPoolClient(addr string) (*PoolClient, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
-
-		log.Fatalf("did not connect: %v", err)
+		log.Errorf("did not connect: %v", err)
 		return nil, err
 	}
-	defer conn.Close()
+
 	// 实例化client
 	c := server.NewDagPoolClient(conn)
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
-	return &PoolClient{c, cidBuilder}, nil
+	return &PoolClient{c, cidBuilder, conn}, nil
 }
 
 func (p PoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {

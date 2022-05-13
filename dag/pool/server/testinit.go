@@ -16,7 +16,7 @@ import (
 func StartTestServer(t *testing.T) {
 	logging.SetLogLevel("*", "INFO")
 	// listen port
-	lis, err := net.Listen("tcp", "localhost:50001")
+	lis, err := net.Listen("tcp", "localhost:9002")
 	if err != nil {
 		log.Errorf("failed to listen: %v", err)
 	}
@@ -52,7 +52,7 @@ func loadTestPoolConfig(t *testing.T) (cfg config.PoolConfig, err error) {
 		caskc = append(caskc, config.CaskConfig{Path: utils.TmpDirPath(t), CaskNum: 2})
 	}
 	var c = config.NodeConfig{
-		Casks:        nil,
+		Casks:        caskc,
 		DataBlocks:   3,
 		ParityBlocks: 2,
 		LevelDbPath:  utils.TmpDirPath(t),
