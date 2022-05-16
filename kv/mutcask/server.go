@@ -68,7 +68,9 @@ func MutServer(ip, port, addr string) {
 	if err != nil {
 		return
 	}
+	log.Println("listen:", ip, ":", port)
 	//proto.RegisterMutCaskServer(s,mutc)
+
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
