@@ -78,7 +78,21 @@ func (p PoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
 }
 
 func (p PoolClient) Remove(ctx context.Context, cid cid.Cid) error {
-	panic("implement me")
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return userpolicy.AccessDenied
+	}
+	reply, err := p.pc.Delete(ctx, &server.DeleteRequest{
+		Cid: cid.String(),
+		User: &server.PoolUser{
+			Username: s[0],
+			Pass:     s[1],
+		}})
+	if err != nil {
+		return err
+	}
+	log.Infof("delete sucess %v ", reply.Message)
+	return err
 }
 
 func (p PoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {

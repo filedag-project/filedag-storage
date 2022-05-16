@@ -38,11 +38,25 @@ func (s *DagPoolService) Get(ctx context.Context, in *GetRequest) (*GetReply, er
 	}
 	cid, err := cid.Decode(in.Cid)
 	if err != nil {
-		return nil, err
+		return &GetReply{Block: nil}, err
 	}
 	get, err := s.DagPool.Get(ctx, cid)
 	if err != nil {
 		return &GetReply{Block: nil}, err
 	}
 	return &GetReply{Block: get.RawData()}, nil
+}
+func (s *DagPoolService) Delete(ctx context.Context, in *DeleteRequest) (*DeleteReply, error) {
+	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+		return &DeleteReply{Message: ""}, userpolicy.AccessDenied
+	}
+	c, err := cid.Decode(in.Cid)
+	if err != nil {
+		return &DeleteReply{Message: ""}, err
+	}
+	err = s.DagPool.Remove(ctx, c)
+	if err != nil {
+		return &DeleteReply{Message: ""}, err
+	}
+	return &DeleteReply{Message: c.String()}, nil
 }
