@@ -195,7 +195,7 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	merged := make([][]byte, 0)
 	for _, node := range d.nodes {
 		res, err := node.Get(ctx, &proto.GetRequest{Key: keyCode})
-		if err == nil {
+		if err != nil {
 			log.Errorf("mutcask get :%v", err)
 		}
 		merged = append(merged, res.DataBlock)
