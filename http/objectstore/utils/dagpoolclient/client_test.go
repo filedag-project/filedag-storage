@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func TestPoolClient_Add(t *testing.T) {
+func TestPoolClient_Add_Get(t *testing.T) {
 	go server.StartTestDagPoolServer(t)
 	time.Sleep(time.Second * 2)
 	logging.SetLogLevel("*", "INFO")
