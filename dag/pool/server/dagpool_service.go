@@ -18,7 +18,7 @@ type DagPoolService struct {
 	DagPool *pool.DagPool
 }
 
-func (s *DagPoolService) Add(ctx context.Context, in *AddRequest) (*AddReply, error) {
+func (s *DagPoolService) Add(ctx context.Context, in *AddReq) (*AddReply, error) {
 	data, err := importer.NewDagWithData(in.Block, pb.Data_File, s.DagPool.CidBuilder)
 	if err != nil {
 		return &AddReply{Cid: ""}, err
@@ -32,7 +32,7 @@ func (s *DagPoolService) Add(ctx context.Context, in *AddRequest) (*AddReply, er
 	}
 	return &AddReply{Cid: data.Cid().String()}, nil
 }
-func (s *DagPoolService) Get(ctx context.Context, in *GetRequest) (*GetReply, error) {
+func (s *DagPoolService) Get(ctx context.Context, in *GetReq) (*GetReply, error) {
 	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &GetReply{Block: nil}, userpolicy.AccessDenied
 	}
@@ -46,17 +46,17 @@ func (s *DagPoolService) Get(ctx context.Context, in *GetRequest) (*GetReply, er
 	}
 	return &GetReply{Block: get.RawData()}, nil
 }
-func (s *DagPoolService) Delete(ctx context.Context, in *DeleteRequest) (*DeleteReply, error) {
+func (s *DagPoolService) Remove(ctx context.Context, in *RemoveReq) (*RemoveReply, error) {
 	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
-		return &DeleteReply{Message: ""}, userpolicy.AccessDenied
+		return &RemoveReply{Message: ""}, userpolicy.AccessDenied
 	}
 	c, err := cid.Decode(in.Cid)
 	if err != nil {
-		return &DeleteReply{Message: ""}, err
+		return &RemoveReply{Message: ""}, err
 	}
 	err = s.DagPool.Remove(ctx, c)
 	if err != nil {
-		return &DeleteReply{Message: ""}, err
+		return &RemoveReply{Message: ""}, err
 	}
-	return &DeleteReply{Message: c.String()}, nil
+	return &RemoveReply{Message: c.String()}, nil
 }

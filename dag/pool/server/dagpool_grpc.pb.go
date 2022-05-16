@@ -22,9 +22,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DagPoolClient interface {
-	Add(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error)
-	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error)
-	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteReply, error)
+	Add(ctx context.Context, in *AddReq, opts ...grpc.CallOption) (*AddReply, error)
+	Get(ctx context.Context, in *GetReq, opts ...grpc.CallOption) (*GetReply, error)
+	Remove(ctx context.Context, in *RemoveReq, opts ...grpc.CallOption) (*RemoveReply, error)
 }
 
 type dagPoolClient struct {
@@ -35,7 +35,7 @@ func NewDagPoolClient(cc grpc.ClientConnInterface) DagPoolClient {
 	return &dagPoolClient{cc}
 }
 
-func (c *dagPoolClient) Add(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddReply, error) {
+func (c *dagPoolClient) Add(ctx context.Context, in *AddReq, opts ...grpc.CallOption) (*AddReply, error) {
 	out := new(AddReply)
 	err := c.cc.Invoke(ctx, "/proto.DagPool/Add", in, out, opts...)
 	if err != nil {
@@ -44,7 +44,7 @@ func (c *dagPoolClient) Add(ctx context.Context, in *AddRequest, opts ...grpc.Ca
 	return out, nil
 }
 
-func (c *dagPoolClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetReply, error) {
+func (c *dagPoolClient) Get(ctx context.Context, in *GetReq, opts ...grpc.CallOption) (*GetReply, error) {
 	out := new(GetReply)
 	err := c.cc.Invoke(ctx, "/proto.DagPool/Get", in, out, opts...)
 	if err != nil {
@@ -53,9 +53,9 @@ func (c *dagPoolClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.Ca
 	return out, nil
 }
 
-func (c *dagPoolClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteReply, error) {
-	out := new(DeleteReply)
-	err := c.cc.Invoke(ctx, "/proto.DagPool/Delete", in, out, opts...)
+func (c *dagPoolClient) Remove(ctx context.Context, in *RemoveReq, opts ...grpc.CallOption) (*RemoveReply, error) {
+	out := new(RemoveReply)
+	err := c.cc.Invoke(ctx, "/proto.DagPool/Remove", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,9 +66,9 @@ func (c *dagPoolClient) Delete(ctx context.Context, in *DeleteRequest, opts ...g
 // All implementations must embed UnimplementedDagPoolServer
 // for forward compatibility
 type DagPoolServer interface {
-	Add(context.Context, *AddRequest) (*AddReply, error)
-	Get(context.Context, *GetRequest) (*GetReply, error)
-	Delete(context.Context, *DeleteRequest) (*DeleteReply, error)
+	Add(context.Context, *AddReq) (*AddReply, error)
+	Get(context.Context, *GetReq) (*GetReply, error)
+	Remove(context.Context, *RemoveReq) (*RemoveReply, error)
 	mustEmbedUnimplementedDagPoolServer()
 }
 
@@ -76,14 +76,14 @@ type DagPoolServer interface {
 type UnimplementedDagPoolServer struct {
 }
 
-func (UnimplementedDagPoolServer) Add(context.Context, *AddRequest) (*AddReply, error) {
+func (UnimplementedDagPoolServer) Add(context.Context, *AddReq) (*AddReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Add not implemented")
 }
-func (UnimplementedDagPoolServer) Get(context.Context, *GetRequest) (*GetReply, error) {
+func (UnimplementedDagPoolServer) Get(context.Context, *GetReq) (*GetReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedDagPoolServer) Delete(context.Context, *DeleteRequest) (*DeleteReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+func (UnimplementedDagPoolServer) Remove(context.Context, *RemoveReq) (*RemoveReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
 }
 func (UnimplementedDagPoolServer) mustEmbedUnimplementedDagPoolServer() {}
 
@@ -99,7 +99,7 @@ func RegisterDagPoolServer(s grpc.ServiceRegistrar, srv DagPoolServer) {
 }
 
 func _DagPool_Add_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddRequest)
+	in := new(AddReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -111,13 +111,13 @@ func _DagPool_Add_Handler(srv interface{}, ctx context.Context, dec func(interfa
 		FullMethod: "/proto.DagPool/Add",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DagPoolServer).Add(ctx, req.(*AddRequest))
+		return srv.(DagPoolServer).Add(ctx, req.(*AddReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _DagPool_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRequest)
+	in := new(GetReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -129,25 +129,25 @@ func _DagPool_Get_Handler(srv interface{}, ctx context.Context, dec func(interfa
 		FullMethod: "/proto.DagPool/Get",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DagPoolServer).Get(ctx, req.(*GetRequest))
+		return srv.(DagPoolServer).Get(ctx, req.(*GetReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DagPool_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteRequest)
+func _DagPool_Remove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DagPoolServer).Delete(ctx, in)
+		return srv.(DagPoolServer).Remove(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.DagPool/Delete",
+		FullMethod: "/proto.DagPool/Remove",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DagPoolServer).Delete(ctx, req.(*DeleteRequest))
+		return srv.(DagPoolServer).Remove(ctx, req.(*RemoveReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -168,8 +168,8 @@ var DagPool_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DagPool_Get_Handler,
 		},
 		{
-			MethodName: "Delete",
-			Handler:    _DagPool_Delete_Handler,
+			MethodName: "Remove",
+			Handler:    _DagPool_Remove_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

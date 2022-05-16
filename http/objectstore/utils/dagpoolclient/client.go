@@ -44,7 +44,7 @@ func (p PoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
 	if len(s) != 2 {
 		return nil, userpolicy.AccessDenied
 	}
-	get, err := p.pc.Get(ctx, &server.GetRequest{Cid: cid.String(), User: &server.PoolUser{
+	get, err := p.pc.Get(ctx, &server.GetReq{Cid: cid.String(), User: &server.PoolUser{
 		Username: s[0],
 		Pass:     s[1],
 	}})
@@ -63,7 +63,7 @@ func (p PoolClient) Add(ctx context.Context, node format.Node) error {
 	if len(s) != 2 {
 		return userpolicy.AccessDenied
 	}
-	_, err := p.pc.Add(ctx, &server.AddRequest{Block: node.RawData(), User: &server.PoolUser{
+	_, err := p.pc.Add(ctx, &server.AddReq{Block: node.RawData(), User: &server.PoolUser{
 		Username: s[0],
 		Pass:     s[1],
 	}})
@@ -82,7 +82,7 @@ func (p PoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	if len(s) != 2 {
 		return userpolicy.AccessDenied
 	}
-	reply, err := p.pc.Delete(ctx, &server.DeleteRequest{
+	reply, err := p.pc.Remove(ctx, &server.RemoveReq{
 		Cid: cid.String(),
 		User: &server.PoolUser{
 			Username: s[0],

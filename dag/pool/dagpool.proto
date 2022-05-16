@@ -4,15 +4,15 @@ package proto;      // 包名
 option go_package = '/server';    // 指定生成的go代码所存放的路径，不用提前创建
 
 service DagPool {
-  rpc Add (AddRequest) returns (AddReply) {}
-  rpc Get (GetRequest) returns (GetReply) {}
-  rpc Delete (DeleteRequest) returns (DeleteReply) {}
+  rpc Add (AddReq) returns (AddReply) {}
+  rpc Get (GetReq) returns (GetReply) {}
+  rpc Remove (RemoveReq) returns (RemoveReply) {}
 }
 message PoolUser {
   string username = 1;
   string pass = 2;
 }
-message AddRequest {
+message AddReq {
   bytes block = 1;
   PoolUser user =2;
 }
@@ -20,7 +20,7 @@ message AddRequest {
 message AddReply {
   string cid = 1;
 }
-message GetRequest {
+message GetReq {
   string cid = 1;
   PoolUser user =2;
 }
@@ -28,11 +28,11 @@ message GetRequest {
 message GetReply {
   bytes block = 1;
 }
-message DeleteRequest {
+message RemoveReq {
   string cid = 1;
   PoolUser user =2;
 }
 
-message DeleteReply {
+message RemoveReply {
   string message = 1;
 }
