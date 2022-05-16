@@ -98,4 +98,5 @@ func NewS3Server(router *mux.Router) {
 		return
 	}
 	s3server.registerS3Router(router)
+	defer s3server.store.Close()
 }

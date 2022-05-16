@@ -6,16 +6,22 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/filedag-project/filedag-storage/kv/mutcask"
 	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
 	"net"
 	"strconv"
 	"testing"
+	"time"
 )
 
-// StartTestServer only for test
-func StartTestServer(t *testing.T) {
+// StartTestDagPoolServer only for test
+func StartTestDagPoolServer(t *testing.T) {
 	logging.SetLogLevel("*", "INFO")
+	go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t))
+	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
+	go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
+	time.Sleep(time.Millisecond * 500)
 	// listen port
 	lis, err := net.Listen("tcp", "localhost:9002")
 	if err != nil {
@@ -50,7 +56,7 @@ func loadTestPoolConfig(t *testing.T) (cfg config.PoolConfig, err error) {
 	cfg.ImporterBatchNum = 4
 	var caskc []config.CaskConfig
 	for i := 0; i < 3; i++ {
-		caskc = append(caskc, config.CaskConfig{Ip: utils.TmpDirPath(t), Port: strconv.Itoa(9010 + i)})
+		caskc = append(caskc, config.CaskConfig{Ip: "127.0.0.1", Port: strconv.Itoa(9010 + i)})
 	}
 	var c = config.NodeConfig{
 		Nodes:        caskc,

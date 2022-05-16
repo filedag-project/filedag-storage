@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"google.golang.org/grpc"
+	"strings"
 	"sync"
 )
 
@@ -188,7 +189,7 @@ func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 func (d DagNode) Has(cid cid.Cid) (bool, error) {
 	_, err := d.GetSize(cid)
 	if err != nil {
-		if err == kv.ErrNotFound {
+		if strings.Contains(err.Error(), kv.ErrNotFound.Error()) {
 			return false, nil
 		}
 		return false, err
@@ -209,7 +210,7 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	merged := make([][]byte, 0)
 	for _, node := range d.nodes {
 		res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
-		if err == nil {
+		if err != nil {
 			log.Errorf("mutcask get :%v", err)
 		}
 		merged = append(merged, res.DataBlock)
