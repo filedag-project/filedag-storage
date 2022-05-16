@@ -1,27 +1,19 @@
 {
-  "casks":[
+  "nodes":[
     {
-      "cask_num":2,
-      "path":"/tmp/dag/data1"
+      "ip":"127.0.0.1",
+      "port": "9001"
     },
     {
-      "cask_num":2,
-      "path":"/tmp/dag/data2"
+      "ip":"127.0.0.1",
+      "port": "9002"
     },
     {
-      "cask_num":2,
-      "path":"/tmp/dag/data3"
-    },
-    {
-      "cask_num":2,
-      "path":"/tmp/dag/data4"
-    },
-    {
-      "cask_num":2,
-      "path":"/tmp/dag/data5"
+      "ip":"127.0.0.1",
+      "port": "9003"
     }
   ],
-  "data_blocks":3,
-  "parity_blocks":2,
+  "data_blocks":2,
+  "parity_blocks":1,
   "level_db_path":"/tmp/leveldb2/node"
 }

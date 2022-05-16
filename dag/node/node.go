@@ -23,28 +23,40 @@ const lockFileName = "repo.lock"
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
-	nodes                    []proto.MutCaskClient
+	nodes                    []DataNode
 	db                       *uleveldb.ULevelDB
 	dataBlocks, parityBlocks int
 }
 
-type SliceNode struct {
+type DataNode struct {
 	sync.Mutex
-	cfg            *config.CaskConfig
-	caskMap        *CaskMap
-	createCaskChan chan *createCaskRequst
-	close          func()
-	closeChan      chan struct{}
+	Client proto.MutCaskClient
+	Ip     string
+	Port   string
 }
 
+//type SliceNode struct {
+//	sync.Mutex
+//	node           proto.MutCaskClient
+//	ip             string
+//	caskMap        *CaskMap
+//	createCaskChan chan *createCaskRequst
+//	close          func()
+//	closeChan      chan struct{}
+//}
+
 func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
-	var s []proto.MutCaskClient
+	var s []DataNode
 	for i, c := range cfg.Nodes {
+		dateNode := new(DataNode)
 		sc, err := InitSliceConn(fmt.Sprint(i), c.Ip, c.Port)
 		if err != nil {
 			return nil, err
 		}
-		s = append(s, sc)
+		dateNode.Ip = c.Ip
+		dateNode.Port = c.Port
+		dateNode.Client = sc
+		s = append(s, *dateNode)
 	}
 	db, _ := uleveldb.OpenDb(cfg.LevelDbPath)
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
@@ -54,7 +66,9 @@ func InitSliceConn(index, ip, port string) (c proto.MutCaskClient, err error) {
 	addr := flag.String("addr"+fmt.Sprint(index), fmt.Sprintf("%s:%s", ip, port), "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
+		conn.Close()
 		log.Errorf("did not connect: %v", err)
+		return c, err
 	}
 	//defer conn.Close()
 	// init client
@@ -151,18 +165,19 @@ func InitSliceConn(index, ip, port string) (c proto.MutCaskClient, err error) {
 //		}
 //	}(m)
 //}
-func (m *SliceNode) vLogName(id uint32) string {
-	return fmt.Sprintf("%08d%s", id, vLogSuffix)
-}
+//func (m *SliceNode) vLogName(id uint32) string {
+//	return fmt.Sprintf("%08d%s", id, vLogSuffix)
+//}
+//
+//func (m *SliceNode) hintLogName(id uint32) string {
+//	return fmt.Sprintf("%08d%s", id, hintLogSuffix)
+//}
 
-func (m *SliceNode) hintLogName(id uint32) string {
-	return fmt.Sprintf("%08d%s", id, hintLogSuffix)
-}
 func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
 	for _, node := range d.nodes {
-		_, err := node.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
+		_, err := node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
 		if err != nil {
 			break
 		}
@@ -193,7 +208,7 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	}
 	merged := make([][]byte, 0)
 	for _, node := range d.nodes {
-		res, err := node.Get(ctx, &proto.GetRequest{Key: keyCode})
+		res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 		if err == nil {
 			log.Errorf("mutcask get :%v", err)
 		}
@@ -220,7 +235,7 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 	var err error
 	var count int64
 	for _, node := range d.nodes {
-		size, err := node.Size(ctx, &proto.SizeRequest{
+		size, err := node.Client.Size(ctx, &proto.SizeRequest{
 			Key: keyCode,
 		})
 		if err != nil {
@@ -257,7 +272,7 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 		log.Infof("encode ok, the data is the same format as Encode. No data is modified")
 	}
 	for i, node := range d.nodes {
-		_, err = node.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
+		_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
 		if err != nil {
 			break
 		}
@@ -280,18 +295,4 @@ func (d DagNode) HashOnRead(enabled bool) {
 
 func sha256String(s string) string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
-}
-
-type createCaskRequst struct {
-	id   uint32
-	done chan error
-}
-
-func hasId(ids []uint32, id uint32) bool {
-	for _, item := range ids {
-		if item == id {
-			return true
-		}
-	}
-	return false
 }

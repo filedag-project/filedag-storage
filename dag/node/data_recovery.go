@@ -1,146 +1,167 @@
 package node
 
-//func (d DagNode) recoveryDisk(path, newPath string) error {
-//	keyCodeMap, err := d.db.ReadAll("")
-//	if err != nil {
-//		return err
-//	}
-//	sliceNode := new(SliceNode)
-//	for _, node := range d.nodes {
-//		if node.cfg.Path == path {
-//			sliceNode = node
-//		}
-//	}
-//	sliceNewNode, err := NewSliceNode(config.CaskNumConf(int(sliceNode.cfg.CaskNum)), config.PathConf(newPath))
-//	for key, value := range keyCodeMap {
-//		keyCode := sha256String(key)
-//		id := d.fileID(keyCode)
-//		cask, has := sliceNode.caskMap.Get(id)
-//		if !has {
-//			return kv.ErrNotFound
-//		}
-//		length, err := cask.Size(keyCode)
-//		if err != nil {
-//			return err
-//		}
-//		if length > 0 {
-//			continue
-//		}
-//		merged := make([][]byte, 0)
-//		index := -1
-//		for i, node := range d.nodes {
-//			cask, has = node.caskMap.Get(id)
-//			if !has {
-//				fmt.Println("********")
-//				return kv.ErrNotFound
-//			}
-//			bytes, err := cask.Read(keyCode)
-//			if err != nil || len(bytes) == 0 {
-//				index = i
-//				return err
-//			}
-//			merged = append(merged, bytes)
-//		}
-//		if index == -1 {
-//			continue
-//		}
-//		i64, err := strconv.ParseInt(value, 10, 64)
-//		if err == nil {
-//			log.Errorf("strconv fail :%v", err)
-//		}
-//		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, i64)
-//		enc.DecodeDataBlocks(merged)
-//		dataByte := merged[index]
-//		cask, has = sliceNewNode.caskMap.Get(id)
-//		if !has {
-//			done := make(chan error)
-//			sliceNewNode.createCaskChan <- &createCaskRequst{
-//				id:   id,
-//				done: done,
-//			}
-//			if err := <-done; err != ErrNone {
-//				return err
-//			}
-//			cask, _ = sliceNewNode.caskMap.Get(id)
-//		}
-//		err = cask.Put(keyCode, dataByte)
-//		if err != nil {
-//			break
-//		}
-//	}
-//	return err
-//}
-//
-//func (d *DagNode) modifyConfig(oldPath, newPath string, newCaskNum uint32) error {
-//	defer errors.New("modifyConfig error")
-//	for _, node := range d.nodes {
-//		if node.cfg.Path == oldPath {
-//			node.cfg.Path = newPath
-//			node.cfg.CaskNum = newCaskNum
-//		}
-//	}
-//	return nil
-//}
-//
-//func (d DagNode) recoveryHost(newPath string) error {
-//	keyCodeMap, err := d.db.ReadAll("")
-//	if err != nil {
-//		return err
-//	}
-//	sliceNewNode := new(SliceNode)
-//	for _, node := range d.nodes {
-//		if node.cfg.Path == newPath {
-//			sliceNewNode = node
-//		}
-//	}
-//	for key, value := range keyCodeMap {
-//		keyCode := sha256String(key)
-//		id := d.fileID(keyCode)
-//		cask, has := sliceNewNode.caskMap.Get(id)
-//		if !has {
-//			return kv.ErrNotFound
-//		}
-//		merged := make([][]byte, 0)
-//		index := -1
-//		for i, node := range d.nodes {
-//			cask, has = node.caskMap.Get(id)
-//			if !has {
-//				fmt.Println("********")
-//				return kv.ErrNotFound
-//			}
-//			bytes, err := cask.Read(keyCode)
-//			if err != nil || len(bytes) == 0 {
-//				index = i
-//				return err
-//			}
-//			merged = append(merged, bytes)
-//		}
-//		if index == -1 {
-//			continue
-//		}
-//		i64, err := strconv.ParseInt(value, 10, 64)
-//		if err == nil {
-//			log.Errorf("strconv fail :%v", err)
-//		}
-//		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, i64)
-//		enc.DecodeDataBlocks(merged)
-//		dataByte := merged[index]
-//		cask, has = sliceNewNode.caskMap.Get(id)
-//		if !has {
-//			done := make(chan error)
-//			sliceNewNode.createCaskChan <- &createCaskRequst{
-//				id:   id,
-//				done: done,
-//			}
-//			if err := <-done; err != ErrNone {
-//				return err
-//			}
-//			cask, _ = sliceNewNode.caskMap.Get(id)
-//		}
-//		err = cask.Put(keyCode, dataByte)
-//		if err != nil {
-//			break
-//		}
-//	}
-//	return err
-//}
+import (
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"github.com/filedag-project/filedag-storage/proto"
+	"github.com/google/martian/log"
+	"google.golang.org/grpc"
+	"strconv"
+)
+
+//prepare disk repair
+func (d *DagNode) recoveryDisk(ip, port string) error {
+	ctx := context.TODO()
+	keyCodeMap, err := d.db.ReadAll("")
+	if err != nil {
+		return err
+	}
+	index := -1
+	dataNode := new(DataNode)
+	for i, node := range d.nodes {
+		if node.Ip == ip && node.Port == port {
+			dataNode = &d.nodes[i]
+			index = i
+		}
+	}
+	if index == -1 {
+		return errors.New("the host does not exist")
+	}
+	for key, value := range keyCodeMap {
+		keyCode := sha256String(key)
+		size, err := dataNode.Client.Size(ctx, &proto.SizeRequest{
+			Key: keyCode,
+		})
+		if err != nil {
+			return err
+		}
+		if size.Size > 0 {
+			continue
+		}
+		merged := make([][]byte, 0)
+		for i, node := range d.nodes {
+			if i == index {
+				merged = append(merged, nil)
+				continue
+			}
+			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
+			if err != nil {
+				log.Infof("this node err : %s,: %s", node.Ip, node.Port)
+				return err
+			}
+			if len(res.DataBlock) == 0 {
+				log.Infof("There is no data in this node")
+				merged = append(merged, nil)
+				continue
+			}
+			merged = append(merged, res.DataBlock)
+		}
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err == nil {
+			log.Errorf("strconv fail :%v", err)
+		}
+		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, i64)
+		if err != nil {
+			log.Errorf("new erasure fail :%v", err)
+			return err
+		}
+		err = enc.DecodeDataBlocks(merged)
+		if err != nil {
+			log.Errorf("decode date blocks fail :%v", err)
+			return err
+		}
+		dataByte := merged[index]
+		_, err = dataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: dataByte})
+		if err != nil {
+			log.Errorf("data node put fail :%v", err)
+			return err
+		}
+	}
+	return err
+}
+
+//prepare host repair
+func (d *DagNode) recoveryHost(oldIp, newIp, oldPort, newPort string) error {
+	ctx := context.TODO()
+	index, err := d.modifyConfig(oldIp, newIp, oldPort, newPort)
+	if err != nil {
+		log.Errorf("modify node config fail")
+		return err
+	}
+	keyCodeMap, err := d.db.ReadAll("")
+	if err != nil {
+		return err
+	}
+	newDataNode := d.nodes[index]
+	for key, value := range keyCodeMap {
+		keyCode := sha256String(key)
+		merged := make([][]byte, len(d.nodes))
+		for i, node := range d.nodes {
+			if i == index {
+				merged[i] = nil
+				continue
+			}
+			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
+			if err != nil {
+				log.Infof("this node err : %s,: %s", node.Ip, node.Port)
+				return err
+			}
+			if len(res.DataBlock) == 0 {
+				log.Infof("There is no data in this node")
+				merged[i] = nil
+				continue
+			}
+			merged[i] = res.DataBlock
+		}
+		i64, err := strconv.ParseInt(value, 10, 64)
+		if err == nil {
+			log.Errorf("strconv fail :%v", err)
+		}
+		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, i64)
+		if err != nil {
+			log.Errorf("new erasure fail :%v", err)
+			return err
+		}
+		err = enc.DecodeDataBlocks(merged)
+		if err != nil {
+			log.Errorf("decode date blocks fail :%v", err)
+			return err
+		}
+		dataByte := merged[index]
+		_, err = newDataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: dataByte})
+		if err != nil {
+			log.Errorf("data node put fail :%v", err)
+			return err
+		}
+		if err != nil {
+			break
+		}
+	}
+	return err
+}
+
+//modify node config
+func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, error) {
+	index := -1
+	for i, node := range d.nodes {
+		if node.Ip == oldIp && node.Port == oldPort {
+			index = i
+		}
+	}
+	if index == -1 {
+		return index, errors.New("the old ip does not exist")
+	}
+	addr := flag.String("addr"+fmt.Sprint(index), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
+	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
+	if err != nil {
+		conn.Close()
+		return index, err
+	}
+	client := proto.NewMutCaskClient(conn)
+	d.nodes[index].Client = client
+	d.nodes[index].Ip = newIp
+	d.nodes[index].Port = newPort
+	return index, nil
+}

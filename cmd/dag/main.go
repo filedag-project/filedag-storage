@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	defaultNodeConfig       = "dag/config/node_config2.json"
+	defaultNodeConfig       = "dag/config/node_config.json"
 	defaultImporterBatchNum = "4"
 	defaultPoolDB           = "/tmp/leveldb2/pool.db"
 	defaultPoolAddr         = "localhost:50001"
