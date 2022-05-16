@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 	var s3server s3ApiServer
 	s3server.authSys.Init()
 	go server.StartTestDagPoolServer(&testing.T{})
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 1)
 	s3server.store.Db = uleveldb.DBClient
 	os.Setenv(store.PoolAddr, "127.0.0.1:9002")
 	s3server.store.Init()
