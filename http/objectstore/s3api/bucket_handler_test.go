@@ -32,6 +32,8 @@ func TestMain(m *testing.M) {
 	var s3server s3ApiServer
 	s3server.authSys.Init()
 	s3server.store.Db = uleveldb.DBClient
+	os.Setenv(store.PoolAddr, "127.0.0.1:9002")
+	s3server.store.Init()
 	err = os.Setenv(store.PoolUser, "test")
 	if err != nil {
 		return

@@ -5,5 +5,5 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	StartTestServer(t)
+	StartTestDagPoolServer(t)
 }

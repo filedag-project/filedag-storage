@@ -4,10 +4,9 @@ import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
-	"github.com/filedrive-team/filehelper/importer"
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
-	pb "github.com/ipfs/go-unixfs/pb"
+	"github.com/ipfs/go-merkledag"
 )
 
 var log = logging.Logger("dag-pool-server")
@@ -19,14 +18,11 @@ type DagPoolService struct {
 }
 
 func (s *DagPoolService) Add(ctx context.Context, in *AddReq) (*AddReply, error) {
-	data, err := importer.NewDagWithData(in.Block, pb.Data_File, s.DagPool.CidBuilder)
-	if err != nil {
-		return &AddReply{Cid: ""}, err
-	}
+	data := merkledag.NodeWithData(in.GetBlock()[2:])
 	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
-		return &AddReply{Cid: ""}, err
+		return &AddReply{Cid: ""}, userpolicy.AccessDenied
 	}
-	err = s.DagPool.Add(ctx, data)
+	err := s.DagPool.Add(ctx, data)
 	if err != nil {
 		return &AddReply{Cid: ""}, err
 	}

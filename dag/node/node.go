@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"google.golang.org/grpc"
+	"strings"
 	"sync"
 )
 
@@ -173,7 +174,7 @@ func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 func (d DagNode) Has(cid cid.Cid) (bool, error) {
 	_, err := d.GetSize(cid)
 	if err != nil {
-		if err == kv.ErrNotFound {
+		if strings.Contains(err.Error(), kv.ErrNotFound.Error()) {
 			return false, nil
 		}
 		return false, err

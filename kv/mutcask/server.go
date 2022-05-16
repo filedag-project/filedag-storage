@@ -55,7 +55,7 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 	}, nil
 }
 
-func mutServer(ip, port, addr string) {
+func MutServer(ip, port, addr string) {
 	flag.Parse()
 	// 监听端口
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", ip, port))
