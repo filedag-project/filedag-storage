@@ -49,7 +49,7 @@ func loadTestPoolConfig(t *testing.T) (cfg config.PoolConfig, err error) {
 	cfg.LeveldbPath = utils.TmpDirPath(t)
 	cfg.ImporterBatchNum = 4
 	var caskc []config.CaskConfig
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 3; i++ {
 		caskc = append(caskc, config.CaskConfig{Ip: utils.TmpDirPath(t), Port: strconv.Itoa(9010 + i)})
 	}
 	var c = config.NodeConfig{

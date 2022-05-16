@@ -16,14 +16,12 @@ func TestPoolClient_Add(t *testing.T) {
 	r := bytes.NewReader([]byte("123456"))
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 
-	// 建立连接
 	addr := flag.String("addr", "localhost:9002", "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	// 实例化client
 	c := server.NewDagPoolClient(conn)
 	pc := PoolClient{c, cidBuilder, conn}
 	var ctx = context.Background()
@@ -32,7 +30,7 @@ func TestPoolClient_Add(t *testing.T) {
 	if err != nil {
 		return
 	}
-	fmt.Println("aaaaa", string(node.RawData()))
+	fmt.Println("aaaaa", node.Cid().String())
 	get, err := pc.Get(ctx, node.Cid())
 	if err != nil {
 		return
