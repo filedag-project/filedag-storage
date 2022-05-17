@@ -8,7 +8,6 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
 	bserv "github.com/ipfs/go-blockservice"
@@ -16,10 +15,13 @@ import (
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
+
+var log = logging.Logger("dag-pool")
 
 // DagPool is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)

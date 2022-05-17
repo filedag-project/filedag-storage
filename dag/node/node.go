@@ -10,7 +10,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/kv"
 	"github.com/filedag-project/filedag-storage/proto"
-	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
