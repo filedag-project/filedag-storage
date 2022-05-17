@@ -18,7 +18,7 @@ func HandleConnection(conn net.Conn) {
 
 		Data := buffer[:n]
 		message := make(chan byte)
-		go HeartBeating(conn, message, 4)
+		go HeartBeating(conn, message, 5)
 		go GravelChannel(Data, message)
 
 		Log(time.Now().Format("2006-01-02 15:04:05.0000000"), conn.RemoteAddr().String(), string(buffer[:n]))
@@ -37,7 +37,7 @@ func HeartBeating(conn net.Conn, bytes chan byte, timeout int) {
 		conn.SetDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		break
 
-	case <-time.After(5 * time.Second):
+	case <-time.After(7 * time.Second):
 		Log("conn dead now")
 		conn.Close()
 	}
