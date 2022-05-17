@@ -61,7 +61,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 			log.Errorf("new dagnode err:%v", err)
 			return nil, err
 		}
-		err = nrs.AddNode(bs.GetIP(), "the"+fmt.Sprintf("%v", num))
+		err = nrs.HandleDagNode(bs.GetIP(), "the"+fmt.Sprintf("%v", num))
 		if err != nil {
 			return nil, err
 		}

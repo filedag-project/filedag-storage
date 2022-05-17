@@ -3,29 +3,9 @@ package heart_beat
 import (
 	"fmt"
 	"net"
-	"os"
 	"time"
 )
 
-func StartListen(addr string) {
-	netListen, err := net.Listen("tcp", addr)
-	if err != nil {
-		Log("connect error: ", err)
-		os.Exit(1)
-	}
-	Log("Waiting for Client ...")
-	for {
-		conn, err := netListen.Accept()
-		if err != nil {
-			Log(conn.RemoteAddr().String(), "Fatal error: ", err)
-			continue
-		}
-		conn.SetReadDeadline(time.Now().Add(time.Duration(10) * time.Second))
-
-		Log(conn.RemoteAddr().String(), "connect success!")
-		go HandleConnection(conn)
-	}
-}
 func HandleConnection(conn net.Conn) {
 	defer conn.Close()
 	buffer := make([]byte, 1024)
