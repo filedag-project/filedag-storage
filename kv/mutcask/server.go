@@ -5,19 +5,17 @@ import (
 	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/proto"
+	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
-	"log"
 	"net"
 )
+
+var log = logging.Logger("kv")
 
 type server struct {
 	proto.UnimplementedMutCaskServer
 	mutcask *mutcask
 }
-
-var (
-	port1 = flag.Int("port", 9091, "The server port")
-)
 
 func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*proto.AddResponse, error) {
 	err := s.mutcask.Put(in.Key, in.DataBlock)
@@ -68,9 +66,9 @@ func MutServer(ip, port, addr string) {
 	if err != nil {
 		return
 	}
-	log.Println("listen:", ip, ":", port)
+	log.Infof("listen:%v:%v", ip, port)
 	//proto.RegisterMutCaskServer(s,mutc)
-
+	sendHeartBeat("127.0.0.1:7373")
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

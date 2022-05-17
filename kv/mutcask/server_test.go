@@ -1,23 +1,21 @@
 package mutcask
 
 import (
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
 func TestServer(t *testing.T) {
-	MutServer("127.0.0.1", "9010", "/tmp/dag/data1")
-	//go MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
-	//go MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
+	MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
 }
 
 func TestServer2(t *testing.T) {
-	MutServer("127.0.0.1", "9011", "/tmp/dag/data2")
+	MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
 }
 
 func TestServer3(t *testing.T) {
-	MutServer("127.0.0.1", "9012", "/tmp/dag/data3")
+	MutServer("127.0.0.1", "9013", utils.TmpDirPath(t))
 }
-
-func TestServer4(t *testing.T) {
-	MutServer("127.0.0.1", "9013", "/tmp/dag/data4")
+func TestHeartBeating(t *testing.T) {
+	sendHeartBeat("127.0.0.1:7373")
 }

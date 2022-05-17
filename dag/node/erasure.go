@@ -1,7 +1,6 @@
 package node
 
 import (
-	"github.com/google/martian/log"
 	"github.com/klauspost/reedsolomon"
 	"sync"
 )

@@ -8,7 +8,6 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
 	bserv "github.com/ipfs/go-blockservice"
@@ -16,10 +15,13 @@ import (
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
+
+var log = logging.Logger("dag-pool")
 
 // DagPool is an IPFS Merkle DAG service.
 // - the root is virtual (like a forest)
@@ -32,7 +34,7 @@ type DagPool struct {
 	refer            referencecount.IdentityRefe
 	CidBuilder       cid.Builder
 	ImporterBatchNum int
-	TheNode          RecordSys
+	NRSys            NodeRecordSys
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -52,15 +54,20 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 	}
 	r, err := referencecount.NewIdentityRefe(db)
 	var dn []blockservice.BlockService
-	for _, c := range cfg.DagNodeConfig {
+	var nrs NodeRecordSys
+	for num, c := range cfg.DagNodeConfig {
 		bs, err := node.NewDagNode(c)
 		if err != nil {
 			log.Errorf("new dagnode err:%v", err)
 			return nil, err
 		}
+		err = nrs.AddNode(bs.GetIP(), "the"+fmt.Sprintf("%v", num))
+		if err != nil {
+			return nil, err
+		}
 		dn = append(dn, blockservice.New(bs, offline.Exchange(bs)))
 	}
-	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, TheNode: NewRecordSys(db)}, nil
+	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: NewRecordSys(db)}, nil
 }
 
 // Add adds a node to the DagPool, storing the block in the BlockService

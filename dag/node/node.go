@@ -10,7 +10,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/kv"
 	"github.com/filedag-project/filedag-storage/proto"
-	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
@@ -35,16 +34,6 @@ type DataNode struct {
 	Ip     string
 	Port   string
 }
-
-//type SliceNode struct {
-//	sync.Mutex
-//	node           proto.MutCaskClient
-//	ip             string
-//	caskMap        *CaskMap
-//	createCaskChan chan *createCaskRequst
-//	close          func()
-//	closeChan      chan struct{}
-//}
 
 func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
 	var s []DataNode
@@ -77,103 +66,13 @@ func InitSliceConn(index, ip, port string) (c proto.MutCaskClient, err error) {
 	return c, nil
 }
 
-//func NewSliceNode(opts ...config.Option) (*SliceNode, error) {
-//	m := &SliceNode{
-//		cfg:            config.DefaultConfig(),
-//		createCaskChan: make(chan *createCaskRequst),
-//		closeChan:      make(chan struct{}),
-//	}
-//	for _, opt := range opts {
-//		opt(m.cfg)
-//	}
-//	repoPath := m.cfg.Path
-//	if repoPath == "" {
-//		return nil, ErrPathUndefined
-//	}
-//	repo, err := os.Stat(repoPath)
-//	if err == nil && !repo.IsDir() {
-//		return nil, ErrPath
-//	}
-//	if err != nil {
-//		if !os.IsNotExist(err) {
-//			return nil, err
-//		}
-//		if err := os.Mkdir(repoPath, 0755); err != nil {
-//			return nil, err
-//		}
-//	}
-//	// try to get the repo lock
-//	locked, err := fslock.Locked(repoPath, lockFileName)
-//	if err != nil {
-//		return nil, xerrors.Errorf("could not check lock status: %w", err)
-//	}
-//	if locked {
-//		return nil, ErrRepoLocked
-//	}
-//
-//	unlockRepo, err := fslock.Lock(repoPath, lockFileName)
-//	if err != nil {
-//		return nil, xerrors.Errorf("could not lock the repo: %w", err)
-//	}
-//
-//	m.caskMap, err = buildCaskMap(m.cfg)
-//	if err != nil {
-//		return nil, err
-//	}
-//	var once sync.Once
-//	m.close = func() {
-//		once.Do(func() {
-//			close(m.closeChan)
-//			unlockRepo.Close()
-//		})
-//	}
-//	m.handleCreateCask()
-//	return m, nil
-//}
-//func (m *SliceNode) handleCreateCask() {
-//	go func(m *SliceNode) {
-//		ids := []uint32{}
-//		for {
-//			select {
-//			case <-m.closeChan:
-//				return
-//			case req := <-m.createCaskChan:
-//				func() {
-//					// fmt.Printf("received cask create request, id = %d\n", req.id)
-//					if hasId(ids, req.id) {
-//						req.done <- ErrNone
-//						return
-//					}
-//					cask := NewCask(req.id)
-//					var err error
-//					// create vlog file
-//					cask.vLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.vLogName(req.id)), os.O_RDWR|os.O_CREATE, 0644)
-//					if err != nil {
-//						req.done <- err
-//						return
-//					}
-//					// create hintlog file
-//					cask.hintLog, err = os.OpenFile(filepath.Join(m.cfg.Path, m.hintLogName(req.id)), os.O_RDWR|os.O_CREATE, 0644)
-//					if err != nil {
-//						req.done <- err
-//						return
-//					}
-//					m.caskMap.Add(req.id, cask)
-//					ids = append(ids, req.id)
-//					req.done <- ErrNone
-//				}()
-//			}
-//		}
-//	}(m)
-//}
-//func (m *SliceNode) vLogName(id uint32) string {
-//	return fmt.Sprintf("%08d%s", id, vLogSuffix)
-//}
-//
-//func (m *SliceNode) hintLogName(id uint32) string {
-//	return fmt.Sprintf("%08d%s", id, hintLogSuffix)
-//}
-
+func (d DagNode) GetIP() []string {
+	var s []string
+	for _, n := range d.nodes {
+		s = append(s, n.Ip)
+	}
+	return s
+}
 func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 	ctx := context.TODO()
 	keyCode := sha256String(cid.String())

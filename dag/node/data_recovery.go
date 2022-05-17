@@ -6,10 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/proto"
-	"github.com/google/martian/log"
+	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
 	"strconv"
 )
+
+var log = logging.Logger("dag-node")
 
 //prepare disk repair
 func (d *DagNode) recoveryDisk(ip, port string) error {
