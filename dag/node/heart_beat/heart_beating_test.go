@@ -1,4 +1,4 @@
-package node
+package heart_beat
 
 import (
 	"net"
@@ -26,6 +26,6 @@ func TestHeart_beating(t *testing.T) {
 		conn.SetReadDeadline(time.Now().Add(time.Duration(10) * time.Second))
 
 		Log(conn.RemoteAddr().String(), "connect success!")
-		go handleConnection(conn)
+		go HandleConnection(conn)
 	}
 }

@@ -20,7 +20,7 @@ func (d *DagPool) CheckPolicy(ctx context.Context, policy userpolicy.DagPoolPoli
 // GetNode get the DagNode
 func (d *DagPool) GetNode(ctx context.Context, c cid.Cid) bserv.BlockService {
 	//todo mul node
-	get, err := d.TheNode.Get(c.String())
+	get, err := d.NRSys.Get(c.String())
 	if err != nil {
 		return nil
 	}
@@ -30,7 +30,7 @@ func (d *DagPool) GetNode(ctx context.Context, c cid.Cid) bserv.BlockService {
 // UseNode get the DagNode
 func (d *DagPool) UseNode(ctx context.Context, c cid.Cid) bserv.BlockService {
 	//todo mul node
-	err := d.TheNode.Add(c.String(), 0)
+	err := d.NRSys.Add(c.String(), 0)
 	if err != nil {
 		return nil
 	}
@@ -43,7 +43,7 @@ func (d *DagPool) GetNodes(ctx context.Context, cids []cid.Cid) map[bserv.BlockS
 	//
 	m := make(map[bserv.BlockService][]cid.Cid)
 	for _, c := range cids {
-		get, err := d.TheNode.Get(c.String())
+		get, err := d.NRSys.Get(c.String())
 		if err != nil {
 			return nil
 		}
@@ -55,7 +55,7 @@ func (d *DagPool) GetNodes(ctx context.Context, cids []cid.Cid) map[bserv.BlockS
 // UseNodes get the DagNode
 func (d *DagPool) UseNodes(ctx context.Context, c []cid.Cid) bserv.BlockService {
 	//todo mul node
-	err := d.TheNode.Add(c[0].String(), 0)
+	err := d.NRSys.Add(c[0].String(), 0)
 	if err != nil {
 		return nil
 	}
