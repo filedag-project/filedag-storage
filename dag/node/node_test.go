@@ -24,5 +24,13 @@ func TestDagNode_put(t *testing.T) {
 	if err == blocks.ErrWrongHash {
 		fmt.Println(err)
 	}
-	dagNode.Put(b)
+	err = dagNode.Put(b)
+	if err != nil {
+		fmt.Println(err)
+	}
+	dataBlock, err := dagNode.Get(aa)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(dataBlock)
 }

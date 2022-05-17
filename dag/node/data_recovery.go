@@ -116,7 +116,7 @@ func (d *DagNode) recoveryHost(oldIp, newIp, oldPort, newPort string) error {
 			merged[i] = res.DataBlock
 		}
 		i64, err := strconv.ParseInt(value, 10, 64)
-		if err == nil {
+		if err != nil {
 			log.Errorf("strconv fail :%v", err)
 		}
 		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, i64)
@@ -153,7 +153,7 @@ func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, erro
 	if index == -1 {
 		return index, errors.New("the old ip does not exist")
 	}
-	addr := flag.String("addr"+fmt.Sprint(index), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
+	addr := flag.String("addr"+fmt.Sprint(len(d.nodes)+1), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		conn.Close()
