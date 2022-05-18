@@ -54,7 +54,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 	}
 	r, err := referencecount.NewIdentityRefe(db)
 	dn := make(map[string]blockservice.BlockService)
-	var nrs NodeRecordSys
+	var nrs = NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
 		bs, err := node.NewDagNode(c)
 		if err != nil {
@@ -62,13 +62,13 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 			return nil, err
 		}
 		name := "the" + fmt.Sprintf("%v", num)
-		err = nrs.HandleDagNode(bs.GetIP(), name)
+		err = nrs.HandleDagNode(c.Nodes, name)
 		if err != nil {
 			return nil, err
 		}
 		dn[name] = blockservice.New(bs, offline.Exchange(bs))
 	}
-	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: NewRecordSys(db)}, nil
+	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: nrs}, nil
 }
 
 // Add adds a node to the DagPool, storing the block in the BlockService

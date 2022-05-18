@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"sync"
 )
@@ -19,11 +20,10 @@ func NewRecordSys(db *uleveldb.ULevelDB) NodeRecordSys {
 func (r *NodeRecordSys) Add(cid string, name string) error {
 	return r.Db.Put(dagPoolRecord+cid, name)
 }
-func (r *NodeRecordSys) HandleDagNode(ips []string, name string) error {
-	for _, ip := range ips {
-		log.Infof("start listen %v", ip)
-		//todo add ip
-		go r.StartListen(":7373", name)
+func (r *NodeRecordSys) HandleDagNode(cons []config.CaskConfig, name string) error {
+	for _, c := range cons {
+		log.Infof("start listen heartbeat %v", c.HeartAddr)
+		go r.StartListen(c.HeartAddr, name)
 	}
 	r.RN[name] = true
 	return nil

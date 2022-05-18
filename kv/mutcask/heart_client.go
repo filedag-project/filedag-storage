@@ -17,10 +17,10 @@ func SendHeartBeat(addr string) {
 		log.Errorf("Fatal error:%v", err.Error())
 		os.Exit(1)
 	}
-	log.Infof("%v,connection succcess!", conn.RemoteAddr().String())
+	log.Debugf("%v,connection succcess!", conn.RemoteAddr().String())
 
 	sender(conn)
-	log.Infof("send over")
+	log.Debugf("send over")
 }
 func sender(conn *net.TCPConn) {
 	for {
@@ -30,7 +30,7 @@ func sender(conn *net.TCPConn) {
 			log.Errorf(conn.RemoteAddr().String(), "Fatal error: ", err)
 			os.Exit(1)
 		}
-		log.Infof("sever accept:%v", msg)
-		time.Sleep(3 * time.Second)
+		log.Debugf("sever accept:%v", msg)
+		time.Sleep(10 * time.Second)
 	}
 }

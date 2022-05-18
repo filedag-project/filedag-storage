@@ -18,9 +18,9 @@ import (
 // StartTestDagPoolServer only for test
 func StartTestDagPoolServer(t *testing.T) {
 	logging.SetLogLevel("*", "INFO")
-	go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t))
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
-	go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
+	go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t), ":7373")
+	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t), ":7374")
+	go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t), ":7375")
 	time.Sleep(time.Millisecond * 500)
 	// listen port
 	lis, err := net.Listen("tcp", "localhost:9002")
@@ -56,7 +56,7 @@ func loadTestPoolConfig(t *testing.T) (cfg config.PoolConfig, err error) {
 	cfg.ImporterBatchNum = 4
 	var caskc []config.CaskConfig
 	for i := 0; i < 3; i++ {
-		caskc = append(caskc, config.CaskConfig{Ip: "127.0.0.1", Port: strconv.Itoa(9010 + i)})
+		caskc = append(caskc, config.CaskConfig{Ip: "127.0.0.1", Port: strconv.Itoa(9010 + i), HeartAddr: ":" + strconv.Itoa(7373+i)})
 	}
 	var c = config.NodeConfig{
 		Nodes:        caskc,

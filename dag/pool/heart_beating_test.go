@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
@@ -15,8 +16,9 @@ func TestHeart_beating(t *testing.T) {
 		log.Errorf("err %v", err)
 	}
 	r := NewRecordSys(db)
-	ips := []string{"127.0.0.1:7373"}
-	err = r.HandleDagNode(ips, "test")
+	var a []config.CaskConfig
+	a = append(a, config.CaskConfig{HeartAddr: ":7373"})
+	err = r.HandleDagNode(a, "test")
 	if err != nil {
 		return
 	}

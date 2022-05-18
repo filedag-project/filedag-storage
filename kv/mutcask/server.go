@@ -53,7 +53,7 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 	}, nil
 }
 
-func MutServer(ip, port, addr string) {
+func MutServer(ip, port, addr, heartPort string) {
 	flag.Parse()
 	// 监听端口
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", ip, port))
@@ -68,7 +68,7 @@ func MutServer(ip, port, addr string) {
 	}
 	log.Infof("listen:%v:%v", ip, port)
 	//proto.RegisterMutCaskServer(s,mutc)
-	SendHeartBeat("127.0.0.1:7373")
+	go SendHeartBeat(heartPort)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

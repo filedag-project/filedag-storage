@@ -72,7 +72,6 @@ func (r *NodeRecordSys) StartListen(addr, name string) {
 		log.Errorf("connect error:%v", err)
 		os.Exit(1)
 	}
-	log.Infof("Waiting for Client ...")
 	for {
 		conn, err := netListen.Accept()
 		if err != nil {

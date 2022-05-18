@@ -26,8 +26,9 @@ type NodeConfig struct {
 //}
 
 type CaskConfig struct {
-	Ip   string `json:"ip"`
-	Port string `json:"port"`
+	Ip        string `json:"ip"`
+	Port      string `json:"port"`
+	HeartAddr string `json:"heart_addr"`
 }
 
 //func DefaultConfig() *CaskConfig {

@@ -16,7 +16,7 @@ import (
 
 func TestStorageSys_Object(t *testing.T) {
 	go server.StartTestDagPoolServer(t)
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 5)
 	var s StorageSys
 	s.DagPool, _ = dagpoolclient.NewPoolClient("localhost:9002")
 	s.Db, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))

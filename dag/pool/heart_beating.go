@@ -21,7 +21,7 @@ func (r *NodeRecordSys) HandleConnection(conn net.Conn, name string) {
 		go r.HeartBeating(conn, message, 5, name)
 		go GravelChannel(Data, message)
 
-		log.Infof("%v,%v,%v", time.Now().Format("2006-01-02 15:04:05.0000000"), conn.RemoteAddr().String(), string(buffer[:n]))
+		log.Debugf("%v,%v,%v", time.Now().Format("2006-01-02 15:04:05.0000000"), conn.RemoteAddr().String(), string(buffer[:n]))
 	}
 }
 func GravelChannel(bytes []byte, mess chan byte) {
@@ -33,7 +33,7 @@ func GravelChannel(bytes []byte, mess chan byte) {
 func (r *NodeRecordSys) HeartBeating(conn net.Conn, bytes chan byte, timeout int, name string) {
 	select {
 	case fk := <-bytes:
-		log.Infof("%v heartbeat: the %v times", conn.RemoteAddr().String(), string(fk))
+		log.Debugf("%v heartbeat: the %v times", conn.RemoteAddr().String(), string(fk))
 		conn.SetDeadline(time.Now().Add(time.Duration(timeout) * time.Second))
 		break
 
