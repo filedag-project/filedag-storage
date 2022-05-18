@@ -20,7 +20,7 @@ import (
 
 const lockFileName = "repo.lock"
 
-var _ blockstore.Blockstore = (*DagNode)(nil)
+//var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
 	nodes                    []DataNode

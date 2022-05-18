@@ -13,8 +13,8 @@ import (
 
 var log = logging.Logger("dag-node")
 
-//prepare disk repair
-func (d *DagNode) recoveryDisk(ip, port string) error {
+// RepairDisk prepare disk repair
+func (d *DagNode) RepairDisk(ip, port string) error {
 	ctx := context.TODO()
 	keyCodeMap, err := d.db.ReadAll("")
 	if err != nil {
@@ -84,8 +84,8 @@ func (d *DagNode) recoveryDisk(ip, port string) error {
 	return err
 }
 
-//prepare host repair
-func (d *DagNode) recoveryHost(oldIp, newIp, oldPort, newPort string) error {
+// RepairHost prepare host repair
+func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 	ctx := context.TODO()
 	index, err := d.modifyConfig(oldIp, newIp, oldPort, newPort)
 	if err != nil {

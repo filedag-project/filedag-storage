@@ -9,10 +9,8 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-blockservice"
 	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	format "github.com/ipfs/go-ipld-format"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
@@ -29,7 +27,7 @@ var log = logging.Logger("dag-pool")
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type DagPool struct {
-	Blocks           map[string]bserv.BlockService
+	DagNodes         map[string]*node.DagNode
 	Iam              dagpooluser.IdentityUserSys
 	refer            referencecount.IdentityRefe
 	CidBuilder       cid.Builder
@@ -53,7 +51,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 		return nil, err
 	}
 	r, err := referencecount.NewIdentityRefe(db)
-	dn := make(map[string]blockservice.BlockService)
+	dn := make(map[string]*node.DagNode)
 	var nrs = NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
 		bs, err := node.NewDagNode(c)
@@ -66,9 +64,9 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 		if err != nil {
 			return nil, err
 		}
-		dn[name] = blockservice.New(bs, offline.Exchange(bs))
+		dn[name] = bs
 	}
-	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: nrs}, nil
+	return &DagPool{DagNodes: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: nrs}, nil
 }
 
 // Add adds a node to the DagPool, storing the block in the BlockService
@@ -80,7 +78,7 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 	if err != nil {
 		return err
 	}
-	return d.UseNode(ctx, nd.Cid()).AddBlock(nd)
+	return d.UseNode(ctx, nd.Cid()).Put(nd)
 }
 
 func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
@@ -94,7 +92,7 @@ func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
 		}
 		cids = append(cids, nd.Cid())
 	}
-	return d.UseNodes(ctx, cids).AddBlocks(blks)
+	return d.UseNodes(ctx, cids).PutMany(blks)
 }
 
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
@@ -105,7 +103,7 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	b, err := d.GetNode(ctx, c).GetBlock(ctx, c)
+	b, err := d.GetNode(ctx, c).Get(c)
 	if err != nil {
 		if err == bserv.ErrNotFound {
 			return nil, format.ErrNotFound
@@ -164,68 +162,43 @@ func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 // This method may not return all requested nodes (and may or may not return an
 // error indicating that it failed to do so. It is up to the caller to verify
 // that it received all nodes.
-func (d *DagPool) GetMany(ctx context.Context, keys []cid.Cid) <-chan *format.NodeOption {
-	m := d.GetNodes(ctx, keys)
-	var a <-chan *format.NodeOption
-	for _, b := range d.Blocks {
-		a = getNodesFromBG(ctx, b, m[b])
+//func (d *DagPool) GetMany(ctx context.Context, keys []cid.Cid) <-chan *format.NodeOption {
+//	m := d.GetNodes(ctx, keys)
+//	var a <-chan *format.NodeOption
+//	for _, b := range d.DagNodes {
+//		a = getNodesFromBG(ctx, b, m[b])
+//	}
+//	return a
+//}
+
+// DataRepairHost Data repair host
+func (d *DagPool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
+	if d == nil {
+		return fmt.Errorf("DagPool is nil")
 	}
-	return a
+	dagNode, err := d.GetNodeUseIP(ctx, oldIp)
+	if err != nil {
+		return err
+	}
+	return dagNode.RepairHost(oldIp, newIp, oldPort, newPort)
 }
 
-func dedupKeys(keys []cid.Cid) []cid.Cid {
-	set := cid.NewSet()
-	for _, c := range keys {
-		set.Add(c)
+// DataRepairDisk Data repair disk
+func (d *DagPool) DataRepairDisk(ctx context.Context, ip, port string) error {
+	if d == nil { // FIXME remove this assertion. protect with constructor invariant
+		return fmt.Errorf("DagPool is nil")
 	}
-	if set.Len() == len(keys) {
-		return keys
+	dagNode, err := d.GetNodeUseIP(ctx, ip)
+	if err != nil {
+		return err
 	}
-	return set.Keys()
-}
-
-func getNodesFromBG(ctx context.Context, bs bserv.BlockService, keys []cid.Cid) <-chan *format.NodeOption {
-	keys = dedupKeys(keys)
-
-	out := make(chan *format.NodeOption, len(keys))
-
-	blocks := bs.GetBlocks(ctx, keys)
-	var count int
-
-	go func() {
-		defer close(out)
-		for {
-			select {
-			case b, ok := <-blocks:
-				if !ok {
-					if count != len(keys) {
-						out <- &format.NodeOption{Err: fmt.Errorf("failed to fetch all nodes")}
-					}
-					return
-				}
-
-				nd, err := legacy.DecodeNode(ctx, b)
-				if err != nil {
-					out <- &format.NodeOption{Err: err}
-					return
-				}
-
-				out <- &format.NodeOption{Node: nd}
-				count++
-
-			case <-ctx.Done():
-				out <- &format.NodeOption{Err: ctx.Err()}
-				return
-			}
-		}
-	}()
-	return out
+	return dagNode.RepairDisk(ip, port)
 }
 
 // GetLinks is the type of function passed to the EnumerateChildren function(s)
 // for getting the children of an IPLD node.
-type GetLinks func(context.Context, cid.Cid) ([]*format.Link, error)
-
-var _ format.LinkGetter = &DagPool{}
-var _ format.NodeGetter = &DagPool{}
-var _ format.DAGService = &DagPool{}
+//type GetLinks func(context.Context, cid.Cid) ([]*format.Link, error)
+//
+//var _ format.LinkGetter = &DagPool{}
+//var _ format.NodeGetter = &DagPool{}
+//var _ format.DAGService = &DagPool{}

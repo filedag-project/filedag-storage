@@ -2,8 +2,8 @@ package pool
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
-	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"net"
 	"os"
@@ -21,60 +21,60 @@ func (d *DagPool) CheckPolicy(ctx context.Context, policy userpolicy.DagPoolPoli
 }
 
 // GetNode get the DagNode
-func (d *DagPool) GetNode(ctx context.Context, c cid.Cid) bserv.BlockService {
+func (d *DagPool) GetNode(ctx context.Context, c cid.Cid) *node.DagNode {
 	//todo mul node
 	get, err := d.NRSys.Get(c.String())
 	if err != nil {
 		return nil
 	}
-	return d.Blocks[get]
+	return d.DagNodes[get]
 }
 
 // UseNode get the DagNode
-func (d *DagPool) UseNode(ctx context.Context, c cid.Cid) bserv.BlockService {
+func (d *DagPool) UseNode(ctx context.Context, c cid.Cid) *node.DagNode {
 	//todo mul node
 	dn := d.NRSys.GetCanUseNode()
 	err := d.NRSys.Add(c.String(), dn)
 	if err != nil {
 		return nil
 	}
-	return d.Blocks[dn]
+	return d.DagNodes[dn]
 }
 
 // GetNodes get the DagNode
-func (d *DagPool) GetNodes(ctx context.Context, cids []cid.Cid) map[bserv.BlockService][]cid.Cid {
+func (d *DagPool) GetNodes(ctx context.Context, cids []cid.Cid) map[*node.DagNode][]cid.Cid {
 	//todo mul node
 	//
-	m := make(map[bserv.BlockService][]cid.Cid)
+	m := make(map[*node.DagNode][]cid.Cid)
 	for _, c := range cids {
 		get, err := d.NRSys.Get(c.String())
 		if err != nil {
 			return nil
 		}
-		m[d.Blocks[get]] = append(m[d.Blocks[get]], c)
+		m[d.DagNodes[get]] = append(m[d.DagNodes[get]], c)
 	}
 	return m
 }
 
 // UseNodes get the DagNode
-func (d *DagPool) UseNodes(ctx context.Context, c []cid.Cid) bserv.BlockService {
+func (d *DagPool) UseNodes(ctx context.Context, c []cid.Cid) *node.DagNode {
 	//todo mul node
 	dn := d.NRSys.GetCanUseNode()
 	err := d.NRSys.Add(c[0].String(), dn)
 	if err != nil {
 		return nil
 	}
-	return d.Blocks[dn]
+	return d.DagNodes[dn]
 }
 
 // GetNodeUseIP get the DagNode
-func (d *DagPool) GetNodeUseIP(ctx context.Context, ip string) (bserv.BlockService, error) {
+func (d *DagPool) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
 	//todo mul node
 	get, err := d.NRSys.GetNameUseIp(ip)
 	if err != nil {
 		return nil, err
 	}
-	return d.Blocks[get], nil
+	return d.DagNodes[get], nil
 }
 func (r *NodeRecordSys) StartListen(addr, name string) {
 	netListen, err := net.Listen("tcp", addr)
