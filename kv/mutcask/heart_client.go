@@ -1,13 +1,12 @@
 package mutcask
 
 import (
-	beat "github.com/filedag-project/filedag-storage/dag/node/heart_beat"
 	"net"
 	"os"
 	"time"
 )
 
-func sendHeartBeat(addr string) {
+func SendHeartBeat(addr string) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
 		//Log(os.Stderr, "Fatal error:", err.Error())
@@ -15,23 +14,23 @@ func sendHeartBeat(addr string) {
 	}
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		beat.Log("Fatal error:", err.Error())
+		log.Errorf("Fatal error:%v", err.Error())
 		os.Exit(1)
 	}
-	beat.Log(conn.RemoteAddr().String(), "connection succcess!")
+	log.Infof("%v,connection succcess!", conn.RemoteAddr().String())
 
 	sender(conn)
-	beat.Log("send over")
+	log.Infof("send over")
 }
 func sender(conn *net.TCPConn) {
 	for {
 		words := "heart beat client."
 		msg, err := conn.Write([]byte(words))
 		if err != nil {
-			beat.Log(conn.RemoteAddr().String(), "Fatal error: ", err)
+			log.Errorf(conn.RemoteAddr().String(), "Fatal error: ", err)
 			os.Exit(1)
 		}
-		beat.Log("sever accept", msg)
+		log.Infof("sever accept:%v", msg)
 		time.Sleep(3 * time.Second)
 	}
 }

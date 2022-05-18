@@ -2,7 +2,6 @@ package pool
 
 import (
 	"context"
-	beat "github.com/filedag-project/filedag-storage/dag/node/heart_beat"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	bserv "github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
@@ -65,7 +64,7 @@ func (d *DagPool) UseNodes(ctx context.Context, c []cid.Cid) bserv.BlockService 
 	}
 	return d.Blocks[0]
 }
-func (r *NodeRecordSys) StartListen(addr string) {
+func (r *NodeRecordSys) StartListen(addr, name string) {
 	netListen, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("connect error:%v", err)
@@ -80,7 +79,7 @@ func (r *NodeRecordSys) StartListen(addr string) {
 		}
 		conn.SetReadDeadline(time.Now().Add(time.Duration(10) * time.Second))
 
-		log.Infof(conn.RemoteAddr().String(), "connect success!")
-		go beat.HandleConnection(conn)
+		log.Infof("%v,%v", conn.RemoteAddr().String(), "connect success!")
+		go r.HandleConnection(conn, name)
 	}
 }
