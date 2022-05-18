@@ -66,6 +66,16 @@ func (d *DagPool) UseNodes(ctx context.Context, c []cid.Cid) bserv.BlockService 
 	}
 	return d.Blocks[dn]
 }
+
+// GetNodeUseIP get the DagNode
+func (d *DagPool) GetNodeUseIP(ctx context.Context, ip string) (bserv.BlockService, error) {
+	//todo mul node
+	get, err := d.NRSys.GetNameUseIp(ip)
+	if err != nil {
+		return nil, err
+	}
+	return d.Blocks[get], nil
+}
 func (r *NodeRecordSys) StartListen(addr, name string) {
 	netListen, err := net.Listen("tcp", addr)
 	if err != nil {
