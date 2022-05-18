@@ -10,7 +10,7 @@ import (
 )
 
 func TestHeart_beating(t *testing.T) {
-	logging.SetLogLevel("*", "INFO")
+	logging.SetLogLevel("*", "DEBUG")
 	db, err := uleveldb.OpenDb(utils.TmpDirPath(t))
 	if err != nil {
 		log.Errorf("err %v", err)
@@ -22,6 +22,6 @@ func TestHeart_beating(t *testing.T) {
 	if err != nil {
 		return
 	}
-	//go mutcask.SendHeartBeat("127.0.0.1:7373")
 	time.Sleep(time.Minute)
+	log.Infof("the node : %+v", r.RN)
 }

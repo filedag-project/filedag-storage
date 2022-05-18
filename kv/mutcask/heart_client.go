@@ -31,6 +31,6 @@ func sender(conn *net.TCPConn) {
 			os.Exit(1)
 		}
 		log.Debugf("sever accept:%v", msg)
-		time.Sleep(10 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
