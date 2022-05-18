@@ -16,8 +16,8 @@ const dagPoolRecord = "dagPoolRecord/"
 func NewRecordSys(db *uleveldb.ULevelDB) NodeRecordSys {
 	return NodeRecordSys{Db: db, RN: make(map[string]bool)}
 }
-func (r *NodeRecordSys) Add(cid string, theNode int64) error {
-	return r.Db.Put(dagPoolRecord+cid, theNode)
+func (r *NodeRecordSys) Add(cid string, name string) error {
+	return r.Db.Put(dagPoolRecord+cid, name)
 }
 func (r *NodeRecordSys) HandleDagNode(ips []string, name string) error {
 	for _, ip := range ips {
@@ -34,11 +34,19 @@ func (r *NodeRecordSys) Remove(name string) {
 	r.NodeLock.Unlock()
 }
 
-func (r *NodeRecordSys) Get(cid string) (int64, error) {
-	var theNode int64
-	err := r.Db.Get(dagPoolRecord+cid, &theNode)
+func (r *NodeRecordSys) Get(cid string) (string, error) {
+	var name string
+	err := r.Db.Get(dagPoolRecord+cid, &name)
 	if err != nil {
-		return -1, err
+		return "", err
 	}
-	return theNode, nil
+	return name, nil
+}
+func (r *NodeRecordSys) GetCanUseNode() string {
+	for n, st := range r.RN {
+		if st == true {
+			return n
+		}
+	}
+	return ""
 }

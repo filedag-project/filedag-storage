@@ -33,11 +33,12 @@ func (d *DagPool) GetNode(ctx context.Context, c cid.Cid) bserv.BlockService {
 // UseNode get the DagNode
 func (d *DagPool) UseNode(ctx context.Context, c cid.Cid) bserv.BlockService {
 	//todo mul node
-	err := d.NRSys.Add(c.String(), 0)
+	dn := d.NRSys.GetCanUseNode()
+	err := d.NRSys.Add(c.String(), dn)
 	if err != nil {
 		return nil
 	}
-	return d.Blocks[0]
+	return d.Blocks[dn]
 }
 
 // GetNodes get the DagNode
@@ -58,11 +59,12 @@ func (d *DagPool) GetNodes(ctx context.Context, cids []cid.Cid) map[bserv.BlockS
 // UseNodes get the DagNode
 func (d *DagPool) UseNodes(ctx context.Context, c []cid.Cid) bserv.BlockService {
 	//todo mul node
-	err := d.NRSys.Add(c[0].String(), 0)
+	dn := d.NRSys.GetCanUseNode()
+	err := d.NRSys.Add(c[0].String(), dn)
 	if err != nil {
 		return nil
 	}
-	return d.Blocks[0]
+	return d.Blocks[dn]
 }
 func (r *NodeRecordSys) StartListen(addr, name string) {
 	netListen, err := net.Listen("tcp", addr)

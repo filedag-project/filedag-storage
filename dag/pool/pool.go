@@ -29,7 +29,7 @@ var log = logging.Logger("dag-pool")
 // TODO: should cache Nodes that are in memory, and be
 //       able to free some of them when vm pressure is high
 type DagPool struct {
-	Blocks           []bserv.BlockService
+	Blocks           map[string]bserv.BlockService
 	Iam              dagpooluser.IdentityUserSys
 	refer            referencecount.IdentityRefe
 	CidBuilder       cid.Builder
@@ -53,7 +53,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 		return nil, err
 	}
 	r, err := referencecount.NewIdentityRefe(db)
-	var dn []blockservice.BlockService
+	dn := make(map[string]blockservice.BlockService)
 	var nrs NodeRecordSys
 	for num, c := range cfg.DagNodeConfig {
 		bs, err := node.NewDagNode(c)
@@ -61,11 +61,12 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 			log.Errorf("new dagnode err:%v", err)
 			return nil, err
 		}
-		err = nrs.HandleDagNode(bs.GetIP(), "the"+fmt.Sprintf("%v", num))
+		name := "the" + fmt.Sprintf("%v", num)
+		err = nrs.HandleDagNode(bs.GetIP(), name)
 		if err != nil {
 			return nil, err
 		}
-		dn = append(dn, blockservice.New(bs, offline.Exchange(bs)))
+		dn[name] = blockservice.New(bs, offline.Exchange(bs))
 	}
 	return &DagPool{Blocks: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: NewRecordSys(db)}, nil
 }
