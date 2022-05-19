@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package proto;      // 包名
-option go_package = '/server';    // 指定生成的go代码所存放的路径，不用提前创建
+option go_package = '../pool/server';    // 指定生成的go代码所存放的路径，不用提前创建
 
 service DagPool {
   rpc Add (AddReq) returns (AddReply) {}
