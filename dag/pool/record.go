@@ -33,31 +33,41 @@ func (r *NodeRecordSys) HandleDagNode(cons []node.DataNode, name string) error {
 	var ips []string
 	for _, c := range cons {
 		ips = append(ips, c.Ip)
-		go r.HandleConn(&c, name, c.Ip)
+		go r.HandleConn(&c, name, c.Ip, c.Port)
 	}
 	tmp := DagNodeInfo{true, ips}
 	r.RN[name] = tmp
 	return nil
 }
-func (r *NodeRecordSys) HandleConn(c *node.DataNode, name, ip string) {
+func (r *NodeRecordSys) HandleConn(c *node.DataNode, name, ip, port string) {
 	for {
 		log.Infof("heart")
 		watch, err := c.HeartClient.Watch(context.TODO(), &healthpb.HealthCheckRequest{Service: HealthCheckService})
 		if err != nil {
-			log.Errorf("watch %v err:%v", ip, err)
+			log.Errorf("watch %v:%v err:%v", ip, port, err)
 			r.Remove(name)
 			return
 		}
 		recv, err := watch.Recv()
 		if err != nil {
-			log.Errorf("Recv %v err:%v", ip, err)
+			log.Errorf("Recv %v:%v err:%v", ip, port, err)
 			r.Remove(name)
 			return
 		}
 		if recv.Status != healthpb.HealthCheckResponse_SERVING {
-			log.Errorf("%v not ser", ip)
+			log.Errorf("%v:%v not ser", ip, port)
 			r.Remove(name)
 		}
+		//res, err := c.HeartClient.Check(context.TODO(), &healthpb.HealthCheckRequest{Service: HealthCheckService})
+		//if err != nil {
+		//	log.Errorf("check err:%v", err)
+		//	r.Remove(name)
+		//	return
+		//}
+		//if res.Status != healthpb.HealthCheckResponse_SERVING {
+		//	log.Errorf("not ser")
+		//	r.Remove(name)
+		//}
 		time.Sleep(time.Second * 2)
 	}
 }
