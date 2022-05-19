@@ -22,9 +22,9 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 	}
 	index := -1
 	dataNode := new(DataNode)
-	for i, node := range d.nodes {
+	for i, node := range d.Nodes {
 		if node.Ip == ip && node.Port == port {
-			dataNode = &d.nodes[i]
+			dataNode = &d.Nodes[i]
 			index = i
 		}
 	}
@@ -43,7 +43,7 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 			continue
 		}
 		merged := make([][]byte, 0)
-		for i, node := range d.nodes {
+		for i, node := range d.Nodes {
 			if i == index {
 				merged = append(merged, nil)
 				continue
@@ -96,11 +96,11 @@ func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 	if err != nil {
 		return err
 	}
-	newDataNode := d.nodes[index]
+	newDataNode := d.Nodes[index]
 	for key, value := range keyCodeMap {
 		keyCode := sha256String(key)
-		merged := make([][]byte, len(d.nodes))
-		for i, node := range d.nodes {
+		merged := make([][]byte, len(d.Nodes))
+		for i, node := range d.Nodes {
 			if i == index {
 				merged[i] = nil
 				continue
@@ -147,7 +147,7 @@ func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 //modify node config
 func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, error) {
 	index := -1
-	for i, node := range d.nodes {
+	for i, node := range d.Nodes {
 		if node.Ip == oldIp && node.Port == oldPort {
 			index = i
 		}
@@ -155,15 +155,15 @@ func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, erro
 	if index == -1 {
 		return index, errors.New("the old ip does not exist")
 	}
-	addr := flag.String("addr"+fmt.Sprint(len(d.nodes)+1), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
+	addr := flag.String("addr"+fmt.Sprint(len(d.Nodes)+1), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
 		conn.Close()
 		return index, err
 	}
 	client := proto.NewMutCaskClient(conn)
-	d.nodes[index].Client = client
-	d.nodes[index].Ip = newIp
-	d.nodes[index].Port = newPort
+	d.Nodes[index].Client = client
+	d.Nodes[index].Ip = newIp
+	d.Nodes[index].Port = newPort
 	return index, nil
 }

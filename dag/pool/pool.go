@@ -60,7 +60,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 			return nil, err
 		}
 		name := "the" + fmt.Sprintf("%v", num)
-		err = nrs.HandleDagNode(c.Nodes, name)
+		err = nrs.HandleDagNode(bs.Nodes, name)
 		if err != nil {
 			return nil, err
 		}

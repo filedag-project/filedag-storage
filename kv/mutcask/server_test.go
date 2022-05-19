@@ -6,15 +6,15 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	MutServer("127.0.0.1", "9011", utils.TmpDirPath(t), ":7373")
+	MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
 }
 
 func TestServer2(t *testing.T) {
-	MutServer("127.0.0.1", "9012", utils.TmpDirPath(t), ":7373")
+	MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
 }
 
 func TestServer3(t *testing.T) {
-	MutServer("127.0.0.1", "9013", utils.TmpDirPath(t), ":7373")
+	MutServer("127.0.0.1", "9013", utils.TmpDirPath(t))
 }
 func TestHeartBeating(t *testing.T) {
 	SendHeartBeat("127.0.0.1:7373")

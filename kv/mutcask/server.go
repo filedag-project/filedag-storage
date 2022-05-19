@@ -7,6 +7,8 @@ import (
 	"github.com/filedag-project/filedag-storage/proto"
 	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"net"
 )
 
@@ -14,8 +16,11 @@ var log = logging.Logger("kv")
 
 type server struct {
 	proto.UnimplementedMutCaskServer
+	healthpb.UnimplementedHealthServer
 	mutcask *mutcask
 }
+
+const HealthCheckService = "grpc.health.v1.Health"
 
 func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*proto.AddResponse, error) {
 	err := s.mutcask.Put(in.Key, in.DataBlock)
@@ -52,8 +57,18 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 		Size: int64(size),
 	}, nil
 }
+func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
+}
+func (s *server) Watch(in *healthpb.HealthCheckRequest, w healthpb.Health_WatchServer) error {
+	err := w.Send(&healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING})
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-func MutServer(ip, port, addr, heartPort string) {
+func MutServer(ip, port, addr string) {
 	flag.Parse()
 	// 监听端口
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", ip, port))
@@ -61,14 +76,18 @@ func MutServer(ip, port, addr, heartPort string) {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
+
+	//HealthCheck
+	hs := health.NewServer()
+	hs.SetServingStatus(HealthCheckService, healthpb.HealthCheckResponse_SERVING)
+	healthpb.RegisterHealthServer(s, hs)
+
 	mutc, err := NewMutcask(PathConf(addr), CaskNumConf(6))
 	proto.RegisterMutCaskServer(s, &server{mutcask: mutc})
 	if err != nil {
 		return
 	}
 	log.Infof("listen:%v:%v", ip, port)
-	//proto.RegisterMutCaskServer(s,mutc)
-	go SendHeartBeat(heartPort)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

@@ -22,7 +22,7 @@ func TestDagNode_put(t *testing.T) {
 	err = json.Unmarshal(file, &nc)
 	dagNode, err := NewDagNode(nc)
 	time.Sleep(time.Millisecond * 50)
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t), ":7373")
+	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
 	data, err := ioutil.ReadFile("./node.go")
 	aa := cid.Cid{}
 	b, err := blocks.NewBlockWithCid(data, aa)
@@ -48,6 +48,6 @@ func TestNewDagNode(t *testing.T) {
 	err = json.Unmarshal(file, &nc)
 	NewDagNode(nc)
 	time.Sleep(time.Millisecond * 50)
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t), ":7373")
+	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
 	time.Sleep(time.Second * 20)
 }

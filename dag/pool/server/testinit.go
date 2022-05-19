@@ -18,9 +18,9 @@ import (
 // StartTestDagPoolServer only for test
 func StartTestDagPoolServer(t *testing.T) {
 	logging.SetLogLevel("*", "INFO")
-	go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t), ":7373")
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t), ":7374")
-	go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t), ":7375")
+	go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t))
+	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
+	go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
 	time.Sleep(time.Millisecond * 500)
 	// listen port
 	lis, err := net.Listen("tcp", "localhost:9002")

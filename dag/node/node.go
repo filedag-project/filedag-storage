@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -14,6 +13,7 @@ import (
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"google.golang.org/grpc"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"strings"
 	"sync"
 )
@@ -23,52 +23,54 @@ const lockFileName = "repo.lock"
 //var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
-	nodes                    []DataNode
+	Nodes                    []DataNode
 	db                       *uleveldb.ULevelDB
 	dataBlocks, parityBlocks int
 }
 
 type DataNode struct {
 	sync.Mutex
-	Client proto.MutCaskClient
-	Ip     string
-	Port   string
+	Client      proto.MutCaskClient
+	HeartClient healthpb.HealthClient
+	Ip          string
+	Port        string
 }
 
 func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
 	var s []DataNode
-	for i, c := range cfg.Nodes {
+	for _, c := range cfg.Nodes {
 		dateNode := new(DataNode)
-		sc, err := InitSliceConn(fmt.Sprint(i), c.Ip, c.Port)
+		sc, hc, err := InitSliceConn(c.Ip + ":" + c.Port)
 		if err != nil {
 			return nil, err
 		}
 		dateNode.Ip = c.Ip
 		dateNode.Port = c.Port
 		dateNode.Client = sc
+		dateNode.HeartClient = hc
 		s = append(s, *dateNode)
 	}
 	db, _ := uleveldb.OpenDb(cfg.LevelDbPath)
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
 }
 
-func InitSliceConn(index, ip, port string) (c proto.MutCaskClient, err error) {
-	addr := flag.String("addr"+fmt.Sprint(index), fmt.Sprintf("%s:%s", ip, port), "the address to connect to")
-	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
+func InitSliceConn(addr string) (c proto.MutCaskClient, h healthpb.HealthClient, err error) {
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		conn.Close()
 		log.Errorf("did not connect: %v", err)
-		return c, err
+		return c, h, err
 	}
 	//defer conn.Close()
 	// init client
+	h = healthpb.NewHealthClient(conn)
 	c = proto.NewMutCaskClient(conn)
-	return c, nil
+	return c, h, nil
 }
 
 func (d DagNode) GetIP() []string {
 	var s []string
-	for _, n := range d.nodes {
+	for _, n := range d.Nodes {
 		s = append(s, n.Ip)
 	}
 	return s
@@ -76,7 +78,7 @@ func (d DagNode) GetIP() []string {
 func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
-	for _, node := range d.nodes {
+	for _, node := range d.Nodes {
 		_, err := node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
 		if err != nil {
 			break
@@ -107,7 +109,7 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 	merged := make([][]byte, 0)
-	for _, node := range d.nodes {
+	for _, node := range d.Nodes {
 		res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 		if err != nil {
 			log.Errorf("mutcask get :%v", err)
@@ -134,7 +136,7 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 	keyCode := sha256String(cid.String())
 	var err error
 	var count int64
-	for _, node := range d.nodes {
+	for _, node := range d.Nodes {
 		size, err := node.Client.Size(ctx, &proto.SizeRequest{
 			Key: keyCode,
 		})
@@ -171,7 +173,7 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	if ok && err == nil {
 		log.Infof("encode ok, the data is the same format as Encode. No data is modified")
 	}
-	for i, node := range d.nodes {
+	for i, node := range d.Nodes {
 		_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
 		if err != nil {
 			break

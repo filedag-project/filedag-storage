@@ -1,10 +1,13 @@
 package pool
 
 import (
-	"github.com/filedag-project/filedag-storage/dag/config"
+	"context"
+	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"golang.org/x/xerrors"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"sync"
+	"time"
 )
 
 type NodeRecordSys struct {
@@ -17,6 +20,7 @@ type DagNodeInfo struct {
 	ips    []string
 }
 
+const HealthCheckService = "grpc.health.v1.Health"
 const dagPoolRecord = "dagPoolRecord/"
 
 func NewRecordSys(db *uleveldb.ULevelDB) NodeRecordSys {
@@ -25,20 +29,41 @@ func NewRecordSys(db *uleveldb.ULevelDB) NodeRecordSys {
 func (r *NodeRecordSys) Add(cid string, name string) error {
 	return r.Db.Put(dagPoolRecord+cid, name)
 }
-func (r *NodeRecordSys) HandleDagNode(cons []config.CaskConfig, name string) error {
+func (r *NodeRecordSys) HandleDagNode(cons []node.DataNode, name string) error {
 	var ips []string
 	for _, c := range cons {
-		log.Infof("start listen heartbeat %v", c.HeartAddr)
-		go r.StartListen(c.HeartAddr, name)
-		ips = append(ips, c.Ip+c.Port)
+		ips = append(ips, c.Ip)
+		go r.HandleConn(&c, name)
 	}
 	tmp := DagNodeInfo{true, ips}
 	r.RN[name] = tmp
 	return nil
 }
+func (r *NodeRecordSys) HandleConn(c *node.DataNode, name string) {
+	for {
+		log.Infof("aaa")
+		watch, err := c.HeartClient.Watch(context.TODO(), &healthpb.HealthCheckRequest{Service: HealthCheckService})
+		if err != nil {
+			log.Errorf("watch err:%v", err)
+			r.Remove(name)
+			return
+		}
+		recv, err := watch.Recv()
+		if err != nil {
+			log.Errorf("Recv err:%v", err)
+			r.Remove(name)
+			return
+		}
+		if recv.Status != healthpb.HealthCheckResponse_SERVING {
+			log.Errorf("not ser")
+			r.Remove(name)
+		}
+		time.Sleep(time.Second * 2)
+	}
+}
 func (r *NodeRecordSys) Remove(name string) {
 	r.NodeLock.Lock()
-	tmp := DagNodeInfo{true, r.RN[name].ips}
+	tmp := DagNodeInfo{false, r.RN[name].ips}
 	r.RN[name] = tmp
 	r.NodeLock.Unlock()
 }
