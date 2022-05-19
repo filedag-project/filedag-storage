@@ -32,8 +32,8 @@ func startServer() {
 	defer uleveldb.DBClient.Close()
 	router := mux.NewRouter()
 	iamapi.NewIamApiServer(router)
-	s3api.NewS3Server(router)
-
+	s := s3api.NewS3Server(router)
+	defer s.Close()
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
 	}

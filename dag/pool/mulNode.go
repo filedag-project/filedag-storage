@@ -5,10 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/ipfs/go-cid"
-	"net"
-	"os"
 	"strings"
-	"time"
 )
 
 // CheckPolicy check user policy
@@ -75,22 +72,4 @@ func (d *DagPool) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, e
 		return nil, err
 	}
 	return d.DagNodes[get], nil
-}
-func (r *NodeRecordSys) StartListen(addr, name string) {
-	netListen, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Errorf("connect error:%v", err)
-		os.Exit(1)
-	}
-	for {
-		conn, err := netListen.Accept()
-		if err != nil {
-			log.Errorf(conn.RemoteAddr().String(), "Fatal error: ", err)
-			continue
-		}
-		conn.SetReadDeadline(time.Now().Add(time.Duration(10) * time.Second))
-
-		log.Infof("%v,%v", conn.RemoteAddr().String(), "connect success!")
-		go r.HandleConnection(conn, name)
-	}
 }

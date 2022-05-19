@@ -10,6 +10,7 @@ import (
 	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
+	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
 	"strings"
 )
@@ -32,8 +33,6 @@ func NewPoolClient(addr string) (*PoolClient, error) {
 		log.Errorf("did not connect: %v", err)
 		return nil, err
 	}
-
-	// 实例化client
 	c := server.NewDagPoolClient(conn)
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	return &PoolClient{c, cidBuilder, conn}, nil
@@ -54,10 +53,6 @@ func (p PoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
 	return legacy.DecodeNode(ctx, blocks.NewBlock(get.Block))
 }
 
-func (p PoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
-	panic("implement me")
-}
-
 func (p PoolClient) Add(ctx context.Context, node format.Node) error {
 	s := strings.Split((ctx.Value("user")).(string), ",")
 	if len(s) != 2 {
@@ -71,10 +66,6 @@ func (p PoolClient) Add(ctx context.Context, node format.Node) error {
 		return err
 	}
 	return nil
-}
-
-func (p PoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
-	panic("implement me")
 }
 
 func (p PoolClient) Remove(ctx context.Context, cid cid.Cid) error {
@@ -94,9 +85,14 @@ func (p PoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	log.Infof("delete sucess %v ", reply.Message)
 	return err
 }
-
+func (p PoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
+	return xerrors.Errorf("implement me")
+}
+func (p PoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
+	return nil
+}
 func (p PoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
-	panic("implement me")
+	return xerrors.Errorf("implement me")
 }
 
 var _ format.DAGService = &PoolClient{}

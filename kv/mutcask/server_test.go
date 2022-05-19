@@ -16,6 +16,3 @@ func TestServer2(t *testing.T) {
 func TestServer3(t *testing.T) {
 	MutServer("127.0.0.1", "9013", utils.TmpDirPath(t))
 }
-func TestHeartBeating(t *testing.T) {
-	SendHeartBeat("127.0.0.1:7373")
-}
