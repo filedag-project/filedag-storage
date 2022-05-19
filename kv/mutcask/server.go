@@ -16,7 +16,6 @@ var log = logging.Logger("kv")
 
 type server struct {
 	proto.UnimplementedMutCaskServer
-	healthpb.UnimplementedHealthServer
 	mutcask *mutcask
 }
 
@@ -57,16 +56,17 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 		Size: int64(size),
 	}, nil
 }
-func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
-	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
-}
-func (s *server) Watch(in *healthpb.HealthCheckRequest, w healthpb.Health_WatchServer) error {
-	err := w.Send(&healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING})
-	if err != nil {
-		return err
-	}
-	return nil
-}
+
+//func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
+//	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
+//}
+//func (s *server) Watch(in *healthpb.HealthCheckRequest, w healthpb.Health_WatchServer) error {
+//	err := w.Send(&healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING})
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func MutServer(ip, port, addr string) {
 	flag.Parse()

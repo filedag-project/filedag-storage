@@ -8,7 +8,6 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	blocks "github.com/ipfs/go-block-format"
 	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
@@ -81,20 +80,6 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 	return d.UseNode(ctx, nd.Cid()).Put(nd)
 }
 
-func (d *DagPool) AddMany(ctx context.Context, nds []format.Node) error {
-	blks := make([]blocks.Block, len(nds))
-	var cids []cid.Cid
-	for i, nd := range nds {
-		blks[i] = nd
-		err := d.refer.AddReference(nd.Cid().String())
-		if err != nil {
-			return err
-		}
-		cids = append(cids, nd.Cid())
-	}
-	return d.UseNodes(ctx, cids).PutMany(blks)
-}
-
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
 func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	if d == nil {
@@ -114,19 +99,6 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	return legacy.DecodeNode(ctx, b)
 }
 
-// GetLinks return the links for the node, the node doesn't necessarily have
-// to exist locally.
-func (d *DagPool) GetLinks(ctx context.Context, c cid.Cid) ([]*format.Link, error) {
-	if c.Type() == cid.Raw {
-		return nil, nil
-	}
-	node, err := d.Get(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	return node.Links(), nil
-}
-
 func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("DagPool is nil")
@@ -137,39 +109,6 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 	}
 	return d.GetNode(ctx, c).DeleteBlock(c)
 }
-
-// RemoveMany removes multiple nodes from the DAG. It will likely be faster than
-// removing them individually.
-//
-// This operation is not atomic. If it returns an error, some nodes may or may
-// not have been removed.
-func (d *DagPool) RemoveMany(ctx context.Context, cids []cid.Cid) error {
-	// TODO(#4608): make this batch all the way down.
-	for _, c := range cids {
-		if err := d.GetNode(ctx, c).DeleteBlock(c); err != nil {
-			return err
-		}
-		err := d.refer.RemoveReference(c.String())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// GetMany gets many nodes from the DAG at once.
-//
-// This method may not return all requested nodes (and may or may not return an
-// error indicating that it failed to do so. It is up to the caller to verify
-// that it received all nodes.
-//func (d *DagPool) GetMany(ctx context.Context, keys []cid.Cid) <-chan *format.NodeOption {
-//	m := d.GetNodes(ctx, keys)
-//	var a <-chan *format.NodeOption
-//	for _, b := range d.DagNodes {
-//		a = getNodesFromBG(ctx, b, m[b])
-//	}
-//	return a
-//}
 
 // DataRepairHost Data repair host
 func (d *DagPool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
@@ -194,11 +133,3 @@ func (d *DagPool) DataRepairDisk(ctx context.Context, ip, port string) error {
 	}
 	return dagNode.RepairDisk(ip, port)
 }
-
-// GetLinks is the type of function passed to the EnumerateChildren function(s)
-// for getting the children of an IPLD node.
-//type GetLinks func(context.Context, cid.Cid) ([]*format.Link, error)
-//
-//var _ format.LinkGetter = &DagPool{}
-//var _ format.NodeGetter = &DagPool{}
-//var _ format.DAGService = &DagPool{}
