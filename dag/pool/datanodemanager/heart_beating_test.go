@@ -1,4 +1,4 @@
-package pool
+package datanodemanager
 
 import (
 	"github.com/filedag-project/filedag-storage/dag/node"

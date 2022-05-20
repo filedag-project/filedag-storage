@@ -106,6 +106,7 @@ func startDagPoolServer() {
 	}
 	service, err := pool.NewDagPoolService(con)
 	if err != nil {
+		log.Errorf("NewDagPoolService err:%v", err)
 		return
 	}
 	//add default user

@@ -6,6 +6,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
+	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	bserv "github.com/ipfs/go-blockservice"
@@ -31,7 +32,7 @@ type DagPool struct {
 	refer            referencecount.IdentityRefe
 	CidBuilder       cid.Builder
 	ImporterBatchNum int
-	NRSys            NodeRecordSys
+	NRSys            dnm.NodeRecordSys
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -51,7 +52,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 	}
 	r, err := referencecount.NewIdentityRefe(db)
 	dn := make(map[string]*node.DagNode)
-	var nrs = NewRecordSys(db)
+	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
 		bs, err := node.NewDagNode(c)
 		if err != nil {
