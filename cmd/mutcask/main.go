@@ -11,7 +11,7 @@ import (
 const (
 	defaultHost = "localhost"
 	defaultPort = "9010"
-	defaultPath = "/tmp/dag/data1"
+	defaultPath = "/tmp/dag/data"
 )
 
 func main() {
@@ -54,24 +54,24 @@ var startCmd = &cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		if c.String("host") != "" {
-			err := os.Setenv(defaultHost, c.String("host"))
+			err := os.Setenv(mutcask.Host, c.String("host"))
 			if err != nil {
 				return err
 			}
 		}
 		if c.String("port") != "" {
-			err := os.Setenv(defaultPort, c.String("port"))
+			err := os.Setenv(mutcask.Port, c.String("port"))
 			if err != nil {
 				return err
 			}
 		}
 		if c.String("path") != "" {
-			err := os.Setenv(defaultPath, c.String("path"))
+			err := os.Setenv(mutcask.Path, c.String("path"))
 			if err != nil {
 				return err
 			}
 		}
-		mutcask.MutServer(defaultHost, defaultPort, defaultPath)
+		mutcask.MutServer()
 		return nil
 	},
 }

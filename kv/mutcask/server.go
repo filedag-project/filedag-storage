@@ -10,9 +10,16 @@ import (
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"net"
+	"os"
 )
 
 var log = logging.Logger("kv")
+
+const (
+	Host = "HOST"
+	Port = "PORT"
+	Path = "PATH"
+)
 
 type server struct {
 	proto.UnimplementedMutCaskServer
@@ -68,10 +75,11 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 //	return nil
 //}
 
-func MutServer(ip, port, addr string) {
+func MutServer() {
+	fmt.Println("sa")
 	flag.Parse()
 	// 监听端口
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", ip, port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv(Host), os.Getenv(Port)))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -82,12 +90,12 @@ func MutServer(ip, port, addr string) {
 	hs.SetServingStatus(HealthCheckService, healthpb.HealthCheckResponse_SERVING)
 	healthpb.RegisterHealthServer(s, hs)
 
-	mutc, err := NewMutcask(PathConf(addr), CaskNumConf(6))
+	mutc, err := NewMutcask(PathConf(os.Getenv(Path)), CaskNumConf(6))
 	proto.RegisterMutCaskServer(s, &server{mutcask: mutc})
 	if err != nil {
 		return
 	}
-	log.Infof("listen:%v:%v", ip, port)
+	log.Infof("listen:%v:%v", os.Getenv(Host), os.Getenv(Port))
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
