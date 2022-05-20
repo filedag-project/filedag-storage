@@ -15,7 +15,7 @@ func (d *DagPoolPolicy) Allow(policy DagPoolPolicy) bool {
 	if *d == ReadWrite {
 		return true
 	} else if *d == policy {
-		return false
+		return true
 	} else {
 		return false
 	}
