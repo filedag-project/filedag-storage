@@ -21,7 +21,7 @@ func TestStorageSys_Object(t *testing.T) {
 	s.DagPool, _ = dagpoolclient.NewPoolClient("localhost:9002")
 	s.Db, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	os.Setenv(PoolUser, "pool")
-	os.Setenv(PoolPass, "pool")
+	os.Setenv(PoolPass, "pool123")
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	object, err := s.StoreObject(context.TODO(), "test", "testbucket", "testobject", r)
 	if err != nil {

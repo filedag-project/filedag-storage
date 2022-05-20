@@ -2,8 +2,10 @@ package server
 
 import (
 	"testing"
+	"time"
 )
 
 func TestServer(t *testing.T) {
-	StartTestDagPoolServer(t)
+	go StartTestDagPoolServer(t)
+	time.Sleep(time.Minute)
 }
