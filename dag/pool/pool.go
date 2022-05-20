@@ -77,7 +77,11 @@ func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
 	if err != nil {
 		return err
 	}
-	return d.UseNode(ctx, nd.Cid()).Put(nd)
+	useNode, err := d.UseNode(ctx, nd.Cid())
+	if err != nil {
+		return err
+	}
+	return useNode.Put(nd)
 }
 
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
@@ -87,8 +91,11 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
-	b, err := d.GetNode(ctx, c).Get(c)
+	getNode, err := d.GetNode(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	b, err := getNode.Get(c)
 	if err != nil {
 		if err == bserv.ErrNotFound {
 			return nil, format.ErrNotFound
@@ -107,7 +114,18 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	return d.GetNode(ctx, c).DeleteBlock(c)
+	reference, err := d.refer.QueryReference(c.String())
+	if err != nil {
+		return err
+	}
+	if reference == 0 {
+		getNode, err := d.GetNode(ctx, c)
+		if err != nil {
+			return err
+		}
+		return getNode.DeleteBlock(c)
+	}
+	return nil
 }
 
 // DataRepairHost Data repair host
