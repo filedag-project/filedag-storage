@@ -6,7 +6,6 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
-	"github.com/filedag-project/filedag-storage/kv/mutcask"
 	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
 	"net"
@@ -18,9 +17,9 @@ import (
 // StartTestDagPoolServer only for test
 func StartTestDagPoolServer(t *testing.T) {
 	logging.SetLogLevel("*", "INFO")
-	go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t))
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
-	go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
+	//go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t))
+	//go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
+	//go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
 	time.Sleep(time.Millisecond * 500)
 	// listen port
 	lis, err := net.Listen("tcp", "localhost:9002")
