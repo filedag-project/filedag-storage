@@ -150,6 +150,7 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 
 func (d DagNode) Put(block blocks.Block) (err error) {
 	ctx := context.TODO()
+	//todo store this info in datanode
 	err = d.db.Put(block.Cid().String(), len(block.RawData()))
 	if err != nil {
 		return err
