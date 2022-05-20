@@ -2,24 +2,33 @@ package main
 
 import (
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/urfave/cli/v2"
 	"os"
 )
 
-const (
-	defaultNodeConfig       = "dag/config/node_config.json"
-	defaultImporterBatchNum = "4"
-	defaultPoolDB           = "/tmp/leveldb2/pool.db"
-	defaultPoolAddr         = "localhost:50001"
-)
-
+//func main() {
+//	logging.SetLogLevel("*", "INFO")
+//	os.Setenv(DagPoolLeveldbPath, defaultPoolDB)
+//
+//	os.Setenv(DagNodeConfigPath, defaultNodeConfig)
+//
+//	os.Setenv(DagPoolImporterBatchNum, defaultImporterBatchNum)
+//	os.Setenv(DagPooListenAddr, defaultPoolListenAddr)
+//
+//	startDagPoolServer()
+//}
 func main() {
 	logging.SetLogLevel("*", "INFO")
-	os.Setenv(DagPoolLeveldbPath, defaultPoolDB)
-
-	os.Setenv(DagNodeConfig, defaultNodeConfig)
-
-	os.Setenv(DagPoolImporterBatchNum, defaultImporterBatchNum)
-	os.Setenv(DagPoolAddr, defaultPoolAddr)
-
-	startDagPoolServer()
+	local := []*cli.Command{
+		startCmd,
+	}
+	app := &cli.App{
+		Name:                 "file-dag-storage-dagpool",
+		Usage:                "file-dag-storage-dagpool",
+		Version:              "0.0.3",
+		EnableBashCompletion: true,
+		Commands:             local,
+	}
+	app.Setup()
+	app.Run(os.Args)
 }

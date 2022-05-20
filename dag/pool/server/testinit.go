@@ -40,7 +40,7 @@ func StartTestDagPoolServer(t *testing.T) {
 	//add default user
 	service.Iam.AddUser(dagpooluser.DagPoolUser{
 		Username: "pool",
-		Password: "pool",
+		Password: "pool123",
 		Policy:   userpolicy.ReadWrite,
 		Capacity: 0,
 	})

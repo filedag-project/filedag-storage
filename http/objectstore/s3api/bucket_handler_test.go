@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		return
 	}
-	err = os.Setenv(store.PoolPass, "pool")
+	err = os.Setenv(store.PoolPass, "pool123")
 	if err != nil {
 		return
 	}
