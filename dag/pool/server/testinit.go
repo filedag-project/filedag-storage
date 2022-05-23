@@ -22,7 +22,7 @@ func StartTestDagPoolServer(t *testing.T) {
 	//go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
 	time.Sleep(time.Millisecond * 500)
 	// listen port
-	lis, err := net.Listen("tcp", "localhost:9002")
+	lis, err := net.Listen("tcp", "localhost:50001")
 	if err != nil {
 		log.Errorf("failed to listen: %v", err)
 	}
