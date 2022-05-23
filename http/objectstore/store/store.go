@@ -113,6 +113,9 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 //DeleteObject Get object
 func (s *StorageSys) DeleteObject(user, bucket, object string) error {
 	//err := s.dagPool.DelFile(bucket, object)
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
 	err := s.Db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
 	if err != nil {
 		return err
