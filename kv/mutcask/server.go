@@ -78,7 +78,7 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 func MutServer() {
 	fmt.Println("mut cask start")
 	flag.Parse()
-	// 监听端口
+	// listen port
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv(Host), os.Getenv(Port)))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
