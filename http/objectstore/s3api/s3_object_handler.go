@@ -295,6 +295,42 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	response.WriteSuccessResponseXML(w, r, resp2)
 }
 
+func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Request) {
+	bucket, _ := getBucketAndObject(r)
+
+	// Check for auth type to return S3 compatible error.
+	// type to return the correct error (NoSuchKey vs AccessDenied)
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, "")
+	if s3Error != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
+	// Extract all the litsObjectsV1 query params to their native values.
+	prefix, marker, delimiter, maxKeys, encodingType, s3Error := getListObjectsV1Args(r.Form)
+	if s3Error != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+	objs, err := s3a.store.ListObject(cred.AccessKey, bucket)
+	if err != nil {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+
+	listObjectsInfo := response.ListObjectsInfo{
+		IsTruncated: false,
+		NextMarker:  "",
+		Objects:     objs,
+		Prefixes:    nil,
+	}
+	resp := generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType, maxKeys, listObjectsInfo)
+	// Write success response.
+	response.WriteSuccessResponseXML(w, r, resp)
+}
 func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Request) {
 	bucket, object := getBucketAndObject(r)
 
@@ -398,6 +434,27 @@ func setEtag(w http.ResponseWriter, etag string) {
 }
 func isReplace(r *http.Request) bool {
 	return r.Header.Get("X-Amz-Metadata-Directive") == "REPLACE"
+}
+
+// Parse bucket url queries
+func getListObjectsV1Args(values url.Values) (prefix, marker, delimiter string, maxkeys int, encodingType string, errCode api_errors.ErrorCode) {
+	errCode = api_errors.ErrNone
+
+	if values.Get("max-keys") != "" {
+		var err error
+		if maxkeys, err = strconv.Atoi(values.Get("max-keys")); err != nil {
+			errCode = api_errors.ErrInvalidMaxKeys
+			return
+		}
+	} else {
+		maxkeys = consts.MaxObjectList
+	}
+
+	prefix = trimLeadingSlash(values.Get("prefix"))
+	marker = trimLeadingSlash(values.Get("marker"))
+	delimiter = values.Get("delimiter")
+	encodingType = values.Get("encoding-type")
+	return
 }
 
 // Parse bucket url queries for ListObjects V2.
@@ -519,5 +576,52 @@ func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter,
 	}
 	data.CommonPrefixes = commonPrefixes
 	data.KeyCount = len(data.Contents) + len(data.CommonPrefixes)
+	return data
+}
+
+// generates an ListObjectsV1 response for the said bucket with other enumerated options.
+func generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, resp response.ListObjectsInfo) response.ListObjectsResponse {
+	contents := make([]response.Object, 0, len(resp.Objects))
+	a := consts.DefaultOwnerID
+	b := "fds"
+	owner := s3.Owner{
+		ID:          &a,
+		DisplayName: &b,
+	}
+	data := response.ListObjectsResponse{}
+
+	for _, object := range resp.Objects {
+		content := response.Object{}
+		if object.Name == "" {
+			continue
+		}
+		content.Key = utils.S3EncodeName(object.Name, encodingType)
+		content.LastModified = object.ModTime.UTC().Format(consts.Iso8601TimeFormat)
+		if object.ETag != "" {
+			content.ETag = "\"" + object.ETag + "\""
+		}
+		content.Size = object.Size
+		content.StorageClass = ""
+		content.Owner = owner
+		contents = append(contents, content)
+	}
+	data.Name = bucket
+	data.Contents = contents
+
+	data.EncodingType = encodingType
+	data.Prefix = utils.S3EncodeName(prefix, encodingType)
+	data.Marker = utils.S3EncodeName(marker, encodingType)
+	data.Delimiter = utils.S3EncodeName(delimiter, encodingType)
+	data.MaxKeys = maxKeys
+	data.NextMarker = utils.S3EncodeName(resp.NextMarker, encodingType)
+	data.IsTruncated = resp.IsTruncated
+
+	prefixes := make([]response.CommonPrefix, 0, len(resp.Prefixes))
+	for _, prefix := range resp.Prefixes {
+		prefixItem := response.CommonPrefix{}
+		prefixItem.Prefix = utils.S3EncodeName(prefix, encodingType)
+		prefixes = append(prefixes, prefixItem)
+	}
+	data.CommonPrefixes = prefixes
 	return data
 }

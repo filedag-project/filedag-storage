@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
+	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
 	"net/url"
@@ -161,6 +162,29 @@ type CopyObjectResult struct {
 type LocationResponse struct {
 	XMLName  xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ LocationConstraint" json:"-"`
 	Location string   `xml:",chardata"`
+}
+
+// ListObjectsInfo - container for list objects.
+type ListObjectsInfo struct {
+	// Indicates whether the returned list objects response is truncated. A
+	// value of true indicates that the list was truncated. The list can be truncated
+	// if the number of objects exceeds the limit allowed or specified
+	// by max keys.
+	IsTruncated bool
+
+	// When response is truncated (the IsTruncated element value in the response is true),
+	// you can use the key name in this field as marker in the subsequent
+	// request to get next set of objects.
+	//
+	// NOTE: AWS S3 returns NextMarker only if you have delimiter request parameter specified,
+	//       MinIO always returns NextMarker.
+	NextMarker string
+
+	// List of objects info for this request.
+	Objects []store.ObjectInfo
+
+	// List of prefixes for this request.
+	Prefixes []string
 }
 
 // ListObjectsResponse - format for list objects response.

@@ -166,7 +166,7 @@ type ListObjectsV2Info struct {
 
 // ListObjectsV2 list objects
 //todo use more param
-func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, prefix string, token string, delimiter string, keys int, owner bool, after string) (ListObjectsV2Info, error) {
+func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, prefix string, token string, delimiter string, keys int, owner bool, after string) (ListObjectsV2Info, error) {
 	objects, err := s.ListObject(user, bucket)
 	var o ListObjectsV2Info
 	if err != nil {
@@ -174,7 +174,9 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 	}
 	count := 0
 	for _, v := range objects {
-		if v.Name != after {
+		if after == "" {
+
+		} else if v.Name != after {
 			continue
 		}
 		if count > keys {

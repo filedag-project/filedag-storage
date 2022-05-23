@@ -83,6 +83,7 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		bucket.Methods(http.MethodHead).HandlerFunc(s3a.HeadBucketHandler)
 		// DeleteBucket
 		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketHandler)
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV1Handler)
 	}
 	// ListBuckets
 	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
