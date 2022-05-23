@@ -6,6 +6,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/kv/mutcask"
 	logging "github.com/ipfs/go-log/v2"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -40,8 +41,17 @@ func TestHeart_beating(t *testing.T) {
 }
 func Test_MutServer(t *testing.T) {
 	logging.SetLogLevel("*", "INFO")
-	go mutcask.MutServer("127.0.0.1", "9010", utils.TmpDirPath(t))
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
-	go mutcask.MutServer("127.0.0.1", "9012", utils.TmpDirPath(t))
+	os.Setenv(mutcask.Host, "127.0.0.1")
+	os.Setenv(mutcask.Port, "9011")
+	os.Setenv(mutcask.Path, utils.TmpDirPath(t))
+	go mutcask.MutServer()
+	os.Setenv(mutcask.Host, "127.0.0.1")
+	os.Setenv(mutcask.Port, "9012")
+	os.Setenv(mutcask.Path, utils.TmpDirPath(t))
+	go mutcask.MutServer()
+	os.Setenv(mutcask.Host, "127.0.0.1")
+	os.Setenv(mutcask.Port, "9013")
+	os.Setenv(mutcask.Path, utils.TmpDirPath(t))
+	go mutcask.MutServer()
 	time.Sleep(time.Minute * 10)
 }

@@ -9,6 +9,7 @@ import (
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 )
@@ -22,7 +23,10 @@ func TestDagNode_put(t *testing.T) {
 	err = json.Unmarshal(file, &nc)
 	dagNode, err := NewDagNode(nc)
 	time.Sleep(time.Millisecond * 50)
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
+	os.Setenv(mutcask.Host, "127.0.0.1")
+	os.Setenv(mutcask.Port, "9011")
+	os.Setenv(mutcask.Path, utils.TmpDirPath(t))
+	go mutcask.MutServer()
 	data, err := ioutil.ReadFile("./node.go")
 	aa := cid.Cid{}
 	b, err := blocks.NewBlockWithCid(data, aa)
@@ -48,6 +52,9 @@ func TestNewDagNode(t *testing.T) {
 	err = json.Unmarshal(file, &nc)
 	NewDagNode(nc)
 	time.Sleep(time.Millisecond * 50)
-	go mutcask.MutServer("127.0.0.1", "9011", utils.TmpDirPath(t))
+	os.Setenv(mutcask.Host, "127.0.0.1")
+	os.Setenv(mutcask.Port, "9011")
+	os.Setenv(mutcask.Path, utils.TmpDirPath(t))
+	go mutcask.MutServer()
 	time.Sleep(time.Second * 20)
 }
