@@ -1,9 +1,10 @@
-package pool
+package datanodemanager
 
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"strconv"
@@ -29,6 +30,8 @@ type DataNodeInfo struct {
 
 const HealthCheckService = "grpc.health.v1.Health"
 const dagPoolRecord = "dagPoolRecord/"
+
+var log = logging.Logger("data-node-manager")
 
 func NewRecordSys(db *uleveldb.ULevelDB) NodeRecordSys {
 	return NodeRecordSys{Db: db, RN: make(map[string]*DagNodeInfo)}
