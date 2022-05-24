@@ -43,6 +43,7 @@ func (p PoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
 	if len(s) != 2 {
 		return nil, userpolicy.AccessDenied
 	}
+	log.Infof(cid.String())
 	get, err := p.pc.Get(ctx, &server.GetReq{Cid: cid.String(), User: &server.PoolUser{
 		Username: s[0],
 		Pass:     s[1],
@@ -89,7 +90,25 @@ func (p PoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
 	return xerrors.Errorf("implement me")
 }
 func (p PoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
-	return nil
+	out := make(chan *format.NodeOption, len(cids))
+	defer close(out)
+	for _, c := range cids {
+		log.Infof(c.String())
+
+		b, err := p.Get(ctx, c)
+		if err != nil {
+			return nil
+		}
+
+		nd, err := legacy.DecodeNode(ctx, b)
+		if err != nil {
+			out <- &format.NodeOption{Err: err}
+			return nil
+		}
+		out <- &format.NodeOption{Node: nd}
+
+	}
+	return out
 }
 func (p PoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	return xerrors.Errorf("implement me")

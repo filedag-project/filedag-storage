@@ -70,7 +70,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 }
 
 //GetObject Get object
-func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
+func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, ufsio.DagReader, error) {
 	meta := ObjectInfo{}
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]

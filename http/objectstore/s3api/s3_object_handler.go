@@ -14,7 +14,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
 	"github.com/gorilla/mux"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -132,17 +131,12 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
 
 	response.SetObjectHeaders(w, r, objInfo)
-	r1, err := ioutil.ReadAll(reader)
+	w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
+	response.SetHeadGetRespHeaders(w, r.Form)
+	log.Infof("%v", reader.Size())
+	_, err = reader.WriteTo(w)
 	if err != nil {
 		log.Errorf("GetObjectHandler reader readAll err:%v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
-		return
-	}
-	w.Header().Set(consts.ContentLength, strconv.Itoa(len(r1)))
-	response.SetHeadGetRespHeaders(w, r.Form)
-	_, err = w.Write(r1)
-	if err != nil {
-		log.Errorf("GetObjectHandler header write err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
