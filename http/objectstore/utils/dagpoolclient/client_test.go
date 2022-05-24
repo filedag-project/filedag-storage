@@ -29,14 +29,14 @@ func TestPoolClient_Add_Get(t *testing.T) {
 	c := server.NewDagPoolClient(conn)
 	pc := PoolClient{c, cidBuilder, conn}
 	var ctx = context.Background()
-	ctx = context.WithValue(ctx, "user", "pool,pool")
+	ctx = context.WithValue(ctx, "user", "pool,pool123")
 	node, err := BalanceNode(ctx, r, pc, cidBuilder)
 	if err != nil {
 		log.Errorf("err:%v", err)
 		return
 	}
 	fmt.Println("aaaaa", node.Cid().String())
-	ctx = context.WithValue(ctx, "user", "pool,pool")
+	ctx = context.WithValue(ctx, "user", "pool,pool123")
 	get, err := pc.Get(ctx, node.Cid())
 	if err != nil {
 		log.Errorf("err:%v", err)
