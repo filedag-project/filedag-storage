@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipfs/go-merkledag"
 )
 
 var log = logging.Logger("dag-pool-server")
@@ -18,7 +18,7 @@ type DagPoolService struct {
 }
 
 func (s *DagPoolService) Add(ctx context.Context, in *AddReq) (*AddReply, error) {
-	data := merkledag.NodeWithData(in.GetBlock()[2:])
+	data := blocks.NewBlock(in.GetBlock())
 	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &AddReply{Cid: ""}, userpolicy.AccessDenied
 	}

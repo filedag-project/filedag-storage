@@ -9,10 +9,10 @@ import (
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	blocks "github.com/ipfs/go-block-format"
 	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
-	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	// blank import is used to register the IPLD raw codec
@@ -70,23 +70,23 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 }
 
 // Add adds a node to the DagPool, storing the block in the BlockService
-func (d *DagPool) Add(ctx context.Context, nd format.Node) error {
+func (d *DagPool) Add(ctx context.Context, block blocks.Block) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("DagPool is nil")
 	}
-	err := d.refer.AddReference(nd.Cid().String())
+	err := d.refer.AddReference(block.Cid().String())
 	if err != nil {
 		return err
 	}
-	useNode, err := d.UseNode(ctx, nd.Cid())
+	useNode, err := d.UseNode(ctx, block.Cid())
 	if err != nil {
 		return err
 	}
-	return useNode.Put(nd)
+	return useNode.Put(block)
 }
 
 // Get retrieves a node from the DagPool, fetching the block in the BlockService
-func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
+func (d *DagPool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	if d == nil {
 		return nil, fmt.Errorf("DagPool is nil")
 	}
@@ -104,7 +104,7 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (format.Node, error) {
 		return nil, fmt.Errorf("failed to get block for %s: %v", c, err)
 	}
 
-	return legacy.DecodeNode(ctx, b)
+	return b, nil
 }
 
 func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
