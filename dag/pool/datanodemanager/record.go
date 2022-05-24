@@ -63,7 +63,7 @@ func (r *NodeRecordSys) HandleConn(c *node.DataNode, name string, dataName strin
 	for {
 		r.NodeLock.Lock()
 		dni := r.RN[name].dataNodeInfo[dataName]
-		log.Infof("heart")
+		log.Debugf("heart")
 		check, err := c.HeartClient.Check(context.TODO(), &healthpb.HealthCheckRequest{Service: HealthCheckService})
 		if err != nil {
 			log.Errorf("Check the %v ip:%v,port:%v err:%v", dni.name, dni.ip, dni.port, err)

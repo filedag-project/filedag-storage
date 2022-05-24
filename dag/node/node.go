@@ -172,7 +172,7 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 		return err
 	}
 	if ok && err == nil {
-		log.Infof("encode ok, the data is the same format as Encode. No data is modified")
+		log.Debugf("encode ok, the data is the same format as Encode. No data is modified")
 	}
 	for i, node := range d.Nodes {
 		_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
