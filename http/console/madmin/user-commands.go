@@ -14,7 +14,7 @@ import (
 // ListUsers - list all users.
 func (adm *AdminClient) ListUsers(ctx context.Context) (users []*iam.User, err error) {
 	reqData := requestData{
-		relPath: admin + adminAPIPrefix + AdminAPIVersionV1 + "/list-user",
+		relPath: admin + adminAPIPrefix + AdminAPIVersionV1 + "/list-all-sub-users",
 	}
 	resp, err := adm.executeMethod(ctx, http.MethodGet, reqData)
 	defer closeResponse(resp)
@@ -120,7 +120,7 @@ type UserInfo struct {
 func (adm *AdminClient) GetUserInfo(ctx context.Context, name string) (*UserInfo, error) {
 	var userInfo UserInfo
 	queryValues := url.Values{}
-	queryValues.Set("userName", name)
+	queryValues.Set("accessKey", name)
 	reqData := requestData{
 		relPath:     admin + adminAPIPrefix + AdminAPIVersionV1 + "/user-info",
 		queryValues: queryValues,
@@ -166,7 +166,6 @@ func (adm *AdminClient) SetUserStatus(ctx context.Context, accessKey string, sta
 		queryValues: queryValues,
 	}
 
-	// Execute PUT on /minio/admin/v3/set-user-status to set status.
 	resp, err := adm.executeMethod(ctx, http.MethodPut, reqData)
 
 	defer closeResponse(resp)

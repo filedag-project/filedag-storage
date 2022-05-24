@@ -21,7 +21,6 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lestrrat-go/jwx v1.2.19
-	github.com/minio/sha256-simd v1.0.0
 	github.com/prometheus/procfs v0.7.3
 	github.com/rjeczalik/notify v0.9.2
 	github.com/secure-io/sio-go v0.3.1

@@ -9,9 +9,9 @@ import (
 
 func Test_getListBucketsResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
-		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		STSAccessKeyID:     "KIBUMQ2R8LWCC5USEMFH",
+		STSSecretAccessKey: "ryQOZEdygKk4dhQ9b8uGR6loQBHHIRbRPu9NXoeN",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJLSUJVTVEyUjhMV0NDNVVTRU1GSCIsImV4cCI6MTY1MDM0MDQ0OCwicGFyZW50IjoidGVzdCJ9.f2Pc-PUQrzx8zqeXHxvG2FXZZVGrR3uMWQCf8dSSXiSSCF_IqszaycvacKrCC1QZO-DhNB9JgK3rDlEUupHRHg",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -28,9 +28,9 @@ func Test_getListBucketsResponse(t *testing.T) {
 
 func Test_getCreateBucketResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
-		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		STSAccessKeyID:     "KIBUMQ2R8LWCC5USEMFH",
+		STSSecretAccessKey: "ryQOZEdygKk4dhQ9b8uGR6loQBHHIRbRPu9NXoeN",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJLSUJVTVEyUjhMV0NDNVVTRU1GSCIsImV4cCI6MTY1MDM0MDQ0OCwicGFyZW50IjoidGVzdCJ9.f2Pc-PUQrzx8zqeXHxvG2FXZZVGrR3uMWQCf8dSSXiSSCF_IqszaycvacKrCC1QZO-DhNB9JgK3rDlEUupHRHg",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -58,9 +58,9 @@ func Test_getDeleteBucketResponse(t *testing.T) {
 
 func Test_putBucketPolicyResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
-		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		STSAccessKeyID:     "KIBUMQ2R8LWCC5USEMFH",
+		STSSecretAccessKey: "ryQOZEdygKk4dhQ9b8uGR6loQBHHIRbRPu9NXoeN",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJLSUJVTVEyUjhMV0NDNVVTRU1GSCIsImV4cCI6MTY1MDM0MDQ0OCwicGFyZW50IjoidGVzdCJ9.f2Pc-PUQrzx8zqeXHxvG2FXZZVGrR3uMWQCf8dSSXiSSCF_IqszaycvacKrCC1QZO-DhNB9JgK3rDlEUupHRHg",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}

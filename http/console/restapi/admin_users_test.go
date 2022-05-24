@@ -9,9 +9,9 @@ import (
 
 func Test_getListUsersResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "G4H0E4D5X3C9T5V2WTR8",
-		STSSecretAccessKey: "kI+8s47yq783LjgGlQafGMLUj4koAJEEGnBcNjez",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJHNEgwRTRENVgzQzlUNVYyV1RSOCIsImV4cCI6MTY0OTIzMjg1MywicGFyZW50IjoidGVzdCJ9.QgvVQT5JorikftAF_D0ZTb6ofA_lulieM5YFhXlXBlPdHaKNsJAafvt74tQU7og6nrZBPIocniIF4mIigKNvsQ",
+		STSAccessKeyID:     "PPB2H0J6RLDINHXCTICB",
+		STSSecretAccessKey: "uyK1awAXLA+IgE5EOOWg9a0W9qN7Y3iHqgWXo5zR",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJQUEIySDBKNlJMRElOSFhDVElDQiIsImV4cCI6MTY1MDM1NTgyNiwicGFyZW50IjoidGVzdCJ9.-nH15EdPGtIlj3dNFtWPdzw80ZzLgMR8g7t5YhpEPnQVQ-wvRLHB86cKJ4KBN91VlgAx3pzZeseuY1Itn5Rsmw",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -29,13 +29,13 @@ func Test_getListUsersResponse(t *testing.T) {
 
 func Test_getUserAddResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
-		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		STSAccessKeyID:     "PPB2H0J6RLDINHXCTICB",
+		STSSecretAccessKey: "uyK1awAXLA+IgE5EOOWg9a0W9qN7Y3iHqgWXo5zR",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJQUEIySDBKNlJMRElOSFhDVElDQiIsImV4cCI6MTY1MDM1NTgyNiwicGFyZW50IjoidGVzdCJ9.-nH15EdPGtIlj3dNFtWPdzw80ZzLgMR8g7t5YhpEPnQVQ-wvRLHB86cKJ4KBN91VlgAx3pzZeseuY1Itn5Rsmw",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
-	accessKey := "admin"
+	accessKey := "admin1"
 	secretKey := "admin1234"
 	param := models.AddUserParams{
 		Body: &models.AddUserRequest{
@@ -56,9 +56,9 @@ func Test_getUserAddResponse(t *testing.T) {
 
 func Test_getRemoveUserResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "CZJLK4KJUG02NY2UHQQA",
-		STSSecretAccessKey: "Ql3ppQPiF7eB+Y4at+TUIbWafiuEt0Wst77SWLF1",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJDWkpMSzRLSlVHMDJOWTJVSFFRQSIsImV4cCI6MTY0OTIyODkxMiwicGFyZW50IjoidGVzdCJ9.T-lutD97PK5IsuiNRtKBCiMZYg5wI0o1SjbKSvBmdYItkUptF1x3s91RXFNtZxhRrtbOxGqHtE3lAlVZXxaaoQ",
+		STSAccessKeyID:     "PPB2H0J6RLDINHXCTICB",
+		STSSecretAccessKey: "uyK1awAXLA+IgE5EOOWg9a0W9qN7Y3iHqgWXo5zR",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJQUEIySDBKNlJMRElOSFhDVElDQiIsImV4cCI6MTY1MDM1NTgyNiwicGFyZW50IjoidGVzdCJ9.-nH15EdPGtIlj3dNFtWPdzw80ZzLgMR8g7t5YhpEPnQVQ-wvRLHB86cKJ4KBN91VlgAx3pzZeseuY1Itn5Rsmw",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
@@ -76,9 +76,9 @@ func Test_getRemoveUserResponse(t *testing.T) {
 
 func Test_getUserInfoResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "ND04P21NLS472ILQ7O4A",
-		STSSecretAccessKey: "mrRX9dPPvKfJK+1xNkpDLRCOZ+Dnjz02wIBmL+9X",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJORDA0UDIxTkxTNDcySUxRN080QSIsImV4cCI6MTY0OTIzNzM2OSwicGFyZW50IjoidGVzdCJ9.KWSRJujOlwdVjVBqfvInP_umvupeAkQc5r4MCvkqEb_Q_rI0G4yGe04FIif1uVb_pDSEGHrXVYV-XFBxA9LDRQ",
+		STSAccessKeyID:     "PPB2H0J6RLDINHXCTICB",
+		STSSecretAccessKey: "uyK1awAXLA+IgE5EOOWg9a0W9qN7Y3iHqgWXo5zR",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJQUEIySDBKNlJMRElOSFhDVElDQiIsImV4cCI6MTY1MDM1NTgyNiwicGFyZW50IjoidGVzdCJ9.-nH15EdPGtIlj3dNFtWPdzw80ZzLgMR8g7t5YhpEPnQVQ-wvRLHB86cKJ4KBN91VlgAx3pzZeseuY1Itn5Rsmw",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}

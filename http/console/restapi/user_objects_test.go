@@ -12,16 +12,16 @@ import (
 
 func Test_getUploadObjectResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "RFHEVBU72KNPLRNIYR6C",
-		STSSecretAccessKey: "VXyVlRZkIqR2Lmyv2xUwKaLgg3ONMvHchlHaXb0c",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJSRkhFVkJVNzJLTlBMUk5JWVI2QyIsImV4cCI6MTY0ODUyMDM0OSwicGFyZW50IjoidGVzdDEifQ.6_Q7oQ_YNlufwTFI-aTVGYQudbKa_Inp6IwxB_OuoPRFDFyfNa_tYF8DdBSLgxTtXlY5ub5Aehy8FTGvIkt8Fw",
+		STSAccessKeyID:     "KIBUMQ2R8LWCC5USEMFH",
+		STSSecretAccessKey: "ryQOZEdygKk4dhQ9b8uGR6loQBHHIRbRPu9NXoeN",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJLSUJVTVEyUjhMV0NDNVVTRU1GSCIsImV4cCI6MTY1MDM0MDQ0OCwicGFyZW50IjoidGVzdCJ9.f2Pc-PUQrzx8zqeXHxvG2FXZZVGrR3uMWQCf8dSSXiSSCF_IqszaycvacKrCC1QZO-DhNB9JgK3rDlEUupHRHg",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
 	mClient, err := NewAdminClient(session)
 	client := AdminClient{Client: mClient}
 	r1, _ := ioutil.ReadFile("user_objects.go")
-	err = client.putObject(context.Background(), "testName", "name.go", bytes.NewReader(r1), int64(len(r1)))
+	err = client.putObject(context.Background(), "testN", "name.go", bytes.NewReader(r1), int64(len(r1)))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -45,16 +45,17 @@ func Test_getDownloadObjectResponse(t *testing.T) {
 
 func Test_getListObjectResponse(t *testing.T) {
 	session := &models.Principal{
-		STSAccessKeyID:     "M0MXISFDO8JQ51HK8AFJ",
-		STSSecretAccessKey: "Aj575Ec17PUrdRHbXRL+KW3tH7hocDhJRyQt2yQh",
-		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJNME1YSVNGRE84SlE1MUhLOEFGSiIsImV4cCI6MTY0OTI0MjU3MywicGFyZW50IjoidGVzdCJ9.VwJq5ZQpiT59tPcGbrFydEq_o7W-E_CtbLALxz1WqrP_D3tQbB28EvCsEUvVOYuwV0KsfKKrIsDxeOHNSHxo2w",
+		STSAccessKeyID:     "KIBUMQ2R8LWCC5USEMFH",
+		STSSecretAccessKey: "ryQOZEdygKk4dhQ9b8uGR6loQBHHIRbRPu9NXoeN",
+		STSSessionToken:    "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NLZXkiOiJLSUJVTVEyUjhMV0NDNVVTRU1GSCIsImV4cCI6MTY1MDM0MDQ0OCwicGFyZW50IjoidGVzdCJ9.f2Pc-PUQrzx8zqeXHxvG2FXZZVGrR3uMWQCf8dSSXiSSCF_IqszaycvacKrCC1QZO-DhNB9JgK3rDlEUupHRHg",
 		AccountAccessKey:   "test",
 		Hm:                 false,
 	}
 	params := models.ListObjectsParams{
-		BucketName: "test22",
+		BucketName: "testN",
 	}
-	objects, err := getListObjectsResponse(session, params)
+	apiServer := ApiServer{}
+	objects, err := apiServer.GetListObjectsResponse(session, params)
 	if err != nil {
 		fmt.Println(err)
 	}
