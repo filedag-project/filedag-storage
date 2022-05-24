@@ -85,9 +85,9 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer dataReader.Close()
-	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader)
+	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader, size)
 	if err2 != nil {
-		log.Errorf("PutObjectHandler StoreObject err:%v", err1)
+		log.Errorf("PutObjectHandler StoreObject err:%v", err2)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -251,14 +251,14 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	log.Infof("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
-	_, i, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
+	a, i, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
 	if err != nil {
 		log.Errorf("CopyObjectHandler StoreObject err:%v", err)
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
 		return
 	}
 	if (srcBucket == dstBucket && srcObject == dstObject || cpSrcPath == "") && isReplace(r) {
-		object, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i)
+		object, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i, a.Size)
 		if err != nil {
 			return
 		}
@@ -279,7 +279,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrInvalidCopyDest)
 		return
 	}
-	obj, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i)
+	obj, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i, a.Size)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return

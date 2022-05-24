@@ -10,7 +10,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	ufsio "github.com/ipfs/go-unixfs/io"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -37,7 +36,7 @@ func getPoolUser() string {
 }
 
 //StoreObject store object
-func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser) (ObjectInfo, error) {
+func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64) (ObjectInfo, error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
@@ -46,16 +45,15 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 	if err != nil {
 		return ObjectInfo{}, err
 	}
-	all, err := ioutil.ReadAll(reader)
 	meta := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
 		ModTime:          time.Now().UTC(),
-		Size:             int64(len(all)),
+		Size:             size,
 		IsDir:            false,
 		ETag:             node.Cid().String(),
 		VersionID:        "",
-		IsLatest:         false,
+		IsLatest:         true,
 		DeleteMarker:     false,
 		ContentType:      "application/x-msdownload",
 		ContentEncoding:  "",
