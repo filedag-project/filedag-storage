@@ -128,7 +128,7 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 		go func(i int, node DataNode) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
+					log.Errorf("%s:%s, keyCode:%s, mutcask get err :%v", node.Ip, node.Port, keyCode, err)
 				}
 				wg.Done()
 			}()
