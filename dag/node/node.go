@@ -212,7 +212,7 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for i, node := range d.Nodes {
-		func(i int, node DataNode) {
+		go func(i int, node DataNode) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s,keyCode:%s,mutcask put :%v", node.Ip, node.Port, keyCode, err)
