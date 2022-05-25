@@ -124,7 +124,7 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 		if err != nil {
 			return err
 		}
-		return getNode.DeleteBlock(c)
+		go getNode.DeleteBlock(c)
 	}
 	return nil
 }

@@ -76,20 +76,24 @@ func (d DagNode) GetIP() []string {
 	return s
 }
 func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
+	log.Infof("delete block, cid :%v", cid)
 	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for _, node := range d.Nodes {
-		go func() {
+		go func(node DataNode) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("%s:%s delete block err :%v", node.Ip, node.Port, err)
+					log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
 				}
 				wg.Done()
 			}()
 			_, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
-		}()
+			if err != nil {
+				log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
+			}
+		}(node)
 	}
 	wg.Wait()
 	return err
@@ -108,6 +112,7 @@ func (d DagNode) Has(cid cid.Cid) (bool, error) {
 }
 
 func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
+	log.Infof("get block, cid :%v", cid)
 	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
 	var err error
@@ -116,16 +121,37 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	merged := make([][]byte, 0)
-	for _, node := range d.Nodes {
-		res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
-		if err != nil {
-			log.Errorf("mutcask get :%v", err)
-		}
-		merged = append(merged, res.DataBlock)
+	merged := make([][]byte, len(d.Nodes))
+	wg := sync.WaitGroup{}
+	wg.Add(len(d.Nodes))
+	for i, node := range d.Nodes {
+		go func(i int, node DataNode) {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
+				}
+				wg.Done()
+			}()
+			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
+			if err != nil {
+				log.Errorf("%s:%s, keyCode:%s,mutcask get :%v", node.Ip, node.Port, keyCode, err)
+				merged[i] = nil
+			} else {
+				merged[i] = res.DataBlock
+			}
+		}(i, node)
 	}
+	wg.Wait()
 	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(size))
-	enc.DecodeDataBlocks(merged)
+	if err != nil {
+		log.Errorf("new erasure fail :%v", err)
+		return nil, err
+	}
+	err = enc.DecodeDataBlocks(merged)
+	if err != nil {
+		log.Errorf("decode date blocks fail :%v", err)
+		return nil, err
+	}
 	var data []byte
 	data = bytes.Join(merged, []byte(""))
 	if err != nil {
@@ -157,6 +183,7 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 }
 
 func (d DagNode) Put(block blocks.Block) (err error) {
+	log.Infof("put block, cid :%v", block.Cid())
 	ctx := context.TODO()
 	//todo store this info in datanode
 	err = d.db.Put(block.Cid().String(), len(block.RawData()))
@@ -182,13 +209,23 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	if ok && err == nil {
 		log.Debugf("encode ok, the data is the same format as Encode. No data is modified")
 	}
+	wg := sync.WaitGroup{}
+	wg.Add(len(d.Nodes))
 	for i, node := range d.Nodes {
-		_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
-		if err != nil {
-			break
-		}
+		func(i int, node DataNode) {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Errorf("%s:%s,keyCode:%s,mutcask put :%v", node.Ip, node.Port, keyCode, err)
+				}
+				wg.Done()
+			}()
+			_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
+			if err != nil {
+				log.Errorf("%s:%s,keyCode:%s,mutcask put :%v", node.Ip, node.Port, keyCode, err)
+			}
+		}(i, node)
 	}
-
+	wg.Wait()
 	return err
 }
 
