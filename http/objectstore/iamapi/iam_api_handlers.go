@@ -104,17 +104,18 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 
 // ChangePassword change password
 func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 
 	secret := r.FormValue("newPassword")
+	userName := r.FormValue(AccessKey)
 	if !auth.IsSecretKeyValid(secret) {
 		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
 	}
-	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), cred.AccessKey)
+	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), userName)
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
 		return
@@ -138,8 +139,8 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 
 	user := r.FormValue(AccessKey)
 	status := r.FormValue("status")
-	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), user)
-	if !ok {
+	c, _ := iamApi.authSys.Iam.GetUser(r.Context(), user)
+	if c.AccessKey == "" {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
 		return
 	}
