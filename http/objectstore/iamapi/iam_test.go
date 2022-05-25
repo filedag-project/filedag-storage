@@ -357,6 +357,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 		//change password
 		urlValues := make(url.Values)
 		urlValues.Set("newPassword", "admin12345")
+		urlValues.Set("username", "changeTest")
 		//urlValues.Set("status", string(iam.AccountDisabled
 		reqChange := testsign.MustNewSignedV4Request(http.MethodPost, changePassUrl+urlValues.Encode(), 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result = reqTest(reqChange)
