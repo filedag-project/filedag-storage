@@ -78,12 +78,20 @@ func (d DagNode) GetIP() []string {
 func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
+	wg := sync.WaitGroup{}
+	wg.Add(len(d.Nodes))
 	for _, node := range d.Nodes {
-		_, err := node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
-		if err != nil {
-			break
-		}
+		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Errorf("%s:%s delete block err :%v", node.Ip, node.Port, err)
+				}
+				wg.Done()
+			}()
+			_, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
+		}()
 	}
+	wg.Wait()
 	return err
 }
 
@@ -184,8 +192,11 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	return err
 }
 
-func (d DagNode) PutMany(blocks []blocks.Block) error {
-	panic("implement me")
+func (d DagNode) PutMany(blocks []blocks.Block) (err error) {
+	for _, block := range blocks {
+		err = d.Put(block)
+	}
+	return err
 }
 
 func (d DagNode) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {

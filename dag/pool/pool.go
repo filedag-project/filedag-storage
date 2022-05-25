@@ -143,7 +143,7 @@ func (d *DagPool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, new
 
 // DataRepairDisk Data repair disk
 func (d *DagPool) DataRepairDisk(ctx context.Context, ip, port string) error {
-	if d == nil { // FIXME remove this assertion. protect with constructor invariant
+	if d == nil {
 		return fmt.Errorf("DagPool is nil")
 	}
 	dagNode, err := d.GetNodeUseIP(ctx, ip)
