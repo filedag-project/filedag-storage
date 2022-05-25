@@ -198,7 +198,7 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchKey)
 		return
 	}
-	err := s3a.store.DeleteObject(cred.AccessKey, bucket, object)
+	err := s3a.store.DeleteObject(r.Context(), cred.AccessKey, bucket, object)
 	if err != nil {
 		log.Errorf("DeleteObjectHandler DeleteObject  err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
