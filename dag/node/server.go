@@ -1,19 +1,18 @@
-package mutcask
+package node
 
 import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/kv"
+	"github.com/filedag-project/filedag-storage/kv/mutcask"
 	"github.com/filedag-project/filedag-storage/proto"
-	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"net"
 	"os"
 )
-
-var log = logging.Logger("kv")
 
 const (
 	Host = "HOST"
@@ -23,13 +22,13 @@ const (
 
 type server struct {
 	proto.UnimplementedMutCaskServer
-	mutcask *mutcask
+	kvdb kv.KVDB
 }
 
 const HealthCheckService = "grpc.health.v1.Health"
 
 func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*proto.AddResponse, error) {
-	err := s.mutcask.Put(in.Key, in.DataBlock)
+	err := s.kvdb.Put(in.Key, in.DataBlock)
 	if err != nil {
 		return &proto.AddResponse{Message: "failed"}, err
 	}
@@ -37,7 +36,7 @@ func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*proto.AddRespo
 }
 
 func (s *server) Get(ctx context.Context, in *proto.GetRequest) (*proto.GetResponse, error) {
-	bytes, err := s.mutcask.Get(in.Key)
+	bytes, err := s.kvdb.Get(in.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +46,7 @@ func (s *server) Get(ctx context.Context, in *proto.GetRequest) (*proto.GetRespo
 }
 
 func (s *server) Delete(ctx context.Context, in *proto.DeleteRequest) (*proto.DeleteResponse, error) {
-	err := s.mutcask.Delete(in.Key)
+	err := s.kvdb.Delete(in.Key)
 	if err != nil {
 		return &proto.DeleteResponse{Message: "failed"}, err
 	}
@@ -55,13 +54,17 @@ func (s *server) Delete(ctx context.Context, in *proto.DeleteRequest) (*proto.De
 }
 
 func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeResponse, error) {
-	size, err := s.mutcask.Size(in.Key)
+	size, err := s.kvdb.Size(in.Key)
 	if err != nil {
 		return nil, err
 	}
 	return &proto.SizeResponse{
 		Size: int64(size),
 	}, nil
+}
+
+func (s *server) Shutdown() error {
+	return s.kvdb.Close()
 }
 
 //func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
@@ -76,7 +79,7 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 //}
 
 func MutServer() {
-	fmt.Println("mut cask start")
+	fmt.Println("datanode start")
 	flag.Parse()
 	// listen port
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv(Host), os.Getenv(Port)))
@@ -90,8 +93,8 @@ func MutServer() {
 	hs.SetServingStatus(HealthCheckService, healthpb.HealthCheckResponse_SERVING)
 	healthpb.RegisterHealthServer(s, hs)
 
-	mutc, err := NewMutcask(PathConf(os.Getenv(Path)), CaskNumConf(6))
-	proto.RegisterMutCaskServer(s, &server{mutcask: mutc})
+	mutc, err := mutcask.NewMutcask(mutcask.PathConf(os.Getenv(Path)), mutcask.CaskNumConf(6))
+	proto.RegisterMutCaskServer(s, &server{kvdb: mutc})
 	if err != nil {
 		return
 	}

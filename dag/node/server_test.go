@@ -1,4 +1,4 @@
-package mutcask
+package node
 
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"

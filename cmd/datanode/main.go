@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/kv/mutcask"
+	"github.com/filedag-project/filedag-storage/dag/node"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -54,24 +54,24 @@ var startCmd = &cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		if c.String("host") != "" {
-			err := os.Setenv(mutcask.Host, c.String("host"))
+			err := os.Setenv(node.Host, c.String("host"))
 			if err != nil {
 				return err
 			}
 		}
 		if c.String("port") != "" {
-			err := os.Setenv(mutcask.Port, c.String("port"))
+			err := os.Setenv(node.Port, c.String("port"))
 			if err != nil {
 				return err
 			}
 		}
 		if c.String("path") != "" {
-			err := os.Setenv(mutcask.Path, c.String("path"))
+			err := os.Setenv(node.Path, c.String("path"))
 			if err != nil {
 				return err
 			}
 		}
-		mutcask.MutServer()
+		node.MutServer()
 		return nil
 	},
 }
