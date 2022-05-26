@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-package proto;      // 包名
-option go_package = './';    // 指定生成的go代码所存放的路径，不用提前创建
+package proto;
+option go_package = '../proto';
 option cc_generic_services = true;
 
 service MutCask {

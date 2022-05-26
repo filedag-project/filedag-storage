@@ -2,8 +2,8 @@ package client
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
@@ -18,7 +18,7 @@ import (
 var log = logging.Logger("pool-client")
 
 type PoolClient struct {
-	pc         server.DagPoolClient
+	pc         proto.DagPoolClient
 	CidBuilder cid.Builder
 	conn       *grpc.ClientConn
 }
@@ -33,7 +33,7 @@ func NewPoolClient(addr string) (*PoolClient, error) {
 		log.Errorf("did not connect: %v", err)
 		return nil, err
 	}
-	c := server.NewDagPoolClient(conn)
+	c := proto.NewDagPoolClient(conn)
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	return &PoolClient{c, cidBuilder, conn}, nil
 }
@@ -44,7 +44,7 @@ func (p PoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
 		return nil, userpolicy.AccessDenied
 	}
 	log.Infof(cid.String())
-	get, err := p.pc.Get(ctx, &server.GetReq{Cid: cid.String(), User: &server.PoolUser{
+	get, err := p.pc.Get(ctx, &proto.GetReq{Cid: cid.String(), User: &proto.PoolUser{
 		Username: s[0],
 		Pass:     s[1],
 	}})
@@ -59,7 +59,7 @@ func (p PoolClient) Add(ctx context.Context, node format.Node) error {
 	if len(s) != 2 {
 		return userpolicy.AccessDenied
 	}
-	_, err := p.pc.Add(ctx, &server.AddReq{Block: node.RawData(), User: &server.PoolUser{
+	_, err := p.pc.Add(ctx, &proto.AddReq{Block: node.RawData(), User: &proto.PoolUser{
 		Username: s[0],
 		Pass:     s[1],
 	}})
@@ -74,9 +74,9 @@ func (p PoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	if len(s) != 2 {
 		return userpolicy.AccessDenied
 	}
-	reply, err := p.pc.Remove(ctx, &server.RemoveReq{
+	reply, err := p.pc.Remove(ctx, &proto.RemoveReq{
 		Cid: cid.String(),
-		User: &server.PoolUser{
+		User: &proto.PoolUser{
 			Username: s[0],
 			Pass:     s[1],
 		}})

@@ -5,6 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
@@ -43,7 +44,7 @@ func StartTestDagPoolServer(t *testing.T) {
 		Policy:   userpolicy.ReadWrite,
 		Capacity: 0,
 	})
-	RegisterDagPoolServer(s, &DagPoolService{DagPool: service})
+	proto.RegisterDagPoolServer(s, &DagPoolService{DagPool: service})
 	log.Infof("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Errorf("failed to serve: %v", err)

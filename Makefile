@@ -21,3 +21,5 @@ clean:
 	-rm -f ${DATANODE_TARGET}
 	-rm -f ${OBJECTSTORE_TARGET}
 
+proto:
+	protoc --go_out=./dag/proto --go-grpc_out=./dag/proto dag/proto/*.proto --proto_path=./dag/proto
