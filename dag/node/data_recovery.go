@@ -5,7 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/proto"
+	"github.com/filedag-project/filedag-storage/dag/proto"
 	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
 	"strconv"
