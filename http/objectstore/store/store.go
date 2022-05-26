@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils/dagpoolclient"
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	ufsio "github.com/ipfs/go-unixfs/io"
@@ -20,7 +20,7 @@ var log = logging.Logger("store")
 //StorageSys store sys
 type StorageSys struct {
 	Db      *uleveldb.ULevelDB
-	DagPool *dagpoolclient.PoolClient
+	DagPool *dagpoolcli.PoolClient
 }
 
 const (
@@ -41,7 +41,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		object = object[1:]
 	}
 	ctx = context.WithValue(ctx, "user", getPoolUser())
-	node, err := dagpoolclient.BalanceNode(ctx, reader, s.DagPool, s.DagPool.CidBuilder)
+	node, err := dagpoolcli.BalanceNode(ctx, reader, s.DagPool, s.DagPool.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -209,7 +209,7 @@ func (s *StorageSys) Init() error {
 	s.Db = uleveldb.DBClient
 	var err error
 
-	s.DagPool, err = dagpoolclient.NewPoolClient(os.Getenv(PoolAddr))
+	s.DagPool, err = dagpoolcli.NewPoolClient(os.Getenv(PoolAddr))
 	if err != nil {
 		return err
 	}

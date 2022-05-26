@@ -1,4 +1,4 @@
-package dagpoolclient
+package client
 
 import (
 	"context"
