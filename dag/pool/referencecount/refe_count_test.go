@@ -9,7 +9,7 @@ import (
 
 func TestIdentityRefer(t *testing.T) {
 	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	identityRefe := IdentityRefe{db}
+	identityRefe := IdentityRefe{DB: db}
 	cid := "123456789"
 	testCases := []struct {
 		isRemove bool
