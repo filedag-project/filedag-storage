@@ -128,13 +128,13 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 		go func(i int, node DataNode) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("%s:%s, keyCode:%s, mutcask get err :%v", node.Ip, node.Port, keyCode, err)
+					log.Errorf("%s:%s, keyCode:%s, kvdb get err :%v", node.Ip, node.Port, keyCode, err)
 				}
 				wg.Done()
 			}()
 			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
-				log.Errorf("%s:%s, keyCode:%s,mutcask get :%v", node.Ip, node.Port, keyCode, err)
+				log.Errorf("%s:%s, keyCode:%s,kvdb get :%v", node.Ip, node.Port, keyCode, err)
 				merged[i] = nil
 			} else {
 				merged[i] = res.DataBlock
@@ -215,13 +215,13 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 		go func(i int, node DataNode) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("%s:%s,keyCode:%s,mutcask put :%v", node.Ip, node.Port, keyCode, err)
+					log.Errorf("%s:%s,keyCode:%s,kvdb put :%v", node.Ip, node.Port, keyCode, err)
 				}
 				wg.Done()
 			}()
 			_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
 			if err != nil {
-				log.Errorf("%s:%s,keyCode:%s,mutcask put :%v", node.Ip, node.Port, keyCode, err)
+				log.Errorf("%s:%s,keyCode:%s,kvdb put :%v", node.Ip, node.Port, keyCode, err)
 			}
 		}(i, node)
 	}

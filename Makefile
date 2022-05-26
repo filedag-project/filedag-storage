@@ -4,6 +4,8 @@ DAGPOOL_TARGET=./dagpool
 DATANODE_TARGET=./datanode
 OBJECTSTORE_TARGET=./objectstore
 
+build: clean dagpool datanode objectstore
+
 dagpool:
 	go build -ldflags "-s -w" -o ${DAGPOOL_TARGET} ./cmd/dagpool
 
@@ -12,8 +14,6 @@ datanode:
 
 objectstore:
 	go build -ldflags "-s -w" -o ${OBJECTSTORE_TARGET} ./cmd/objectstore
-
-build: clean dagpool datanode objectstore
 
 .PHONY: clean
 clean:

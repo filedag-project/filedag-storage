@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
-	"github.com/filedag-project/filedag-storage/kv/mutcask"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"io/ioutil"
@@ -58,9 +57,9 @@ func TestNewDagNode(t *testing.T) {
 	err = json.Unmarshal(file, &nc)
 	NewDagNode(nc)
 	time.Sleep(time.Millisecond * 50)
-	os.Setenv(mutcask.Host, "127.0.0.1")
-	os.Setenv(mutcask.Port, "9011")
-	os.Setenv(mutcask.Path, utils.TmpDirPath(t))
-	go mutcask.MutServer()
+	os.Setenv(Host, "127.0.0.1")
+	os.Setenv(Port, "9011")
+	os.Setenv(Path, utils.TmpDirPath(t))
+	go MutServer()
 	time.Sleep(time.Second * 20)
 }
