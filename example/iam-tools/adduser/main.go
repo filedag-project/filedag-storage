@@ -15,6 +15,7 @@ const (
 	addUserUrl = "/admin/v1/add-user"
 )
 
+//go run -tags example main.go --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg --pass=wpg123456
 func main() {
 	var addr, accessKey, secretKey, username, pass string
 
@@ -27,7 +28,7 @@ func main() {
 	flag.Parse()
 	if addr == "" || accessKey == "" || secretKey == "" || username == "" || pass == "" {
 		fmt.Println("please check your input\n " +
-			"USAGE ERROR: go run -tags example main.go --addr= --access-key= secret-key= --username= --pass=")
+			"USAGE ERROR: go run -tags example main.go --addr= --access-key= --secret-key= --username= --pass=")
 		return
 	}
 	run(addr, accessKey, secretKey, username, pass)
