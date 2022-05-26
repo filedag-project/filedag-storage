@@ -1,10 +1,9 @@
-package signature
+package utils
 
 import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/md5"
-	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -34,20 +33,23 @@ const (
 	yyyymmdd        = "20060102"
 )
 
-type serviceType string
+type ServiceType string
 
 //MustNewSignedV4Request  NewSignedV4Request
-func MustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, st serviceType, accessKey, secretKey string, t *testing.T) *http.Request {
-	req := mustNewRequest(method, urlStr, contentLength, body, t)
+func MustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, st ServiceType, accessKey, secretKey string, t *testing.T) *http.Request {
+	req, err := NewRequest(method, urlStr, contentLength, body)
+	if err != nil {
+		t.Fatalf("newTestRequest fail err:%v", err)
+	}
 	cred := &auth.Credentials{AccessKey: accessKey, SecretKey: secretKey}
-	if err := signRequestV4(req, cred.AccessKey, cred.SecretKey, st); err != nil {
+	if err := SignRequestV4(req, cred.AccessKey, cred.SecretKey, st); err != nil {
 		t.Fatalf("Unable to inititalized new signed http request %s", err)
 	}
 	return req
 }
 
-// Sign given request using Signature V4.
-func signRequestV4(req *http.Request, accessKey, secretKey string, st serviceType) error {
+// SignRequestV4 Sign given request using Signature V4.
+func SignRequestV4(req *http.Request, accessKey, secretKey string, st ServiceType) error {
 	// Get hashed payload.
 	hashedPayload := getContentSha256Cksum(req)
 	currTime := time.Now()
@@ -110,15 +112,15 @@ func signRequestV4(req *http.Request, accessKey, secretKey string, st serviceTyp
 		"aws4_request",
 	}, "/")
 	// Get canonical request.
-	canonicalRequest := getCanonicalRequest(headerMap, hashedPayload, queryStr, req.URL.Path, req.Method)
+	canonicalRequest := GetCanonicalRequest(headerMap, hashedPayload, queryStr, req.URL.Path, req.Method)
 	// Get string to sign from canonical request.
-	stringToSign := getStringToSign(canonicalRequest, currTime, scope)
+	stringToSign := GetStringToSign(canonicalRequest, currTime, scope)
 
 	// Get hmac signing key.
-	signingKey := getSigningKey(secretKey, currTime, region, string(st))
+	signingKey := GetSigningKey(secretKey, currTime, region, string(st))
 
 	// Calculate signature.
-	newSignature := getSignature(signingKey, stringToSign)
+	newSignature := GetSignature(signingKey, stringToSign)
 
 	parts := []string{
 		"AWS4-HMAC-SHA256" + " Credential=" + accessKey + "/" + scope,
@@ -134,14 +136,14 @@ func signRequestV4(req *http.Request, accessKey, secretKey string, st serviceTyp
 // if object matches reserved string, no need to encode them
 var reservedObjectNames = regexp.MustCompile("^[a-zA-Z0-9-_.~/]+$")
 
-// encodePath encode the strings from UTF-8 byte representations to HTML hex escape sequences
+// EncodePath encode the strings from UTF-8 byte representations to HTML hex escape sequences
 //
 // This is necessary since regular url.Parse() and url.Encode() functions do not support UTF-8
 // non english characters cannot be parsed due to the nature in which url.Encode() is written
 //
 // This function on the other hand is a direct replacement for url.Encode() technique to support
 // pretty much every UTF-8 character.
-func encodePath(pathName string) string {
+func EncodePath(pathName string) string {
 	if reservedObjectNames.MatchString(pathName) {
 		return pathName
 	}
@@ -172,17 +174,8 @@ func encodePath(pathName string) string {
 	return encodedPathname
 }
 
-// Provides a fully populated http request instance, fails otherwise.
-func mustNewRequest(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
-	req, err := newTestRequest(method, urlStr, contentLength, body)
-	if err != nil {
-		t.Fatalf("Unable to initialize new http request %s", err)
-	}
-	return req
-}
-
-// Returns new HTTP request object.
-func newTestRequest(method, urlStr string, contentLength int64, body io.ReadSeeker) (*http.Request, error) {
+// NewRequest Returns new HTTP request object.
+func NewRequest(method, urlStr string, contentLength int64, body io.ReadSeeker) (*http.Request, error) {
 	if method == "" {
 		method = "POST"
 	}
@@ -268,7 +261,7 @@ func getContentSha256Cksum(r *http.Request) string {
 	return defaultSha256Cksum
 }
 
-// getCanonicalRequest generate a canonical request of style
+// GetCanonicalRequest generate a canonical request of style
 //
 // canonicalRequest =
 //  <HTTPMethod>\n
@@ -278,22 +271,22 @@ func getContentSha256Cksum(r *http.Request) string {
 //  <SignedHeaders>\n
 //  <HashedPayload>
 //
-func getCanonicalRequest(extractedSignedHeaders http.Header, payload, queryStr, urlPath, method string) string {
+func GetCanonicalRequest(extractedSignedHeaders http.Header, payload, queryStr, urlPath, method string) string {
 	rawQuery := strings.ReplaceAll(queryStr, "+", "%20")
-	encodedPath := encodePath(urlPath)
+	encodedPath := EncodePath(urlPath)
 	canonicalRequest := strings.Join([]string{
 		method,
 		encodedPath,
 		rawQuery,
 		getCanonicalHeaders(extractedSignedHeaders),
-		getSignedHeaders(extractedSignedHeaders),
+		GetSignedHeaders(extractedSignedHeaders),
 		payload,
 	}, "\n")
 	return canonicalRequest
 }
 
-// getSignedHeaders generate a string i.e alphabetically sorted, semicolon-separated list of lowercase request header names
-func getSignedHeaders(signedHeaders http.Header) string {
+// GetSignedHeaders generate a string i.e alphabetically sorted, semicolon-separated list of lowercase request header names
+func GetSignedHeaders(signedHeaders http.Header) string {
 	var headers []string
 	for k := range signedHeaders {
 		headers = append(headers, strings.ToLower(k))
@@ -327,8 +320,8 @@ func getCanonicalHeaders(signedHeaders http.Header) string {
 	return buf.String()
 }
 
-// getStringToSign a string based on selected query values.
-func getStringToSign(canonicalRequest string, t time.Time, scope string) string {
+// GetStringToSign a string based on selected query values.
+func GetStringToSign(canonicalRequest string, t time.Time, scope string) string {
 	stringToSign := signV4Algorithm + "\n" + t.Format(iso8601Format) + "\n"
 	stringToSign += scope + "\n"
 	canonicalRequestBytes := sha256.Sum256([]byte(canonicalRequest))
@@ -336,8 +329,8 @@ func getStringToSign(canonicalRequest string, t time.Time, scope string) string 
 	return stringToSign
 }
 
-// getSigningKey hmac seed to calculate final signature.
-func getSigningKey(secretKey string, t time.Time, region string, stype string) []byte {
+// GetSigningKey hmac seed to calculate final signature.
+func GetSigningKey(secretKey string, t time.Time, region string, stype string) []byte {
 	date := sumHMAC([]byte("AWS4"+secretKey), []byte(t.Format(yyyymmdd)))
 	regionBytes := sumHMAC(date, []byte(region))
 	service := sumHMAC(regionBytes, []byte(stype))
@@ -345,8 +338,8 @@ func getSigningKey(secretKey string, t time.Time, region string, stype string) [
 	return signingKey
 }
 
-// getSignature final signature in hexadecimal form.
-func getSignature(signingKey []byte, stringToSign string) string {
+// GetSignature final signature in hexadecimal form.
+func GetSignature(signingKey []byte, stringToSign string) string {
 	return hex.EncodeToString(sumHMAC(signingKey, []byte(stringToSign)))
 }
 
@@ -363,158 +356,4 @@ func signV4TrimAll(input string) string {
 	// Compress adjacent spaces (a space is determined by
 	// unicode.IsSpace() internally here) to one space and return
 	return strings.Join(strings.Fields(input), " ")
-}
-
-// Sign given request using Signature V4.
-func signRequestV2(req *http.Request) error {
-	creds := auth.GetDefaultActiveCred()
-
-	policy := "policy"
-	req.Header.Set("Awsaccesskeyid", creds.AccessKey)
-	req.Header.Set("Policy", policy)
-	stringToSign := getStringToSignV2(req.Method, "", "", req.Header, "")
-	req.Header.Set("Signature", calculateSignatureV2(stringToSign, creds.SecretKey))
-	req.Header.Set("Authorization", "AWS "+creds.AccessKey+":"+calculateSignatureV2(stringToSign, creds.SecretKey))
-
-	return nil
-}
-
-//MustNewSignedV2Request New SignedV2 Request
-func MustNewSignedV2Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, t *testing.T) *http.Request {
-	req := mustNewRequest(method, urlStr, contentLength, body, t)
-	if err := signRequestV2(req); err != nil {
-		t.Fatalf("Unable to inititalized new signed http request %s", err)
-	}
-	return req
-}
-
-// Return string to sign under two different conditions.
-// - if expires string is set then string to sign includes date instead of the Date header.
-// - if expires string is empty then string to sign includes date header instead.
-func getStringToSignV2(method string, encodedResource, encodedQuery string, headers http.Header, expires string) string {
-	canonicalHeaders := canonicalizedAmzHeadersV2(headers)
-	if len(canonicalHeaders) > 0 {
-		canonicalHeaders += "\n"
-	}
-
-	date := expires // Date is set to expires date for presign operations.
-	if date == "" {
-		// If expires date is empty then request header Date is used.
-		date = headers.Get(consts.Date)
-	}
-
-	// From the Amazon docs:
-	//
-	// StringToSign = HTTP-Verb + "\n" +
-	// 	 Content-Md5 + "\n" +
-	//	 Content-Type + "\n" +
-	//	 Date/Expires + "\n" +
-	//	 CanonicalizedProtocolHeaders +
-	//	 CanonicalizedResource;
-	stringToSign := strings.Join([]string{
-		method,
-		headers.Get(consts.ContentMD5),
-		headers.Get(consts.ContentType),
-		date,
-		canonicalHeaders,
-	}, "\n")
-
-	return stringToSign + canonicalizedResourceV2(encodedResource, encodedQuery)
-}
-func calculateSignatureV2(stringToSign string, secret string) string {
-	hm := hmac.New(sha1.New, []byte(secret))
-	hm.Write([]byte(stringToSign))
-	return base64.StdEncoding.EncodeToString(hm.Sum(nil))
-}
-
-// Return canonical headers.
-func canonicalizedAmzHeadersV2(headers http.Header) string {
-	var keys []string
-	keyval := make(map[string]string, len(headers))
-	for key := range headers {
-		lkey := strings.ToLower(key)
-		if !strings.HasPrefix(lkey, "x-amz-") {
-			continue
-		}
-		keys = append(keys, lkey)
-		keyval[lkey] = strings.Join(headers[key], ",")
-	}
-	sort.Strings(keys)
-	var canonicalHeaders []string
-	for _, key := range keys {
-		canonicalHeaders = append(canonicalHeaders, key+":"+keyval[key])
-	}
-	return strings.Join(canonicalHeaders, "\n")
-}
-
-// Return canonical resource string.
-func canonicalizedResourceV2(encodedResource, encodedQuery string) string {
-	queries := strings.Split(encodedQuery, "&")
-	keyval := make(map[string]string)
-	for _, query := range queries {
-		key := query
-		val := ""
-		index := strings.Index(query, "=")
-		if index != -1 {
-			key = query[:index]
-			val = query[index+1:]
-		}
-		keyval[key] = val
-	}
-
-	var canonicalQueries []string
-	for _, key := range resourceList {
-		val, ok := keyval[key]
-		if !ok {
-			continue
-		}
-		if val == "" {
-			canonicalQueries = append(canonicalQueries, key)
-			continue
-		}
-		canonicalQueries = append(canonicalQueries, key+"="+val)
-	}
-
-	// The queries will be already sorted as resourceList is sorted, if canonicalQueries
-	// is empty strings.Join returns empty.
-	canonicalQuery := strings.Join(canonicalQueries, "&")
-	if canonicalQuery != "" {
-		return encodedResource + "?" + canonicalQuery
-	}
-	return encodedResource
-}
-
-// Whitelist resource list that will be used in query string for signature-V2 calculation.
-//
-// This list should be kept alphabetically sorted, do not hastily edit.
-var resourceList = []string{
-	"acl",
-	"cors",
-	"delete",
-	"encryption",
-	"legal-hold",
-	"lifecycle",
-	"location",
-	"logging",
-	"notification",
-	"partNumber",
-	"policy",
-	"requestPayment",
-	"response-cache-control",
-	"response-content-disposition",
-	"response-content-encoding",
-	"response-content-language",
-	"response-content-type",
-	"response-expires",
-	"retention",
-	"select",
-	"select-type",
-	"tagging",
-	"torrent",
-	"uploadId",
-	"uploads",
-	"versionId",
-	"versioning",
-	"versions",
-	"website",
 }
