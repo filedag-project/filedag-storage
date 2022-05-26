@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func TestDagNode_put(t *testing.T) {
+func TestDagNode(t *testing.T) {
 	var nc config.NodeConfig
 	file, err := ioutil.ReadFile("./node_config2.json")
 	if err != nil {
@@ -22,11 +22,11 @@ func TestDagNode_put(t *testing.T) {
 	}
 	err = json.Unmarshal(file, &nc)
 	dagNode, err := NewDagNode(nc)
-	time.Sleep(time.Millisecond * 50)
-	os.Setenv(mutcask.Host, "127.0.0.1")
-	os.Setenv(mutcask.Port, "9011")
-	os.Setenv(mutcask.Path, utils.TmpDirPath(t))
-	go mutcask.MutServer()
+	//time.Sleep(time.Millisecond * 50)
+	//os.Setenv(mutcask.Host, "127.0.0.1")
+	//os.Setenv(mutcask.Port, "9011")
+	//os.Setenv(mutcask.Path, utils.TmpDirPath(t))
+	//go mutcask.MutServer()
 	data, err := ioutil.ReadFile("./node.go")
 	aa := cid.Cid{}
 	b, err := blocks.NewBlockWithCid(data, aa)
@@ -38,9 +38,15 @@ func TestDagNode_put(t *testing.T) {
 		fmt.Println(err)
 	}
 	dataBlock, err := dagNode.Get(aa)
+	fmt.Println(dataBlock)
 	if err != nil {
 		fmt.Println(err)
 	}
+	err = dagNode.DeleteBlock(aa)
+	if err != nil {
+		fmt.Println(err)
+	}
+	dataBlock, err = dagNode.Get(aa)
 	fmt.Println(dataBlock)
 }
 func TestNewDagNode(t *testing.T) {
