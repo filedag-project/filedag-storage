@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils/dagpoolclient"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -18,12 +18,12 @@ func TestStorageSys_Object(t *testing.T) {
 	go server.StartTestDagPoolServer(t)
 	time.Sleep(time.Second * 5)
 	var s StorageSys
-	s.DagPool, _ = dagpoolclient.NewPoolClient("localhost:9002")
+	s.DagPool, _ = dagpoolcli.NewPoolClient("localhost:9002")
 	s.Db, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	os.Setenv(PoolUser, "pool")
 	os.Setenv(PoolPass, "pool123")
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
-	object, err := s.StoreObject(context.TODO(), "test", "testbucket", "testobject", r)
+	object, err := s.StoreObject(context.TODO(), "test", "testbucket", "testobject", r, 6)
 	if err != nil {
 		fmt.Println(err)
 		return

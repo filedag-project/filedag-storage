@@ -18,21 +18,15 @@
 package iam
 
 import (
-	"bytes"
-	"crypto/sha256"
 	"crypto/subtle"
-	"encoding/hex"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"net/http"
 	"net/url"
-	"regexp"
-	"sort"
 	"strconv"
-	"strings"
 	"time"
-	"unicode/utf8"
 )
 
 // AWS Signature Version '4' constants.
@@ -49,129 +43,6 @@ const (
 	//ServiceSTS STS
 	ServiceSTS serviceType = "sts"
 )
-
-// getCanonicalHeaders generate a list of request headers with their values
-func getCanonicalHeaders(signedHeaders http.Header) string {
-	var headers []string
-	vals := make(http.Header)
-	for k, vv := range signedHeaders {
-		headers = append(headers, strings.ToLower(k))
-		vals[strings.ToLower(k)] = vv
-	}
-	sort.Strings(headers)
-
-	var buf bytes.Buffer
-	for _, k := range headers {
-		buf.WriteString(k)
-		buf.WriteByte(':')
-		for idx, v := range vals[k] {
-			if idx > 0 {
-				buf.WriteByte(',')
-			}
-			buf.WriteString(signV4TrimAll(v))
-		}
-		buf.WriteByte('\n')
-	}
-	return buf.String()
-}
-
-// getSignedHeaders generate a string i.e alphabetically sorted, semicolon-separated list of lowercase request header names
-func getSignedHeaders(signedHeaders http.Header) string {
-	var headers []string
-	for k := range signedHeaders {
-		headers = append(headers, strings.ToLower(k))
-	}
-	sort.Strings(headers)
-	return strings.Join(headers, ";")
-}
-
-// getCanonicalRequest generate a canonical request of style
-//
-// canonicalRequest =
-//  <HTTPMethod>\n
-//  <CanonicalURI>\n
-//  <CanonicalQueryString>\n
-//  <CanonicalHeaders>\n
-//  <SignedHeaders>\n
-//  <HashedPayload>
-//
-func getCanonicalRequest(extractedSignedHeaders http.Header, payload, queryStr, urlPath, method string) string {
-	rawQuery := strings.ReplaceAll(queryStr, "+", "%20")
-	encodedPath := encodePath(urlPath)
-	canonicalRequest := strings.Join([]string{
-		method,
-		encodedPath,
-		rawQuery,
-		getCanonicalHeaders(extractedSignedHeaders),
-		getSignedHeaders(extractedSignedHeaders),
-		payload,
-	}, "\n")
-	return canonicalRequest
-}
-
-// encodePath encode the strings from UTF-8 byte representations to HTML hex escape sequences
-//
-// This is necessary since regular url.Parse() and url.Encode() functions do not support UTF-8
-// non english characters cannot be parsed due to the nature in which url.Encode() is written
-//
-// This function on the other hand is a direct replacement for url.Encode() technique to support
-// pretty much every UTF-8 character.
-func encodePath(pathName string) string {
-	if reservedObjectNames.MatchString(pathName) {
-		return pathName
-	}
-	var encodedPathname strings.Builder
-	for _, s := range pathName {
-		if 'A' <= s && s <= 'Z' || 'a' <= s && s <= 'z' || '0' <= s && s <= '9' { // §2.3 Unreserved characters (mark)
-			encodedPathname.WriteRune(s)
-			continue
-		}
-		switch s {
-		case '-', '_', '.', '~', '/': // §2.3 Unreserved characters (mark)
-			encodedPathname.WriteRune(s)
-			continue
-		default:
-			runeLen := utf8.RuneLen(s)
-			if runeLen < 0 {
-				// if utf8 cannot convert return the same string as is
-				return pathName
-			}
-			u := make([]byte, runeLen)
-			utf8.EncodeRune(u, s)
-			for _, r := range u {
-				toString := hex.EncodeToString([]byte{r})
-				encodedPathname.WriteString("%" + strings.ToUpper(toString))
-			}
-		}
-	}
-	return encodedPathname.String()
-}
-
-// if object matches reserved string, no need to encode them
-var reservedObjectNames = regexp.MustCompile("^[a-zA-Z0-9-_.~/]+$")
-
-// getStringToSign a string based on selected query values.
-func getStringToSign(canonicalRequest string, t time.Time, scope string) string {
-	stringToSign := signV4Algorithm + "\n" + t.Format(iso8601Format) + "\n"
-	stringToSign += scope + "\n"
-	canonicalRequestBytes := sha256.Sum256([]byte(canonicalRequest))
-	stringToSign += hex.EncodeToString(canonicalRequestBytes[:])
-	return stringToSign
-}
-
-// getSigningKey hmac seed to calculate final signature.
-func getSigningKey(secretKey string, t time.Time, region string, stype serviceType) []byte {
-	date := sumHMAC([]byte("AWS4"+secretKey), []byte(t.Format(yyyymmdd)))
-	regionBytes := sumHMAC(date, []byte(region))
-	service := sumHMAC(regionBytes, []byte(stype))
-	signingKey := sumHMAC(service, []byte("aws4_request"))
-	return signingKey
-}
-
-// getSignature final signature in hexadecimal form.
-func getSignature(signingKey []byte, stringToSign string) string {
-	return hex.EncodeToString(sumHMAC(signingKey, []byte(stringToSign)))
-}
 
 // compareSignatureV4 returns true if and only if both signatures
 // are equal. The signatures are expected to be HEX encoded strings
@@ -237,7 +108,7 @@ func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Requ
 	// Construct the query.
 	query.Set(consts.AmzDate, t.Format(iso8601Format))
 	query.Set(consts.AmzExpires, strconv.Itoa(expireSeconds))
-	query.Set(consts.AmzSignedHeaders, getSignedHeaders(extractedSignedHeaders))
+	query.Set(consts.AmzSignedHeaders, utils.GetSignedHeaders(extractedSignedHeaders))
 	query.Set(consts.AmzCredential, cred.AccessKey+consts.SlashSeparator+pSignValues.Credential.getScope())
 
 	defaultSigParams := set.CreateStringSet(
@@ -289,17 +160,17 @@ func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Requ
 	// Verify finally if signature is same.
 
 	// Get canonical request.
-	presignedCanonicalReq := getCanonicalRequest(extractedSignedHeaders, hashedPayload, encodedQuery, req.URL.Path, req.Method)
+	presignedCanonicalReq := utils.GetCanonicalRequest(extractedSignedHeaders, hashedPayload, encodedQuery, req.URL.Path, req.Method)
 
 	// Get string to sign from canonical request.
-	presignedStringToSign := getStringToSign(presignedCanonicalReq, t, pSignValues.Credential.getScope())
+	presignedStringToSign := utils.GetStringToSign(presignedCanonicalReq, t, pSignValues.Credential.getScope())
 
 	// Get hmac presigned signing key.
-	presignedSigningKey := getSigningKey(cred.SecretKey, pSignValues.Credential.scope.date,
-		pSignValues.Credential.scope.region, stype)
+	presignedSigningKey := utils.GetSigningKey(cred.SecretKey, pSignValues.Credential.scope.date,
+		pSignValues.Credential.scope.region, string(stype))
 
 	// Get new signature.
-	newSignature := getSignature(presignedSigningKey, presignedStringToSign)
+	newSignature := utils.GetSignature(presignedSigningKey, presignedStringToSign)
 
 	// Verify signature.
 	if !compareSignatureV4(req.Form.Get(consts.AmzSignature), newSignature) {
@@ -353,17 +224,17 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 	queryStr := req.URL.Query().Encode()
 
 	// Get canonical request.
-	canonicalRequest := getCanonicalRequest(extractedSignedHeaders, hashedPayload, queryStr, req.URL.Path, req.Method)
+	canonicalRequest := utils.GetCanonicalRequest(extractedSignedHeaders, hashedPayload, queryStr, req.URL.Path, req.Method)
 
 	// Get string to sign from canonical request.
-	stringToSign := getStringToSign(canonicalRequest, t, signV4Values.Credential.getScope())
+	stringToSign := utils.GetStringToSign(canonicalRequest, t, signV4Values.Credential.getScope())
 
 	// Get hmac signing key.
-	signingKey := getSigningKey(cred.SecretKey, signV4Values.Credential.scope.date,
-		signV4Values.Credential.scope.region, stype)
+	signingKey := utils.GetSigningKey(cred.SecretKey, signV4Values.Credential.scope.date,
+		signV4Values.Credential.scope.region, string(stype))
 
 	// Calculate signature.
-	newSignature := getSignature(signingKey, stringToSign)
+	newSignature := utils.GetSignature(signingKey, stringToSign)
 
 	// Verify if signature match.
 	if !compareSignatureV4(newSignature, signV4Values.Signature) {

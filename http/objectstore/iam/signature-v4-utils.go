@@ -19,7 +19,6 @@ package iam
 
 import (
 	"bytes"
-	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
@@ -30,7 +29,6 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 // http Header "x-amz-content-sha256" == "UNSIGNED-PAYLOAD" indicates that the
@@ -161,12 +159,6 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 	return cred, owner, api_errors.ErrNone
 }
 
-// sumHMAC calculate hmac between two input byte array.
-func sumHMAC(key []byte, data []byte) []byte {
-	hash := hmac.New(sha256.New, key)
-	hash.Write(data)
-	return hash.Sum(nil)
-}
 func contains(slice interface{}, elem interface{}) bool {
 	v := reflect.ValueOf(slice)
 	if v.Kind() == reflect.Slice {
@@ -236,12 +228,4 @@ func extractSignedHeaders(signedHeaders []string, r *http.Request) (http.Header,
 		}
 	}
 	return extractedSignedHeaders, api_errors.ErrNone
-}
-
-// Trim leading and trailing spaces and replace sequential spaces with one space, following Trimall()
-// in http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-func signV4TrimAll(input string) string {
-	// Compress adjacent spaces (a space is determined by
-	// unicode.IsSpace() internally here) to one space and return
-	return strings.Join(strings.Fields(input), " ")
 }
