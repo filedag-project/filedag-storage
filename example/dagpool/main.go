@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/dag/proto"
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
@@ -77,7 +78,7 @@ func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string) {
 	if err != nil {
 		return
 	}
-	server.RegisterDagPoolServer(s, &server.DagPoolService{DagPool: service})
+	proto.RegisterDagPoolServer(s, &server.DagPoolService{DagPool: service})
 	fmt.Printf("server listening at %v\n", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		fmt.Printf("failed to serve: %v\n", err)
