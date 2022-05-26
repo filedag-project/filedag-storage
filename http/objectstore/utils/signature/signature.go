@@ -1,4 +1,4 @@
-package testsign
+package signature
 
 import (
 	"bytes"

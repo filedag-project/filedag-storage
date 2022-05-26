@@ -5,7 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils/signature"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -90,7 +90,7 @@ func TestIamApiServer_AddUser(t *testing.T) {
 	for i, testCase := range testCases {
 		// mock an HTTP request
 		// add user
-		reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqPutUser := signature.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result := reqTest(reqPutUser)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -146,14 +146,14 @@ func TestIamApiServer_GetUserList(t *testing.T) {
 		if testCase.isPut {
 			// mock an HTTP request
 			// add user
-			reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+			reqPutBucket := signature.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 			result := reqTest(reqPutBucket)
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 			}
 		}
 		// list user
-		reqListUser := testsign.MustNewSignedV4Request(http.MethodGet, queryUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqListUser := signature.MustNewSignedV4Request(http.MethodGet, queryUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result := reqTest(reqListUser)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -203,14 +203,14 @@ func TestIamApiServer_UserInfo(t *testing.T) {
 		// mock an HTTP request
 		if testCase.isPut {
 			// add user
-			reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+			reqPutUser := signature.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 			result := reqTest(reqPutUser)
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 			}
 		}
 		//user info
-		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodGet, u+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqPutBucket := signature.MustNewSignedV4Request(http.MethodGet, u+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result1 := reqTest(reqPutBucket)
 		if result1.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
@@ -257,14 +257,14 @@ func TestIamApiServer_RemoveUser(t *testing.T) {
 		// mock an HTTP request
 		if testCase.isPut {
 			// add user
-			reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+			reqPutUser := signature.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 			result := reqTest(reqPutUser)
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 			}
 		}
 		// remove user
-		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPost, removeUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqPutBucket := signature.MustNewSignedV4Request(http.MethodPost, removeUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result1 := reqTest(reqPutBucket)
 		if result1.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
@@ -306,7 +306,7 @@ func TestIamApiServer_SetStatus(t *testing.T) {
 	for i, testCase := range testCases {
 		// mock an HTTP request
 		//add user
-		reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqPutUser := signature.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result := reqTest(reqPutUser)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -316,7 +316,7 @@ func TestIamApiServer_SetStatus(t *testing.T) {
 		urlValues.Set("accessKey", testCase.accessKey)
 		urlValues.Set("status", string(iam.AccountDisabled))
 		//urlValues.Set("status", string(iam.AccountEnabled))
-		reqSetStatus := testsign.MustNewSignedV4Request(http.MethodPost, setStatusUrl+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqSetStatus := signature.MustNewSignedV4Request(http.MethodPost, setStatusUrl+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result = reqTest(reqSetStatus)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -349,7 +349,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 	for i, testCase := range testCases {
 		// mock an HTTP request
 		// add user
-		reqPutUser := testsign.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqPutUser := signature.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result := reqTest(reqPutUser)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -359,13 +359,13 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 		urlValues.Set("newPassword", "admin12345")
 		urlValues.Set("username", "changeTest")
 		//urlValues.Set("status", string(iam.AccountDisabled
-		reqChange := testsign.MustNewSignedV4Request(http.MethodPost, changePassUrl+urlValues.Encode(), 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqChange := signature.MustNewSignedV4Request(http.MethodPost, changePassUrl+urlValues.Encode(), 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result = reqTest(reqChange)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 		}
 		//user info
-		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodGet, userInfoUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqPutBucket := signature.MustNewSignedV4Request(http.MethodGet, userInfoUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result1 := reqTest(reqPutBucket)
 		if result1.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
@@ -380,7 +380,7 @@ func TestIamApiServer_PutUserPolicy(t *testing.T) {
 	urlValues.Set("userName", "test1")
 	urlValues.Set("policyName", "read2")
 	u := "http://127.0.0.1:9985/admin/v1/put-sub-user-policy?"
-	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	req := signature.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -391,7 +391,7 @@ func TestIamApiServer_GetUserPolicy(t *testing.T) {
 	urlValues.Set("userName", "test1")
 	urlValues.Set("policyName", "read2")
 	u := "http://127.0.0.1:9985/admin/v1/get-sub-user-policy?"
-	req := testsign.MustNewSignedV4Request(http.MethodGet, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	req := signature.MustNewSignedV4Request(http.MethodGet, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -402,7 +402,7 @@ func TestIamApiServer_RemoveUserPolicy(t *testing.T) {
 	urlValues.Set("userName", "test1")
 	urlValues.Set("policyName", "read2")
 	u := "http://127.0.0.1:9985/admin/v1/remove-sub-user-policy?"
-	req := testsign.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	req := signature.MustNewSignedV4Request(http.MethodPost, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -412,7 +412,7 @@ func TestIamApiServer_ListUserPolicy(t *testing.T) {
 	urlValues := make(url.Values)
 	urlValues.Set("userName", "test1")
 	u := "http://127.0.0.1:9985/admin/v1/list-sub-user-policy?"
-	req := testsign.MustNewSignedV4Request(http.MethodGet, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	req := signature.MustNewSignedV4Request(http.MethodGet, u+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
