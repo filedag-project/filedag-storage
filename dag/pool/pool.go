@@ -92,6 +92,13 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	reference, err := d.refer.QueryReference(c.String())
+	if err != nil {
+		return nil, err
+	}
+	if reference <= 0 {
+		return nil, fmt.Errorf("block does not exist : %v", err)
+	}
 	getNode, err := d.GetNode(ctx, c)
 	if err != nil {
 		return nil, err
