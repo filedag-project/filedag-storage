@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 const (
@@ -19,26 +20,32 @@ const (
 	setStatusUrl      = "/admin/v1/update-accessKey_status"
 )
 
-//go run -tags example main.go --method=adduser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg --pass=wpg123456
-//go run -tags example main.go --method=deluser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
-//go run -tags example main.go --method=getuser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
-//go run -tags example main.go --method=change-pass --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
-//go run -tags example main.go --method=set-status --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
+//go run -tags example main.go run --method=adduser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg --pass=wpg123456
+//go run -tags example main.go run --method=deluser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
+//go run -tags example main.go run --method=getuser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
+//go run -tags example main.go run --method=change-pass --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
+//go run -tags example main.go run --method=set-status --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
 
 func main() {
 	var method, addr, accessKey, secretKey, username, pass, newPass, status string
+	f := flag.NewFlagSet("run", flag.ExitOnError)
+	f.StringVar(&method, "method", "", "the method you want use")
+	f.StringVar(&addr, "addr", "", "the addr of server eg.127.0.0.1:9985")
+	f.StringVar(&accessKey, "access-key", "", "the access-key which have adduser policy")
+	f.StringVar(&secretKey, "secret-key", "", "the secret-key which have adduser policy")
+	f.StringVar(&username, "username", "", "the username that you want add")
+	f.StringVar(&pass, "pass", "", "the password that you want add")
+	f.StringVar(&newPass, "new-pass", "", "the username that you want add")
+	f.StringVar(&status, "status", "", "the username that you want add")
 
-	flag.StringVar(&method, "method", "", "the method you want use")
-	flag.StringVar(&addr, "addr", "", "the addr of server eg.127.0.0.1:9985")
-	flag.StringVar(&accessKey, "access-key", "", "the access-key which have adduser policy")
-	flag.StringVar(&secretKey, "secret-key", "", "the secret-key which have adduser policy")
-	flag.StringVar(&username, "username", "", "the username that you want add")
-	flag.StringVar(&pass, "pass", "", "the password that you want add")
-	flag.StringVar(&newPass, "new-pass", "", "the username that you want add")
-	flag.StringVar(&status, "status", "", "the username that you want add")
-
-	flag.Parse()
-	run(method, addr, accessKey, secretKey, username, pass, newPass, status)
+	switch os.Args[1] {
+	case "run":
+		f.Parse(os.Args[2:])
+		run(method, addr, accessKey, secretKey, username, pass, newPass, status)
+	default:
+		fmt.Println("expected 'str' subcommands")
+		os.Exit(1)
+	}
 }
 func run(method, addr, accessKey, secretKey, username, pass, newPass, status string) {
 	var req *http.Request
@@ -69,6 +76,10 @@ func run(method, addr, accessKey, secretKey, username, pass, newPass, status str
 		if err != nil {
 			return
 		}
+	}
+	if req == nil {
+		fmt.Println("request nil")
+		return
 	}
 	client := http.DefaultClient
 	resp, err := client.Do(req)
