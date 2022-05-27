@@ -9,7 +9,11 @@ import (
 func main() {
 	logging.SetLogLevel("*", "INFO")
 	local := []*cli.Command{
-		cmd,
+		addUserCmd,
+		getUserCmd,
+		delUserCmd,
+		changePassCmd,
+		setStatusCmd,
 	}
 	app := &cli.App{
 		Name:                 "demo-tool",
