@@ -78,6 +78,13 @@ func (d *DagPool) Add(ctx context.Context, block blocks.Block) error {
 	if err != nil {
 		return err
 	}
+	reference, err := d.refer.QueryReference(block.Cid().String())
+	if err != nil {
+		return err
+	}
+	if reference > 1 {
+		return nil
+	}
 	useNode, err := d.UseNode(ctx, block.Cid())
 	if err != nil {
 		return err
