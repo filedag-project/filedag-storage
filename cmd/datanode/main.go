@@ -53,25 +53,23 @@ var startCmd = &cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
+		var host, port, path = defaultHost, defaultPort, defaultPath
 		if c.String("host") != "" {
-			err := os.Setenv(node.Host, c.String("host"))
-			if err != nil {
-				return err
-			}
+			host = c.String("host")
+		} else {
+			fmt.Println("use default ip:", defaultHost)
 		}
 		if c.String("port") != "" {
-			err := os.Setenv(node.Port, c.String("port"))
-			if err != nil {
-				return err
-			}
+			port = c.String("port")
+		} else {
+			fmt.Println("use default port:", defaultPort)
 		}
 		if c.String("path") != "" {
-			err := os.Setenv(node.Path, c.String("path"))
-			if err != nil {
-				return err
-			}
+			path = c.String("path")
+		} else {
+			fmt.Println("use default path:", defaultPath)
 		}
-		node.MutServer()
+		node.MutDataNodeServer(host, port, path)
 		return nil
 	},
 }

@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/kv"
@@ -11,7 +10,6 @@ import (
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"net"
-	"os"
 )
 
 const (
@@ -78,11 +76,10 @@ func (s *server) Shutdown() error {
 //	return nil
 //}
 
-func MutServer() {
-	fmt.Println("datanode start")
-	flag.Parse()
+func MutDataNodeServer(host, port, path string) {
+	log.Infof("datanode start")
 	// listen port
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv(Host), os.Getenv(Port)))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -93,12 +90,12 @@ func MutServer() {
 	hs.SetServingStatus(HealthCheckService, healthpb.HealthCheckResponse_SERVING)
 	healthpb.RegisterHealthServer(s, hs)
 
-	mutc, err := mutcask.NewMutcask(mutcask.PathConf(os.Getenv(Path)), mutcask.CaskNumConf(6))
+	mutc, err := mutcask.NewMutcask(mutcask.PathConf(path), mutcask.CaskNumConf(6))
 	proto.RegisterDataNodeServer(s, &server{kvdb: mutc})
 	if err != nil {
 		return
 	}
-	log.Infof("listen:%v:%v", os.Getenv(Host), os.Getenv(Port))
+	log.Infof("listen:%v:%v", host, port)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

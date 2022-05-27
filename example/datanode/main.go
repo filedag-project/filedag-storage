@@ -31,8 +31,5 @@ func main() {
 	}
 }
 func run(host, port, path string) {
-	os.Setenv(node.Host, host)
-	os.Setenv(node.Port, port)
-	os.Setenv(node.Path, path)
-	node.MutServer()
+	node.MutDataNodeServer(host, port, path)
 }
