@@ -161,7 +161,7 @@ func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, erro
 		conn.Close()
 		return index, err
 	}
-	client := proto.NewMutCaskClient(conn)
+	client := proto.NewDataNodeClient(conn)
 	d.Nodes[index].Client = client
 	d.Nodes[index].Ip = newIp
 	d.Nodes[index].Port = newPort

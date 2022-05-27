@@ -20,7 +20,7 @@ import (
 
 const lockFileName = "repo.lock"
 
-//var _ blockstore.Blockstore = (*DagNode)(nil)
+var _ blockstore.Blockstore = (*DagNode)(nil)
 
 type DagNode struct {
 	Nodes                    []DataNode
@@ -30,7 +30,7 @@ type DagNode struct {
 
 type DataNode struct {
 	sync.Mutex
-	Client      proto.MutCaskClient
+	Client      proto.DataNodeClient
 	HeartClient healthpb.HealthClient
 	Ip          string
 	Port        string
@@ -54,7 +54,7 @@ func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
 }
 
-func InitSliceConn(addr string) (c proto.MutCaskClient, h healthpb.HealthClient, err error) {
+func InitSliceConn(addr string) (c proto.DataNodeClient, h healthpb.HealthClient, err error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		conn.Close()
@@ -64,7 +64,7 @@ func InitSliceConn(addr string) (c proto.MutCaskClient, h healthpb.HealthClient,
 	//defer conn.Close()
 	// init client
 	h = healthpb.NewHealthClient(conn)
-	c = proto.NewMutCaskClient(conn)
+	c = proto.NewDataNodeClient(conn)
 	return c, h, nil
 }
 

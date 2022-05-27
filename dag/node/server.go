@@ -21,7 +21,7 @@ const (
 )
 
 type server struct {
-	proto.UnimplementedMutCaskServer
+	proto.UnimplementedDataNodeServer
 	kvdb kv.KVDB
 }
 
@@ -94,7 +94,7 @@ func MutServer() {
 	healthpb.RegisterHealthServer(s, hs)
 
 	mutc, err := mutcask.NewMutcask(mutcask.PathConf(os.Getenv(Path)), mutcask.CaskNumConf(6))
-	proto.RegisterMutCaskServer(s, &server{kvdb: mutc})
+	proto.RegisterDataNodeServer(s, &server{kvdb: mutc})
 	if err != nil {
 		return
 	}
