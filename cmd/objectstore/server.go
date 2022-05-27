@@ -33,6 +33,10 @@ func startServer() {
 	router := mux.NewRouter()
 	iamapi.NewIamApiServer(router)
 	s := s3api.NewS3Server(router)
+	if s == nil {
+		log.Errorf("may be pool addr not right,please check your pool-addr")
+		return
+	}
 	defer s.Close()
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
