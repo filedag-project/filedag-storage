@@ -7,6 +7,11 @@ service DagPool {
   rpc Add (AddReq) returns (AddReply) {}
   rpc Get (GetReq) returns (GetReply) {}
   rpc Remove (RemoveReq) returns (RemoveReply) {}
+
+  rpc AddUser (AddUserReq) returns (AddUserReply){}
+  rpc RemoveUser (RemoveUserReq) returns (RemoveUserReply){}
+  rpc QueryUser (QueryUserReq) returns (QueryUserReply){}
+  rpc UpdateUser (UpdateUserReq) returns (UpdateUserReply){}
 }
 message PoolUser {
   string username = 1;
@@ -14,7 +19,7 @@ message PoolUser {
 }
 message AddReq {
   bytes block = 1;
-  PoolUser user =2;
+  PoolUser user = 2;
 }
 
 message AddReply {
@@ -22,7 +27,7 @@ message AddReply {
 }
 message GetReq {
   string cid = 1;
-  PoolUser user =2;
+  PoolUser user = 2;
 }
 
 message GetReply {
@@ -30,9 +35,49 @@ message GetReply {
 }
 message RemoveReq {
   string cid = 1;
-  PoolUser user =2;
+  PoolUser user = 2;
 }
 
 message RemoveReply {
+  string message = 1;
+}
+message AddUserReq {
+  string User = 1;
+  string Pass = 2;
+  string Username = 3;
+  string Password = 4;
+  string Policy = 5;
+  uint64 Capacity = 6;
+}
+
+message AddUserReply {
+  string message = 1;
+}
+message RemoveUserReq {
+  string Username = 1;
+  string Password = 2;
+}
+
+message RemoveUserReply {
+  string message = 1;
+}
+message QueryUserReq {
+  string Username = 1;
+  string Password = 2;
+}
+
+message QueryUserReply {
+  string Username = 1;
+  string Policy = 3;
+  uint64 Capacity = 4;
+}
+message UpdateUserReq {
+  string Username = 1;
+  string Password = 2;
+  string Policy = 3;
+  uint64 Capacity = 4;
+}
+
+message UpdateUserReply {
   string message = 1;
 }

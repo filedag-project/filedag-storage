@@ -3,6 +3,7 @@ package dagpooluser
 import (
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"os"
 )
 
 type IdentityUserSys struct {
@@ -10,6 +11,10 @@ type IdentityUserSys struct {
 }
 
 const dagPoolUser = "dagPoolUser/"
+const (
+	PoolUser = "POOL_USER"
+	PoolPass = "POOL_PASS"
+)
 
 type User struct {
 	Username string `json:"username"`
@@ -21,6 +26,20 @@ type DagPoolUser struct {
 	Password string
 	Policy   userpolicy.DagPoolPolicy
 	Capacity uint64
+}
+
+func CheckAddUser(user, pass string) bool {
+	return os.Getenv(PoolUser) == user && os.Getenv(PoolPass) == pass
+}
+func (i *IdentityUserSys) CheckDeal(user, pass string) bool {
+	queryUser, err := i.QueryUser(user)
+	if err != nil {
+		return false
+	}
+	if queryUser.Password != pass {
+		return false
+	}
+	return true
 }
 
 // AddUser add user

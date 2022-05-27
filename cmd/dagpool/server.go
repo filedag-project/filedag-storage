@@ -60,6 +60,16 @@ var startCmd = &cli.Command{
 			Usage: "set importer batch num default:4",
 			Value: defaultImporterBatchNum,
 		},
+		&cli.StringFlag{
+			Name:  "pool-user",
+			Usage: "set root user default:pool",
+			Value: defaultUser,
+		},
+		&cli.StringFlag{
+			Name:  "pool-pass",
+			Usage: "set root user pass default:pool123",
+			Value: defaultPass,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 
@@ -88,6 +98,18 @@ var startCmd = &cli.Command{
 				return err
 			}
 		}
+		if cctx.String("pool-user") != "" {
+			err := os.Setenv(dagpooluser.PoolUser, cctx.String("pool-user"))
+			if err != nil {
+				return err
+			}
+		}
+		if cctx.String("pool-pass") != "" {
+			err := os.Setenv(dagpooluser.PoolPass, cctx.String("pool-pass"))
+			if err != nil {
+				return err
+			}
+		}
 		startDagPoolServer()
 		return nil
 	},
@@ -112,8 +134,8 @@ func startDagPoolServer() {
 	}
 	//add default user
 	err = service.Iam.AddUser(dagpooluser.DagPoolUser{
-		Username: defaultUser,
-		Password: defaultPass,
+		Username: os.Getenv(dagpooluser.PoolUser),
+		Password: os.Getenv(dagpooluser.PoolPass),
 		Policy:   userpolicy.ReadWrite,
 		Capacity: 0,
 	})
