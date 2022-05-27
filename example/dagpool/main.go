@@ -22,10 +22,10 @@ import (
 func main() {
 	var leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string
 	f := flag.NewFlagSet("run", flag.ExitOnError)
-	f.StringVar(&leveldbPath, "pool-db-path", "", "set db path default:`/tmp/leveldb2/pool.db`")
-	f.StringVar(&listenAddr, "listen-addr", "", "set listen addr default:`localhost:50001`")
-	f.StringVar(&nodeConfigPath, "node-config-path", "", "set node config path,default:`dag/config/node_config.json'")
-	f.StringVar(&importerBatchNum, "importer-batch-num", "", "set importer batch num default:4")
+	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/pool.db", "set db path default:`/tmp/leveldb2/pool.db`")
+	f.StringVar(&listenAddr, "listen-addr", "localhost:50001", "set listen addr default:`localhost:50001`")
+	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
+	f.StringVar(&importerBatchNum, "importer-batch-num", "4", "set importer batch num default:4")
 
 	switch os.Args[1] {
 	case "run":
