@@ -34,9 +34,9 @@ func main() {
 			fmt.Printf("leveldbPath:%v, listenAddr:%v, nodeConfigPath:%v, importerBatchNum:%v", leveldbPath, listenAddr, nodeConfigPath, importerBatchNum)
 			fmt.Println("please check your input\n " +
 				"USAGE ERROR: go run -tags example main.go --pool-db-path= --listen-addr= --node-config-path= --importer-batch-num=")
+		} else {
+			run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum)
 		}
-
-		run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum)
 	default:
 		fmt.Println("expected 'str' subcommands")
 		os.Exit(1)

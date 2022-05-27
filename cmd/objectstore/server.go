@@ -60,7 +60,7 @@ var startCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "pool-addr",
-			Usage: "set node path  if you need a local node , use it",
+			Usage: "set the pool addr you want connect",
 			Value: "localhost:50001",
 		},
 		&cli.StringFlag{
