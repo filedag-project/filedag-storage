@@ -10,7 +10,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	ufsio "github.com/ipfs/go-unixfs/io"
 	"io"
-	"os"
 	"strings"
 	"time"
 )
@@ -31,8 +30,13 @@ const (
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
 
+var (
+	poolUser = "pool"
+	poolPass = "pool123"
+)
+
 func getPoolUser() string {
-	return os.Getenv(PoolUser) + "," + os.Getenv(PoolPass)
+	return poolUser + "," + poolPass
 }
 
 //StoreObject store object
@@ -205,11 +209,12 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, pre
 }
 
 //Init storage sys
-func (s *StorageSys) Init() error {
+func (s *StorageSys) Init(poolAddr, pu, pp string) error {
 	s.Db = uleveldb.DBClient
 	var err error
-
-	s.DagPool, err = dagpoolcli.NewPoolClient(os.Getenv(PoolAddr))
+	poolUser = pu
+	poolPass = pp
+	s.DagPool, err = dagpoolcli.NewPoolClient(poolAddr)
 	if err != nil {
 		return err
 	}

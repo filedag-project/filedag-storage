@@ -1,47 +1,46 @@
 package main
 
 import (
+	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
-	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/xerrors"
 	"net/http"
-	"os"
 )
 
 var log = logging.Logger("sever")
 
 const (
-	deFaultDBFILE      = "/tmp/leveldb2/fds.db"
-	defaultPort        = ":9985"
-	fileDagStoragePort = "FILE_DAG_STORAGE_PORT"
-	dbPath             = "DBPATH"
+	deFaultDBFILE   = "/tmp/leveldb2/fds.db"
+	defaultPort     = ":9985"
+	defaultPoolAddr = "localhost:50001"
 )
 
 //startServer Start a IamServer
-func startServer() {
+func startServer(dbPath, port, poolAddr, poolUser, poolPass string) {
 	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(os.Getenv(dbPath))
+	uleveldb.DBClient, err = uleveldb.OpenDb(dbPath)
 	if err != nil {
 		return
 	}
 	defer uleveldb.DBClient.Close()
 	router := mux.NewRouter()
 	iamapi.NewIamApiServer(router)
-	s := s3api.NewS3Server(router)
+	s := s3api.NewS3Server(router, poolAddr, poolUser, poolPass)
 	if s == nil {
 		log.Errorf("may be pool addr not right,please check your pool-addr")
 		return
 	}
 	defer s.Close()
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
-		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
+		log.Infof("start sever at http://%v%v", ip, port)
 	}
-	err = http.ListenAndServe(os.Getenv(fileDagStoragePort), router)
+	err = http.ListenAndServe(port, router)
 	if err != nil {
 		log.Errorf("Listen And Serve err%v", err)
 		return
@@ -65,7 +64,7 @@ var startCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "pool-addr",
 			Usage: "set the pool addr you want connect",
-			Value: "localhost:50001",
+			Value: defaultPoolAddr,
 		},
 		&cli.StringFlag{
 			Name:  "pool-user",
@@ -77,30 +76,41 @@ var startCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-
+		var poolUser, poolPass string
+		var (
+			dbPath   = deFaultDBFILE
+			port     = defaultPort
+			poolAddr = defaultPoolAddr
+		)
 		if cctx.String("db-path") != "" {
-			err := os.Setenv(dbPath, cctx.String("db-path"))
-			if err != nil {
-				return err
-			}
+			dbPath = cctx.String("db-path")
+		} else {
+			fmt.Println("use default db path:", deFaultDBFILE)
 		}
 
 		if cctx.String("port") != "" {
-			err := os.Setenv(fileDagStoragePort, cctx.String("port"))
-			if err != nil {
-				return err
-			}
+			port = cctx.String("port")
+		} else {
+			fmt.Println("use default port:", defaultPort)
 		}
 		if cctx.String("pool-addr") != "" {
-			os.Setenv(store.PoolAddr, cctx.String("pool-addr"))
+			poolAddr = cctx.String("pool-addr")
+		} else {
+			fmt.Println("use default pool addr:", defaultPoolAddr)
 		}
 		if cctx.String("pool-user") != "" {
-			os.Setenv(store.PoolUser, cctx.String("pool-user"))
+			poolUser = cctx.String("pool-user")
+		} else {
+			fmt.Println("please set pool user ,eg:--pool-user=pool")
+			return xerrors.Errorf("please set pool user ,eg:--pool-user=pool")
 		}
 		if cctx.String("pool-user-pass") != "" {
-			os.Setenv(store.PoolPass, cctx.String("pool-user-pass"))
+			poolPass = cctx.String("pool-user-pass")
+		} else {
+			fmt.Println("please set pool user pass,eg:--pool-user-pass=pool123")
+			return xerrors.Errorf("please set pool user pass,eg:--pool-user-pass=pool123")
 		}
-		startServer()
+		startServer(dbPath, port, poolAddr, poolUser, poolPass)
 		return nil
 	},
 }
