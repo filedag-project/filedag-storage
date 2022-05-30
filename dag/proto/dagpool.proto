@@ -72,10 +72,12 @@ message QueryUserReply {
   uint64 Capacity = 4;
 }
 message UpdateUserReq {
-  string Username = 1;
-  string Password = 2;
-  string Policy = 3;
-  uint64 Capacity = 4;
+  string User = 1;
+  string Pass = 2;
+  string NewUsername = 3;
+  string NewPassword = 4;
+  string Policy = 5;
+  uint64 Capacity = 6;
 }
 
 message UpdateUserReply {

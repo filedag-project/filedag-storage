@@ -102,12 +102,18 @@ func (s *DagPoolService) QueryUser(ctx context.Context, in *proto.QueryUserReq) 
 	return &proto.QueryUserReply{Username: user.Username, Policy: string(user.Policy), Capacity: user.Capacity}, nil
 }
 func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
-	if !s.DagPool.Iam.CheckDeal(in.Username, in.Password) {
+	if !s.DagPool.Iam.CheckDeal(in.User, in.Pass) {
 		return &proto.UpdateUserReply{Message: "you can not update user"}, xerrors.Errorf("you can not update user")
 	}
+	if dagpooluser.CheckAddUser(in.User, in.Pass) {
+		return &proto.UpdateUserReply{Message: "you can not update default user"}, xerrors.Errorf("you can not update default user")
+	}
 	var user dagpooluser.DagPoolUser
-	if in.Password != "" {
-		user.Password = in.Password
+	if in.NewUsername != "" {
+		user.Username = in.NewUsername
+	}
+	if in.NewPassword != "" {
+		user.Password = in.NewPassword
 	}
 	if in.Policy != "" {
 		if !userpolicy.CheckValid(in.Policy) {
@@ -121,6 +127,12 @@ func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq
 	err := s.DagPool.Iam.UpdateUser(user)
 	if err != nil {
 		return &proto.UpdateUserReply{Message: fmt.Sprintf("update user err:%v", err)}, err
+	}
+	if in.NewUsername != "" {
+		err := s.DagPool.Iam.RemoveUser(in.User)
+		if err != nil {
+			return &proto.UpdateUserReply{Message: "update user err"}, err
+		}
 	}
 	return &proto.UpdateUserReply{Message: "ok"}, nil
 }
