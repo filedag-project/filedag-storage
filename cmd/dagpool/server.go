@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
@@ -13,17 +14,10 @@ import (
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 )
 
-const (
-	DagPoolLeveldbPath      = "POOL_LEVELDB_PATH"
-	DagPooListenAddr        = "POOL_ADDR"
-	DagNodeConfigPath       = "NODE_CONFIG_PATH"
-	DagPoolImporterBatchNum = "POOL_IMPORTER_BATCH_NUM"
-)
 const (
 	defaultPoolDB           = "/tmp/leveldb2/pool.db"
 	defaultPoolListenAddr   = "localhost:50001"
@@ -72,58 +66,59 @@ var startCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-
+		var (
+			dbpath           = defaultPoolDB
+			addr             = defaultPoolListenAddr
+			nodeConfigPath   = defaultNodeConfig
+			importerBatchNum = defaultImporterBatchNum
+			poolUser         = defaultUser
+			poolPass         = defaultPass
+		)
 		if cctx.String("pool-db-path") != "" {
-			err := os.Setenv(DagPoolLeveldbPath, cctx.String("pool-db-path"))
-			if err != nil {
-				return err
-			}
+			dbpath = cctx.String("pool-db-path")
+		} else {
+			fmt.Println("use default pool db path:", defaultPoolDB)
 		}
 
 		if cctx.String("listen-addr") != "" {
-			err := os.Setenv(DagPooListenAddr, cctx.String("listen-addr"))
-			if err != nil {
-				return err
-			}
+			addr = cctx.String("listen-addr")
+		} else {
+			fmt.Println("use default listen addr:", defaultPoolListenAddr)
 		}
 		if cctx.String("node-config-path") != "" {
-			err := os.Setenv(DagNodeConfigPath, cctx.String("node-config-path"))
-			if err != nil {
-				return err
-			}
+			nodeConfigPath = cctx.String("node-config-path")
+		} else {
+			fmt.Println("use default node config path:", defaultNodeConfig)
 		}
 		if cctx.String("importer-batch-num") != "" {
-			err := os.Setenv(DagPoolImporterBatchNum, cctx.String("importer-batch-num"))
-			if err != nil {
-				return err
-			}
+			importerBatchNum = cctx.String("importer-batch-num")
+		} else {
+			fmt.Println("use default importer batch num:", defaultImporterBatchNum)
 		}
 		if cctx.String("pool-user") != "" {
-			err := os.Setenv(dagpooluser.PoolUser, cctx.String("pool-user"))
-			if err != nil {
-				return err
-			}
+			poolUser = cctx.String("pool-user")
+		} else {
+			fmt.Println("use default pool user:", defaultUser)
 		}
 		if cctx.String("pool-pass") != "" {
-			err := os.Setenv(dagpooluser.PoolPass, cctx.String("pool-pass"))
-			if err != nil {
-				return err
-			}
+			poolPass = cctx.String("pool-pass")
+		} else {
+			fmt.Println("use default pool pass:", defaultPass)
 		}
-		startDagPoolServer()
+		startDagPoolServer(dbpath, addr, nodeConfigPath, importerBatchNum, poolUser, poolPass)
 		return nil
 	},
 }
 
-func startDagPoolServer() {
+func startDagPoolServer(dbpath, addr, nodeConfigPath, importerBatchNum, poolUser, poolPass string) {
 	// listen port
-	lis, err := net.Listen("tcp", os.Getenv(DagPooListenAddr))
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Errorf("failed to listen: %v", err)
 	}
 	// new server
 	s := grpc.NewServer()
-	con, err := LoadPoolConfig()
+	con, err := LoadPoolConfig(dbpath, nodeConfigPath, importerBatchNum)
 	if err != nil {
 		return
 	}
@@ -134,8 +129,8 @@ func startDagPoolServer() {
 	}
 	//add default user
 	err = service.Iam.AddUser(dagpooluser.DagPoolUser{
-		Username: os.Getenv(dagpooluser.PoolUser),
-		Password: os.Getenv(dagpooluser.PoolPass),
+		Username: poolUser,
+		Password: poolPass,
 		Policy:   userpolicy.ReadWrite,
 		Capacity: 0,
 	})
@@ -148,12 +143,10 @@ func startDagPoolServer() {
 		log.Errorf("failed to serve: %v", err)
 	}
 }
-func LoadPoolConfig() (config.PoolConfig, error) {
-	p := os.Getenv(DagNodeConfigPath)
-	i := os.Getenv(DagPoolImporterBatchNum)
-	importerBatchNum, _ := strconv.Atoi(i)
+func LoadPoolConfig(dbpath, nodeConfigPath, importerBatchNum string) (config.PoolConfig, error) {
+	i, _ := strconv.Atoi(importerBatchNum)
 	var nodeConfigs []config.NodeConfig
-	for _, path := range strings.Split(p, ",") {
+	for _, path := range strings.Split(nodeConfigPath, ",") {
 		var nc config.NodeConfig
 		file, err := ioutil.ReadFile(path)
 		if err != nil {
@@ -169,7 +162,7 @@ func LoadPoolConfig() (config.PoolConfig, error) {
 	}
 	return config.PoolConfig{
 		DagNodeConfig:    nodeConfigs,
-		LeveldbPath:      os.Getenv(DagPoolLeveldbPath),
-		ImporterBatchNum: importerBatchNum,
+		LeveldbPath:      dbpath,
+		ImporterBatchNum: i,
 	}, nil
 }
