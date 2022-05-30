@@ -118,7 +118,7 @@ func startDagPoolServer(dbpath, addr, nodeConfigPath, importerBatchNum, poolUser
 	}
 	// new server
 	s := grpc.NewServer()
-	con, err := LoadPoolConfig(dbpath, nodeConfigPath, importerBatchNum)
+	con, err := LoadPoolConfig(dbpath, nodeConfigPath, importerBatchNum, poolUser, poolPass)
 	if err != nil {
 		return
 	}
@@ -143,7 +143,7 @@ func startDagPoolServer(dbpath, addr, nodeConfigPath, importerBatchNum, poolUser
 		log.Errorf("failed to serve: %v", err)
 	}
 }
-func LoadPoolConfig(dbpath, nodeConfigPath, importerBatchNum string) (config.PoolConfig, error) {
+func LoadPoolConfig(dbpath, nodeConfigPath, importerBatchNum, poolUser, poolPass string) (config.PoolConfig, error) {
 	i, _ := strconv.Atoi(importerBatchNum)
 	var nodeConfigs []config.NodeConfig
 	for _, path := range strings.Split(nodeConfigPath, ",") {
@@ -164,5 +164,7 @@ func LoadPoolConfig(dbpath, nodeConfigPath, importerBatchNum string) (config.Poo
 		DagNodeConfig:    nodeConfigs,
 		LeveldbPath:      dbpath,
 		ImporterBatchNum: i,
+		DefaultUser:      poolUser,
+		DefaultPass:      poolPass,
 	}, nil
 }

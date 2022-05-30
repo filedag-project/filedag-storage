@@ -65,5 +65,7 @@ func loadTestPoolConfig(t *testing.T) (cfg config.PoolConfig, err error) {
 		LevelDbPath:  utils.TmpDirPath(t),
 	}
 	cfg.DagNodeConfig = append(cfg.DagNodeConfig, c)
+	cfg.DefaultPass = "pool123"
+	cfg.DefaultUser = "pool"
 	return cfg, nil
 }

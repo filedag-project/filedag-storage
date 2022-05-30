@@ -37,7 +37,7 @@ func main() {
 			fmt.Println("please check your input\n " +
 				"USAGE ERROR: go run -tags example main.go --pool-db-path= --listen-addr= --node-config-path= --importer-batch-num= --pool-user= --pool-pass=")
 		} else {
-			run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum)
+			run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum, user, pass)
 		}
 	default:
 		fmt.Println("expected 'str' subcommands")
@@ -46,7 +46,7 @@ func main() {
 
 }
 
-func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string) {
+func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum, user, pass string) {
 	// listen port
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
@@ -74,6 +74,8 @@ func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string) {
 		DagNodeConfig:    nodeConfigs,
 		LeveldbPath:      leveldbPath,
 		ImporterBatchNum: a,
+		DefaultUser:      user,
+		DefaultPass:      pass,
 	}
 	service, err := pool.NewDagPoolService(cfg)
 	if err != nil {
@@ -82,8 +84,8 @@ func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string) {
 	}
 	//add default user
 	err = service.Iam.AddUser(dagpooluser.DagPoolUser{
-		Username: "pool",
-		Password: "pool123",
+		Username: user,
+		Password: pass,
 		Policy:   userpolicy.ReadWrite,
 		Capacity: 0,
 	})
