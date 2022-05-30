@@ -6,17 +6,6 @@ import (
 	"os"
 )
 
-//func main() {
-//	logging.SetLogLevel("*", "INFO")
-//	os.Setenv(DagPoolLeveldbPath, defaultPoolDB)
-//
-//	os.Setenv(DagNodeConfigPath, defaultNodeConfig)
-//
-//	os.Setenv(DagPoolImporterBatchNum, defaultImporterBatchNum)
-//	os.Setenv(DagPooListenAddr, defaultPoolListenAddr)
-//
-//	startDagPoolServer()
-//}
 func main() {
 	logging.SetLogLevel("*", "INFO")
 	local := []*cli.Command{

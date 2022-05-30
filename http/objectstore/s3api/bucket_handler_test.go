@@ -7,7 +7,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
-	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
@@ -35,18 +34,8 @@ func TestMain(m *testing.M) {
 	go server.StartTestDagPoolServer(&testing.T{})
 	time.Sleep(time.Second * 1)
 	s3server.store.Db = uleveldb.DBClient
-	os.Setenv(store.PoolAddr, "127.0.0.1:9002")
-	s3server.store.Init()
+	s3server.store.Init("127.0.0.1:9002", "pool", "pool123")
 	defer s3server.store.Close()
-
-	err = os.Setenv(store.PoolUser, "pool")
-	if err != nil {
-		return
-	}
-	err = os.Setenv(store.PoolPass, "pool123")
-	if err != nil {
-		return
-	}
 	s3server.registerS3Router(router)
 	os.Exit(m.Run())
 }

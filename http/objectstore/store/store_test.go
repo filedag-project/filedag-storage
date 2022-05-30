@@ -9,7 +9,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 )
@@ -20,8 +19,6 @@ func TestStorageSys_Object(t *testing.T) {
 	var s StorageSys
 	s.DagPool, _ = dagpoolcli.NewPoolClient("localhost:9002")
 	s.Db, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	os.Setenv(PoolUser, "pool")
-	os.Setenv(PoolPass, "pool123")
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	object, err := s.StoreObject(context.TODO(), "test", "testbucket", "testobject", r, 6)
 	if err != nil {
