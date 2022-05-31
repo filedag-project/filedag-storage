@@ -5,7 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool/server"
+	"github.com/filedag-project/filedag-storage/dag/proto"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	"google.golang.org/grpc"
@@ -26,10 +26,9 @@ func TestPoolClient_Add_Get(t *testing.T) {
 		log.Errorf("did not connect: %v", err)
 	}
 	defer conn.Close()
-	c := server.NewDagPoolClient(conn)
+	c := proto.NewDagPoolClient(conn)
 	pc := PoolClient{c, cidBuilder, conn}
 	var ctx = context.Background()
-	ctx = context.WithValue(ctx, "user", "pool,pool123")
 	node, err := BalanceNode(ctx, r, pc, cidBuilder)
 	if err != nil {
 		log.Errorf("err:%v", err)

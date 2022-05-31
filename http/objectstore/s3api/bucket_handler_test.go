@@ -3,7 +3,6 @@ package s3api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
@@ -15,7 +14,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 var w *httptest.ResponseRecorder
@@ -31,8 +29,8 @@ func TestMain(m *testing.M) {
 	iamapi.NewIamApiServer(router)
 	var s3server s3ApiServer
 	s3server.authSys.Init()
-	go server.StartTestDagPoolServer(&testing.T{})
-	time.Sleep(time.Second * 1)
+	//go server.StartTestDagPoolServer(&testing.T{})
+	//time.Sleep(time.Second * 1)
 	s3server.store.Db = uleveldb.DBClient
 	s3server.store.Init("127.0.0.1:9002", "pool", "pool123")
 	defer s3server.store.Close()

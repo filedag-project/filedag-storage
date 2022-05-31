@@ -17,6 +17,8 @@ func TestHeart_beating(t *testing.T) {
 		log.Errorf("err %v", err)
 	}
 	r := NewRecordSys(db)
+	go node.MutDataNodeServer(":9010", node.KVBadge, utils.TmpDirPath(t))
+	time.Sleep(time.Second)
 	var a []node.DataNode
 	for i := 0; i < 3; i++ {
 		conn, h, err := node.InitSliceConn(":9010")
@@ -34,6 +36,6 @@ func TestHeart_beating(t *testing.T) {
 	if err != nil {
 		return
 	}
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 10)
 	log.Infof("the node : %+v", r.RN)
 }
