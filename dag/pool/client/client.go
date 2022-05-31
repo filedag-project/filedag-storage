@@ -27,11 +27,11 @@ type PoolClient interface {
 }
 type DagPoolClient struct {
 	DPClient proto.DagPoolClient
-	conn     *grpc.ClientConn
+	Conn     *grpc.ClientConn
 }
 
 func (p DagPoolClient) Close(ctx context.Context) {
-	p.conn.Close()
+	p.Conn.Close()
 }
 
 func NewPoolClient(addr string) (*DagPoolClient, error) {

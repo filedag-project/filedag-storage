@@ -8,6 +8,8 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/golang/mock/gomock"
+	"github.com/ipfs/go-merkledag"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"testing"
 )
@@ -16,7 +18,10 @@ func TestStorageSys_Object(t *testing.T) {
 	var s StorageSys
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	s.DagPool = &client.DagPoolClient{DPClient: utils.NewMockDagPoolClient(ctrl)}
+	co, err := grpc.Dial("127.0.0.1:7777", grpc.WithInsecure())
+	cidBuilder, err := merkledag.PrefixForCidVersion(0)
+	s.CidBuilder = cidBuilder
+	s.DagPool = &client.DagPoolClient{DPClient: utils.NewMockDagPoolClient(ctrl), Conn: co}
 	s.Db, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	object, err := s.StoreObject(context.TODO(), "test", "testbucket", "testobject", r, 6)
