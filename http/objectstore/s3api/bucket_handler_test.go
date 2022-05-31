@@ -8,6 +8,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -29,13 +30,14 @@ func TestMain(m *testing.M) {
 	iamapi.NewIamApiServer(router)
 	var s3server s3ApiServer
 	s3server.authSys.Init()
-	//go server.StartTestDagPoolServer(&testing.T{})
-	//time.Sleep(time.Second * 1)
 	s3server.store.Db = uleveldb.DBClient
-	s3server.store.Init("127.0.0.1:9002", "pool", "pool123")
+	ctrl := gomock.NewController(&testing.T{})
+
+	s3server.store.DagPool = utils.NewMockClient(ctrl)
 	defer s3server.store.Close()
 	s3server.registerS3Router(router)
 	os.Exit(m.Run())
+
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	// mock a response logger
