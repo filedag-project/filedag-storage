@@ -22,7 +22,7 @@ func (i *IdentityRefe) AddReference(cid string) error {
 	err := i.DB.Get(dagPoolRefe+cidCode, &count)
 	count++
 	err = i.DB.Put(dagPoolRefe+cidCode, count)
-	i.mu.Unlock()
+	i.mu.RUnlock()
 	if err != nil {
 		return err
 	}
