@@ -19,7 +19,7 @@ type PinService struct {
 	blockPin BlockPin
 }
 
-func (s *PinService) addPin(pin Pin) error {
+func (s *PinService) AddPin(pin Pin) error {
 	poolPin, err := svcPinToPoolPin(pin)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (s *PinService) addPin(pin Pin) error {
 	return nil
 }
 
-func (s *PinService) removePin(cid types.Cid) error {
+func (s *PinService) RemovePin(cid types.Cid) error {
 	err := s.blockPin.RemovePin(cid.String())
 	if err != nil {
 		return err
@@ -43,7 +43,6 @@ func (s *PinService) removePin(cid types.Cid) error {
 func svcPinToPoolPin(p Pin) (types.Pin, error) {
 	opts := types.PinOptions{
 		Name:     string(p.Name),
-		Origins:  p.Origins,
 		Metadata: p.Meta,
 		Mode:     types.PinModeDirect,
 	}

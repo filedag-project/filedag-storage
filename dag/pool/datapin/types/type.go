@@ -20,21 +20,6 @@ const (
 	// DataType is a regular, non-sharded pin. It is pinned recursively.
 	// It has no associated reference.
 	DataType
-	// MetaType tracks the original CID of a sharded DAG. Its Reference
-	// points to the Cluster DAG CID.
-	MetaType
-	// ClusterDAGType pins carry the CID of the root node that points to
-	// all the shard-root-nodes of the shards in which a DAG has been
-	// divided. Its Reference carries the MetaType CID.
-	// ClusterDAGType pins are pinned directly everywhere.
-	ClusterDAGType
-	// ShardType pins carry the root CID of a shard, which points
-	// to individual blocks on the original DAG that the user is adding,
-	// which has been sharded.
-	// They carry a Reference to the previous shard.
-	// ShardTypes are pinned with MaxDepth=1 (root and
-	// direct children only).
-	ShardType
 )
 
 // PinDepth indicates how deep a pin should be pinned, with
@@ -83,14 +68,10 @@ type Pin struct {
 
 // PinOptions wraps user-defined options for Pins
 type PinOptions struct {
-	Name            string            `json:"name" codec:"n,omitempty"`
-	Mode            PinMode           `json:"mode" codec:"o,omitempty"`
-	ShardSize       uint64            `json:"shard_size" codec:"s,omitempty"`
-	UserAllocations []peer.ID         `json:"user_allocations" codec:"ua,omitempty"`
-	ExpireAt        time.Time         `json:"expire_at" codec:"e,omitempty"`
-	Metadata        map[string]string `json:"metadata" codec:"m,omitempty"`
-	PinUpdate       Cid               `json:"pin_update,omitempty" codec:"pu,omitempty"`
-	Origins         []Multiaddr       `json:"origins" codec:"g,omitempty"`
+	Name      string            `json:"name" codec:"n,omitempty"`
+	Mode      PinMode           `json:"mode" codec:"o,omitempty"`
+	ShardSize uint64            `json:"shard_size" codec:"s,omitempty"`
+	Metadata  map[string]string `json:"metadata" codec:"m,omitempty"`
 }
 
 // Multiaddr is a concrete type to wrap a Multiaddress so that it knows how to
@@ -130,17 +111,7 @@ func PinCid(c Cid) Pin {
 func PinWithOpts(c Cid, opts PinOptions) Pin {
 	p := PinCid(c)
 	p.PinOptions = opts
-	//p.MaxDepth = p.Mode.ToPinDepth()
 	return p
-}
-
-// ExpiredAt returns whether the pin has expired at the given time.
-func (pin Pin) ExpiredAt(t time.Time) bool {
-	if pin.ExpireAt.IsZero() || pin.ExpireAt.Equal(unixZero) {
-		return false
-	}
-
-	return pin.ExpireAt.Before(t)
 }
 
 // Defined returns true if this is not a zero-object pin (the CID must be set).
