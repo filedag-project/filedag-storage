@@ -3,6 +3,7 @@ package s3api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
@@ -34,13 +35,12 @@ func TestMain(m *testing.M) {
 	s3server.store.Db = uleveldb.DBClient
 	ctrl := gomock.NewController(&testing.T{})
 
-	s3server.store.DagPool = utils.NewMockClient(ctrl)
+	s3server.store.DagPool = &client.DagPoolClient{DPClient: utils.NewMockDagPoolClient(ctrl)}
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	s3server.store.CidBuilder = cidBuilder
 	defer s3server.store.Close()
 	s3server.registerS3Router(router)
 	os.Exit(m.Run())
-
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	// mock a response logger

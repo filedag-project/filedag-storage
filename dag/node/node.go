@@ -29,7 +29,6 @@ type DagNode struct {
 }
 
 type DataNode struct {
-	sync.Mutex
 	Client      proto.DataNodeClient
 	HeartClient healthpb.HealthClient
 	Ip          string

@@ -1,53 +1,65 @@
 package node
 
 import (
-	"encoding/json"
-	"github.com/filedag-project/filedag-storage/dag/config"
+	"context"
+	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/node/mocks"
+	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
-	"io/ioutil"
+	"github.com/golang/mock/gomock"
+	blocks "github.com/ipfs/go-block-format"
 	"testing"
-	"time"
 )
 
-//func TestDagNode(t *testing.T) {
-//	var nc config.NodeConfig
-//	file, err := ioutil.ReadFile("./node_config2.json")
-//	if err != nil {
-//
-//	}
-//	err = json.Unmarshal(file, &nc)
-//	dagNode, err := NewDagNode(nc)
-//	data, err := ioutil.ReadFile("./node.go")
-//	aa := cid.Cid{}
-//	b, err := blocks.NewBlockWithCid(data, aa)
-//	if err == blocks.ErrWrongHash {
-//		fmt.Println(err)
-//	}
-//	err = dagNode.Put(b)
-//	if err != nil {
-//		fmt.Println(err)
-//	}
-//	dataBlock, err := dagNode.Get(aa)
-//	fmt.Println(dataBlock)
-//	if err != nil {
-//		fmt.Println(err)
-//	}
-//	err = dagNode.DeleteBlock(aa)
-//	if err != nil {
-//		fmt.Println(err)
-//	}
-//	dataBlock, err = dagNode.Get(aa)
-//	fmt.Println(dataBlock)
-//}
-func TestNewDagNode(t *testing.T) {
-	var nc config.NodeConfig
-	file, err := ioutil.ReadFile("./node_config2.json")
-	if err != nil {
-
+func TestDagNode(t *testing.T) {
+	q := DataNode{
+		Client: newDatanode(t),
 	}
-	err = json.Unmarshal(file, &nc)
-	NewDagNode(nc)
-	time.Sleep(time.Millisecond * 50)
-	go MutDataNodeServer("127.0.0.1:9011", KVBadge, utils.TmpDirPath(t))
-	time.Sleep(time.Second * 10)
+	var s []DataNode
+	s = append(s, q)
+	db, err := uleveldb.OpenDb(utils.TmpDirPath(t))
+	if err != nil {
+		return
+	}
+	var d = DagNode{
+		Nodes:        s,
+		db:           db,
+		dataBlocks:   3,
+		parityBlocks: 1,
+	}
+	block := blocks.NewBlock([]byte("123456"))
+	err = d.Put(block)
+	if err != nil {
+		fmt.Println("put err", err)
+		return
+	}
+	get, err := d.Get(block.Cid())
+	if err != nil {
+		fmt.Println("get err", err)
+		return
+	}
+	fmt.Println(get.String())
+	err = d.DeleteBlock(block.Cid())
+	if err != nil {
+		fmt.Println("del err", err)
+		return
+	}
+	size, err := d.GetSize(block.Cid())
+	if err != nil {
+		fmt.Println("size err", err)
+		return
+	}
+	fmt.Println(size)
+}
+func newDatanode(t *testing.T) *mocks.MockDataNodeClient {
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockDataNodeClient(ctrl)
+	m.EXPECT().Put(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.AddRequest{})).AnyTimes().Return(nil, nil)
+	m.EXPECT().Get(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.GetRequest{})).AnyTimes().
+		Return(&proto.GetResponse{DataBlock: []byte("123456")}, nil)
+	m.EXPECT().Delete(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.DeleteRequest{})).AnyTimes().Return(nil, nil)
+	m.EXPECT().Size(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.SizeRequest{})).AnyTimes().
+		Return(&proto.SizeResponse{Size: 6}, nil)
+	return m
 }
