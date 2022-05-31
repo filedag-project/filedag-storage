@@ -55,7 +55,7 @@ var startCmd = &cli.Command{
 		default:
 			return errors.New(fmt.Sprintf("not support this kvdb %s", kvType))
 		}
-		node.MutDataNodeServer(c.String("listen"), kvType, c.String("path"))
+		node.MutDataNodeServer(c.String("listen"), kvType, c.String("datadir"))
 		return nil
 	},
 }
