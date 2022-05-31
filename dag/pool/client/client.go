@@ -26,8 +26,8 @@ type PoolClient interface {
 	RemoveMany(ctx context.Context, cids []cid.Cid) error
 }
 type DagPoolClient struct {
-	pc   proto.DagPoolClient
-	conn *grpc.ClientConn
+	DPClient proto.DagPoolClient
+	conn     *grpc.ClientConn
 }
 
 func (p DagPoolClient) Close(ctx context.Context) {
@@ -50,7 +50,7 @@ func (p DagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error
 		return nil, userpolicy.AccessDenied
 	}
 	log.Infof(cid.String())
-	get, err := p.pc.Get(ctx, &proto.GetReq{Cid: cid.String(), User: &proto.PoolUser{
+	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: &proto.PoolUser{
 		Username: s[0],
 		Pass:     s[1],
 	}})
@@ -65,7 +65,7 @@ func (p DagPoolClient) Add(ctx context.Context, node format.Node) error {
 	if len(s) != 2 {
 		return userpolicy.AccessDenied
 	}
-	_, err := p.pc.Add(ctx, &proto.AddReq{Block: node.RawData(), User: &proto.PoolUser{
+	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: &proto.PoolUser{
 		Username: s[0],
 		Pass:     s[1],
 	}})
@@ -80,7 +80,7 @@ func (p DagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	if len(s) != 2 {
 		return userpolicy.AccessDenied
 	}
-	reply, err := p.pc.Remove(ctx, &proto.RemoveReq{
+	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
 		Cid: cid.String(),
 		User: &proto.PoolUser{
 			Username: s[0],

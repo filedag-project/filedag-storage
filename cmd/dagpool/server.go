@@ -128,7 +128,7 @@ func startDagPoolServer(dbpath, addr, nodeConfigPath, importerBatchNum, poolUser
 		return
 	}
 	//add default user
-	err = service.Iam.AddUser(dagpooluser.DagPoolUser{
+	err = service.AddUser(dagpooluser.DagPoolUser{
 		Username: poolUser,
 		Password: poolPass,
 		Policy:   userpolicy.ReadWrite,

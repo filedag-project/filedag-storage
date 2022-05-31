@@ -409,7 +409,7 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 		}
-		fmt.Printf("Case %d: copy:%v\n", i+1, result.Body.String())
+		fmt.Printf("Case %d: list:%v\n", i+1, result.Body.String())
 	}
 
 }
