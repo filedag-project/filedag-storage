@@ -37,8 +37,8 @@ func OpenDb(path string) (*ULevelDB, error) {
 }
 
 //Close db close
-func (l *ULevelDB) Close() {
-	l.DB.Close()
+func (l *ULevelDB) Close() error {
+	return l.DB.Close()
 }
 
 // Put

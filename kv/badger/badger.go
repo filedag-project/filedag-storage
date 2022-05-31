@@ -4,17 +4,11 @@ import (
 	"context"
 	"github.com/dgraph-io/badger"
 	"github.com/filedag-project/filedag-storage/kv"
-	"os"
 )
 
 var _ kv.KVDB = (*badgerDb)(nil)
 
 func NewBadger(path string) (bg *badgerDb, err error) {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err = os.MkdirAll(path, 0755); err != nil {
-			return nil, err
-		}
-	}
 	opts := badger.DefaultOptions(path)
 	opts.SyncWrites = false
 	opts.ValueThreshold = 256

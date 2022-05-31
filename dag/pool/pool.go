@@ -22,6 +22,8 @@ import (
 
 var log = logging.Logger("dag-pool")
 
+var _ DagPool = &Pool{}
+
 type DagPool interface {
 	Add(ctx context.Context, block blocks.Block) error
 	Get(ctx context.Context, c cid.Cid) (blocks.Block, error)
@@ -34,16 +36,17 @@ type DagPool interface {
 	RemoveUser(username string) error
 	QueryUser(username string) (dagpooluser.DagPoolUser, error)
 	UpdateUser(u dagpooluser.DagPoolUser) error
+	Close() error
 }
 
 // Pool is an IPFS Merkle DAG service.
 type Pool struct {
-	DagNodes         map[string]*node.DagNode
-	Iam              dagpooluser.IdentityUserSys
-	refer            referencecount.IdentityRefe
-	CidBuilder       cid.Builder
-	ImporterBatchNum int
-	NRSys            dnm.NodeRecordSys
+	DagNodes   map[string]*node.DagNode
+	iam        dagpooluser.IdentityUserSys
+	refer      referencecount.IdentityRefe
+	CidBuilder cid.Builder
+	NRSys      dnm.NodeRecordSys
+	db         *uleveldb.ULevelDB
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -77,7 +80,14 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 		}
 		dn[name] = bs
 	}
-	return &Pool{DagNodes: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: nrs}, nil
+	return &Pool{
+		DagNodes:   dn,
+		iam:        i,
+		refer:      r,
+		CidBuilder: cidBuilder,
+		NRSys:      nrs,
+		db:         db,
+	}, nil
 }
 
 // Add adds a node to the Pool, storing the block in the BlockService
@@ -179,27 +189,29 @@ func (d *Pool) DataRepairDisk(ctx context.Context, ip, port string) error {
 }
 
 func (d *Pool) CheckDeal(user, pass string) bool {
-	return d.Iam.CheckDeal(user, pass)
+	return d.iam.CheckDeal(user, pass)
 }
 
 func (d *Pool) AddUser(user dagpooluser.DagPoolUser) error {
-	return d.Iam.AddUser(user)
+	return d.iam.AddUser(user)
 }
 
 func (d *Pool) RemoveUser(username string) error {
-	return d.Iam.RemoveUser(username)
+	return d.iam.RemoveUser(username)
 }
 
 func (d *Pool) QueryUser(username string) (dagpooluser.DagPoolUser, error) {
-	return d.Iam.QueryUser(username)
+	return d.iam.QueryUser(username)
 }
 
 func (d *Pool) UpdateUser(u dagpooluser.DagPoolUser) error {
-	return d.Iam.UpdateUser(u)
+	return d.iam.UpdateUser(u)
 }
 
 func (d *Pool) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
-	return d.Iam.CheckUserPolicy(username, pass, policy)
+	return d.iam.CheckUserPolicy(username, pass, policy)
 }
 
-var _ DagPool = &Pool{}
+func (d *Pool) Close() error {
+	return d.db.Close()
+}
