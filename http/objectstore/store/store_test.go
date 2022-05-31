@@ -15,7 +15,9 @@ import (
 
 func TestStorageSys_Object(t *testing.T) {
 	var s StorageSys
-	s.DagPool = NewMockClient(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	s.DagPool = NewMockClient(ctrl)
 	s.Db, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	object, err := s.StoreObject(context.TODO(), "test", "testbucket", "testobject", r, 6)
@@ -34,9 +36,7 @@ func TestStorageSys_Object(t *testing.T) {
 	fmt.Println(string(all))
 	s.DagPool.Close(context.TODO())
 }
-func NewMockClient(t *testing.T) *dagpoolcli.MockPoolClient {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func NewMockClient(ctrl *gomock.Controller) dagpoolcli.PoolClient {
 	m := dagpoolcli.NewMockPoolClient(ctrl)
 	m.EXPECT().Add(gomock.Any(), gomock.Any()).Return(nil)
 	m.EXPECT().Get(gomock.Any(), gomock.Any()).Return(merkledag.NewRawNode([]byte("123456")), nil)
