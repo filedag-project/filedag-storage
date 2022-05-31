@@ -8,6 +8,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	bserv "github.com/ipfs/go-blockservice"
@@ -21,12 +22,22 @@ import (
 
 var log = logging.Logger("dag-pool")
 
-// DagPool is an IPFS Merkle DAG service.
-// - the root is virtual (like a forest)
-// - stores nodes' data in a BlockService
-// TODO: should cache Nodes that are in memory, and be
-//       able to free some of them when vm pressure is high
-type DagPool struct {
+type DagPool interface {
+	Add(ctx context.Context, block blocks.Block) error
+	Get(ctx context.Context, c cid.Cid) (blocks.Block, error)
+	Remove(ctx context.Context, c cid.Cid) error
+	DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error
+	DataRepairDisk(ctx context.Context, ip, port string) error
+	CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool
+	CheckDeal(user, pass string) bool
+	AddUser(user dagpooluser.DagPoolUser) error
+	RemoveUser(username string) error
+	QueryUser(username string) (dagpooluser.DagPoolUser, error)
+	UpdateUser(u dagpooluser.DagPoolUser) error
+}
+
+// Pool is an IPFS Merkle DAG service.
+type Pool struct {
 	DagNodes         map[string]*node.DagNode
 	Iam              dagpooluser.IdentityUserSys
 	refer            referencecount.IdentityRefe
@@ -37,7 +48,7 @@ type DagPool struct {
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
+func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	if err != nil {
 		return nil, err
@@ -66,13 +77,13 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 		}
 		dn[name] = bs
 	}
-	return &DagPool{DagNodes: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: nrs}, nil
+	return &Pool{DagNodes: dn, Iam: i, refer: r, CidBuilder: cidBuilder, ImporterBatchNum: cfg.ImporterBatchNum, NRSys: nrs}, nil
 }
 
-// Add adds a node to the DagPool, storing the block in the BlockService
-func (d *DagPool) Add(ctx context.Context, block blocks.Block) error {
+// Add adds a node to the Pool, storing the block in the BlockService
+func (d *Pool) Add(ctx context.Context, block blocks.Block) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
-		return fmt.Errorf("DagPool is nil")
+		return fmt.Errorf("Pool is nil")
 	}
 	err := d.refer.AddReference(block.Cid().String())
 	if err != nil {
@@ -92,10 +103,10 @@ func (d *DagPool) Add(ctx context.Context, block blocks.Block) error {
 	return useNode.Put(block)
 }
 
-// Get retrieves a node from the DagPool, fetching the block in the BlockService
-func (d *DagPool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+// Get retrieves a node from the Pool, fetching the block in the BlockService
+func (d *Pool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	if d == nil {
-		return nil, fmt.Errorf("DagPool is nil")
+		return nil, fmt.Errorf("Pool is nil")
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -121,9 +132,9 @@ func (d *DagPool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	return b, nil
 }
 
-func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
+func (d *Pool) Remove(ctx context.Context, c cid.Cid) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
-		return fmt.Errorf("DagPool is nil")
+		return fmt.Errorf("Pool is nil")
 	}
 	err := d.refer.RemoveReference(c.String())
 	if err != nil {
@@ -144,9 +155,9 @@ func (d *DagPool) Remove(ctx context.Context, c cid.Cid) error {
 }
 
 // DataRepairHost Data repair host
-func (d *DagPool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
+func (d *Pool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
 	if d == nil {
-		return fmt.Errorf("DagPool is nil")
+		return fmt.Errorf("Pool is nil")
 	}
 	dagNode, err := d.GetNodeUseIP(ctx, oldIp)
 	if err != nil {
@@ -156,9 +167,9 @@ func (d *DagPool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, new
 }
 
 // DataRepairDisk Data repair disk
-func (d *DagPool) DataRepairDisk(ctx context.Context, ip, port string) error {
+func (d *Pool) DataRepairDisk(ctx context.Context, ip, port string) error {
 	if d == nil {
-		return fmt.Errorf("DagPool is nil")
+		return fmt.Errorf("Pool is nil")
 	}
 	dagNode, err := d.GetNodeUseIP(ctx, ip)
 	if err != nil {
@@ -166,3 +177,29 @@ func (d *DagPool) DataRepairDisk(ctx context.Context, ip, port string) error {
 	}
 	return dagNode.RepairDisk(ip, port)
 }
+
+func (d *Pool) CheckDeal(user, pass string) bool {
+	return d.Iam.CheckDeal(user, pass)
+}
+
+func (d *Pool) AddUser(user dagpooluser.DagPoolUser) error {
+	return d.Iam.AddUser(user)
+}
+
+func (d *Pool) RemoveUser(username string) error {
+	return d.Iam.RemoveUser(username)
+}
+
+func (d *Pool) QueryUser(username string) (dagpooluser.DagPoolUser, error) {
+	return d.Iam.QueryUser(username)
+}
+
+func (d *Pool) UpdateUser(u dagpooluser.DagPoolUser) error {
+	return d.Iam.UpdateUser(u)
+}
+
+func (d *Pool) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
+	return d.Iam.CheckUserPolicy(username, pass, policy)
+}
+
+var _ DagPool = &Pool{}
