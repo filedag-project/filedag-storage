@@ -21,7 +21,7 @@ var log = logging.Logger("store")
 type StorageSys struct {
 	Db         *uleveldb.ULevelDB
 	DagPool    dagpoolcli.PoolClient
-	cidBuilder cid.Builder
+	CidBuilder cid.Builder
 }
 
 const objectPrefixTemplate = "object-%s-%s-%s/"
@@ -42,7 +42,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		object = object[1:]
 	}
 	ctx = context.WithValue(ctx, "user", getPoolUser())
-	node, err := dagpoolcli.BalanceNode(ctx, reader, s.DagPool, s.cidBuilder)
+	node, err := dagpoolcli.BalanceNode(ctx, reader, s.DagPool, s.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -212,7 +212,7 @@ func (s *StorageSys) Init(poolAddr, pu, pp string) error {
 	poolUser = pu
 	poolPass = pp
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
-	s.cidBuilder = cidBuilder
+	s.CidBuilder = cidBuilder
 	s.DagPool, err = dagpoolcli.NewPoolClient(poolAddr)
 	if err != nil {
 		return err

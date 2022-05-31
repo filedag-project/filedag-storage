@@ -10,6 +10,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-merkledag"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -34,6 +35,8 @@ func TestMain(m *testing.M) {
 	ctrl := gomock.NewController(&testing.T{})
 
 	s3server.store.DagPool = utils.NewMockClient(ctrl)
+	cidBuilder, err := merkledag.PrefixForCidVersion(0)
+	s3server.store.CidBuilder = cidBuilder
 	defer s3server.store.Close()
 	s3server.registerS3Router(router)
 	os.Exit(m.Run())
