@@ -31,5 +31,5 @@ func main() {
 	}
 }
 func run(host, port, path string) {
-	node.MutDataNodeServer(host, port, path)
+	node.MutDataNodeServer(fmt.Sprintf("%s:%s", host, port), node.KVBadge, path)
 }

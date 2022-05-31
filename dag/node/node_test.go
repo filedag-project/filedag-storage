@@ -51,6 +51,6 @@ func TestNewDagNode(t *testing.T) {
 	err = json.Unmarshal(file, &nc)
 	NewDagNode(nc)
 	time.Sleep(time.Millisecond * 50)
-	go MutDataNodeServer("127.0.0.1", "9011", utils.TmpDirPath(t))
-	time.Sleep(time.Second * 20)
+	go MutDataNodeServer("127.0.0.1:9011", KVBadge, utils.TmpDirPath(t))
+	time.Sleep(time.Second * 10)
 }

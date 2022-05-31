@@ -131,7 +131,7 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 
 // SetStatus set user status
 func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "Set-Status", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return

@@ -2,7 +2,6 @@ package iamapi
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
@@ -288,6 +287,7 @@ func TestIamApiServer_SetStatus(t *testing.T) {
 		isRemove  bool
 		accessKey string
 		secretKey string
+		status    string
 		// expected output.
 		expectedRespStatus int // expected response status body.
 	}{
@@ -298,22 +298,31 @@ func TestIamApiServer_SetStatus(t *testing.T) {
 			accessKey:          "admin",
 			secretKey:          "admin1234",
 			expectedRespStatus: http.StatusOK,
+			status:             "off",
+		},
+		{
+			isRemove:           true,
+			accessKey:          "admin",
+			secretKey:          "admin1234",
+			expectedRespStatus: http.StatusOK,
+			status:             "on",
 		},
 	}
 	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
 	setStatusUrl := "http://127.0.0.1:9985/admin/v1/update-accessKey_status?"
+	//add user
+	reqPutUser := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+"admin"+"&secretKey="+"admin1234", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	result := reqTest(reqPutUser)
+	if result.Code != http.StatusOK {
+		t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", 0, http.StatusOK, result.Code)
+	}
 	for i, testCase := range testCases {
 		// mock an HTTP request
-		//add user
-		reqPutUser := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-		result := reqTest(reqPutUser)
-		if result.Code != testCase.expectedRespStatus {
-			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
-		}
+
 		//set status
 		urlValues := make(url.Values)
 		urlValues.Set("accessKey", testCase.accessKey)
-		urlValues.Set("status", string(iam.AccountDisabled))
+		urlValues.Set("status", testCase.status)
 		//urlValues.Set("status", string(iam.AccountEnabled))
 		reqSetStatus := utils.MustNewSignedV4Request(http.MethodPost, setStatusUrl+urlValues.Encode(), 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		result = reqTest(reqSetStatus)
