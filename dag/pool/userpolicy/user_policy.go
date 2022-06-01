@@ -20,3 +20,9 @@ func (d *DagPoolPolicy) Allow(policy DagPoolPolicy) bool {
 		return false
 	}
 }
+func CheckValid(pol string) bool {
+	if DagPoolPolicy(pol) != OnlyRead && DagPoolPolicy(pol) != OnlyWrite && DagPoolPolicy(pol) != ReadWrite {
+		return false
+	}
+	return true
+}

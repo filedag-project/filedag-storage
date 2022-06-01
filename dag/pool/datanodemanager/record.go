@@ -49,13 +49,15 @@ func (r *NodeRecordSys) HandleDagNode(cons []node.DataNode, name string) error {
 			port:   c.Port,
 		}
 		m[strconv.Itoa(i)] = &dni
-		go r.HandleConn(&c, name, dni.name)
 	}
 	tmp := DagNodeInfo{
 		status:       true,
 		dataNodeInfo: m,
 	}
 	r.RN[name] = &tmp
+	for i, c := range cons {
+		go r.HandleConn(&c, name, strconv.Itoa(i))
+	}
 	return nil
 }
 func (r *NodeRecordSys) HandleConn(c *node.DataNode, name string, dataName string) {

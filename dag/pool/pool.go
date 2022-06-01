@@ -46,7 +46,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*DagPool, error) {
 	if err != nil {
 		return nil, err
 	}
-	i, err := dagpooluser.NewIdentityUserSys(db)
+	i, err := dagpooluser.NewIdentityUserSys(db, cfg.DefaultUser, cfg.DefaultPass)
 	if err != nil {
 		return nil, err
 	}

@@ -1,17 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/node"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"os"
-)
-
-const (
-	defaultHost = "localhost"
-	defaultPort = "9010"
-	defaultPath = "/tmp/dag/data"
 )
 
 func main() {
@@ -20,7 +15,7 @@ func main() {
 		startCmd,
 	}
 	app := &cli.App{
-		Name:     "mut-cask",
+		Name:     "datanode",
 		Usage:    "store data",
 		Version:  "0.0.1",
 		Commands: local,
@@ -33,45 +28,34 @@ func main() {
 }
 
 var startCmd = &cli.Command{
-	Name:  "run",
+	Name:  "daemon",
 	Usage: "Start a data node process",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "host",
-			Usage: "set host eg.:127.0.0.1",
-			Value: defaultHost,
+			Name:  "listen",
+			Usage: "set server listen",
+			Value: ":9010",
 		},
 		&cli.StringFlag{
-			Name:  "port",
-			Usage: "set port eg.:9010",
-			Value: defaultPort,
+			Name:  "datadir",
+			Usage: "directory to store data in",
+			Value: "./dn-data",
 		},
 		&cli.StringFlag{
-			Name:  "path",
-			Usage: "set data node path",
-			Value: defaultPath,
+			Name:  "kvdb",
+			Usage: "choose kvdb, badger or mutcask",
+			Value: "badger",
 		},
 	},
 	Action: func(c *cli.Context) error {
-		if c.String("host") != "" {
-			err := os.Setenv(node.Host, c.String("host"))
-			if err != nil {
-				return err
-			}
+		kvType := node.KVType(c.String("kvdb"))
+		switch kvType {
+		case node.KVBadge:
+		case node.KVMutcask:
+		default:
+			return errors.New(fmt.Sprintf("not support this kvdb %s", kvType))
 		}
-		if c.String("port") != "" {
-			err := os.Setenv(node.Port, c.String("port"))
-			if err != nil {
-				return err
-			}
-		}
-		if c.String("path") != "" {
-			err := os.Setenv(node.Path, c.String("path"))
-			if err != nil {
-				return err
-			}
-		}
-		node.MutServer()
+		node.MutDataNodeServer(c.String("listen"), kvType, c.String("datadir"))
 		return nil
 	},
 }

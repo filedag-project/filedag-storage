@@ -18,24 +18,26 @@ import (
 	"strings"
 )
 
-//go run -tags example main.go run --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --importer-batch-num=4
+//go run -tags example main.go run --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --importer-batch-num=4 --pool-user=pool --pool-pass=pool123
 func main() {
-	var leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string
+	var leveldbPath, listenAddr, nodeConfigPath, importerBatchNum, user, pass string
 	f := flag.NewFlagSet("run", flag.ExitOnError)
 	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/pool.db", "set db path default:`/tmp/leveldb2/pool.db`")
 	f.StringVar(&listenAddr, "listen-addr", "localhost:50001", "set listen addr default:`localhost:50001`")
 	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
 	f.StringVar(&importerBatchNum, "importer-batch-num", "4", "set importer batch num default:4")
+	f.StringVar(&user, "pool-user", "pool", "set root user default:pool")
+	f.StringVar(&pass, "pool-pass", "pool123", "set root user pass default:pool123")
 
 	switch os.Args[1] {
 	case "run":
 		f.Parse(os.Args[2:])
-		if leveldbPath == "" || listenAddr == "" || nodeConfigPath == "" || importerBatchNum == "" {
-			fmt.Printf("leveldbPath:%v, listenAddr:%v, nodeConfigPath:%v, importerBatchNum:%v", leveldbPath, listenAddr, nodeConfigPath, importerBatchNum)
+		if leveldbPath == "" || listenAddr == "" || nodeConfigPath == "" || importerBatchNum == "" || user == "" || pass == "" {
+			fmt.Printf("leveldbPath:%v, listenAddr:%v, nodeConfigPath:%v, importerBatchNum:%v,user:%v,pass:%v", leveldbPath, listenAddr, nodeConfigPath, importerBatchNum, user, pass)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go run -tags example main.go --pool-db-path= --listen-addr= --node-config-path= --importer-batch-num=")
+				"USAGE ERROR: go run -tags example main.go --pool-db-path= --listen-addr= --node-config-path= --importer-batch-num= --pool-user= --pool-pass=")
 		} else {
-			run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum)
+			run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum, user, pass)
 		}
 	default:
 		fmt.Println("expected 'str' subcommands")
@@ -44,7 +46,7 @@ func main() {
 
 }
 
-func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string) {
+func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum, user, pass string) {
 	// listen port
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
@@ -72,6 +74,8 @@ func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string) {
 		DagNodeConfig:    nodeConfigs,
 		LeveldbPath:      leveldbPath,
 		ImporterBatchNum: a,
+		DefaultUser:      user,
+		DefaultPass:      pass,
 	}
 	service, err := pool.NewDagPoolService(cfg)
 	if err != nil {
@@ -80,8 +84,8 @@ func run(leveldbPath, listenAddr, nodeConfigPath, importerBatchNum string) {
 	}
 	//add default user
 	err = service.Iam.AddUser(dagpooluser.DagPoolUser{
-		Username: "pool",
-		Password: "pool123",
+		Username: user,
+		Password: pass,
 		Policy:   userpolicy.ReadWrite,
 		Capacity: 0,
 	})

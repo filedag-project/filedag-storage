@@ -10,7 +10,7 @@ import (
 
 func newTestIdentityUserSys(t *testing.T) (IdentityUserSys, error) {
 	db, _ := uleveldb.OpenDb(utils.TmpDirPath(t))
-	sys, err := NewIdentityUserSys(db)
+	sys, err := NewIdentityUserSys(db, "pool", "pool123")
 	if err != nil {
 		return sys, err
 	}

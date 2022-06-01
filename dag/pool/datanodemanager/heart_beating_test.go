@@ -5,7 +5,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
-	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -18,6 +17,8 @@ func TestHeart_beating(t *testing.T) {
 		log.Errorf("err %v", err)
 	}
 	r := NewRecordSys(db)
+	go node.MutDataNodeServer(":9010", node.KVBadge, utils.TmpDirPath(t))
+	time.Sleep(time.Second)
 	var a []node.DataNode
 	for i := 0; i < 3; i++ {
 		conn, h, err := node.InitSliceConn(":9010")
@@ -35,22 +36,6 @@ func TestHeart_beating(t *testing.T) {
 	if err != nil {
 		return
 	}
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 10)
 	log.Infof("the node : %+v", r.RN)
-}
-func Test_MutServer(t *testing.T) {
-	logging.SetLogLevel("*", "INFO")
-	os.Setenv(node.Host, "127.0.0.1")
-	os.Setenv(node.Port, "9011")
-	os.Setenv(node.Path, utils.TmpDirPath(t))
-	go node.MutServer()
-	os.Setenv(node.Host, "127.0.0.1")
-	os.Setenv(node.Port, "9012")
-	os.Setenv(node.Path, utils.TmpDirPath(t))
-	go node.MutServer()
-	os.Setenv(node.Host, "127.0.0.1")
-	os.Setenv(node.Port, "9013")
-	os.Setenv(node.Path, utils.TmpDirPath(t))
-	go node.MutServer()
-	time.Sleep(time.Minute * 10)
 }

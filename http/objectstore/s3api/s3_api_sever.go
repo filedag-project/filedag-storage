@@ -90,10 +90,10 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 }
 
 //NewS3Server Start a S3Server
-func NewS3Server(router *mux.Router) *store.StorageSys {
+func NewS3Server(router *mux.Router, poolAddr, poolUser, poolPass string) *store.StorageSys {
 	var s3server s3ApiServer
 	s3server.authSys.Init()
-	err := s3server.store.Init()
+	err := s3server.store.Init(poolAddr, poolUser, poolPass)
 	if err != nil {
 		log.Errorf("s3 store init err%v", err)
 		return nil

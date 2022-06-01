@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
-	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
@@ -46,12 +45,9 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 		return
 	}
 	defer uleveldb.DBClient.Close()
-	os.Setenv(store.PoolAddr, poolAddr)
-	os.Setenv(store.PoolUser, poolUser)
-	os.Setenv(store.PoolPass, poolPass)
 	router := mux.NewRouter()
 	iamapi.NewIamApiServer(router)
-	s := s3api.NewS3Server(router)
+	s := s3api.NewS3Server(router, poolAddr, poolUser, poolPass)
 	if s == nil {
 		fmt.Printf("may be pool addr not right,please check your pool-addr")
 		return

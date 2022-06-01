@@ -8,9 +8,9 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/go-merkledag"
 	ufsio "github.com/ipfs/go-unixfs/io"
 	"io"
-	"os"
 	"strings"
 	"time"
 )
@@ -19,20 +19,21 @@ var log = logging.Logger("store")
 
 //StorageSys store sys
 type StorageSys struct {
-	Db      *uleveldb.ULevelDB
-	DagPool *dagpoolcli.PoolClient
+	Db         *uleveldb.ULevelDB
+	DagPool    dagpoolcli.PoolClient
+	cidBuilder cid.Builder
 }
 
-const (
-	PoolUser = "POOL_USER"
-	PoolPass = "POOL_PASS"
-	PoolAddr = "POOL_ADDR"
-)
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
 
+var (
+	poolUser = "pool"
+	poolPass = "pool123"
+)
+
 func getPoolUser() string {
-	return os.Getenv(PoolUser) + "," + os.Getenv(PoolPass)
+	return poolUser + "," + poolPass
 }
 
 //StoreObject store object
@@ -41,7 +42,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		object = object[1:]
 	}
 	ctx = context.WithValue(ctx, "user", getPoolUser())
-	node, err := dagpoolcli.BalanceNode(ctx, reader, s.DagPool, s.DagPool.CidBuilder)
+	node, err := dagpoolcli.BalanceNode(ctx, reader, s.DagPool, s.cidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -205,11 +206,14 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, pre
 }
 
 //Init storage sys
-func (s *StorageSys) Init() error {
+func (s *StorageSys) Init(poolAddr, pu, pp string) error {
 	s.Db = uleveldb.DBClient
 	var err error
-
-	s.DagPool, err = dagpoolcli.NewPoolClient(os.Getenv(PoolAddr))
+	poolUser = pu
+	poolPass = pp
+	cidBuilder, err := merkledag.PrefixForCidVersion(0)
+	s.cidBuilder = cidBuilder
+	s.DagPool, err = dagpoolcli.NewPoolClient(poolAddr)
 	if err != nil {
 		return err
 	}

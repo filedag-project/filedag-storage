@@ -4,6 +4,8 @@ type PoolConfig struct {
 	DagNodeConfig    []NodeConfig `json:"dag_node"`
 	LeveldbPath      string       `json:"leveldb_path"`
 	ImporterBatchNum int          `json:"importer_batch_num"`
+	DefaultUser      string       `json:"default_user"`
+	DefaultPass      string       `json:"default_pass"`
 }
 
 //type NodeConfig struct {

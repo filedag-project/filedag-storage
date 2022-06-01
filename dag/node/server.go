@@ -2,26 +2,28 @@ package node
 
 import (
 	"context"
-	"flag"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/kv"
+	"github.com/filedag-project/filedag-storage/kv/badger"
 	"github.com/filedag-project/filedag-storage/kv/mutcask"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
+type KVType string
+
 const (
-	Host = "HOST"
-	Port = "PORT"
-	Path = "PATH"
+	KVBadge   KVType = "badger"
+	KVMutcask KVType = "mutcask"
 )
 
 type server struct {
-	proto.UnimplementedMutCaskServer
+	proto.UnimplementedDataNodeServer
 	kvdb kv.KVDB
 }
 
@@ -63,10 +65,6 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 	}, nil
 }
 
-func (s *server) Shutdown() error {
-	return s.kvdb.Close()
-}
-
 //func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 //	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 //}
@@ -78,11 +76,11 @@ func (s *server) Shutdown() error {
 //	return nil
 //}
 
-func MutServer() {
-	fmt.Println("datanode start")
-	flag.Parse()
+func MutDataNodeServer(listen string, kvType KVType, dataDir string) {
+	log.Infof("datanode start...")
+	log.Infof("listen %s", listen)
 	// listen port
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", os.Getenv(Host), os.Getenv(Port)))
+	lis, err := net.Listen("tcp", listen)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -93,13 +91,41 @@ func MutServer() {
 	hs.SetServingStatus(HealthCheckService, healthpb.HealthCheckResponse_SERVING)
 	healthpb.RegisterHealthServer(s, hs)
 
-	mutc, err := mutcask.NewMutcask(mutcask.PathConf(os.Getenv(Path)), mutcask.CaskNumConf(6))
-	proto.RegisterMutCaskServer(s, &server{kvdb: mutc})
+	var kvdb kv.KVDB
+	switch kvType {
+	case KVBadge:
+		kvdb, err = badger.NewBadger(dataDir)
+	case KVMutcask:
+		kvdb, err = mutcask.NewMutcask(mutcask.PathConf(dataDir), mutcask.CaskNumConf(6))
+	default:
+		log.Fatal("not handle this kv type")
+	}
+	if err != nil {
+		log.Fatalf("failed to load db: %v", err)
+	}
+	defer kvdb.Close()
+
+	proto.RegisterDataNodeServer(s, &server{kvdb: kvdb})
 	if err != nil {
 		return
 	}
-	log.Infof("listen:%v:%v", os.Getenv(Host), os.Getenv(Port))
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 5 seconds.
+	quit := make(chan os.Signal, 1)
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Info("Shutdown Server ...")
+
+	s.GracefulStop()
+
+	log.Info("Server exit")
 }

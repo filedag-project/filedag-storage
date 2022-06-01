@@ -3,7 +3,6 @@ package dagpooluser
 import (
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"os"
 )
 
 type IdentityUserSys struct {
@@ -11,15 +10,11 @@ type IdentityUserSys struct {
 }
 
 const dagPoolUser = "dagPoolUser/"
-const (
-	PoolUser = "POOL_USER"
-	PoolPass = "POOL_PASS"
-)
 
-type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
+var (
+	defaultUser = ""
+	defaultPass = ""
+)
 
 type DagPoolUser struct {
 	Username string
@@ -29,7 +24,7 @@ type DagPoolUser struct {
 }
 
 func CheckAddUser(user, pass string) bool {
-	return os.Getenv(PoolUser) == user && os.Getenv(PoolPass) == pass
+	return defaultUser == user && defaultPass == pass
 }
 func (i *IdentityUserSys) CheckDeal(user, pass string) bool {
 	queryUser, err := i.QueryUser(user)
@@ -91,6 +86,8 @@ func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy userpoli
 	}
 	return true
 }
-func NewIdentityUserSys(db *uleveldb.ULevelDB) (IdentityUserSys, error) {
+func NewIdentityUserSys(db *uleveldb.ULevelDB, user, pass string) (IdentityUserSys, error) {
+	defaultUser = user
+	defaultPass = pass
 	return IdentityUserSys{db}, nil
 }
