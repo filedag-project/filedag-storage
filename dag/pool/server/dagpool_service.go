@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
-	"github.com/filedag-project/filedag-storage/dag/pool/datapin"
-	"github.com/filedag-project/filedag-storage/dag/pool/datapin/types"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
@@ -146,9 +144,11 @@ func (s *DagPoolService) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinR
 	if err != nil {
 		return &proto.PinReply{Message: ""}, err
 	}
-	err = s.DagPool.Pin.AddPin(datapin.Pin{
-		Cid: types.Cid{Cid: c},
-	})
+	get, err := s.DagPool.Get(ctx, c)
+	if err != nil {
+		return &proto.PinReply{Message: ""}, err
+	}
+	err = s.DagPool.Pin.AddPin(ctx, c, get)
 	if err != nil {
 		return &proto.PinReply{Message: ""}, err
 	}
@@ -163,7 +163,11 @@ func (s *DagPoolService) UnPin(ctx context.Context, in *proto.UnPinReq) (*proto.
 	if err != nil {
 		return &proto.UnPinReply{Message: ""}, err
 	}
-	err = s.DagPool.Pin.RemovePin(types.Cid{Cid: c})
+	get, err := s.DagPool.Get(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	err = s.DagPool.Pin.RemovePin(ctx, c, get)
 	if err != nil {
 		return &proto.UnPinReply{Message: ""}, err
 	}
