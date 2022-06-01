@@ -12,6 +12,9 @@ service DagPool {
   rpc RemoveUser (RemoveUserReq) returns (RemoveUserReply){}
   rpc QueryUser (QueryUserReq) returns (QueryUserReply){}
   rpc UpdateUser (UpdateUserReq) returns (UpdateUserReply){}
+
+  rpc Pin(PinReq) returns(PinReply) {}
+  rpc UnPin(UnPinReq) returns(UnPinReply) {}
 }
 message PoolUser {
   string username = 1;
@@ -81,5 +84,23 @@ message UpdateUserReq {
 }
 
 message UpdateUserReply {
+  string message = 1;
+}
+
+message PinReq {
+  string cid = 1;
+  PoolUser user = 2;
+}
+
+message PinReply {
+  string message = 1;
+}
+
+message UnPinReq {
+  string cid = 1;
+  PoolUser user = 2;
+}
+
+message UnPinReply {
   string message = 1;
 }

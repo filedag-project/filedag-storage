@@ -7,6 +7,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
+	"github.com/filedag-project/filedag-storage/dag/pool/datapin"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
@@ -30,6 +31,7 @@ type DagPool struct {
 	DagNodes         map[string]*node.DagNode
 	Iam              dagpooluser.IdentityUserSys
 	refer            referencecount.IdentityRefe
+	Pin              datapin.PinService
 	CidBuilder       cid.Builder
 	ImporterBatchNum int
 	NRSys            dnm.NodeRecordSys

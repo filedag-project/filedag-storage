@@ -150,6 +150,46 @@ func (s *StorageSys) ListObject(user, bucket string) ([]ObjectInfo, error) {
 	return objs, nil
 }
 
+func (s *StorageSys) PinObject(ctx context.Context, user, bucket, object string) error {
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
+	meta := ObjectInfo{}
+	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	if err != nil {
+		return err
+	}
+	cid, err := cid.Decode(meta.ETag)
+	if err != nil {
+		return err
+	}
+	err = s.DagPool.Pin(ctx, cid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StorageSys) UnPinObject(ctx context.Context, user, bucket, object string) error {
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
+	meta := ObjectInfo{}
+	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	if err != nil {
+		return err
+	}
+	cid, err := cid.Decode(meta.ETag)
+	if err != nil {
+		return err
+	}
+	err = s.DagPool.UnPin(ctx, cid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 //MkBucket store object
 func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
 	return nil

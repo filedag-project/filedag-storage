@@ -24,6 +24,8 @@ type PoolClient interface {
 	AddMany(ctx context.Context, nodes []format.Node) error
 	GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption
 	RemoveMany(ctx context.Context, cids []cid.Cid) error
+	Pin(ctx context.Context, cid cid.Cid) error
+	UnPin(ctx context.Context, cid cid.Cid) error
 }
 type DagPoolClient struct {
 	pc   proto.DagPoolClient
@@ -122,3 +124,39 @@ func (p DagPoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 
 var _ format.DAGService = &DagPoolClient{}
 var _ PoolClient = &DagPoolClient{}
+
+func (p DagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return userpolicy.AccessDenied
+	}
+	reply, err := p.pc.Pin(ctx, &proto.PinReq{
+		Cid: cid.String(),
+		User: &proto.PoolUser{
+			Username: s[0],
+			Pass:     s[1],
+		}})
+	if err != nil {
+		return err
+	}
+	log.Infof("pin sucess %v ", reply.Message)
+	return err
+}
+
+func (p DagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return userpolicy.AccessDenied
+	}
+	reply, err := p.pc.UnPin(ctx, &proto.UnPinReq{
+		Cid: cid.String(),
+		User: &proto.PoolUser{
+			Username: s[0],
+			Pass:     s[1],
+		}})
+	if err != nil {
+		return err
+	}
+	log.Infof("unpin sucess %v ", reply.Message)
+	return err
+}

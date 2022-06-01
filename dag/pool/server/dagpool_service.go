@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
+	"github.com/filedag-project/filedag-storage/dag/pool/datapin"
+	"github.com/filedag-project/filedag-storage/dag/pool/datapin/types"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
@@ -135,4 +137,35 @@ func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq
 		}
 	}
 	return &proto.UpdateUserReply{Message: "ok"}, nil
+}
+func (s *DagPoolService) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinReply, error) {
+	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+		return &proto.PinReply{Message: ""}, userpolicy.AccessDenied
+	}
+	c, err := cid.Decode(in.Cid)
+	if err != nil {
+		return &proto.PinReply{Message: ""}, err
+	}
+	err = s.DagPool.Pin.AddPin(datapin.Pin{
+		Cid: types.Cid{Cid: c},
+	})
+	if err != nil {
+		return &proto.PinReply{Message: ""}, err
+	}
+	return &proto.PinReply{Message: c.String()}, nil
+}
+
+func (s *DagPoolService) UnPin(ctx context.Context, in *proto.UnPinReq) (*proto.UnPinReply, error) {
+	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+		return &proto.UnPinReply{Message: ""}, userpolicy.AccessDenied
+	}
+	c, err := cid.Decode(in.Cid)
+	if err != nil {
+		return &proto.UnPinReply{Message: ""}, err
+	}
+	err = s.DagPool.Pin.RemovePin(types.Cid{Cid: c})
+	if err != nil {
+		return &proto.UnPinReply{Message: ""}, err
+	}
+	return &proto.UnPinReply{Message: c.String()}, nil
 }
