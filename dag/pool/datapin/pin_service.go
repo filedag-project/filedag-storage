@@ -2,7 +2,6 @@ package datapin
 
 import (
 	"context"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/datapin/types"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -28,7 +27,6 @@ func (s *PinService) AddPin(ctx context.Context, cid cid.Cid, block blocks.Block
 	if err != nil {
 		return err
 	}
-	fmt.Println("chaun", cid)
 	var rootPin = Pin{Cid: types.Cid{Cid: cid}}
 	poolRootPin, err := svcPinToPoolPin(rootPin)
 	if err != nil {
@@ -39,7 +37,6 @@ func (s *PinService) AddPin(ctx context.Context, cid cid.Cid, block blocks.Block
 		return err
 	}
 	for _, link := range node.Links() {
-		fmt.Println("dan", link.Cid.String())
 		var pin = Pin{Cid: types.Cid{Cid: link.Cid}}
 		poolPin, err := svcPinToPoolPin(pin)
 		if err != nil {
