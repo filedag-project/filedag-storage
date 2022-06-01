@@ -37,7 +37,7 @@ func (p *BlockPin) RemovePin(cid string) error {
 	return nil
 }
 
-func (p *BlockPin) QueryReference(cid string) (*types.Pin, error) {
+func (p *BlockPin) QueryPin(cid string) (*types.Pin, error) {
 	cidCode := sha256String(cid)
 	pin := &types.Pin{}
 	err := p.DB.Get(dagPoolPin+cidCode, &pin)
