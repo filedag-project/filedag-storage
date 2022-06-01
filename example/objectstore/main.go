@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 	"os"
 )
@@ -38,21 +41,24 @@ func main() {
 	}
 }
 func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
-	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(leveldbPath)
+	db, err := uleveldb.OpenDb(leveldbPath)
 	if err != nil {
 		fmt.Printf("OpenDb err:%v", err)
 		return
 	}
-	defer uleveldb.DBClient.Close()
+	defer db.Close()
 	router := mux.NewRouter()
-	iamapi.NewIamApiServer(router)
-	s := s3api.NewS3Server(router, poolAddr, poolUser, poolPass)
+	iamapi.NewIamApiServer(router, db)
+	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass)
+	if err != nil {
+		log.Fatalf("connect dagpool server err: %v", err)
+	}
+	defer poolClient.Close(context.TODO())
+	s := s3api.NewS3Server(router, poolClient, db)
 	if s == nil {
 		fmt.Printf("may be pool addr not right,please check your pool-addr")
 		return
 	}
-	defer s.Close()
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		fmt.Printf("start sever at http://%v%v", ip, port)

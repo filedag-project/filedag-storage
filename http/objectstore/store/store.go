@@ -7,6 +7,7 @@ import (
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	ufsio "github.com/ipfs/go-unixfs/io"
@@ -20,28 +21,18 @@ var log = logging.Logger("store")
 //StorageSys store sys
 type StorageSys struct {
 	Db         *uleveldb.ULevelDB
-	DagPool    dagpoolcli.PoolClient
+	DagPool    ipld.DAGService
 	CidBuilder cid.Builder
 }
 
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
 
-var (
-	poolUser = "pool"
-	poolPass = "pool123"
-)
-
-func getPoolUser() string {
-	return poolUser + "," + poolPass
-}
-
 //StoreObject store object
 func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64) (ObjectInfo, error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	ctx = context.WithValue(ctx, "user", getPoolUser())
 	node, err := dagpoolcli.BalanceNode(ctx, reader, s.DagPool, s.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
@@ -80,7 +71,6 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	ctx = context.WithValue(ctx, "user", getPoolUser())
 	cid, err := cid.Decode(meta.ETag)
 	if err != nil {
 		return ObjectInfo{}, nil, err
@@ -112,7 +102,6 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 //DeleteObject Get object
 func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object string) error {
 	//err := s.dagPool.DelFile(bucket, object)
-	ctx = context.WithValue(ctx, "user", getPoolUser())
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
@@ -206,22 +195,12 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, pre
 	return o, nil
 }
 
-//Init storage sys
-func (s *StorageSys) Init(poolAddr, pu, pp string) error {
-	s.Db = uleveldb.DBClient
-	var err error
-	poolUser = pu
-	poolPass = pp
-	cidBuilder, err := merkledag.PrefixForCidVersion(0)
-	s.CidBuilder = cidBuilder
-	s.DagPool, err = dagpoolcli.NewPoolClient(poolAddr)
-	if err != nil {
-		return err
+//NewStorageSys new a storage sys
+func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
+	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
+	return &StorageSys{
+		Db:         db,
+		DagPool:    dagService,
+		CidBuilder: cidBuilder,
 	}
-	return nil
-}
-
-// Close storage sys
-func (s *StorageSys) Close() {
-	s.DagPool.Close(context.TODO())
 }

@@ -13,9 +13,6 @@ import (
 
 var log = logging.Logger("leveldb")
 
-// DBClient start a levelDb
-var DBClient *ULevelDB
-
 //ULevelDB level db store key-struct
 type ULevelDB struct {
 	DB *leveldb.DB

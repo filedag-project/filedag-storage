@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
@@ -117,6 +118,9 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 	}
 	cfg.LeveldbPath = path.Join(datadir, "leveldb")
 	cfg.DefaultUser = cctx.String("root")
+	if cfg.DefaultUser == "" {
+		return config.PoolConfig{}, errors.New("root param is invalid")
+	}
 	cfg.DefaultPass = cctx.String("password")
 	nodeConfigPath := cctx.String("config")
 

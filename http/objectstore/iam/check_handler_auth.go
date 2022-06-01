@@ -8,6 +8,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
 	"io"
@@ -20,14 +21,16 @@ import (
 
 // AuthSys auth and sign system
 type AuthSys struct {
-	Iam       IdentityAMSys
-	PolicySys IPolicySys
+	Iam       *IdentityAMSys
+	PolicySys *IPolicySys
 }
 
-//Init AuthSys
-func (s *AuthSys) Init() {
-	s.Iam.Init()
-	s.PolicySys.Init()
+//NewAuthSys new an AuthSys
+func NewAuthSys(db *uleveldb.ULevelDB) *AuthSys {
+	return &AuthSys{
+		Iam:       NewIdentityAMSys(db),
+		PolicySys: NewIPolicySys(db),
+	}
 }
 
 // CheckRequestAuthTypeCredential Check request auth type verifies the incoming http request
