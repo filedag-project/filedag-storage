@@ -1,9 +1,12 @@
 package s3api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
+	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
@@ -11,7 +14,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
-	"github.com/ipfs/go-merkledag"
+	"google.golang.org/grpc"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,24 +26,31 @@ var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
 func TestMain(m *testing.M) {
-	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, err := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	if err != nil {
 		return
 	}
-	defer uleveldb.DBClient.Close()
-	iamapi.NewIamApiServer(router)
-	var s3server s3ApiServer
-	s3server.authSys.Init()
-	s3server.store.Db = uleveldb.DBClient
+	defer db.Close()
+	authSys := iam.NewAuthSys(db)
+	iamapi.NewIamApiServer(router, authSys)
 	ctrl := gomock.NewController(&testing.T{})
-
-	s3server.store.DagPool = &client.DagPoolClient{DPClient: utils.NewMockDagPoolClient(ctrl)}
-	cidBuilder, err := merkledag.PrefixForCidVersion(0)
-	s3server.store.CidBuilder = cidBuilder
-	defer s3server.store.Close()
-	s3server.registerS3Router(router)
+	defer ctrl.Finish()
+	co, err := grpc.Dial("127.0.0.1:7777", grpc.WithInsecure())
+	if err != nil {
+		return
+	}
+	poolCli := &client.DagPoolClient{
+		DPClient: utils.NewMockDagPoolClient(ctrl),
+		Conn:     co,
+		User: &proto.PoolUser{
+			Username: "dagpool",
+			Pass:     "dagpool",
+		},
+	}
+	defer poolCli.Close(context.TODO())
+	NewS3Server(router, poolCli, authSys, db)
 	os.Exit(m.Run())
+	println("exit TestMain")
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	// mock a response logger

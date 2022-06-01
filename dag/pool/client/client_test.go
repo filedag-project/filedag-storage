@@ -22,7 +22,6 @@ package client
 //		return
 //	}
 //	fmt.Println("aaaaa", node.Cid().String())
-//	ctx = context.WithValue(ctx, "user", "pool,pool123")
 //	get, err := pc.Get(ctx, node.Cid())
 //	if err != nil {
 //		log.Errorf("err:%v", err)

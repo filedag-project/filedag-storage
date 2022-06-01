@@ -3,7 +3,6 @@ package iamapi
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -14,9 +13,9 @@ type iamApiServer struct {
 }
 
 //NewIamApiServer New iamApiServer
-func NewIamApiServer(router *mux.Router, db *uleveldb.ULevelDB) {
+func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys) {
 	iamApiSer := &iamApiServer{
-		authSys: iam.NewAuthSys(db),
+		authSys: authSys,
 	}
 	iamApiSer.registerRouter(router)
 

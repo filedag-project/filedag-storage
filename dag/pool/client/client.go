@@ -30,7 +30,7 @@ type PoolClient interface {
 type DagPoolClient struct {
 	DPClient proto.DagPoolClient
 	Conn     *grpc.ClientConn
-	user     *proto.PoolUser
+	User     *proto.PoolUser
 }
 
 func NewPoolClient(addr, user, password string) (*DagPoolClient, error) {
@@ -43,7 +43,7 @@ func NewPoolClient(addr, user, password string) (*DagPoolClient, error) {
 	return &DagPoolClient{
 		DPClient: c,
 		Conn:     conn,
-		user: &proto.PoolUser{
+		User: &proto.PoolUser{
 			Username: user,
 			Pass:     password,
 		},
@@ -56,7 +56,7 @@ func (p *DagPoolClient) Close(ctx context.Context) {
 
 func (p *DagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
 	log.Infof(cid.String())
-	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.user})
+	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (p *DagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, erro
 }
 
 func (p *DagPoolClient) Add(ctx context.Context, node format.Node) error {
-	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.user})
+	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.User})
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (p *DagPoolClient) Add(ctx context.Context, node format.Node) error {
 func (p *DagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
 		Cid:  cid.String(),
-		User: p.user})
+		User: p.User})
 	if err != nil {
 		return err
 	}

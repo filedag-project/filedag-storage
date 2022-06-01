@@ -81,7 +81,10 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 		},
 	}
 	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+	result := reqTest(reqPutBucket)
+	if result.Code != http.StatusOK {
+		t.Fatalf("the response status of putbucket: %d", result.Code)
+	}
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
 		req := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName, int64(len(r1)), bytes.NewReader(testCase.data), "s3", testCase.accessKey, testCase.secretKey, t)

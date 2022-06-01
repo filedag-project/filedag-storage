@@ -11,9 +11,8 @@ import (
 )
 
 func TestIdentityAMSys_UserApi(t *testing.T) {
-	uleveldb.DBClient, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	var iamSys IdentityAMSys
-	iamSys.Init()
+	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	iamSys := NewIdentityAMSys(db)
 	//var accessKey = "test1"
 	//var secretKey = "test12345"
 	ctx := context.Background()
@@ -109,9 +108,8 @@ func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, e
 }
 
 //func TestIdentityAMSys_UserPolicyApi(t *testing.T) {
-//	uleveldb.DBClient, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-//	var iamSys IdentityAMSys
-//	iamSys.Init()
+//	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+//	iamSys := NewIdentityAMSys(db)
 //	var userName = "test1"
 //	var policyName = "read2"
 //

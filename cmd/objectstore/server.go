@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -27,17 +28,14 @@ func startServer(listen, dbPath, poolAddr, poolUser, poolPass string) {
 	}
 	defer db.Close()
 	router := mux.NewRouter()
-	iamapi.NewIamApiServer(router, db)
+	authSys := iam.NewAuthSys(db)
+	iamapi.NewIamApiServer(router, authSys)
 	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass)
 	if err != nil {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
 	defer poolClient.Close(context.TODO())
-	s := s3api.NewS3Server(router, poolClient, db)
-	if s == nil {
-		log.Errorf("may be pool addr not right,please check your pool-addr")
-		return
-	}
+	s3api.NewS3Server(router, poolClient, authSys, db)
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 			log.Infof("start sever at http://%v%v", ip, listen)

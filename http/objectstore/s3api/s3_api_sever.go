@@ -92,11 +92,10 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 }
 
 //NewS3Server Start a S3Server
-func NewS3Server(router *mux.Router, dagService ipld.DAGService, db *uleveldb.ULevelDB) *store.StorageSys {
+func NewS3Server(router *mux.Router, dagService ipld.DAGService, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
 	s3server := &s3ApiServer{
-		authSys: iam.NewAuthSys(db),
+		authSys: authSys,
 		store:   store.NewStorageSys(dagService, db),
 	}
 	s3server.registerS3Router(router)
-	return s3server.store
 }
