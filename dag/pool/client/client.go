@@ -17,6 +17,8 @@ var log = logging.Logger("pool-client")
 var _ format.DAGService = &DagPoolClient{}
 var _ PoolClient = &DagPoolClient{}
 
+//go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient
+
 type PoolClient interface {
 	Close(ctx context.Context)
 	Get(ctx context.Context, cid cid.Cid) (format.Node, error)

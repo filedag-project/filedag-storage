@@ -1,20 +1,15 @@
 package s3api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool/client"
-	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
-	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
-	"google.golang.org/grpc"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -33,24 +28,10 @@ func TestMain(m *testing.M) {
 	defer db.Close()
 	authSys := iam.NewAuthSys(db)
 	iamapi.NewIamApiServer(router, authSys)
-	ctrl := gomock.NewController(&testing.T{})
-	defer ctrl.Finish()
-	co, err := grpc.Dial("127.0.0.1:7777", grpc.WithInsecure())
-	if err != nil {
-		return
-	}
-	poolCli := &client.DagPoolClient{
-		DPClient: utils.NewMockDagPoolClient(ctrl),
-		Conn:     co,
-		User: &proto.PoolUser{
-			Username: "dagpool",
-			Pass:     "dagpool",
-		},
-	}
-	defer poolCli.Close(context.TODO())
+	poolCli, done := utils.NewMockPoolClient(&testing.T{})
+	defer done()
 	NewS3Server(router, poolCli, authSys, db)
 	os.Exit(m.Run())
-	println("exit TestMain")
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	// mock a response logger

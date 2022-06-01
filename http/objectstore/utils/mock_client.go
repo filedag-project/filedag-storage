@@ -2,26 +2,21 @@ package utils
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/pool/mocks"
-	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/dag/pool/client"
+	"github.com/filedag-project/filedag-storage/dag/pool/client/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/ipfs/go-merkledag"
+	"testing"
 )
 
-func NewMockDagPoolClient(ctrl *gomock.Controller) proto.DagPoolClient {
-	m := mocks.NewMockDagPoolClient(ctrl)
-	ctx := context.Background()
+func NewMockPoolClient(t *testing.T) (client.PoolClient, func()) {
+	ctrl := gomock.NewController(t)
+	m := mocks.NewMockPoolClient(ctrl)
+	ctx := context.WithValue(context.TODO(), "", "")
 	node := merkledag.NodeWithData([]byte("\b\u0002\u0012\a1234567\u0018\a"))
-	var (
-		add     proto.AddReq
-		addR    proto.AddReply
-		get     proto.GetReq
-		getR    = proto.GetReply{Block: node.RawData()}
-		remove  proto.RemoveReq
-		removeR proto.RemoveReply
-	)
-	m.EXPECT().Add(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&add)).Return(&addR, nil).AnyTimes()
-	m.EXPECT().Get(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&get)).Return(&getR, nil).AnyTimes()
-	m.EXPECT().Remove(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&remove)).Return(&removeR, nil).AnyTimes()
-	return m
+	cid := node.Cid()
+	m.EXPECT().Add(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(node)).Return(nil).AnyTimes()
+	m.EXPECT().Get(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(cid)).Return(node, nil).AnyTimes()
+	m.EXPECT().Remove(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(cid)).Return(nil).AnyTimes()
+	return m, ctrl.Finish
 }
