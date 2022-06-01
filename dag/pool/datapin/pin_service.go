@@ -1,19 +1,16 @@
 package datapin
 
 import (
-	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/datapin/types"
-	"github.com/ipfs/go-cid"
-	"sync"
 )
 
-type pinner struct {
-	lock        sync.RWMutex
-	recursePin  *cid.Set
-	directPin   *cid.Set
-	internalPin *cid.Set
-	DagPool     *pool.DagPool
-}
+//type pinner struct {
+//	lock        sync.RWMutex
+//	recursePin  *cid.Set
+//	directPin   *cid.Set
+//	internalPin *cid.Set
+//	DagPool     *pool.DagPool
+//}
 
 type PinService struct {
 	blockPin BlockPin
