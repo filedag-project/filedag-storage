@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/dppin"
-	lds "github.com/ipfs/go-ds-leveldb"
 	"io"
 	"path"
 	"testing"
@@ -926,16 +925,16 @@ func (d *batchWrap) Batch(_ context.Context) (ds.Batch, error) {
 	return ds.NewBasicBatch(d), nil
 }
 
-func makeStore() (ds.Datastore, ipld.DAGService) {
+func makeStore() (dstore ds.Datastore, dserv ipld.DAGService) {
 	//todo
-	ldstore, err := lds.NewDatastore("", nil)
-	if err != nil {
-		panic(err)
-	}
-	dstore := &batchWrap{ldstore}
-	bstore := blockstore.NewBlockstore(dstore)
-	bserv := bs.New(bstore, offline.Exchange(bstore))
-	dserv := mdag.NewDAGService(bserv)
+	//ldstore, err := lds.NewDatastore("", nil)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//dstore := &batchWrap{ldstore}
+	//bstore := blockstore.NewBlockstore(dstore)
+	//bserv := bs.New(bstore, offline.Exchange(bstore))
+	//dserv := mdag.NewDAGService(bserv)
 	return dstore, dserv
 }
 

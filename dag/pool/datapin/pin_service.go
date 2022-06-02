@@ -2,24 +2,28 @@ package datapin
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/datapin/types"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
+	"sync"
 )
 
-//type pinner struct {
-//	lock        sync.RWMutex
-//	recursePin  *cid.Set
-//	directPin   *cid.Set
-//	internalPin *cid.Set
-//	DagPool     *pool.DagPool
-//}
+type Pinner struct {
+	lock        sync.RWMutex
+	recursePin  *cid.Set
+	directPin   *cid.Set
+	internalPin *cid.Set
+	DagPool     *pool.DagPool
+}
+
 var log = logging.Logger("data-pin")
 
 type PinService struct {
 	blockPin BlockPin
+	pinner   Pinner
 }
 
 func (s *PinService) AddPin(ctx context.Context, cid cid.Cid, block blocks.Block) error {
@@ -28,7 +32,8 @@ func (s *PinService) AddPin(ctx context.Context, cid cid.Cid, block blocks.Block
 		return err
 	}
 	var rootPin = Pin{Cid: types.Cid{Cid: cid}}
-	poolRootPin, err := svcPinToPoolPin(rootPin)
+	poolRootPin, err := svcPinToPoolPin(rootPin, types.PinModeDirect)
+	s.pinner.directPin.Add(cid)
 	if err != nil {
 		return err
 	}
@@ -38,10 +43,11 @@ func (s *PinService) AddPin(ctx context.Context, cid cid.Cid, block blocks.Block
 	}
 	for _, link := range node.Links() {
 		var pin = Pin{Cid: types.Cid{Cid: link.Cid}}
-		poolPin, err := svcPinToPoolPin(pin)
+		poolPin, err := svcPinToPoolPin(pin, types.PinModeRecursive)
 		if err != nil {
 			return err
 		}
+		s.pinner.recursePin.Add(cid)
 		err = s.blockPin.AddPin(poolPin)
 		if err != nil {
 			return err
@@ -69,11 +75,11 @@ func (s *PinService) RemovePin(ctx context.Context, cid cid.Cid, block blocks.Bl
 
 }
 
-func svcPinToPoolPin(p Pin) (types.Pin, error) {
+func svcPinToPoolPin(p Pin, mod types.PinMode) (types.Pin, error) {
 	opts := types.PinOptions{
 		Name:     string(p.Name),
 		Metadata: p.Meta,
-		Mode:     types.PinModeDirect,
+		Mode:     mod,
 	}
 	return types.PinWithOpts(p.Cid, opts), nil
 }
