@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -10,6 +11,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
+	"strings"
 )
 
 var log = logging.Logger("pool-client")
@@ -27,6 +29,8 @@ type PoolClient interface {
 	AddMany(ctx context.Context, nodes []format.Node) error
 	GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption
 	RemoveMany(ctx context.Context, cids []cid.Cid) error
+	Pin(ctx context.Context, cid cid.Cid) error
+	UnPin(ctx context.Context, cid cid.Cid) error
 }
 
 type DagPoolClient struct {
@@ -112,4 +116,43 @@ func (p *DagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 
 func (p *DagPoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	return xerrors.Errorf("implement me")
+}
+
+var _ format.DAGService = &DagPoolClient{}
+var _ PoolClient = &DagPoolClient{}
+
+func (p DagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return userpolicy.AccessDenied
+	}
+	reply, err := p.DPClient.Pin(ctx, &proto.PinReq{
+		Cid: cid.String(),
+		User: &proto.PoolUser{
+			Username: s[0],
+			Pass:     s[1],
+		}})
+	if err != nil {
+		return err
+	}
+	log.Infof("pin sucess %v ", reply.Message)
+	return err
+}
+
+func (p DagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
+	s := strings.Split((ctx.Value("user")).(string), ",")
+	if len(s) != 2 {
+		return userpolicy.AccessDenied
+	}
+	reply, err := p.DPClient.UnPin(ctx, &proto.UnPinReq{
+		Cid: cid.String(),
+		User: &proto.PoolUser{
+			Username: s[0],
+			Pass:     s[1],
+		}})
+	if err != nil {
+		return err
+	}
+	log.Infof("unpin sucess %v ", reply.Message)
+	return err
 }

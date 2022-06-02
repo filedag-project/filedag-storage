@@ -7,6 +7,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
+	"github.com/filedag-project/filedag-storage/dag/pool/datapin"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -37,6 +38,9 @@ type DagPool interface {
 	QueryUser(username string) (dagpooluser.DagPoolUser, error)
 	UpdateUser(u dagpooluser.DagPoolUser) error
 	Close() error
+
+	UnPin(context.Context, cid.Cid) error
+	Pin(context.Context, cid.Cid) error
 }
 
 // Pool is an IPFS Merkle DAG service.
@@ -44,9 +48,34 @@ type Pool struct {
 	DagNodes   map[string]*node.DagNode
 	iam        dagpooluser.IdentityUserSys
 	refer      referencecount.IdentityRefe
+	Pining     datapin.PinService
 	CidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
+}
+
+func (d *Pool) UnPin(ctx context.Context, c cid.Cid) error {
+	get, err := d.Get(ctx, c)
+	if err != nil {
+		return err
+	}
+	err = d.Pining.RemovePin(ctx, c, get)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Pool) Pin(ctx context.Context, c cid.Cid) error {
+	get, err := d.Get(ctx, c)
+	if err != nil {
+		return err
+	}
+	err = d.Pining.AddPin(ctx, c, get)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
