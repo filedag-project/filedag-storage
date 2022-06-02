@@ -4,11 +4,19 @@ import (
 	"context"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 )
 
 // IPolicySys - policy subsystem.
 type IPolicySys struct {
 	bmSys *bucketMetadataSys
+}
+
+// NewIPolicySys  - creates new policy system.
+func NewIPolicySys(db *uleveldb.ULevelDB) *IPolicySys {
+	return &IPolicySys{
+		bmSys: newBucketMetadataSys(db),
+	}
 }
 
 // GetAllBucketOfUser returns stored bucket policy
@@ -44,11 +52,6 @@ func (sys *IPolicySys) IsAllowed(args auth.Args) bool {
 	} else {
 		return p.IsAllowed(args)
 	}
-}
-
-// Init  - creates new policy system.
-func (sys *IPolicySys) Init() {
-	sys.bmSys = newBucketMetadataSys()
 }
 
 // UpdatePolicy Update bucket metadata .

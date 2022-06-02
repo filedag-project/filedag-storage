@@ -91,6 +91,10 @@ func MutDataNodeServer(listen string, kvType KVType, dataDir string) {
 	hs.SetServingStatus(HealthCheckService, healthpb.HealthCheckResponse_SERVING)
 	healthpb.RegisterHealthServer(s, hs)
 
+	if err := os.MkdirAll(dataDir, 0777); err != nil {
+		log.Fatalf("failed to create directory: %v", err)
+	}
+
 	var kvdb kv.KVDB
 	switch kvType {
 	case KVBadge:
@@ -115,8 +119,7 @@ func MutDataNodeServer(listen string, kvType KVType, dataDir string) {
 		}
 	}()
 
-	// Wait for interrupt signal to gracefully shutdown the server with
-	// a timeout of 5 seconds.
+	// Wait for interrupt signal to gracefully shutdown the server.
 	quit := make(chan os.Signal, 1)
 	// kill (no param) default send syscall.SIGTERM
 	// kill -2 is syscall.SIGINT

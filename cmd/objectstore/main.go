@@ -12,8 +12,8 @@ func main() {
 		startCmd,
 	}
 	app := &cli.App{
-		Name:                 "file-dag-storage",
-		Usage:                "file-dag-storage",
+		Name:                 "filedag-storage",
+		Usage:                "filedag-storage",
 		Version:              "0.0.11",
 		EnableBashCompletion: true,
 		Commands:             local,

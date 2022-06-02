@@ -8,13 +8,13 @@ package client
 //	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 //
 //	addr := flag.String("addr", "localhost:50001", "the address to connect to")
-//	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
+//	Conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 //	if err != nil {
 //		log.Errorf("did not connect: %v", err)
 //	}
-//	defer conn.Close()
-//	c := proto.NewDagPoolClient(conn)
-//	pc := PoolClient{c, cidBuilder, conn}
+//	defer Conn.Close()
+//	c := proto.NewDagPoolClient(Conn)
+//	pc := PoolClient{c, cidBuilder, Conn}
 //	var ctx = context.Background()
 //	node, err := BalanceNode(ctx, r, pc, cidBuilder)
 //	if err != nil {
@@ -22,7 +22,6 @@ package client
 //		return
 //	}
 //	fmt.Println("aaaaa", node.Cid().String())
-//	ctx = context.WithValue(ctx, "user", "pool,pool123")
 //	get, err := pc.Get(ctx, node.Cid())
 //	if err != nil {
 //		log.Errorf("err:%v", err)

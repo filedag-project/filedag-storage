@@ -12,8 +12,8 @@ func main() {
 		startCmd,
 	}
 	app := &cli.App{
-		Name:                 "file-dag-storage-dagpool",
-		Usage:                "file-dag-storage-dagpool",
+		Name:                 "dagpool",
+		Usage:                "dagpool",
 		Version:              "0.0.3",
 		EnableBashCompletion: true,
 		Commands:             local,

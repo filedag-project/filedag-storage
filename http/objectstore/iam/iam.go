@@ -6,8 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
-	"sync"
 )
 
 const (
@@ -23,24 +23,20 @@ var log = logging.Logger("iam")
 
 // IdentityAMSys - config system.
 type IdentityAMSys struct {
-	sync.Mutex
 	// Persistence layer for IAM subsystem
 	store *iamStoreSys
 }
 
-// Init - initializes IdentityAM config system
-func (sys *IdentityAMSys) Init() {
-	sys.initStore()
-}
-
-// initStore initializes IAM stores
-func (sys *IdentityAMSys) initStore() {
-	sys.store = &iamStoreSys{newIAMLevelDBStore()}
+// NewIdentityAMSys - new an IdentityAM config system
+func NewIdentityAMSys(db *uleveldb.ULevelDB) *IdentityAMSys {
+	sys := &IdentityAMSys{}
+	sys.store = &iamStoreSys{newIAMLevelDBStore(db)}
+	// TODO: Is it necessary?
 	err := sys.store.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.GetDefaultActiveCred()})
 	if err != nil {
 		log.Errorf("add first user fail%v", err)
-		return
 	}
+	return sys
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.

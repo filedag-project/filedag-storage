@@ -3,6 +3,7 @@ package s3api
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
@@ -20,21 +21,16 @@ var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
 func TestMain(m *testing.M) {
-	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, err := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	if err != nil {
 		return
 	}
-	defer uleveldb.DBClient.Close()
-	iamapi.NewIamApiServer(router)
-	var s3server s3ApiServer
-	s3server.authSys.Init()
-	//go server.StartTestDagPoolServer(&testing.T{})
-	//time.Sleep(time.Second * 1)
-	s3server.store.Db = uleveldb.DBClient
-	s3server.store.Init("127.0.0.1:9002", "pool", "pool123")
-	defer s3server.store.Close()
-	s3server.registerS3Router(router)
+	defer db.Close()
+	authSys := iam.NewAuthSys(db)
+	iamapi.NewIamApiServer(router, authSys)
+	poolCli, done := utils.NewMockPoolClient(&testing.T{})
+	defer done()
+	NewS3Server(router, poolCli, authSys, db)
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {

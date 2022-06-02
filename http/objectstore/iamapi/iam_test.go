@@ -2,6 +2,7 @@ package iamapi
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
@@ -22,13 +23,10 @@ var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
 func TestMain(m *testing.M) {
-	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	if err != nil {
-		return
-	}
-	defer uleveldb.DBClient.Close()
-	NewIamApiServer(router)
+	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	defer db.Close()
+	authSys := iam.NewAuthSys(db)
+	NewIamApiServer(router, authSys)
 	//s3api.NewS3Server(router)
 	os.Exit(m.Run())
 }

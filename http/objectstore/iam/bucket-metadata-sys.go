@@ -28,9 +28,9 @@ type bucketMetadataSys struct {
 }
 
 // newBucketMetadataSys - creates new policy system.
-func newBucketMetadataSys() *bucketMetadataSys {
+func newBucketMetadataSys(db *uleveldb.ULevelDB) *bucketMetadataSys {
 	return &bucketMetadataSys{
-		db: uleveldb.DBClient,
+		db: db,
 	}
 }
 

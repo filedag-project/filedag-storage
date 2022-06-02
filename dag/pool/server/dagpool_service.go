@@ -20,12 +20,12 @@ var policyNotRight = "policy not right ,must be:" +
 // DagPoolService is used to implement DagPoolServer.
 type DagPoolService struct {
 	proto.UnimplementedDagPoolServer
-	DagPool *pool.DagPool
+	DagPool pool.DagPool
 }
 
 func (s *DagPoolService) Add(ctx context.Context, in *proto.AddReq) (*proto.AddReply, error) {
 	data := blocks.NewBlock(in.GetBlock())
-	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.AddReply{Cid: ""}, userpolicy.AccessDenied
 	}
 	err := s.DagPool.Add(ctx, data)
@@ -35,7 +35,7 @@ func (s *DagPoolService) Add(ctx context.Context, in *proto.AddReq) (*proto.AddR
 	return &proto.AddReply{Cid: data.Cid().String()}, nil
 }
 func (s *DagPoolService) Get(ctx context.Context, in *proto.GetReq) (*proto.GetReply, error) {
-	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.GetReply{Block: nil}, userpolicy.AccessDenied
 	}
 	cid, err := cid.Decode(in.Cid)
@@ -49,7 +49,7 @@ func (s *DagPoolService) Get(ctx context.Context, in *proto.GetReq) (*proto.GetR
 	return &proto.GetReply{Block: get.RawData()}, nil
 }
 func (s *DagPoolService) Remove(ctx context.Context, in *proto.RemoveReq) (*proto.RemoveReply, error) {
-	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.RemoveReply{Message: ""}, userpolicy.AccessDenied
 	}
 	c, err := cid.Decode(in.Cid)
@@ -69,7 +69,7 @@ func (s *DagPoolService) AddUser(ctx context.Context, in *proto.AddUserReq) (*pr
 	if !userpolicy.CheckValid(in.Policy) {
 		return &proto.AddUserReply{Message: policyNotRight}, xerrors.Errorf(policyNotRight)
 	}
-	err := s.DagPool.Iam.AddUser(
+	err := s.DagPool.AddUser(
 		dagpooluser.DagPoolUser{
 			Username: in.Username,
 			Password: in.Password,
@@ -82,27 +82,27 @@ func (s *DagPoolService) AddUser(ctx context.Context, in *proto.AddUserReq) (*pr
 	return &proto.AddUserReply{Message: "ok"}, nil
 }
 func (s *DagPoolService) RemoveUser(ctx context.Context, in *proto.RemoveUserReq) (*proto.RemoveUserReply, error) {
-	if !s.DagPool.Iam.CheckDeal(in.Username, in.Password) {
+	if !s.DagPool.CheckDeal(in.Username, in.Password) {
 		return &proto.RemoveUserReply{Message: "you can not del user"}, xerrors.Errorf("you can not del user")
 	}
-	err := s.DagPool.Iam.RemoveUser(in.Username)
+	err := s.DagPool.RemoveUser(in.Username)
 	if err != nil {
 		return &proto.RemoveUserReply{Message: fmt.Sprintf("del user err:%v", err)}, err
 	}
 	return &proto.RemoveUserReply{Message: "ok"}, nil
 }
 func (s *DagPoolService) QueryUser(ctx context.Context, in *proto.QueryUserReq) (*proto.QueryUserReply, error) {
-	if !s.DagPool.Iam.CheckDeal(in.Username, in.Password) {
+	if !s.DagPool.CheckDeal(in.Username, in.Password) {
 		return &proto.QueryUserReply{}, xerrors.Errorf("you can not get user")
 	}
-	user, err := s.DagPool.Iam.QueryUser(in.Username)
+	user, err := s.DagPool.QueryUser(in.Username)
 	if err != nil {
 		return &proto.QueryUserReply{}, err
 	}
 	return &proto.QueryUserReply{Username: user.Username, Policy: string(user.Policy), Capacity: user.Capacity}, nil
 }
 func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
-	if !s.DagPool.Iam.CheckDeal(in.User, in.Pass) {
+	if !s.DagPool.CheckDeal(in.User, in.Pass) {
 		return &proto.UpdateUserReply{Message: "you can not update user"}, xerrors.Errorf("you can not update user")
 	}
 	if dagpooluser.CheckAddUser(in.User, in.Pass) {
@@ -124,12 +124,12 @@ func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq
 	if in.Capacity != 0 {
 		user.Capacity = in.Capacity
 	}
-	err := s.DagPool.Iam.UpdateUser(user)
+	err := s.DagPool.UpdateUser(user)
 	if err != nil {
 		return &proto.UpdateUserReply{Message: fmt.Sprintf("update user err:%v", err)}, err
 	}
 	if in.NewUsername != "" {
-		err := s.DagPool.Iam.RemoveUser(in.User)
+		err := s.DagPool.RemoveUser(in.User)
 		if err != nil {
 			return &proto.UpdateUserReply{Message: "update user err"}, err
 		}

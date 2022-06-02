@@ -9,13 +9,14 @@ import (
 
 //iamApiServer the IamApi Server
 type iamApiServer struct {
-	authSys iam.AuthSys
+	authSys *iam.AuthSys
 }
 
 //NewIamApiServer New iamApiServer
-func NewIamApiServer(router *mux.Router) {
-	iamApiSer := &iamApiServer{}
-	iamApiSer.authSys.Init()
+func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys) {
+	iamApiSer := &iamApiServer{
+		authSys: authSys,
+	}
 	iamApiSer.registerRouter(router)
 
 }
