@@ -7,7 +7,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
-	"github.com/filedag-project/filedag-storage/dag/pool/dppin"
+	"github.com/filedag-project/filedag-storage/dag/pool/datapin"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -48,7 +48,7 @@ type Pool struct {
 	DagNodes   map[string]*node.DagNode
 	iam        dagpooluser.IdentityUserSys
 	refer      referencecount.IdentityRefe
-	pinner     dppin.Pinner
+	Pining     datapin.PinService
 	CidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
@@ -59,7 +59,7 @@ func (d *Pool) UnPin(ctx context.Context, c cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	err = d.pinner.Unpin(ctx, get, true)
+	err = d.Pining.RemovePin(ctx, c, get)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (d *Pool) Pin(ctx context.Context, c cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	err = d.pinner.Pin(ctx, get, true)
+	err = d.Pining.AddPin(ctx, c, get)
 	if err != nil {
 		return err
 	}

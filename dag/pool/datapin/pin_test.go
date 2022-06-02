@@ -16,7 +16,7 @@ import (
 
 func TestPin_test(t *testing.T) {
 	f, _ := ioutil.ReadFile("pin_service.go")
-	dags, _ := client.NewPoolClient(":50001")
+	dags, _ := client.NewPoolClient(":50001", "pool", "pool123")
 	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "user", "pool,pool123")
