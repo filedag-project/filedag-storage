@@ -11,7 +11,7 @@ func TestGenerateCredentials(t *testing.T) {
 		return
 	}
 	fmt.Println(accessKey, secretKey)
-	credentials, err := createCredentials(accessKey, secretKey)
+	credentials, err := CreateCredentials(accessKey, secretKey)
 	if err != nil {
 		return
 	}

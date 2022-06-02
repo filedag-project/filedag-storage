@@ -3,6 +3,7 @@ package iamapi
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
@@ -15,17 +16,26 @@ import (
 )
 
 const (
-	DefaultTestAccessKey = "test"
-	DefaultTestSecretKey = "test"
+	DefaultTestAccessKey = auth.DefaultAccessKey
+	DefaultTestSecretKey = auth.DefaultAccessKey
 )
 
 var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
 func TestMain(m *testing.M) {
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, err := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	if err != nil {
+		println(err)
+		return
+	}
 	defer db.Close()
-	authSys := iam.NewAuthSys(db)
+	cred, err := auth.CreateCredentials(auth.DefaultAccessKey, auth.DefaultSecretKey)
+	if err != nil {
+		println(err)
+		return
+	}
+	authSys := iam.NewAuthSys(db, cred)
 	NewIamApiServer(router, authSys)
 	//s3api.NewS3Server(router)
 	os.Exit(m.Run())

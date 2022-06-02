@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -18,19 +21,47 @@ import (
 	"syscall"
 )
 
+const (
+	EnvRootUser     = "FILEDAG_ROOT_USER"
+	EnvRootPassword = "FILEDAG_ROOT_PASSWORD"
+)
+
 var log = logging.Logger("sever")
 
+func missingCredentialError(user, pwd string) error {
+	return errors.New(fmt.Sprintf("Missing credential environment variable, user is \"%s\" and password is\"%s\"."+
+		" Root user and password are expected to be specified via environment variables "+
+		"FILEDAG_ROOT_USER and FILEDAG_ROOT_PASSWORD respectively", user, pwd))
+}
+
 //startServer Start a IamServer
-func startServer(listen, dbPath, poolAddr, poolUser, poolPass string) {
-	db, err := uleveldb.OpenDb(dbPath)
+func startServer(cctx *cli.Context) {
+	listen := cctx.String("listen")
+	datadir := cctx.String("datadir")
+	poolAddr := cctx.String("pool-addr")
+	poolUser := cctx.String("pool-user")
+	poolPassword := cctx.String("pool-password")
+
+	user := cctx.String("root-user")
+	password := cctx.String("root-password")
+	if user == "" || password == "" {
+		log.Fatal(missingCredentialError(user, password))
+	}
+	cred, err := auth.CreateCredentials(user, password)
+	if err != nil {
+		log.Fatal("Invalid credentials. Please provide correct credentials. " +
+			"Root user length should be at least 3, and password length at least 8 characters")
+	}
+
+	db, err := uleveldb.OpenDb(datadir)
 	if err != nil {
 		return
 	}
 	defer db.Close()
 	router := mux.NewRouter()
-	authSys := iam.NewAuthSys(db)
+	authSys := iam.NewAuthSys(db, cred)
 	iamapi.NewIamApiServer(router, authSys)
-	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass)
+	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPassword)
 	if err != nil {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
@@ -86,14 +117,21 @@ var startCmd = &cli.Command{
 			Name:  "pool-password",
 			Usage: "set pool password",
 		},
+		&cli.StringFlag{
+			Name:    "root-user",
+			Usage:   "set root filedag root user",
+			EnvVars: []string{EnvRootUser},
+			Value:   auth.DefaultAccessKey,
+		},
+		&cli.StringFlag{
+			Name:    "root-password",
+			Usage:   "set root filedag root password",
+			EnvVars: []string{EnvRootPassword},
+			Value:   auth.DefaultSecretKey,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
-		listen := cctx.String("listen")
-		datadir := cctx.String("datadir")
-		poolAddr := cctx.String("pool-addr")
-		poolUser := cctx.String("pool-user")
-		poolPassword := cctx.String("pool-password")
-		startServer(listen, datadir, poolAddr, poolUser, poolPassword)
+		startServer(cctx)
 		return nil
 	},
 }

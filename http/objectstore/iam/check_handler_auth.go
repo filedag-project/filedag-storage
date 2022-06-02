@@ -23,13 +23,15 @@ import (
 type AuthSys struct {
 	Iam       *IdentityAMSys
 	PolicySys *IPolicySys
+	AdminCred auth.Credentials
 }
 
 //NewAuthSys new an AuthSys
-func NewAuthSys(db *uleveldb.ULevelDB) *AuthSys {
+func NewAuthSys(db *uleveldb.ULevelDB, adminCred auth.Credentials) *AuthSys {
 	return &AuthSys{
 		Iam:       NewIdentityAMSys(db),
 		PolicySys: NewIPolicySys(db),
+		AdminCred: adminCred,
 	}
 }
 

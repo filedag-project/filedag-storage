@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
@@ -23,10 +24,16 @@ var router = mux.NewRouter()
 func TestMain(m *testing.M) {
 	db, err := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	if err != nil {
+		println(err)
 		return
 	}
 	defer db.Close()
-	authSys := iam.NewAuthSys(db)
+	cred, err := auth.CreateCredentials(auth.DefaultAccessKey, auth.DefaultSecretKey)
+	if err != nil {
+		println(err)
+		return
+	}
+	authSys := iam.NewAuthSys(db, cred)
 	iamapi.NewIamApiServer(router, authSys)
 	poolCli, done := utils.NewMockPoolClient(&testing.T{})
 	defer done()
