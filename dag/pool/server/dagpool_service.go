@@ -137,18 +137,14 @@ func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq
 	return &proto.UpdateUserReply{Message: "ok"}, nil
 }
 func (s *DagPoolService) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinReply, error) {
-	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.PinReply{Message: ""}, userpolicy.AccessDenied
 	}
 	c, err := cid.Decode(in.Cid)
 	if err != nil {
 		return &proto.PinReply{Message: ""}, err
 	}
-	get, err := s.DagPool.Get(ctx, c)
-	if err != nil {
-		return &proto.PinReply{Message: ""}, err
-	}
-	err = s.DagPool.Pin.AddPin(ctx, c, get)
+	err = s.DagPool.Pin(ctx, c)
 	if err != nil {
 		return &proto.PinReply{Message: ""}, err
 	}
@@ -156,18 +152,14 @@ func (s *DagPoolService) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinR
 }
 
 func (s *DagPoolService) UnPin(ctx context.Context, in *proto.UnPinReq) (*proto.UnPinReply, error) {
-	if !s.DagPool.Iam.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.UnPinReply{Message: ""}, userpolicy.AccessDenied
 	}
 	c, err := cid.Decode(in.Cid)
 	if err != nil {
 		return &proto.UnPinReply{Message: ""}, err
 	}
-	get, err := s.DagPool.Get(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	err = s.DagPool.Pin.RemovePin(ctx, c, get)
+	err = s.DagPool.UnPin(ctx, c)
 	if err != nil {
 		return &proto.UnPinReply{Message: ""}, err
 	}

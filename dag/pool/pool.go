@@ -37,6 +37,9 @@ type DagPool interface {
 	QueryUser(username string) (dagpooluser.DagPoolUser, error)
 	UpdateUser(u dagpooluser.DagPoolUser) error
 	Close() error
+
+	UnPin(context.Context, cid.Cid) error
+	Pin(context.Context, cid.Cid) error
 }
 
 // Pool is an IPFS Merkle DAG service.
@@ -47,6 +50,14 @@ type Pool struct {
 	CidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
+}
+
+func (d *Pool) UnPin(ctx context.Context, c cid.Cid) error {
+	return nil
+}
+
+func (d *Pool) Pin(ctx context.Context, c cid.Cid) error {
+	return nil
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
