@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/dppin"
 	"github.com/filedag-project/filedag-storage/dag/pool/dppin/dsindex"
+	blocks "github.com/ipfs/go-block-format"
 	"path"
 	"sync"
 
@@ -173,13 +174,9 @@ func (p *pinner) SetAutosync(auto bool) bool {
 }
 
 // Pin the given node, optionally recursive
-func (p *pinner) Pin(ctx context.Context, node ipld.Node, recurse bool) error {
-	err := p.dserv.Add(ctx, node)
-	if err != nil {
-		return err
-	}
+func (p *pinner) Pin(ctx context.Context, block blocks.Block, recurse bool) error {
 
-	c := node.Cid()
+	c := block.Cid()
 	cidKey := c.KeyString()
 
 	p.lock.Lock()
@@ -341,8 +338,8 @@ func (p *pinner) removePin(ctx context.Context, pp *pin) error {
 }
 
 // Unpin a given key
-func (p *pinner) Unpin(ctx context.Context, c cid.Cid, recursive bool) error {
-	cidKey := c.KeyString()
+func (p *pinner) Unpin(ctx context.Context, block blocks.Block, recursive bool) error {
+	cidKey := block.Cid().KeyString()
 
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -361,7 +358,7 @@ func (p *pinner) Unpin(ctx context.Context, c cid.Cid, recursive bool) error {
 
 	if has {
 		if !recursive {
-			return fmt.Errorf("%s is pinned recursively", c.String())
+			return fmt.Errorf("%s is pinned recursively", block.Cid().String())
 		}
 	} else {
 		has, err = p.cidDIndex.HasAny(ctx, cidKey)
@@ -373,7 +370,7 @@ func (p *pinner) Unpin(ctx context.Context, c cid.Cid, recursive bool) error {
 		}
 	}
 
-	removed, err := p.removePinsForCid(ctx, c, dppin.Any)
+	removed, err := p.removePinsForCid(ctx, block.Cid(), dppin.Any)
 	if err != nil {
 		return err
 	}

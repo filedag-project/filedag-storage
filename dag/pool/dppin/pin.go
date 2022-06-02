@@ -3,9 +3,9 @@ package dppin
 import (
 	"context"
 	"fmt"
+	blocks "github.com/ipfs/go-block-format"
 
 	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
 )
 
 const (
@@ -90,12 +90,12 @@ type Pinner interface {
 	IsPinnedWithType(ctx context.Context, c cid.Cid, mode Mode) (string, bool, error)
 
 	// Pin the given node, optionally recursively.
-	Pin(ctx context.Context, node ipld.Node, recursive bool) error
+	Pin(ctx context.Context, block blocks.Block, recursive bool) error
 
 	// Unpin the given cid. If recursive is true, removes either a recursive or
 	// a direct pin. If recursive is false, only removes a direct pin.
 	// If the pin doesn't exist, return ErrNotPinned
-	Unpin(ctx context.Context, cid cid.Cid, recursive bool) error
+	Unpin(ctx context.Context, block blocks.Block, recursive bool) error
 
 	// Update updates a recursive pin from one cid to another
 	// this is more efficient than simply pinning the new one and unpinning the
