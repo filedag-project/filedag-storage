@@ -47,6 +47,45 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	router.ServeHTTP(w, r)
 	return w
 }
+func TestS3ApiServer_PinHandler(t *testing.T) {
+	bucketName := "/testbucketput"
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		bucketName string
+		accessKey  string
+		secretKey  string
+		// expected output.
+		expectedRespStatus int // expected response status body.
+	}{
+		// Test case - 1.
+		// Fetching the entire Bucket and validating its contents.
+		{
+			bucketName:         bucketName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		// Test case - 2.
+		// wrong accessKey.
+		{
+			bucketName:         bucketName,
+			accessKey:          "1",
+			secretKey:          "1",
+			expectedRespStatus: http.StatusForbidden,
+		},
+	}
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		// mock an HTTP request
+		reqPutBucket := utils.MustNewSignedV4Request(http.MethodPost, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		result := reqTest(reqPutBucket)
+		if result.Code != testCase.expectedRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		}
+	}
+
+}
+
 func TestS3ApiServer_PutBucketHandler(t *testing.T) {
 	bucketName := "/testbucketput"
 	// test cases with inputs and expected result for Bucket.

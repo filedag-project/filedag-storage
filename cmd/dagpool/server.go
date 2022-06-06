@@ -51,6 +51,11 @@ var startCmd = &cli.Command{
 			Usage: "set root password",
 			Value: "dagpool",
 		},
+		&cli.StringFlag{
+			Name:  "datastore-path",
+			Usage: "set datastore path",
+			Value: "./datastore",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		cfg, err := loadPoolConfig(cctx)
@@ -123,7 +128,8 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 	}
 	cfg.DefaultPass = cctx.String("password")
 	nodeConfigPath := cctx.String("config")
-
+	datastorePath := cctx.String("datastore-path")
+	cfg.DatastorePath = datastorePath
 	var nodeConfigs []config.NodeConfig
 	for _, path := range strings.Split(nodeConfigPath, ",") {
 		var nc config.NodeConfig

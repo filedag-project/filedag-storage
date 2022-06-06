@@ -4,6 +4,7 @@ type PoolConfig struct {
 	Listen        string       `json:"listen"`
 	DagNodeConfig []NodeConfig `json:"dag_node"`
 	LeveldbPath   string       `json:"leveldb_path"`
+	DatastorePath string       `json:"datastore_path"`
 	DefaultUser   string       `json:"default_user"`
 	DefaultPass   string       `json:"default_pass"`
 }
