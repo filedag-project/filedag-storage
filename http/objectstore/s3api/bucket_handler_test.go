@@ -37,7 +37,9 @@ func TestMain(m *testing.M) {
 	iamapi.NewIamApiServer(router, authSys)
 	poolCli, done := utils.NewMockPoolClient(&testing.T{})
 	defer done()
-	NewS3Server(router, poolCli, authSys, db)
+	pinCli, done := utils.NewMockPinPoolClient(&testing.T{})
+	defer done()
+	NewS3Server(router, poolCli, pinCli, authSys, db)
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
@@ -49,6 +51,7 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 }
 func TestS3ApiServer_PinHandler(t *testing.T) {
 	bucketName := "/testbucketput"
+	objectName := "/objecttest"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
 		bucketName string
@@ -65,19 +68,12 @@ func TestS3ApiServer_PinHandler(t *testing.T) {
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusOK,
 		},
-		// Test case - 2.
-		// wrong accessKey.
-		{
-			bucketName:         bucketName,
-			accessKey:          "1",
-			secretKey:          "1",
-			expectedRespStatus: http.StatusForbidden,
-		},
 	}
 	// Iterating over the cases, fetching the object validating the response.
+	url := "http://127.0.0.1:9985/pin"
 	for i, testCase := range testCases {
 		// mock an HTTP request
-		reqPutBucket := utils.MustNewSignedV4Request(http.MethodPost, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqPutBucket := utils.MustNewSignedV4Request(http.MethodPost, url+"?bucket="+bucketName+"&object="+objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result := reqTest(reqPutBucket)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)

@@ -18,7 +18,7 @@ var _ format.DAGService = &DagPoolClient{}
 var _ PoolClient = &DagPoolClient{}
 var _ DataPin = &DagPoolClient{}
 
-//go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient
+//go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient,DataPin
 
 type PoolClient interface {
 	Close(ctx context.Context)
@@ -32,6 +32,7 @@ type PoolClient interface {
 type DataPin interface {
 	Pin(ctx context.Context, cid cid.Cid) error
 	UnPin(ctx context.Context, cid cid.Cid) error
+	IsPin(ctx context.Context, cid cid.Cid) (bool, error)
 }
 
 type DagPoolClient struct {
@@ -139,4 +140,15 @@ func (p DagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
 	}
 	log.Infof("unpin sucess %v ", reply.Message)
 	return err
+}
+
+func (p DagPoolClient) IsPin(ctx context.Context, cid cid.Cid) (bool, error) {
+	reply, err := p.DPClient.IsPin(ctx, &proto.IsPinReq{
+		Cid:  cid.String(),
+		User: p.User})
+	if err != nil {
+		return false, err
+	}
+	log.Infof("ispin sucess %v ", reply.Is)
+	return true, err
 }
