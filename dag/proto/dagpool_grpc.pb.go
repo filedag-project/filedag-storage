@@ -31,6 +31,7 @@ type DagPoolClient interface {
 	UpdateUser(ctx context.Context, in *UpdateUserReq, opts ...grpc.CallOption) (*UpdateUserReply, error)
 	Pin(ctx context.Context, in *PinReq, opts ...grpc.CallOption) (*PinReply, error)
 	UnPin(ctx context.Context, in *UnPinReq, opts ...grpc.CallOption) (*UnPinReply, error)
+	IsPin(ctx context.Context, in *IsPinReq, opts ...grpc.CallOption) (*IsPinReply, error)
 }
 
 type dagPoolClient struct {
@@ -122,6 +123,15 @@ func (c *dagPoolClient) UnPin(ctx context.Context, in *UnPinReq, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *dagPoolClient) IsPin(ctx context.Context, in *IsPinReq, opts ...grpc.CallOption) (*IsPinReply, error) {
+	out := new(IsPinReply)
+	err := c.cc.Invoke(ctx, "/proto.DagPool/IsPin", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DagPoolServer is the server API for DagPool service.
 // All implementations must embed UnimplementedDagPoolServer
 // for forward compatibility
@@ -135,6 +145,7 @@ type DagPoolServer interface {
 	UpdateUser(context.Context, *UpdateUserReq) (*UpdateUserReply, error)
 	Pin(context.Context, *PinReq) (*PinReply, error)
 	UnPin(context.Context, *UnPinReq) (*UnPinReply, error)
+	IsPin(context.Context, *IsPinReq) (*IsPinReply, error)
 	mustEmbedUnimplementedDagPoolServer()
 }
 
@@ -168,6 +179,9 @@ func (UnimplementedDagPoolServer) Pin(context.Context, *PinReq) (*PinReply, erro
 }
 func (UnimplementedDagPoolServer) UnPin(context.Context, *UnPinReq) (*UnPinReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UnPin not implemented")
+}
+func (UnimplementedDagPoolServer) IsPin(context.Context, *IsPinReq) (*IsPinReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsPin not implemented")
 }
 func (UnimplementedDagPoolServer) mustEmbedUnimplementedDagPoolServer() {}
 
@@ -344,6 +358,24 @@ func _DagPool_UnPin_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DagPool_IsPin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsPinReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolServer).IsPin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPool/IsPin",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolServer).IsPin(ctx, req.(*IsPinReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DagPool_ServiceDesc is the grpc.ServiceDesc for DagPool service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -386,6 +418,10 @@ var DagPool_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UnPin",
 			Handler:    _DagPool_UnPin_Handler,
+		},
+		{
+			MethodName: "IsPin",
+			Handler:    _DagPool_IsPin_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

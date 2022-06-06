@@ -15,6 +15,7 @@ service DagPool {
 
   rpc Pin(PinReq) returns(PinReply) {}
   rpc UnPin(UnPinReq) returns(UnPinReply) {}
+  rpc IsPin(IsPinReq) returns(IsPinReply) {}
 }
 message PoolUser {
   string username = 1;
@@ -103,4 +104,13 @@ message UnPinReq {
 
 message UnPinReply {
   string message = 1;
+}
+
+message IsPinReq {
+  string cid = 1;
+  PoolUser user = 2;
+}
+
+message IsPinReply {
+  bool is = 1;
 }
