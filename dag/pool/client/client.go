@@ -29,8 +29,6 @@ type PoolClient interface {
 	AddMany(ctx context.Context, nodes []format.Node) error
 	GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption
 	RemoveMany(ctx context.Context, cids []cid.Cid) error
-	Pin(ctx context.Context, cid cid.Cid) error
-	UnPin(ctx context.Context, cid cid.Cid) error
 }
 
 type DagPoolClient struct {
