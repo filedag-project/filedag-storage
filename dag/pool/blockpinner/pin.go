@@ -163,6 +163,11 @@ type Pinned struct {
 	Via  cid.Cid
 }
 
+// Pinned returns whether or not the given cid is pinned
+func (p Pinned) Pinned() bool {
+	return p.Mode != NotPinned
+}
+
 //AddPin add pin
 func (p *Pinner) AddPin(ctx context.Context, c cid.Cid, mode Mode, name string) (string, error) {
 	// Create new pin and Dstore in datastore
