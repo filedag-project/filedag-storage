@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -11,13 +10,13 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
-	"strings"
 )
 
 var log = logging.Logger("pool-client")
 
 var _ format.DAGService = &DagPoolClient{}
 var _ PoolClient = &DagPoolClient{}
+var _ DataPin = &DagPoolClient{}
 
 //go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient
 
@@ -29,6 +28,8 @@ type PoolClient interface {
 	AddMany(ctx context.Context, nodes []format.Node) error
 	GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption
 	RemoveMany(ctx context.Context, cids []cid.Cid) error
+}
+type DataPin interface {
 	Pin(ctx context.Context, cid cid.Cid) error
 	UnPin(ctx context.Context, cid cid.Cid) error
 }
@@ -118,20 +119,10 @@ func (p *DagPoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	return xerrors.Errorf("implement me")
 }
 
-var _ format.DAGService = &DagPoolClient{}
-var _ PoolClient = &DagPoolClient{}
-
 func (p DagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
-	s := strings.Split((ctx.Value("user")).(string), ",")
-	if len(s) != 2 {
-		return userpolicy.AccessDenied
-	}
 	reply, err := p.DPClient.Pin(ctx, &proto.PinReq{
-		Cid: cid.String(),
-		User: &proto.PoolUser{
-			Username: s[0],
-			Pass:     s[1],
-		}})
+		Cid:  cid.String(),
+		User: p.User})
 	if err != nil {
 		return err
 	}
@@ -140,16 +131,9 @@ func (p DagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
 }
 
 func (p DagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
-	s := strings.Split((ctx.Value("user")).(string), ",")
-	if len(s) != 2 {
-		return userpolicy.AccessDenied
-	}
 	reply, err := p.DPClient.UnPin(ctx, &proto.UnPinReq{
-		Cid: cid.String(),
-		User: &proto.PoolUser{
-			Username: s[0],
-			Pass:     s[1],
-		}})
+		Cid:  cid.String(),
+		User: p.User})
 	if err != nil {
 		return err
 	}

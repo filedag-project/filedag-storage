@@ -22,6 +22,7 @@ var log = logging.Logger("store")
 type StorageSys struct {
 	Db         *uleveldb.ULevelDB
 	DagPool    ipld.DAGService
+	Pin        dagpoolcli.DataPin
 	CidBuilder cid.Builder
 }
 
@@ -153,7 +154,7 @@ func (s *StorageSys) PinObject(ctx context.Context, user, bucket, object string)
 	if err != nil {
 		return err
 	}
-	err = s.DagPool.Pin(ctx, cid)
+	err = s.Pin.Pin(ctx, cid)
 	if err != nil {
 		return err
 	}
@@ -173,7 +174,7 @@ func (s *StorageSys) UnPinObject(ctx context.Context, user, bucket, object strin
 	if err != nil {
 		return err
 	}
-	err = s.DagPool.UnPin(ctx, cid)
+	err = s.Pin.UnPin(ctx, cid)
 	if err != nil {
 		return err
 	}
