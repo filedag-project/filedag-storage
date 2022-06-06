@@ -32,12 +32,24 @@ type PoolClient interface {
 type DataPin interface {
 	Pin(ctx context.Context, cid cid.Cid) error
 	UnPin(ctx context.Context, cid cid.Cid) error
+	IsPinned(ctx context.Context, cid cid.Cid) bool
 }
 
 type DagPoolClient struct {
 	DPClient proto.DagPoolClient
 	Conn     *grpc.ClientConn
 	User     *proto.PoolUser
+}
+
+func (p *DagPoolClient) IsPinned(ctx context.Context, cid cid.Cid) bool {
+	pin, err := p.DPClient.IsPin(ctx, &proto.IsPinReq{
+		Cid:  cid.String(),
+		User: p.User,
+	})
+	if err != nil {
+		return false
+	}
+	return pin.Is
 }
 
 func NewPoolClient(addr, user, password string) (*DagPoolClient, error) {
