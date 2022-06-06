@@ -150,5 +150,5 @@ func (p DagPoolClient) IsPin(ctx context.Context, cid cid.Cid) (bool, error) {
 		return false, err
 	}
 	log.Infof("ispin sucess %v ", reply.Is)
-	return true, err
+	return reply.Is, err
 }

@@ -165,3 +165,18 @@ func (s *DagPoolService) UnPin(ctx context.Context, in *proto.UnPinReq) (*proto.
 	}
 	return &proto.UnPinReply{Message: c.String()}, nil
 }
+
+func (s *DagPoolService) IsPin(ctx context.Context, in *proto.IsPinReq) (*proto.IsPinReply, error) {
+	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+		return &proto.IsPinReply{Is: false}, userpolicy.AccessDenied
+	}
+	c, err := cid.Decode(in.Cid)
+	if err != nil {
+		return &proto.IsPinReply{Is: false}, err
+	}
+	ok := s.DagPool.IsPinned(ctx, c)
+	if !ok {
+		return &proto.IsPinReply{Is: false}, err
+	}
+	return &proto.IsPinReply{Is: true}, nil
+}

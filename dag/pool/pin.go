@@ -113,6 +113,17 @@ func (d *Pool) UnPin(ctx context.Context, c cid.Cid, recursive bool) error {
 	return d.pinner.FlushPins(ctx, false)
 }
 
+func (d *Pool) IsPinned(ctx context.Context, cid cid.Cid) bool {
+	pinned, err := d.CheckIfPinned(ctx, cid)
+	if err != nil {
+		return false
+	}
+	if len(pinned) == 0 {
+		return false
+	}
+	return pinned[0].Pinned()
+}
+
 // CheckIfPinned checks if a set of keys are pinned, more efficient than
 // calling IsPinned for each key, returns the pinned status of cid(s)
 //

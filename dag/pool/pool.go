@@ -42,6 +42,7 @@ type DagPool interface {
 
 	UnPin(context.Context, cid.Cid, bool) error
 	Pin(context.Context, cid.Cid, bool) error
+	IsPinned(ctx context.Context, cid cid.Cid) bool
 }
 
 // Pool is an IPFS Merkle DAG service.
