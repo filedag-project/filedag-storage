@@ -32,10 +32,10 @@ func NewIdentityAMSys(db *uleveldb.ULevelDB) *IdentityAMSys {
 	sys := &IdentityAMSys{}
 	sys.store = &iamStoreSys{newIAMLevelDBStore(db)}
 	// TODO: Is it necessary?
-	err := sys.store.saveUserIdentity(context.Background(), "test", UserIdentity{Credentials: auth.GetDefaultActiveCred()})
-	if err != nil {
-		log.Errorf("add first user fail%v", err)
-	}
+	//err := sys.store.saveUserIdentity(context.Background(), auth.DefaultAccessKey, UserIdentity{Credentials: auth.GetDefaultActiveCred()})
+	//if err != nil {
+	//	log.Errorf("add first user fail%v", err)
+	//}
 	return sys
 }
 

@@ -3,6 +3,7 @@ package s3api
 import (
 	"bytes"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"net/http"
 	"net/url"
@@ -10,8 +11,8 @@ import (
 )
 
 const (
-	DefaultTestAccessKey = "test"
-	DefaultTestSecretKey = "test"
+	DefaultTestAccessKey = auth.DefaultAccessKey
+	DefaultTestSecretKey = auth.DefaultSecretKey
 )
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {

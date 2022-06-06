@@ -1,7 +1,6 @@
 package client
 
 import (
-	"context"
 	"github.com/ipfs/go-cid"
 	chunker "github.com/ipfs/go-ipfs-chunker"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -13,7 +12,7 @@ import (
 const UnixfsLinksPerLevel = 1 << 10
 const UnixfsChunkSize uint64 = 1 << 20
 
-func BalanceNode(ctx context.Context, f io.Reader, bufDs ipld.DAGService, cidBuilder cid.Builder) (node ipld.Node, err error) {
+func BalanceNode(f io.Reader, bufDs ipld.DAGService, cidBuilder cid.Builder) (node ipld.Node, err error) {
 	params := h.DagBuilderParams{
 		Maxlinks:   UnixfsLinksPerLevel,
 		RawLeaves:  false,
@@ -25,7 +24,7 @@ func BalanceNode(ctx context.Context, f io.Reader, bufDs ipld.DAGService, cidBui
 	if err != nil {
 		return nil, err
 	}
-	node, err = balanced.Layout(ctx, db)
+	node, err = balanced.Layout(db)
 	if err != nil {
 		return nil, err
 	}

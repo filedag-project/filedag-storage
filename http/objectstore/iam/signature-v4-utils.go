@@ -141,7 +141,7 @@ func isValidRegion(reqRegion string, confRegion string) bool {
 // also returns if the access key is owner/admin.
 func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, api_errors.ErrorCode) {
 
-	cred := auth.GetDefaultActiveCred()
+	cred := s.AdminCred
 	if cred.AccessKey != accessKey {
 		// Check if the access key is part of users credentials.
 		ucred, ok := s.Iam.GetUser(r.Context(), accessKey)
@@ -155,7 +155,7 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 		}
 		cred = ucred
 	}
-	owner := cred.AccessKey == auth.GetDefaultActiveCred().AccessKey
+	owner := cred.AccessKey == s.AdminCred.AccessKey
 	return cred, owner, api_errors.ErrNone
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -48,7 +49,12 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 		return
 	}
 	defer db.Close()
-	authSys := iam.NewAuthSys(db)
+	cred, err := auth.CreateCredentials(auth.DefaultAccessKey, auth.DefaultSecretKey)
+	if err != nil {
+		println(err)
+		return
+	}
+	authSys := iam.NewAuthSys(db, cred)
 	router := mux.NewRouter()
 	iamapi.NewIamApiServer(router, authSys)
 	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass)
