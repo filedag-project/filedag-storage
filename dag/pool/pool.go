@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/pool/blockpinner"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
 	"github.com/filedag-project/filedag-storage/dag/pool/datapin"
+	leveldbds "github.com/filedag-project/filedag-storage/dag/pool/leveldb_datastore"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
+	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	// blank import is used to register the IPLD raw codec
@@ -38,8 +41,8 @@ type DagPool interface {
 	UpdateUser(u dagpooluser.DagPoolUser) error
 	Close() error
 
-	UnPin(context.Context, cid.Cid) error
-	Pin(context.Context, cid.Cid) error
+	UnPin(context.Context, cid.Cid, bool) error
+	Pin(context.Context, cid.Cid, bool) error
 }
 
 // Pool is an IPFS Merkle DAG service.
@@ -48,33 +51,10 @@ type Pool struct {
 	iam        dagpooluser.IdentityUserSys
 	refer      referencecount.IdentityRefe
 	Pining     datapin.PinService
+	pinner     *blockpinner.Pinner
 	CidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
-}
-
-func (d *Pool) UnPin(ctx context.Context, c cid.Cid) error {
-	get, err := d.Get(ctx, c)
-	if err != nil {
-		return err
-	}
-	err = d.Pining.RemovePin(ctx, c, get)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *Pool) Pin(ctx context.Context, c cid.Cid) error {
-	get, err := d.Get(ctx, c)
-	if err != nil {
-		return err
-	}
-	err = d.Pining.AddPin(ctx, c, get)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -92,6 +72,11 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 	if err != nil {
 		return nil, err
 	}
+	ldstore, err := leveldbds.NewDatastore(cfg.DatastorePath, nil)
+	if err != nil {
+		panic(err)
+	}
+	pn, _ := blockpinner.New(context.TODO(), ldstore)
 	r, err := referencecount.NewIdentityRefe(db)
 	dn := make(map[string]*node.DagNode)
 	var nrs = dnm.NewRecordSys(db)
@@ -112,6 +97,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 		DagNodes:   dn,
 		iam:        i,
 		refer:      r,
+		pinner:     pn,
 		CidBuilder: cidBuilder,
 		NRSys:      nrs,
 		db:         db,
@@ -242,4 +228,16 @@ func (d *Pool) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolP
 
 func (d *Pool) Close() error {
 	return d.db.Close()
+}
+
+func (d *Pool) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Link, error) {
+	get, err := d.Get(ctx, ci)
+	if err != nil {
+		return nil, err
+	}
+	decodeNode, err := ipldlegacy.DecodeNode(ctx, get)
+	if err != nil {
+		return nil, err
+	}
+	return decodeNode.Links(), nil
 }
