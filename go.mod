@@ -12,16 +12,15 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0
 	github.com/ipfs/go-block-format v0.0.3
-	github.com/ipfs/go-blockservice v0.1.7
 	github.com/ipfs/go-cid v0.1.0
 	github.com/ipfs/go-fs-lock v0.0.7
-	github.com/ipfs/go-ipfs-blockstore v1.0.4
+	github.com/ipfs/go-ipfs-blockstore v1.2.0
 	github.com/ipfs/go-ipfs-chunker v0.0.5
-	github.com/ipfs/go-ipld-format v0.2.0
+	github.com/ipfs/go-ipld-format v0.3.0
 	github.com/ipfs/go-ipld-legacy v0.1.0
 	github.com/ipfs/go-log/v2 v2.5.0
-	github.com/ipfs/go-merkledag v0.4.1
-	github.com/ipfs/go-unixfs v0.2.6
+	github.com/ipfs/go-merkledag v0.6.0
+	github.com/ipfs/go-unixfs v0.3.1
 	github.com/ipld/go-ipld-prime v0.12.2
 	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/reedsolomon v1.9.16
@@ -36,7 +35,7 @@ require (
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
-	github.com/Stebalien/go-bitfield v0.0.1 // indirect
+	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3 // indirect
@@ -49,9 +48,11 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20190812055157-5d271430af9f // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/go-datastore v0.4.6 // indirect
-	github.com/ipfs/go-ipfs-ds-help v1.0.0 // indirect
-	github.com/ipfs/go-ipfs-exchange-interface v0.0.1 // indirect
+	github.com/ipfs/go-bitfield v1.0.0 // indirect
+	github.com/ipfs/go-blockservice v0.3.0 // indirect
+	github.com/ipfs/go-datastore v0.5.0 // indirect
+	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
+	github.com/ipfs/go-ipfs-exchange-interface v0.1.0 // indirect
 	github.com/ipfs/go-ipfs-files v0.0.8 // indirect
 	github.com/ipfs/go-ipfs-posinfo v0.0.1 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
@@ -97,14 +98,13 @@ require (
 	go.uber.org/zap v1.19.1 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/genproto v0.0.0-20200825200019-8632dd797987 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
-replace github.com/ipfs/go-unixfs v0.2.6 => github.com/deanls1/go-unixfs v0.0.2-dag
+//replace github.com/ipfs/go-unixfs v0.2.6 => github.com/deanls1/go-unixfs v0.0.2-dag

@@ -33,7 +33,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	node, err := dagpoolcli.BalanceNode(ctx, reader, s.DagPool, s.CidBuilder)
+	node, err := dagpoolcli.BalanceNode(reader, s.DagPool, s.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}

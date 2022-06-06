@@ -11,7 +11,6 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
-	bserv "github.com/ipfs/go-blockservice"
 	cid "github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
@@ -110,7 +109,7 @@ func (d *Pool) Add(ctx context.Context, block blocks.Block) error {
 	if err != nil {
 		return err
 	}
-	return useNode.Put(block)
+	return useNode.Put(ctx, block)
 }
 
 // Get retrieves a node from the Pool, fetching the block in the BlockService
@@ -131,10 +130,10 @@ func (d *Pool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := getNode.Get(c)
+	b, err := getNode.Get(ctx, c)
 	if err != nil {
-		if err == bserv.ErrNotFound {
-			return nil, format.ErrNotFound
+		if format.IsNotFound(err) {
+			return nil, err
 		}
 		return nil, fmt.Errorf("failed to get block for %s: %v", c, err)
 	}
@@ -159,7 +158,7 @@ func (d *Pool) Remove(ctx context.Context, c cid.Cid) error {
 		if err != nil {
 			return err
 		}
-		go getNode.DeleteBlock(c)
+		go getNode.DeleteBlock(ctx, c)
 	}
 	return nil
 }

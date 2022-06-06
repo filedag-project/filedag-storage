@@ -12,6 +12,8 @@ import (
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	format "github.com/ipfs/go-ipld-format"
+	"github.com/syndtr/goleveldb/leveldb"
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"strings"
@@ -74,9 +76,8 @@ func (d DagNode) GetIP() []string {
 	}
 	return s
 }
-func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
+func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	log.Infof("delete block, cid :%v", cid)
-	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
@@ -98,8 +99,8 @@ func (d DagNode) DeleteBlock(cid cid.Cid) (err error) {
 	return err
 }
 
-func (d DagNode) Has(cid cid.Cid) (bool, error) {
-	_, err := d.GetSize(cid)
+func (d DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
+	_, err := d.GetSize(ctx, cid)
 	if err != nil {
 		if strings.Contains(err.Error(), kv.ErrNotFound.Error()) {
 			return false, nil
@@ -110,14 +111,16 @@ func (d DagNode) Has(cid cid.Cid) (bool, error) {
 	return true, nil
 }
 
-func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
+func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	log.Infof("get block, cid :%v", cid)
-	ctx := context.TODO()
 	keyCode := sha256String(cid.String())
 	var err error
 	var size int
 	err = d.db.Get(cid.String(), &size)
 	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return nil, format.ErrNotFound{Cid: cid}
+		}
 		return nil, err
 	}
 	merged := make([][]byte, len(d.Nodes))
@@ -164,8 +167,7 @@ func (d DagNode) Get(cid cid.Cid) (blocks.Block, error) {
 	return b, err
 }
 
-func (d DagNode) GetSize(cid cid.Cid) (int, error) {
-	ctx := context.TODO()
+func (d DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 	keyCode := sha256String(cid.String())
 	var err error
 	var count int64
@@ -181,9 +183,8 @@ func (d DagNode) GetSize(cid cid.Cid) (int, error) {
 	return int(count), err
 }
 
-func (d DagNode) Put(block blocks.Block) (err error) {
+func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	log.Infof("put block, cid :%v", block.Cid())
-	ctx := context.TODO()
 	//todo store this info in datanode
 	err = d.db.Put(block.Cid().String(), len(block.RawData()))
 	if err != nil {
@@ -228,9 +229,9 @@ func (d DagNode) Put(block blocks.Block) (err error) {
 	return err
 }
 
-func (d DagNode) PutMany(blocks []blocks.Block) (err error) {
+func (d DagNode) PutMany(ctx context.Context, blocks []blocks.Block) (err error) {
 	for _, block := range blocks {
-		err = d.Put(block)
+		err = d.Put(ctx, block)
 	}
 	return err
 }

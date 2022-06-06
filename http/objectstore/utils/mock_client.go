@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/dag/pool/client/mocks"
 	"github.com/golang/mock/gomock"
@@ -12,11 +11,10 @@ import (
 func NewMockPoolClient(t *testing.T) (client.PoolClient, func()) {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockPoolClient(ctrl)
-	ctx := context.WithValue(context.TODO(), "", "")
 	node := merkledag.NodeWithData([]byte("\b\u0002\u0012\a1234567\u0018\a"))
 	cid := node.Cid()
-	m.EXPECT().Add(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(node)).Return(nil).AnyTimes()
-	m.EXPECT().Get(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(cid)).Return(node, nil).AnyTimes()
-	m.EXPECT().Remove(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(cid)).Return(nil).AnyTimes()
+	m.EXPECT().Add(gomock.Any(), gomock.AssignableToTypeOf(node)).Return(nil).AnyTimes()
+	m.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(cid)).Return(node, nil).AnyTimes()
+	m.EXPECT().Remove(gomock.Any(), gomock.AssignableToTypeOf(cid)).Return(nil).AnyTimes()
 	return m, ctrl.Finish
 }

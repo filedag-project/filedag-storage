@@ -29,23 +29,24 @@ func TestDagNode(t *testing.T) {
 		parityBlocks: 1,
 	}
 	block := blocks.NewBlock([]byte("123456"))
-	err = d.Put(block)
+	ctx := context.TODO()
+	err = d.Put(ctx, block)
 	if err != nil {
 		fmt.Println("put err", err)
 		return
 	}
-	get, err := d.Get(block.Cid())
+	get, err := d.Get(ctx, block.Cid())
 	if err != nil {
 		fmt.Println("get err", err)
 		return
 	}
 	fmt.Println(get.String())
-	err = d.DeleteBlock(block.Cid())
+	err = d.DeleteBlock(ctx, block.Cid())
 	if err != nil {
 		fmt.Println("del err", err)
 		return
 	}
-	size, err := d.GetSize(block.Cid())
+	size, err := d.GetSize(ctx, block.Cid())
 	if err != nil {
 		fmt.Println("size err", err)
 		return
