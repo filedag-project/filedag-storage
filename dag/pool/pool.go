@@ -8,13 +8,12 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/blockpinner"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
-	"github.com/filedag-project/filedag-storage/dag/pool/datapin"
 	leveldbds "github.com/filedag-project/filedag-storage/dag/pool/leveldb_datastore"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
-	cid "github.com/ipfs/go-cid"
+	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
@@ -47,10 +46,10 @@ type DagPool interface {
 
 // Pool is an IPFS Merkle DAG service.
 type Pool struct {
-	DagNodes   map[string]*node.DagNode
-	iam        dagpooluser.IdentityUserSys
-	refer      referencecount.IdentityRefe
-	Pining     datapin.PinService
+	DagNodes map[string]*node.DagNode
+	iam      dagpooluser.IdentityUserSys
+	refer    referencecount.IdentityRefe
+	//Pining     datapin.PinService
 	pinner     *blockpinner.Pinner
 	CidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
