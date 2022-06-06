@@ -66,7 +66,7 @@ func startServer(cctx *cli.Context) {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
 	defer poolClient.Close(context.TODO())
-	s3api.NewS3Server(router, poolClient, authSys, db)
+	s3api.NewS3Server(router, poolClient, poolClient, authSys, db)
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 			log.Infof("start sever at http://%v%v", ip, listen)

@@ -237,11 +237,12 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, pre
 }
 
 //NewStorageSys new a storage sys
-func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
+func NewStorageSys(dagService ipld.DAGService, pin dagpoolcli.DataPin, db *uleveldb.ULevelDB) *StorageSys {
 	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
 	return &StorageSys{
 		Db:         db,
 		DagPool:    dagService,
+		Pin:        pin,
 		CidBuilder: cidBuilder,
 	}
 }

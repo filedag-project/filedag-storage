@@ -62,7 +62,7 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
 	defer poolClient.Close(context.TODO())
-	s3api.NewS3Server(router, poolClient, authSys, db)
+	s3api.NewS3Server(router, poolClient, poolClient, authSys, db)
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		fmt.Printf("start sever at http://%v%v", ip, port)

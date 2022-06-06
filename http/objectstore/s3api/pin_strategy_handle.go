@@ -5,12 +5,16 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
 func (s3a *s3ApiServer) PinHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("getBucketAndObject a")
-	bucket, object := getBucketAndObject(r)
+	vars := mux.Vars(r)
+	bucket := vars["bucket"]
+	object := vars["object"]
+	//bucket, object := getBucketAndObject(r)
 	fmt.Println("getBucketAndObject last")
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
