@@ -18,10 +18,10 @@ import (
 	"strings"
 )
 
-//go run -tags example main.go run --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --pool-user=pool --pool-pass=pool123
+//go run -tags example main.go daemon --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --pool-user=pool --pool-pass=pool123
 func main() {
 	var leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath string
-	f := flag.NewFlagSet("run", flag.ExitOnError)
+	f := flag.NewFlagSet("daemon", flag.ExitOnError)
 	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/", "set db path default:`/tmp/leveldb2/pool.db`")
 	f.StringVar(&listenAddr, "listen-addr", "localhost:50001", "set listen addr default:`localhost:50001`")
 	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
@@ -30,17 +30,17 @@ func main() {
 	datastorePath = path.Join("datastore")
 	leveldbPath = path.Join("leveldb")
 	switch os.Args[1] {
-	case "run":
+	case "daemon":
 		f.Parse(os.Args[2:])
 		if leveldbPath == "" || listenAddr == "" || nodeConfigPath == "" || user == "" || pass == "" || datastorePath == "" {
 			fmt.Printf("leveldbPath:%v, listenAddr:%v, nodeConfigPath:%v,user:%v,pass:%v,datastorePath:%v", leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go run -tags example main.go --pool-db-path= --listen-addr= --node-config-path= --pool-user= --pool-pass= --datastore-path=")
+				"USAGE ERROR: go run -tags example main.go daemon --pool-db-path= --listen-addr= --node-config-path= --pool-user= --pool-pass= --datastore-path=")
 		} else {
 			run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath)
 		}
 	default:
-		fmt.Println("expected 'str' subcommands")
+		fmt.Println("expected 'daemon' subcommands")
 		os.Exit(1)
 	}
 
