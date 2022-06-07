@@ -23,23 +23,23 @@ import (
 
 var log = logging.Logger("dag-pool")
 
-var _ pool.DagPool = &Pool{}
+var _ pool.DagPool = &dagPoolService{}
 
-// Pool is an IPFS Merkle DAG service.
-type Pool struct {
-	DagNodes map[string]*node.DagNode
+// dagPoolService is an IPFS Merkle DAG service.
+type dagPoolService struct {
+	dagNodes map[string]*node.DagNode
 	iam      dagpooluser.IdentityUserSys
 	refer    referencecount.IdentityRefe
 	//Pining     datapin.PinService
 	pinner     *blockpinner.Pinner
-	CidBuilder cid.Builder
+	cidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
+func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	if err != nil {
 		return nil, err
@@ -73,19 +73,19 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 		}
 		dn[name] = bs
 	}
-	return &Pool{
-		DagNodes:   dn,
+	return &dagPoolService{
+		dagNodes:   dn,
 		iam:        i,
 		refer:      r,
 		pinner:     pn,
-		CidBuilder: cidBuilder,
+		cidBuilder: cidBuilder,
 		NRSys:      nrs,
 		db:         db,
 	}, nil
 }
 
-// Add adds a node to the Pool, storing the block in the BlockService
-func (d *Pool) Add(ctx context.Context, block blocks.Block) error {
+// Add adds a node to the dagPoolService, storing the block in the BlockService
+func (d *dagPoolService) Add(ctx context.Context, block blocks.Block) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
 	}
@@ -107,8 +107,8 @@ func (d *Pool) Add(ctx context.Context, block blocks.Block) error {
 	return useNode.Put(ctx, block)
 }
 
-// Get retrieves a node from the Pool, fetching the block in the BlockService
-func (d *Pool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+// Get retrieves a node from the dagPoolService, fetching the block in the BlockService
+func (d *dagPoolService) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	if d == nil {
 		return nil, fmt.Errorf("Pool is nil")
 	}
@@ -136,7 +136,7 @@ func (d *Pool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	return b, nil
 }
 
-func (d *Pool) Remove(ctx context.Context, c cid.Cid) error {
+func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
 	}
@@ -159,7 +159,7 @@ func (d *Pool) Remove(ctx context.Context, c cid.Cid) error {
 }
 
 // DataRepairHost Data repair host
-func (d *Pool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
+func (d *dagPoolService) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
 	if d == nil {
 		return fmt.Errorf("Pool is nil")
 	}
@@ -171,7 +171,7 @@ func (d *Pool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPor
 }
 
 // DataRepairDisk Data repair disk
-func (d *Pool) DataRepairDisk(ctx context.Context, ip, port string) error {
+func (d *dagPoolService) DataRepairDisk(ctx context.Context, ip, port string) error {
 	if d == nil {
 		return fmt.Errorf("Pool is nil")
 	}
@@ -182,35 +182,35 @@ func (d *Pool) DataRepairDisk(ctx context.Context, ip, port string) error {
 	return dagNode.RepairDisk(ip, port)
 }
 
-func (d *Pool) CheckDeal(user, pass string) bool {
+func (d *dagPoolService) CheckDeal(user, pass string) bool {
 	return d.iam.CheckDeal(user, pass)
 }
 
-func (d *Pool) AddUser(user dagpooluser.DagPoolUser) error {
+func (d *dagPoolService) AddUser(user dagpooluser.DagPoolUser) error {
 	return d.iam.AddUser(user)
 }
 
-func (d *Pool) RemoveUser(username string) error {
+func (d *dagPoolService) RemoveUser(username string) error {
 	return d.iam.RemoveUser(username)
 }
 
-func (d *Pool) QueryUser(username string) (dagpooluser.DagPoolUser, error) {
+func (d *dagPoolService) QueryUser(username string) (dagpooluser.DagPoolUser, error) {
 	return d.iam.QueryUser(username)
 }
 
-func (d *Pool) UpdateUser(u dagpooluser.DagPoolUser) error {
+func (d *dagPoolService) UpdateUser(u dagpooluser.DagPoolUser) error {
 	return d.iam.UpdateUser(u)
 }
 
-func (d *Pool) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
+func (d *dagPoolService) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
 	return d.iam.CheckUserPolicy(username, pass, policy)
 }
 
-func (d *Pool) Close() error {
+func (d *dagPoolService) Close() error {
 	return d.db.Close()
 }
 
-func (d *Pool) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Link, error) {
+func (d *dagPoolService) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Link, error) {
 	get, err := d.Get(ctx, ci)
 	if err != nil {
 		return nil, err

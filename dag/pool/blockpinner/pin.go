@@ -3,7 +3,7 @@ package blockpinner
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool/dsindex"
+	"github.com/filedag-project/filedag-storage/dag/pool/blockpinner/dsindex"
 	"github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -569,4 +569,56 @@ func decodePin(pid string, data []byte) (*pin, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+// RecursiveKeys returns a slice containing the recursively pinned keys
+func (p *Pinner) RecursiveKeys(ctx context.Context) ([]cid.Cid, error) {
+	p.Lock.RLock()
+	defer p.Lock.RUnlock()
+
+	cidSet := cid.NewSet()
+	var e error
+	err := p.CidRIndex.ForEach(ctx, "", func(key, value string) bool {
+		var c cid.Cid
+		c, e = cid.Cast([]byte(key))
+		if e != nil {
+			return false
+		}
+		cidSet.Add(c)
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	if e != nil {
+		return nil, e
+	}
+
+	return cidSet.Keys(), nil
+}
+
+// DirectKeys returns a slice containing the directly pinned keys
+func (p *Pinner) DirectKeys(ctx context.Context) ([]cid.Cid, error) {
+	p.Lock.RLock()
+	defer p.Lock.RUnlock()
+
+	cidSet := cid.NewSet()
+	var e error
+	err := p.CidDIndex.ForEach(ctx, "", func(key, value string) bool {
+		var c cid.Cid
+		c, e = cid.Cast([]byte(key))
+		if e != nil {
+			return false
+		}
+		cidSet.Add(c)
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+	if e != nil {
+		return nil, e
+	}
+
+	return cidSet.Keys(), nil
 }

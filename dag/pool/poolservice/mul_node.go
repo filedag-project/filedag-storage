@@ -7,39 +7,39 @@ import (
 )
 
 // GetNode get the DagNode
-func (d *Pool) GetNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
+func (d *dagPoolService) GetNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
 	//todo mul node
 	get, err := d.NRSys.Get(c.String())
 	if err != nil {
 		return nil, err
 	}
-	return d.DagNodes[get], nil
+	return d.dagNodes[get], nil
 }
 
 // UseNode get the DagNode
-func (d *Pool) UseNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
+func (d *dagPoolService) UseNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
 	//todo mul node
 	dn := d.NRSys.GetCanUseNode()
 	err := d.NRSys.Add(c.String(), dn)
 	if err != nil {
 		return nil, err
 	}
-	return d.DagNodes[dn], nil
+	return d.dagNodes[dn], nil
 }
 
 // GetNodeUseIP get the DagNode
-func (d *Pool) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
+func (d *dagPoolService) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
 	//todo mul node
 	get, err := d.NRSys.GetNameUseIp(ip)
 	if err != nil {
 		return nil, err
 	}
-	return d.DagNodes[get], nil
+	return d.dagNodes[get], nil
 }
 
 //
 //// GetNodes get the DagNode
-//func (d *Pool) GetNodes(ctx context.Context, cids []cid.Cid) map[*node.DagNode][]cid.Cid {
+//func (d *DagPoolService) GetNodes(ctx context.Context, cids []cid.Cid) map[*node.DagNode][]cid.Cid {
 //	//todo mul node
 //	//
 //	m := make(map[*node.DagNode][]cid.Cid)
@@ -48,18 +48,18 @@ func (d *Pool) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, erro
 //		if err != nil {
 //			return nil
 //		}
-//		m[d.DagNodes[get]] = append(m[d.DagNodes[get]], c)
+//		m[d.dagNodes[get]] = append(m[d.dagNodes[get]], c)
 //	}
 //	return m
 //}
 //
 //// UseNodes get the DagNode
-//func (d *Pool) UseNodes(ctx context.Context, c []cid.Cid) *node.DagNode {
+//func (d *DagPoolService) UseNodes(ctx context.Context, c []cid.Cid) *node.DagNode {
 //	//todo mul node
 //	dn := d.NRSys.GetCanUseNode()
 //	err := d.NRSys.Add(c[0].String(), dn)
 //	if err != nil {
 //		return nil
 //	}
-//	return d.DagNodes[dn]
+//	return d.dagNodes[dn]
 //}

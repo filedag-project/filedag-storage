@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-func (d *Pool) Pin(ctx context.Context, c cid.Cid, recurse bool) error {
+func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid, recurse bool) error {
 	cidKey := c.KeyString()
 
 	d.pinner.Lock.Lock()
@@ -70,7 +70,7 @@ func (d *Pool) Pin(ctx context.Context, c cid.Cid, recurse bool) error {
 	return d.pinner.FlushPins(ctx, false)
 }
 
-func (d *Pool) UnPin(ctx context.Context, c cid.Cid, recursive bool) error {
+func (d *dagPoolService) UnPin(ctx context.Context, c cid.Cid, recursive bool) error {
 	cidKey := c.KeyString()
 
 	d.pinner.Lock.Lock()
@@ -113,7 +113,7 @@ func (d *Pool) UnPin(ctx context.Context, c cid.Cid, recursive bool) error {
 	return d.pinner.FlushPins(ctx, false)
 }
 
-func (d *Pool) IsPinned(ctx context.Context, cid cid.Cid) bool {
+func (d *dagPoolService) IsPinned(ctx context.Context, cid cid.Cid) bool {
 	pinned, err := d.CheckIfPinned(ctx, cid)
 	if err != nil {
 		return false
@@ -128,7 +128,7 @@ func (d *Pool) IsPinned(ctx context.Context, cid cid.Cid) bool {
 // calling IsPinned for each key, returns the pinned status of cid(s)
 //
 // TODO: If a CID is pinned by multiple pins, should they all be reported?
-func (d *Pool) CheckIfPinned(ctx context.Context, cids ...cid.Cid) ([]blockpinner.Pinned, error) {
+func (d *dagPoolService) CheckIfPinned(ctx context.Context, cids ...cid.Cid) ([]blockpinner.Pinned, error) {
 	pinned := make([]blockpinner.Pinned, 0, len(cids))
 	toCheck := cid.NewSet()
 
@@ -222,7 +222,7 @@ const defaultConcurrentFetch = 32
 type WalkOption func(*walkOptions)
 
 // Walk WalkGraph will walk the dag in order (depth first) starting at the given root.
-func (d *Pool) Walk(ctx context.Context, c cid.Cid, visit func(cid.Cid) bool, options ...WalkOption) error {
+func (d *dagPoolService) Walk(ctx context.Context, c cid.Cid, visit func(cid.Cid) bool, options ...WalkOption) error {
 	visitDepth := func(c cid.Cid, depth int) bool {
 		return visit(c)
 	}
@@ -233,7 +233,7 @@ func (d *Pool) Walk(ctx context.Context, c cid.Cid, visit func(cid.Cid) bool, op
 // WalkDepth walks the dag starting at the given root and passes the current
 // depth to a given visit function. The visit function can be used to limit DAG
 // exploration.
-func (d *Pool) WalkDepth(ctx context.Context, c cid.Cid, visit func(cid.Cid, int) bool, options ...WalkOption) error {
+func (d *dagPoolService) WalkDepth(ctx context.Context, c cid.Cid, visit func(cid.Cid, int) bool, options ...WalkOption) error {
 	opts := &walkOptions{}
 	for _, opt := range options {
 		opt(opts)
@@ -245,7 +245,7 @@ func (d *Pool) WalkDepth(ctx context.Context, c cid.Cid, visit func(cid.Cid, int
 		return d.sequentialWalkDepth(ctx, c, 0, visit, opts)
 	}
 }
-func (d *Pool) parallelWalkDepth(ctx context.Context, root cid.Cid, visit func(cid.Cid, int) bool, options *walkOptions) error {
+func (d *dagPoolService) parallelWalkDepth(ctx context.Context, root cid.Cid, visit func(cid.Cid, int) bool, options *walkOptions) error {
 	type cidDepth struct {
 		cid   cid.Cid
 		depth int
@@ -366,7 +366,7 @@ func (d *Pool) parallelWalkDepth(ctx context.Context, root cid.Cid, visit func(c
 		}
 	}
 }
-func (d *Pool) sequentialWalkDepth(ctx context.Context, root cid.Cid, depth int, visit func(cid.Cid, int) bool, options *walkOptions) error {
+func (d *dagPoolService) sequentialWalkDepth(ctx context.Context, root cid.Cid, depth int, visit func(cid.Cid, int) bool, options *walkOptions) error {
 	if !(options.SkipRoot && depth == 0) {
 		if !visit(root, depth) {
 			return nil
