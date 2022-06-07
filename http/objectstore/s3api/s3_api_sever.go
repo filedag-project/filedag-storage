@@ -91,7 +91,8 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	// ListBuckets
 	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
 	apiRouter.Methods(http.MethodPost).Path("/pin").HandlerFunc(s3a.PinHandler).Queries("bucket", "{bucket:.*}", "object", "{object:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/unpin").HandlerFunc(s3a.PinHandler).Queries("bucket", "{bucket:.*}", "object", "{object:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/unpin").HandlerFunc(s3a.UnPinHandler).Queries("bucket", "{bucket:.*}", "object", "{object:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/ispin").HandlerFunc(s3a.PinHandler).Queries("bucket", "{bucket:.*}", "object", "{object:.*}")
 }
 
 //NewS3Server Start a S3Server
