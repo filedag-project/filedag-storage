@@ -17,10 +17,10 @@ import (
 	"os"
 )
 
-//go run -tags example main.go run --pool-user=pool --pool-user-pass=pool123
+//go run -tags example main.go daemon --pool-user=pool --pool-user-pass=pool123
 func main() {
 	var leveldbPath, port, poolAddr, poolUser, poolPass string
-	f := flag.NewFlagSet("run", flag.ExitOnError)
+	f := flag.NewFlagSet("daemon", flag.ExitOnError)
 	f.StringVar(&leveldbPath, "db-path", "/tmp/leveldb2/fds.db", "set db path default:`/tmp/leveldb2/pool.db`")
 	f.StringVar(&port, "port", ":9985", "set listen addr default:`localhost:50001`")
 	f.StringVar(&poolAddr, "pool-addr", "localhost:50001", "set the pool addr you want connect")
@@ -28,17 +28,17 @@ func main() {
 	f.StringVar(&poolPass, "pool-user-pass", "", "set pool user pass")
 
 	switch os.Args[1] {
-	case "run":
+	case "daemon":
 		f.Parse(os.Args[2:])
 		if poolUser == "" || poolPass == "" {
 			fmt.Printf("db-path:%v, port:%v, pool-addr:%v, pool-user:%v, pool-user-pass:%v", leveldbPath, port, poolAddr, poolUser, poolPass)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go run -tags example main.go run --db-path= --port= --pool-addr= --pool-user= pool-user-pass=")
+				"USAGE ERROR: go daemon -tags example main.go run daemon --db-path= --port= --pool-addr= --pool-user= pool-user-pass=")
 		} else {
 			run(leveldbPath, port, poolAddr, poolUser, poolPass)
 		}
 	default:
-		fmt.Println("expected 'str' subcommands")
+		fmt.Println("expected 'daemon' subcommands")
 		os.Exit(1)
 	}
 }
