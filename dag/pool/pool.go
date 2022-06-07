@@ -25,7 +25,7 @@ type DagPool interface {
 	UpdateUser(u dagpooluser.DagPoolUser) error
 	Close() error
 
-	UnPin(context.Context, cid.Cid, bool) error
-	Pin(context.Context, cid.Cid, bool) error
-	IsPinned(ctx context.Context, cid cid.Cid) bool
+	UnPin(context.Context, cid.Cid) error
+	Pin(context.Context, cid.Cid) error
+	//IsPinned(ctx context.Context, cid cid.Cid) bool
 }

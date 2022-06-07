@@ -89,10 +89,6 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
 	}
-	err := d.refer.AddReference(block.Cid().String())
-	if err != nil {
-		return err
-	}
 	reference, err := d.refer.QueryReference(block.Cid().String())
 	if err != nil {
 		return err
@@ -139,10 +135,6 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid) (blocks.Block, erro
 func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
-	}
-	err := d.refer.RemoveReference(c.String())
-	if err != nil {
-		return err
 	}
 	reference, err := d.refer.QueryReference(c.String())
 	if err != nil {
