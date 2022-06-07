@@ -7,26 +7,26 @@ import (
 	"os"
 )
 
-//go run -tags example main.go run --host=127.0.0.1 --port=9010 --path=/tmp/dag/data
+//go run -tags example main.go daemon --host=127.0.0.1 --port=9010 --path=/tmp/dag/data
 func main() {
 	var host, port, path string
-	f := flag.NewFlagSet("run", flag.ExitOnError)
+	f := flag.NewFlagSet("daemon", flag.ExitOnError)
 	f.StringVar(&host, "host", "127.0.0.1", "set host eg.:127.0.0.1")
 	f.StringVar(&port, "port", "9010", "set port eg.:9010")
 	f.StringVar(&path, "path", "/tmp/dag/data", "set data node path")
 
 	switch os.Args[1] {
-	case "run":
+	case "daemon":
 		f.Parse(os.Args[2:])
 		if host == "" || port == "" || path == "" {
 			fmt.Printf("host:%v, port:%v, path:%v", host, port, path)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go run -tags example main.go --host= --port= --path= ")
+				"USAGE ERROR: go run -tags example main.go daemon --host= --port= --path= ")
 		} else {
 			run(host, port, path)
 		}
 	default:
-		fmt.Println("expected 'str' subcommands")
+		fmt.Println("expected 'daemon' subcommands")
 		os.Exit(1)
 	}
 }

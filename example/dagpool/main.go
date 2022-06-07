@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
@@ -14,32 +14,33 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"strings"
 )
 
-//go run -tags example main.go run --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --pool-user=pool --pool-pass=pool123
+//go run -tags example main.go daemon --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --pool-user=pool --pool-pass=pool123
 func main() {
 	var leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath string
-	f := flag.NewFlagSet("run", flag.ExitOnError)
-	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/pool.db", "set db path default:`/tmp/leveldb2/pool.db`")
+	f := flag.NewFlagSet("daemon", flag.ExitOnError)
+	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/", "set db path default:`/tmp/leveldb2/pool.db`")
 	f.StringVar(&listenAddr, "listen-addr", "localhost:50001", "set listen addr default:`localhost:50001`")
 	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
 	f.StringVar(&user, "pool-user", "pool", "set root user default:pool")
 	f.StringVar(&pass, "pool-pass", "pool123", "set root user pass default:pool123")
-	f.StringVar(&datastorePath, "datastore-path", "/tmp/leveldb2/datastore", "set datastore path")
-
+	datastorePath = path.Join(leveldbPath, "datastore")
+	leveldbPath = path.Join(leveldbPath, "leveldb")
 	switch os.Args[1] {
-	case "run":
+	case "daemon":
 		f.Parse(os.Args[2:])
 		if leveldbPath == "" || listenAddr == "" || nodeConfigPath == "" || user == "" || pass == "" || datastorePath == "" {
 			fmt.Printf("leveldbPath:%v, listenAddr:%v, nodeConfigPath:%v,user:%v,pass:%v,datastorePath:%v", leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go run -tags example main.go --pool-db-path= --listen-addr= --node-config-path= --pool-user= --pool-pass= --datastore-path=")
+				"USAGE ERROR: go run -tags example main.go daemon --pool-db-path= --listen-addr= --node-config-path= --pool-user= --pool-pass= --datastore-path=")
 		} else {
 			run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath)
 		}
 	default:
-		fmt.Println("expected 'str' subcommands")
+		fmt.Println("expected 'daemon' subcommands")
 		os.Exit(1)
 	}
 
@@ -54,9 +55,9 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath stri
 	// new server
 	s := grpc.NewServer()
 	var nodeConfigs []config.NodeConfig
-	for _, path := range strings.Split(nodeConfigPath, ",") {
+	for _, p := range strings.Split(nodeConfigPath, ",") {
 		var nc config.NodeConfig
-		file, err := ioutil.ReadFile(path)
+		file, err := ioutil.ReadFile(p)
 		if err != nil {
 			fmt.Printf("ReadFile err:%v\n", err)
 			return
@@ -75,7 +76,7 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath stri
 		DefaultPass:   pass,
 		DatastorePath: datastorePath,
 	}
-	service, err := pool.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(cfg)
 	if err != nil {
 		fmt.Printf("NewDagPoolService err:%v\n", err)
 		return

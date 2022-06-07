@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
@@ -51,11 +51,6 @@ var startCmd = &cli.Command{
 			Usage: "set root password",
 			Value: "dagpool",
 		},
-		&cli.StringFlag{
-			Name:  "datastore-path",
-			Usage: "set datastore path",
-			Value: "./datastore",
-		},
 	},
 	Action: func(cctx *cli.Context) error {
 		cfg, err := loadPoolConfig(cctx)
@@ -77,7 +72,7 @@ func startDagPoolServer(cfg config.PoolConfig) {
 	}
 	// new server
 	s := grpc.NewServer()
-	service, err := pool.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(cfg)
 	if err != nil {
 		log.Errorf("NewDagPoolService err:%v", err)
 		return
@@ -128,7 +123,7 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 	}
 	cfg.DefaultPass = cctx.String("password")
 	nodeConfigPath := cctx.String("config")
-	datastorePath := cctx.String("datastore-path")
+	datastorePath := path.Join(datadir, "datastore")
 	cfg.DatastorePath = datastorePath
 	var nodeConfigs []config.NodeConfig
 	for _, path := range strings.Split(nodeConfigPath, ",") {
