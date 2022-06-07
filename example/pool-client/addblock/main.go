@@ -13,7 +13,7 @@ import (
 	"os"
 )
 
-//go run -tags example main.go addblock --addr=127.0.0.1:9985 --client-user=dagpool --client-pass=dagpool --filepath=file.txt
+//go run -tags example main.go addblock --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --filepath=file.txt
 
 func main() {
 	var addr, clientuser, clientpass, filepath string

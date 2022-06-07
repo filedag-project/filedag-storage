@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-//go run -tags example main.go updateuser --addr=127.0.0.1:9985 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345 --capacity=1000 --policy=only-read
+//go run -tags example main.go updateuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345 --capacity=1000 --policy=only-read
 
 func main() {
 	var addr, clientuser, clientpass, username, pass, policy string

@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-//go run -tags example main.go getuser --addr=127.0.0.1:9985 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345
+//go run -tags example main.go getuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345
 
 func main() {
 	var addr, clientuser, clientpass, username, pass string

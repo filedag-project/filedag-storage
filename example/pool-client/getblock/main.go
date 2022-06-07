@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-//go run -tags example main.go getblock --addr=127.0.0.1:9985 --client-user=dagpool --client-pass=dagpool --cid=QmZikYuqANVBRWcbb1zHAHEXzX6CsWbPz2mqRCoy92Jcge
+//go run -tags example main.go getblock --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --cid=QmZikYuqANVBRWcbb1zHAHEXzX6CsWbPz2mqRCoy92Jcge
 
 func main() {
 	var addr, clientuser, clientpass, cid string
