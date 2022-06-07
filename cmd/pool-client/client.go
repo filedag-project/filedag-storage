@@ -303,8 +303,8 @@ var addUser = &cli.Command{
 	},
 }
 var removeUser = &cli.Command{
-	Name:  "remove-user",
-	Usage: "remove a user from dagpool eg.dagpool-client remove-user --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345",
+	Name:  "removeuser",
+	Usage: "remove a user from dagpool eg.dagpool-client removeuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "addr",
@@ -378,8 +378,8 @@ var removeUser = &cli.Command{
 	},
 }
 var getUser = &cli.Command{
-	Name:  "get-user",
-	Usage: "get a user from dagpool eg.dagpool-client get-user --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345",
+	Name:  "getuser",
+	Usage: "get a user from dagpool eg.dagpool-client getuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "addr",
@@ -453,8 +453,8 @@ var getUser = &cli.Command{
 	},
 }
 var updateUser = &cli.Command{
-	Name:  "update-user",
-	Usage: "update the user eg.dagpool-client update-user --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345 --capacity=1000 --policy=only-read",
+	Name:  "updateuser",
+	Usage: "update the user eg.dagpool-client updateuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345 --capacity=1000 --policy=only-read",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "addr",
