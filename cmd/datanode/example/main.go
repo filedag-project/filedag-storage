@@ -25,7 +25,7 @@ func main() {
 	}
 	app := &cli.App{
 		Name:     "datanode",
-		Usage:    "store data",
+		Usage:    "send rpc request to data node",
 		Version:  "0.0.1",
 		Commands: local,
 	}
@@ -38,11 +38,11 @@ func main() {
 
 var dnPut = &cli.Command{
 	Name:  "dnput",
-	Usage: "Write data to data node",
+	Usage: "Write data to data node eg. go run main.go dnput --addr 127.0.0.1:9010 --file ./main.go",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "set server listen",
+			Name:  "addr",
+			Usage: "set server addr",
 			Value: "127.0.0.1:9010",
 		},
 		&cli.StringFlag{
@@ -56,7 +56,7 @@ var dnPut = &cli.Command{
 			log.Errorf("you must enter a file path")
 			return xerrors.Errorf("you must enter a file path")
 		}
-		conn, err := grpc.Dial(c.String("listen"), grpc.WithInsecure())
+		conn, err := grpc.Dial(c.String("addr"), grpc.WithInsecure())
 		if err != nil {
 			conn.Close()
 			log.Errorf("did not connect: %v", err)
@@ -70,7 +70,7 @@ var dnPut = &cli.Command{
 		fmt.Println("keyCode:", keyCode)
 		_, err = client.Put(context.TODO(), &proto.AddRequest{Key: keyCode, DataBlock: block.RawData()})
 		if err != nil {
-			log.Errorf("%s,keyCode:%s,kvdb put :%v", c.String("listen"), keyCode, err)
+			log.Errorf("%s,keyCode:%s,kvdb put :%v", c.String("addr"), keyCode, err)
 		}
 		return err
 	},
@@ -78,11 +78,11 @@ var dnPut = &cli.Command{
 
 var dnGet = &cli.Command{
 	Name:  "dnget",
-	Usage: "get data to data node",
+	Usage: "get data to data node eg. go run main.go dnget --addr 127.0.0.1:9010 --key 8acdc995f4b9856f7e2565e9d61ae4e7e342027dd8c6ab41a27742daf672822a",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "set server listen",
+			Name:  "addr",
+			Usage: "set server addr",
 			Value: "127.0.0.1:9010",
 		},
 		&cli.StringFlag{
@@ -96,7 +96,7 @@ var dnGet = &cli.Command{
 			log.Errorf("you must enter a key")
 			return xerrors.Errorf("you must enter a key")
 		}
-		conn, err := grpc.Dial(c.String("listen"), grpc.WithInsecure())
+		conn, err := grpc.Dial(c.String("addr"), grpc.WithInsecure())
 		if err != nil {
 			conn.Close()
 			log.Errorf("did not connect: %v", err)
@@ -106,7 +106,7 @@ var dnGet = &cli.Command{
 		client := proto.NewDataNodeClient(conn)
 		res, err := client.Get(context.TODO(), &proto.GetRequest{Key: c.String("key")})
 		if err != nil {
-			log.Errorf("%s,keyCode:%s,kvdb get :%v", c.String("listen"), c.String("key"), err)
+			log.Errorf("%s,keyCode:%s,kvdb get :%v", c.String("addr"), c.String("key"), err)
 			return err
 		}
 		fmt.Println(string(res.DataBlock))
@@ -116,11 +116,11 @@ var dnGet = &cli.Command{
 
 var dnSize = &cli.Command{
 	Name:  "dnsize",
-	Usage: "get data size to data node",
+	Usage: "get data size to data node eg. go run main.go dnsize --addr 127.0.0.1:9010 --key 8acdc995f4b9856f7e2565e9d61ae4e7e342027dd8c6ab41a27742daf672822a",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "set server listen",
+			Name:  "addr",
+			Usage: "set server addr",
 			Value: "127.0.0.1:9010",
 		},
 		&cli.StringFlag{
@@ -134,7 +134,7 @@ var dnSize = &cli.Command{
 			log.Errorf("you must enter a key")
 			return xerrors.Errorf("you must enter a key")
 		}
-		conn, err := grpc.Dial(c.String("listen"), grpc.WithInsecure())
+		conn, err := grpc.Dial(c.String("addr"), grpc.WithInsecure())
 		if err != nil {
 			conn.Close()
 			log.Errorf("did not connect: %v", err)
@@ -144,7 +144,7 @@ var dnSize = &cli.Command{
 		client := proto.NewDataNodeClient(conn)
 		res, err := client.Size(context.TODO(), &proto.SizeRequest{Key: c.String("key")})
 		if err != nil {
-			log.Errorf("%s,keyCode:%s,kvdb size :%v", c.String("listen"), c.String("key"), err)
+			log.Errorf("%s,keyCode:%s,kvdb size :%v", c.String("addr"), c.String("key"), err)
 			return err
 		}
 		fmt.Println("size:", res.Size)
@@ -154,11 +154,11 @@ var dnSize = &cli.Command{
 
 var dnDelete = &cli.Command{
 	Name:  "dndelete",
-	Usage: "remove data to data node",
+	Usage: "remove data to data node eg. go run main.go dndelete --addr 127.0.0.1:9010 --key 8acdc995f4b9856f7e2565e9d61ae4e7e342027dd8c6ab41a27742daf672822a",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "listen",
-			Usage: "set server listen",
+			Name:  "addr",
+			Usage: "set server addr",
 			Value: "127.0.0.1:9010",
 		},
 		&cli.StringFlag{
@@ -172,7 +172,7 @@ var dnDelete = &cli.Command{
 			log.Errorf("you must enter a key")
 			return xerrors.Errorf("you must enter a key")
 		}
-		conn, err := grpc.Dial(c.String("listen"), grpc.WithInsecure())
+		conn, err := grpc.Dial(c.String("addr"), grpc.WithInsecure())
 		if err != nil {
 			conn.Close()
 			log.Errorf("did not connect: %v", err)
@@ -182,7 +182,7 @@ var dnDelete = &cli.Command{
 		client := proto.NewDataNodeClient(conn)
 		res, err := client.Delete(context.TODO(), &proto.DeleteRequest{Key: c.String("key")})
 		if err != nil {
-			log.Errorf("%s,keyCode:%s,kvdb delete :%v", c.String("listen"), c.String("key"), err)
+			log.Errorf("%s,keyCode:%s,kvdb delete :%v", c.String("addr"), c.String("key"), err)
 			return err
 		}
 		fmt.Println(res.Message)
