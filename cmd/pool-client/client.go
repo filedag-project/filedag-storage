@@ -77,7 +77,7 @@ var addBlock = &cli.Command{
 }
 var getBlock = &cli.Command{
 	Name:  "getblock",
-	Usage: "get a block from dagpool eg.dagpool-client getblock --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --cid='QmZikYuqANVBRWcbb1zHAHEXzX6CsWbPz2mqRCoy92Jcge' ",
+	Usage: "get a block from dagpool eg.dagpool-client getblock --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --cid=QmZikYuqANVBRWcbb1zHAHEXzX6CsWbPz2mqRCoy92Jcge ",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "addr",
@@ -141,7 +141,7 @@ var getBlock = &cli.Command{
 }
 var removeBlock = &cli.Command{
 	Name:  "removeblock",
-	Usage: "remove a block from dagpool eg.dagpool-client removeblock --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --cid='QmZikYuqANVBRWcbb1zHAHEXzX6CsWbPz2mqRCoy92Jcge' ",
+	Usage: "remove a block from dagpool eg.dagpool-client removeblock --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --cid=QmZikYuqANVBRWcbb1zHAHEXzX6CsWbPz2mqRCoy92Jcge",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "addr",
