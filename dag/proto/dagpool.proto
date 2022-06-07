@@ -46,8 +46,7 @@ message RemoveReply {
   string message = 1;
 }
 message AddUserReq {
-  string User = 1;
-  string Pass = 2;
+  PoolUser user = 1;
   string Username = 3;
   string Password = 4;
   string Policy = 5;
@@ -75,9 +74,8 @@ message QueryUserReply {
   string Policy = 3;
   uint64 Capacity = 4;
 }
-message UpdateUserReq {
-  string User = 1;
-  string Pass = 2;
+message UpdateUserReq{
+  PoolUser user = 1;
   string NewUsername = 3;
   string NewPassword = 4;
   string Policy = 5;
