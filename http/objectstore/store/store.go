@@ -181,6 +181,26 @@ func (s *StorageSys) UnPinObject(ctx context.Context, user, bucket, object strin
 	return nil
 }
 
+func (s *StorageSys) IsPinObject(ctx context.Context, user, bucket, object string) (bool, error) {
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
+	meta := ObjectInfo{}
+	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	if err != nil {
+		return false, err
+	}
+	cid, err := cid.Decode(meta.ETag)
+	if err != nil {
+		return false, err
+	}
+	is, err := s.Pin.IsPin(ctx, cid)
+	if err != nil {
+		return false, err
+	}
+	return is, nil
+}
+
 //MkBucket store object
 func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
 	return nil

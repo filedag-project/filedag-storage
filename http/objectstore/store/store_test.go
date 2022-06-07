@@ -15,7 +15,7 @@ func TestStorageSys_Object(t *testing.T) {
 	poolCli, done := utils.NewMockPoolClient(&testing.T{})
 	defer done()
 	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	pinCli, done := utils.NewMockPinPoolClient(&testing.T{})
+	pinCli, done := utils.NewMockPinClient(&testing.T{})
 	defer done()
 	s := NewStorageSys(poolCli, pinCli, db)
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))

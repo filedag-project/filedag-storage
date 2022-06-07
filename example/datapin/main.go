@@ -40,7 +40,7 @@ func main() {
 			return
 		}
 	default:
-		fmt.Println("expected 'adduser' subcommands")
+		fmt.Println("expected 'pin/unpin' subcommands")
 		os.Exit(1)
 	}
 }
@@ -55,7 +55,7 @@ func pin(addr, accessKey, secretKey, url, bucket, object string) error {
 			"USAGE ERROR: go run -tags example main.go pin/unpin --addr= --access-key= --secret-key= --bucket= --object=")
 		return xerrors.Errorf("check your input")
 	}
-	err := exampleutils.SendSignedV4Request(http.MethodPost, "http://"+addr+url+"/"+bucket+"/"+object,
+	err := exampleutils.SendSignedV4Request(http.MethodPost, "http://"+addr+url+"?bucket="+bucket+"&object="+object,
 		0, nil, "s3", accessKey, secretKey)
 	if err != nil {
 		return err
