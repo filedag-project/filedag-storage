@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -21,13 +22,13 @@ import (
 func main() {
 	var leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath string
 	f := flag.NewFlagSet("run", flag.ExitOnError)
-	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/pool.db", "set db path default:`/tmp/leveldb2/pool.db`")
+	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/", "set db path default:`/tmp/leveldb2/pool.db`")
 	f.StringVar(&listenAddr, "listen-addr", "localhost:50001", "set listen addr default:`localhost:50001`")
 	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
 	f.StringVar(&user, "pool-user", "pool", "set root user default:pool")
 	f.StringVar(&pass, "pool-pass", "pool123", "set root user pass default:pool123")
-	f.StringVar(&datastorePath, "datastore-path", "/tmp/leveldb2/datastore", "set datastore path")
-
+	datastorePath = path.Join("datastore")
+	leveldbPath = path.Join("leveldb")
 	switch os.Args[1] {
 	case "run":
 		f.Parse(os.Args[2:])
