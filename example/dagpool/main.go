@@ -27,8 +27,8 @@ func main() {
 	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
 	f.StringVar(&user, "pool-user", "pool", "set root user default:pool")
 	f.StringVar(&pass, "pool-pass", "pool123", "set root user pass default:pool123")
-	datastorePath = path.Join("datastore")
-	leveldbPath = path.Join("leveldb")
+	datastorePath = path.Join(leveldbPath, "datastore")
+	leveldbPath = path.Join(leveldbPath, "leveldb")
 	switch os.Args[1] {
 	case "daemon":
 		f.Parse(os.Args[2:])
@@ -55,9 +55,9 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath stri
 	// new server
 	s := grpc.NewServer()
 	var nodeConfigs []config.NodeConfig
-	for _, path := range strings.Split(nodeConfigPath, ",") {
+	for _, p := range strings.Split(nodeConfigPath, ",") {
 		var nc config.NodeConfig
-		file, err := ioutil.ReadFile(path)
+		file, err := ioutil.ReadFile(p)
 		if err != nil {
 			fmt.Printf("ReadFile err:%v\n", err)
 			return
