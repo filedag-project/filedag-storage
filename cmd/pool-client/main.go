@@ -9,16 +9,14 @@ import (
 func main() {
 	logging.SetLogLevel("*", "INFO")
 	local := []*cli.Command{
-		addUserCmd,
-		getUserCmd,
-		delUserCmd,
-		changePassCmd,
-		setStatusCmd,
+		addBlock,
+		getBlock,
+		removeBlock,
 	}
 	app := &cli.App{
-		Name:                 "iam-tool",
-		Usage:                "test some interface",
-		Version:              "0.0.1",
+		Name:                 "dagpool-client",
+		Usage:                "sent rpc request to dagpool",
+		Version:              "0.0.4",
 		EnableBashCompletion: true,
 		Commands:             local,
 	}
