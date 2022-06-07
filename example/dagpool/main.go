@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
@@ -76,7 +76,7 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath stri
 		DefaultPass:   pass,
 		DatastorePath: datastorePath,
 	}
-	service, err := pool.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(cfg)
 	if err != nil {
 		fmt.Printf("NewDagPoolService err:%v\n", err)
 		return

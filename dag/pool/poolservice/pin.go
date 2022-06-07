@@ -1,4 +1,4 @@
-package pool
+package poolservice
 
 import (
 	"context"
@@ -221,7 +221,7 @@ const defaultConcurrentFetch = 32
 // WalkOption is a setter for walkOptions
 type WalkOption func(*walkOptions)
 
-// WalkGraph will walk the dag in order (depth first) starting at the given root.
+// Walk WalkGraph will walk the dag in order (depth first) starting at the given root.
 func (d *Pool) Walk(ctx context.Context, c cid.Cid, visit func(cid.Cid) bool, options ...WalkOption) error {
 	visitDepth := func(c cid.Cid, depth int) bool {
 		return visit(c)
