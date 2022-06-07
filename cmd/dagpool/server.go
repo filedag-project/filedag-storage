@@ -123,8 +123,6 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 	}
 	cfg.DefaultPass = cctx.String("password")
 	nodeConfigPath := cctx.String("config")
-	datastorePath := path.Join(datadir, "datastore")
-	cfg.DatastorePath = datastorePath
 	var nodeConfigs []config.NodeConfig
 	for _, path := range strings.Split(nodeConfigPath, ",") {
 		var nc config.NodeConfig

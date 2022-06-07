@@ -20,24 +20,23 @@ import (
 
 //go run -tags example main.go daemon --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --pool-user=pool --pool-pass=pool123
 func main() {
-	var leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath string
+	var leveldbPath, listenAddr, nodeConfigPath, user, pass string
 	f := flag.NewFlagSet("daemon", flag.ExitOnError)
 	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/", "set db path default:`/tmp/leveldb2/pool.db`")
 	f.StringVar(&listenAddr, "listen-addr", "localhost:50001", "set listen addr default:`localhost:50001`")
 	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
 	f.StringVar(&user, "pool-user", "pool", "set root user default:pool")
 	f.StringVar(&pass, "pool-pass", "pool123", "set root user pass default:pool123")
-	datastorePath = path.Join(leveldbPath, "datastore")
 	leveldbPath = path.Join(leveldbPath, "leveldb")
 	switch os.Args[1] {
 	case "daemon":
 		f.Parse(os.Args[2:])
-		if leveldbPath == "" || listenAddr == "" || nodeConfigPath == "" || user == "" || pass == "" || datastorePath == "" {
-			fmt.Printf("leveldbPath:%v, listenAddr:%v, nodeConfigPath:%v,user:%v,pass:%v,datastorePath:%v", leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath)
+		if leveldbPath == "" || listenAddr == "" || nodeConfigPath == "" || user == "" || pass == "" {
+			fmt.Printf("leveldbPath:%v, listenAddr:%v, nodeConfigPath:%v,user:%v,pass:%v", leveldbPath, listenAddr, nodeConfigPath, user, pass)
 			fmt.Println("please check your input\n " +
 				"USAGE ERROR: go run -tags example main.go daemon --pool-db-path= --listen-addr= --node-config-path= --pool-user= --pool-pass= --datastore-path=")
 		} else {
-			run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath)
+			run(leveldbPath, listenAddr, nodeConfigPath, user, pass)
 		}
 	default:
 		fmt.Println("expected 'daemon' subcommands")
@@ -46,7 +45,7 @@ func main() {
 
 }
 
-func run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath string) {
+func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 	// listen port
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
@@ -74,7 +73,6 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass, datastorePath stri
 		LeveldbPath:   leveldbPath,
 		DefaultUser:   user,
 		DefaultPass:   pass,
-		DatastorePath: datastorePath,
 	}
 	service, err := poolservice.NewDagPoolService(cfg)
 	if err != nil {

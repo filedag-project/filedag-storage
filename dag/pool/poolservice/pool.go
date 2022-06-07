@@ -6,10 +6,8 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/blockpinner"
 	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
-	leveldbds "github.com/filedag-project/filedag-storage/dag/pool/leveldb-datastore"
 	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
 	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -27,11 +25,9 @@ var _ pool.DagPool = &dagPoolService{}
 
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
-	dagNodes map[string]*node.DagNode
-	iam      dagpooluser.IdentityUserSys
-	refer    referencecount.IdentityRefe
-	//Pining     datapin.PinService
-	pinner     *blockpinner.Pinner
+	dagNodes   map[string]*node.DagNode
+	iam        dagpooluser.IdentityUserSys
+	refer      referencecount.IdentityRefe
 	cidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
@@ -52,11 +48,6 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	if err != nil {
 		return nil, err
 	}
-	ldstore, err := leveldbds.NewDatastore(cfg.DatastorePath, nil)
-	if err != nil {
-		panic(err)
-	}
-	pn, _ := blockpinner.New(context.TODO(), ldstore)
 	r, err := referencecount.NewIdentityRefe(db)
 	dn := make(map[string]*node.DagNode)
 	var nrs = dnm.NewRecordSys(db)
@@ -77,7 +68,6 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		dagNodes:   dn,
 		iam:        i,
 		refer:      r,
-		pinner:     pn,
 		cidBuilder: cidBuilder,
 		NRSys:      nrs,
 		db:         db,
