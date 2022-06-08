@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
@@ -93,6 +94,9 @@ func startDagPoolServer(cfg config.PoolConfig) {
 		if err := s.Serve(lis); err != nil {
 			log.Errorf("failed to serve: %v", err)
 		}
+	}()
+	go func() {
+		service.Gc(context.TODO())
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server.

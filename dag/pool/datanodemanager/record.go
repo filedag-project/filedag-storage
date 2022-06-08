@@ -33,8 +33,8 @@ const dagPoolRecord = "dagPoolRecord/"
 
 var log = logging.Logger("data-node-manager")
 
-func NewRecordSys(db *uleveldb.ULevelDB) NodeRecordSys {
-	return NodeRecordSys{Db: db, RN: make(map[string]*DagNodeInfo)}
+func NewRecordSys(db *uleveldb.ULevelDB) *NodeRecordSys {
+	return &NodeRecordSys{Db: db, RN: make(map[string]*DagNodeInfo)}
 }
 func (r *NodeRecordSys) Add(cid string, name string) error {
 	return r.Db.Put(dagPoolRecord+cid, name)
