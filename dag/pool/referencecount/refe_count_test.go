@@ -9,7 +9,7 @@ import (
 
 func TestIdentityRefer(t *testing.T) {
 	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	identityRefe := IdentityRefe{DB: db}
+	identityRefe := ReferSys{DB: db}
 	cid := "123456789"
 	testCases := []struct {
 		isRemove bool
@@ -32,23 +32,23 @@ func TestIdentityRefer(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		err := identityRefe.AddReference(testCase.cid)
+		err := identityRefe.AddReference(testCase.cid, true)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	count, err := identityRefe.QueryReference(cid)
+	count, err := identityRefe.QueryReference(cid, true)
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(count)
 	for _, testCase := range testCases {
-		err = identityRefe.RemoveReference(testCase.cid)
+		err = identityRefe.RemoveReference(testCase.cid, true)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-	err = identityRefe.RemoveReference(cid)
+	err = identityRefe.RemoveReference(cid, true)
 	if err != nil {
 		fmt.Println(err)
 	}

@@ -17,6 +17,7 @@ import (
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
+	"sync"
 )
 
 var log = logging.Logger("dag-pool")
@@ -27,14 +28,19 @@ var _ pool.DagPool = &dagPoolService{}
 type dagPoolService struct {
 	dagNodes   map[string]*node.DagNode
 	iam        dagpooluser.IdentityUserSys
-	refer      referencecount.IdentityRefe
+	gcl        sync.Mutex
+	refer      *referencecount.ReferSys
 	cidBuilder cid.Builder
-	nrSys      dnm.NodeRecordSys
+	nrSys      *dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
 }
 
 func (d *dagPoolService) NeedPin(username string) bool {
-	return true
+	//todo more check
+	if username != "dagpool" {
+		return true
+	}
+	return false
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -52,7 +58,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, err := referencecount.NewIdentityRefe(db)
+	r := referencecount.NewIdentityRefe(db)
 	dn := make(map[string]*node.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
@@ -83,28 +89,28 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, pin bool) 
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
 	}
+	d.gcl.Lock()
+	//defer d.gcl.Unlock()
 	err := d.refer.AddReference(block.Cid().String(), pin)
 	if err != nil {
+		d.gcl.Unlock()
 		return err
 	}
 	reference, err := d.refer.QueryReference(block.Cid().String(), pin)
 	if err != nil {
+		d.gcl.Unlock()
 		return err
 	}
 	if reference > 1 {
-		return nil
-	}
-	reference2, err := d.refer.QueryReference(block.Cid().String(), !pin)
-	if err != nil {
-		return err
-	}
-	if reference2 > 1 {
+		d.gcl.Unlock()
 		return nil
 	}
 	useNode, err := d.UseNode(ctx, block.Cid())
 	if err != nil {
+		d.gcl.Unlock()
 		return err
 	}
+	d.gcl.Unlock()
 	return useNode.Put(ctx, block)
 }
 
