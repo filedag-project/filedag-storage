@@ -5,28 +5,26 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/google/martian/log"
-	blocks "github.com/ipfs/go-block-format"
 	"google.golang.org/grpc"
-	"io/ioutil"
 	"os"
 )
 
-//go run main.go dnput --addr=127.0.0.1:9010 --file=./main.go
+//go run main.go dnput --addr=127.0.0.1:9010 --key=test --data="it's test content"
 
 func main() {
-	var addr, file string
+	var addr, key, data string
 	f := flag.NewFlagSet("dnput", flag.ExitOnError)
 	f.StringVar(&addr, "addr", "", "the addr of data node server eg.127.0.0.1:9010")
-	f.StringVar(&file, "file", "", "the file path that you want add")
+	f.StringVar(&key, "key", "", "the data key")
+	f.StringVar(&data, "data", "", "the data content")
 	switch os.Args[1] {
 	case "dnput":
 		f.Parse(os.Args[2:])
-		err := put(addr, file)
+		err := put(addr, key, data)
 		if err != nil {
 			fmt.Printf("put data err %v", err)
 			return
@@ -37,7 +35,7 @@ func main() {
 	}
 }
 
-func put(addr string, file string) error {
+func put(addr string, key, data string) error {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		conn.Close()
@@ -46,17 +44,11 @@ func put(addr string, file string) error {
 	}
 	defer conn.Close()
 	client := proto.NewDataNodeClient(conn)
-	bytes, err := ioutil.ReadFile(file)
-	block := blocks.NewBlock(bytes)
-	keyCode := sha256String(block.Cid().String())
-	fmt.Println("keyCode:", keyCode)
-	_, err = client.Put(context.TODO(), &proto.AddRequest{Key: keyCode, DataBlock: block.RawData()})
+	resp, err := client.Put(context.TODO(), &proto.AddRequest{Key: key, DataBlock: []byte(data)})
 	if err != nil {
-		log.Errorf("%s,keyCode:%s,kvdb put :%v", addr, keyCode, err)
+		log.Errorf("%s,keyCode:%s,kvdb put :%v", addr, key, err)
+		return err
 	}
+	fmt.Println(resp.Message)
 	return nil
-}
-
-func sha256String(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }

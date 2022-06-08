@@ -13,7 +13,7 @@ import (
 	"os"
 )
 
-//go run main.go dnsize --addr=127.0.0.1:9010 --key=5f519eb42bbfac7358812df89186ba8f07aad854383bbb29ef8c48914b62e59e
+//go run main.go dnsize --addr=127.0.0.1:9010 --key=test
 
 func main() {
 	var addr, key string
@@ -49,6 +49,5 @@ func size(addr string, key string) error {
 		return err
 	}
 	fmt.Println("size:", res.Size)
-	return nil
 	return nil
 }
