@@ -10,12 +10,12 @@ func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	err = d.refer.AddReference(c.String())
+	err = d.refer.AddReference(c.String(), false)
 	if err != nil {
 		return err
 	}
 	for _, link := range links {
-		err = d.refer.AddReference(link.Cid.String())
+		err = d.refer.AddReference(link.Cid.String(), false)
 		if err != nil {
 			return err
 		}
@@ -28,12 +28,12 @@ func (d *dagPoolService) UnPin(ctx context.Context, c cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	err = d.refer.RemoveReference(c.String())
+	err = d.refer.RemoveReference(c.String(), false)
 	if err != nil {
 		return err
 	}
 	for _, link := range links {
-		err = d.refer.RemoveReference(link.Cid.String())
+		err = d.refer.RemoveReference(link.Cid.String(), false)
 		if err != nil {
 			return err
 		}
