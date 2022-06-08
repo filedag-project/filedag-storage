@@ -42,7 +42,7 @@ func (i *IdentityRefe) QueryReference(cid string) (int, error) {
 }
 
 func (i *IdentityRefe) RemoveReference(cid string) error {
-	defer i.mu.RUnlock()
+	//defer i.mu.RUnlock()
 	cidCode := sha256String(cid)
 	var count int
 	i.mu.Lock()
