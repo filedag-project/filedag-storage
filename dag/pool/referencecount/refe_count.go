@@ -16,13 +16,13 @@ type IdentityRefe struct {
 }
 
 const dagPoolRefeCache = "dagPoolRefeCache/"
-const dagPoolRefeStore = "dagPoolRefeStore/"
+const dagPoolRefePin = "dagPoolRefePin/"
 
 //AddReference add refer for block
-func (i *IdentityRefe) AddReference(cid string, isCache bool) error {
+func (i *IdentityRefe) AddReference(cid string, isPin bool) error {
 	cidCode := sha256String(cid)
-	var count int
-	if isCache {
+	var count uint64
+	if !isPin {
 		i.cacheMu.Lock()
 		err := i.DB.Get(dagPoolRefeCache+cidCode, &count)
 		count++
@@ -33,9 +33,9 @@ func (i *IdentityRefe) AddReference(cid string, isCache bool) error {
 		}
 	} else {
 		i.storeMu.Lock()
-		err := i.DB.Get(dagPoolRefeStore+cidCode, &count)
+		err := i.DB.Get(dagPoolRefePin+cidCode, &count)
 		count++
-		err = i.DB.Put(dagPoolRefeStore+cidCode, count)
+		err = i.DB.Put(dagPoolRefePin+cidCode, count)
 		i.storeMu.Unlock()
 		if err != nil {
 			return err
@@ -45,10 +45,10 @@ func (i *IdentityRefe) AddReference(cid string, isCache bool) error {
 }
 
 //QueryReference query block refer
-func (i *IdentityRefe) QueryReference(cid string, isCache bool) (int, error) {
+func (i *IdentityRefe) QueryReference(cid string, isPin bool) (uint64, error) {
 	cidCode := sha256String(cid)
-	var count int
-	if isCache {
+	var count uint64
+	if !isPin {
 		i.cacheMu.RLock()
 		err := i.DB.Get(dagPoolRefeCache+cidCode, &count)
 		i.cacheMu.RUnlock()
@@ -57,7 +57,7 @@ func (i *IdentityRefe) QueryReference(cid string, isCache bool) (int, error) {
 		}
 	} else {
 		i.storeMu.RLock()
-		err := i.DB.Get(dagPoolRefeStore+cidCode, &count)
+		err := i.DB.Get(dagPoolRefePin+cidCode, &count)
 		i.storeMu.RUnlock()
 		if err != nil {
 			return 0, err
@@ -67,10 +67,10 @@ func (i *IdentityRefe) QueryReference(cid string, isCache bool) (int, error) {
 }
 
 //RemoveReference reduce refer
-func (i *IdentityRefe) RemoveReference(cid string, isCache bool) error {
+func (i *IdentityRefe) RemoveReference(cid string, isPin bool) error {
 	cidCode := sha256String(cid)
 	var count int
-	if isCache {
+	if !isPin {
 		i.cacheMu.Lock()
 		err := i.DB.Get(dagPoolRefeCache+cidCode, &count)
 		if count == 1 {
@@ -87,12 +87,12 @@ func (i *IdentityRefe) RemoveReference(cid string, isCache bool) error {
 		}
 	} else {
 		i.storeMu.Lock()
-		err := i.DB.Get(dagPoolRefeStore+cidCode, &count)
+		err := i.DB.Get(dagPoolRefePin+cidCode, &count)
 		if count == 1 {
-			err = i.DB.Delete(dagPoolRefeStore + cidCode)
+			err = i.DB.Delete(dagPoolRefePin + cidCode)
 		} else if count > 1 {
 			count--
-			err = i.DB.Put(dagPoolRefeStore+cidCode, count)
+			err = i.DB.Put(dagPoolRefePin+cidCode, count)
 		} else {
 			return errors.New("cid does not exist")
 		}

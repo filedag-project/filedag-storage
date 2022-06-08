@@ -29,8 +29,12 @@ type dagPoolService struct {
 	iam        dagpooluser.IdentityUserSys
 	refer      referencecount.IdentityRefe
 	cidBuilder cid.Builder
-	NRSys      dnm.NodeRecordSys
+	nrSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
+}
+
+func (d *dagPoolService) NeedPin(username string) bool {
+	return true
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
@@ -69,21 +73,32 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		iam:        i,
 		refer:      r,
 		cidBuilder: cidBuilder,
-		NRSys:      nrs,
+		nrSys:      nrs,
 		db:         db,
 	}, nil
 }
 
 // Add adds a node to the dagPoolService, storing the block in the BlockService
-func (d *dagPoolService) Add(ctx context.Context, block blocks.Block) error {
+func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, pin bool) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
 	}
-	reference, err := d.refer.QueryReference(block.Cid().String())
+	err := d.refer.AddReference(block.Cid().String(), pin)
+	if err != nil {
+		return err
+	}
+	reference, err := d.refer.QueryReference(block.Cid().String(), pin)
 	if err != nil {
 		return err
 	}
 	if reference > 1 {
+		return nil
+	}
+	reference2, err := d.refer.QueryReference(block.Cid().String(), !pin)
+	if err != nil {
+		return err
+	}
+	if reference2 > 1 {
 		return nil
 	}
 	useNode, err := d.UseNode(ctx, block.Cid())
@@ -94,16 +109,13 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block) error {
 }
 
 // Get retrieves a node from the dagPoolService, fetching the block in the BlockService
-func (d *dagPoolService) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, pin bool) (blocks.Block, error) {
 	if d == nil {
 		return nil, fmt.Errorf("Pool is nil")
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	reference, err := d.refer.QueryReference(c.String())
-	if err != nil {
-		return nil, err
-	}
+	reference, err := d.refer.QueryReference(c.String(), pin)
 	if reference <= 0 {
 		return nil, fmt.Errorf("block does not exist : %v", err)
 	}
@@ -122,21 +134,28 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid) (blocks.Block, erro
 	return b, nil
 }
 
-func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid) error {
+//Remove remove block from dagpool
+func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, pin bool) error {
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
 	}
-	reference, err := d.refer.QueryReference(c.String())
+	reference, err := d.refer.QueryReference(c.String(), pin)
 	if err != nil {
 		return err
 	}
-	if reference == 0 {
-		getNode, err := d.GetNode(ctx, c)
+	if reference > 0 {
+		err := d.refer.RemoveReference(c.String(), pin)
 		if err != nil {
 			return err
 		}
-		go getNode.DeleteBlock(ctx, c)
 	}
+	//if reference == 0 {
+	//	getNode, err := d.GetNode(ctx, c)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	go getNode.DeleteBlock(ctx, c)
+	//}
 	return nil
 }
 
@@ -193,11 +212,28 @@ func (d *dagPoolService) Close() error {
 }
 
 func (d *dagPoolService) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Link, error) {
-	get, err := d.Get(ctx, ci)
+	if d == nil {
+		return nil, fmt.Errorf("Pool is nil")
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	reference, err := d.refer.QueryReference(ci.String(), true)
+	reference2, err := d.refer.QueryReference(ci.String(), true)
+	if reference <= 0 && reference2 <= 0 {
+		return nil, fmt.Errorf("block does not exist : %v", err)
+	}
+	getNode, err := d.GetNode(ctx, ci)
 	if err != nil {
 		return nil, err
 	}
-	decodeNode, err := ipldlegacy.DecodeNode(ctx, get)
+	b, err := getNode.Get(ctx, ci)
+	if err != nil {
+		if format.IsNotFound(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to get block for %s: %v", ci, err)
+	}
+	decodeNode, err := ipldlegacy.DecodeNode(ctx, b)
 	if err != nil {
 		return nil, err
 	}

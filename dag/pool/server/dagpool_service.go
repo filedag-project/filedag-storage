@@ -28,7 +28,7 @@ func (s *DagPoolService) Add(ctx context.Context, in *proto.AddReq) (*proto.AddR
 	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.AddReply{Cid: ""}, userpolicy.AccessDenied
 	}
-	err := s.DagPool.Add(ctx, data)
+	err := s.DagPool.Add(ctx, data, s.DagPool.NeedPin(in.User.Username))
 	if err != nil {
 		return &proto.AddReply{Cid: ""}, err
 	}
@@ -42,7 +42,7 @@ func (s *DagPoolService) Get(ctx context.Context, in *proto.GetReq) (*proto.GetR
 	if err != nil {
 		return &proto.GetReply{Block: nil}, err
 	}
-	get, err := s.DagPool.Get(ctx, cid)
+	get, err := s.DagPool.Get(ctx, cid, s.DagPool.NeedPin(in.User.Username))
 	if err != nil {
 		return &proto.GetReply{Block: nil}, err
 	}
@@ -56,7 +56,7 @@ func (s *DagPoolService) Remove(ctx context.Context, in *proto.RemoveReq) (*prot
 	if err != nil {
 		return &proto.RemoveReply{Message: ""}, err
 	}
-	err = s.DagPool.Remove(ctx, c)
+	err = s.DagPool.Remove(ctx, c, s.DagPool.NeedPin(in.User.Username))
 	if err != nil {
 		return &proto.RemoveReply{Message: ""}, err
 	}

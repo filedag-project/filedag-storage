@@ -12,9 +12,9 @@ import (
 
 //DagPool define dagpool interface
 type DagPool interface {
-	Add(ctx context.Context, block blocks.Block) error
-	Get(ctx context.Context, c cid.Cid) (blocks.Block, error)
-	Remove(ctx context.Context, c cid.Cid) error
+	Add(ctx context.Context, block blocks.Block, pin bool) error
+	Get(ctx context.Context, c cid.Cid, pin bool) (blocks.Block, error)
+	Remove(ctx context.Context, c cid.Cid, pin bool) error
 	DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error
 	DataRepairDisk(ctx context.Context, ip, port string) error
 	CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool
@@ -24,8 +24,8 @@ type DagPool interface {
 	QueryUser(username string) (dagpooluser.DagPoolUser, error)
 	UpdateUser(u dagpooluser.DagPoolUser) error
 	Close() error
-
 	UnPin(context.Context, cid.Cid) error
 	Pin(context.Context, cid.Cid) error
+	NeedPin(username string) bool
 	//IsPinned(ctx context.Context, cid cid.Cid) bool
 }

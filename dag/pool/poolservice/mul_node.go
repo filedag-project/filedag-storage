@@ -9,7 +9,7 @@ import (
 // GetNode get the DagNode
 func (d *dagPoolService) GetNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
 	//todo mul node
-	get, err := d.NRSys.Get(c.String())
+	get, err := d.nrSys.Get(c.String())
 	if err != nil {
 		return nil, err
 	}
@@ -19,8 +19,8 @@ func (d *dagPoolService) GetNode(ctx context.Context, c cid.Cid) (*node.DagNode,
 // UseNode get the DagNode
 func (d *dagPoolService) UseNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
 	//todo mul node
-	dn := d.NRSys.GetCanUseNode()
-	err := d.NRSys.Add(c.String(), dn)
+	dn := d.nrSys.GetCanUseNode()
+	err := d.nrSys.Add(c.String(), dn)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func (d *dagPoolService) UseNode(ctx context.Context, c cid.Cid) (*node.DagNode,
 // GetNodeUseIP get the DagNode
 func (d *dagPoolService) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
 	//todo mul node
-	get, err := d.NRSys.GetNameUseIp(ip)
+	get, err := d.nrSys.GetNameUseIp(ip)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (d *dagPoolService) GetNodeUseIP(ctx context.Context, ip string) (*node.Dag
 //	//
 //	m := make(map[*node.DagNode][]cid.Cid)
 //	for _, c := range cids {
-//		get, err := d.NRSys.Get(c.String())
+//		get, err := d.nrSys.Get(c.String())
 //		if err != nil {
 //			return nil
 //		}
@@ -56,8 +56,8 @@ func (d *dagPoolService) GetNodeUseIP(ctx context.Context, ip string) (*node.Dag
 //// UseNodes get the DagNode
 //func (d *DagPoolService) UseNodes(ctx context.Context, c []cid.Cid) *node.DagNode {
 //	//todo mul node
-//	dn := d.NRSys.GetCanUseNode()
-//	err := d.NRSys.Add(c[0].String(), dn)
+//	dn := d.nrSys.GetCanUseNode()
+//	err := d.nrSys.Add(c[0].String(), dn)
 //	if err != nil {
 //		return nil
 //	}
