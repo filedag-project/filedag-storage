@@ -18,11 +18,11 @@ const dagPoolRefe = "dagPoolRefe/"
 func (i *IdentityRefe) AddReference(cid string) error {
 	cidCode := sha256String(cid)
 	var count int
-	i.mu.RLock()
+	i.mu.Lock()
 	err := i.DB.Get(dagPoolRefe+cidCode, &count)
 	count++
 	err = i.DB.Put(dagPoolRefe+cidCode, count)
-	i.mu.RUnlock()
+	i.mu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,9 @@ func (i *IdentityRefe) AddReference(cid string) error {
 func (i *IdentityRefe) QueryReference(cid string) (int, error) {
 	cidCode := sha256String(cid)
 	var count int
+	i.mu.RLock()
 	err := i.DB.Get(dagPoolRefe+cidCode, &count)
+	i.mu.RUnlock()
 	if err != nil {
 		return 0, err
 	}
@@ -40,10 +42,10 @@ func (i *IdentityRefe) QueryReference(cid string) (int, error) {
 }
 
 func (i *IdentityRefe) RemoveReference(cid string) error {
-	defer i.mu.RUnlock()
+	//defer i.mu.RUnlock()
 	cidCode := sha256String(cid)
 	var count int
-	i.mu.RLock()
+	i.mu.Lock()
 	err := i.DB.Get(dagPoolRefe+cidCode, &count)
 	if count == 1 {
 		err = i.DB.Delete(dagPoolRefe + cidCode)
@@ -53,6 +55,7 @@ func (i *IdentityRefe) RemoveReference(cid string) error {
 	} else {
 		return errors.New("cid does not exist")
 	}
+	i.mu.Unlock()
 	if err != nil {
 		return err
 	}
