@@ -27,6 +27,15 @@ func (d *dagPoolService) Gc(ctx context.Context) error {
 			} else {
 				d.gcl.Unlock()
 			}
+		}
+	}
+}
+func (d *dagPoolService) UnPinGc(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Warnf("ctx done")
+			return nil
 		case <-time.After(gcUnPinTime):
 			d.gcl.Lock()
 			//time.Sleep(time.Second * 5)
@@ -34,18 +43,19 @@ func (d *dagPoolService) Gc(ctx context.Context) error {
 				d.gcl.Unlock()
 				log.Error(err)
 			} else {
-
+				d.gcl.Unlock()
 			}
 		}
 	}
 }
 func (d *dagPoolService) RunUnpinGC(ctx context.Context) error {
+	log.Warnf("RunUnpinGC")
 	s, err := d.refer.QueryAllStoreNonRefer()
 	if err != nil {
 		return err
 	}
 	if len(s) == 0 {
-		log.Warnf("no need for gc")
+		log.Warnf("no need for unpin gc")
 	}
 	for _, v := range s {
 		c, _ := cid.Decode(strings.Split(v, "/")[1])
