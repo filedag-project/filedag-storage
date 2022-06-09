@@ -131,6 +131,23 @@ func (i *ReferSys) QueryAllCacheReference() (map[string]int64, error) {
 	return m, nil
 }
 
+//QueryAllStoreNonRefer query all store refer which count 0
+func (i *ReferSys) QueryAllStoreNonRefer() ([]string, error) {
+	i.storeMu.RLock()
+	defer i.storeMu.RUnlock()
+	all, err := i.DB.ReadAll(dagPoolReferPin)
+	if err != nil {
+		return nil, err
+	}
+	var m []string
+	for k, v := range all {
+		if v == "0" {
+			m = append(m, k)
+		}
+	}
+	return m, nil
+}
+
 //RemoveRecord remove record in db
 func (i *ReferSys) RemoveRecord(c string) error {
 	i.cacheMu.Lock()

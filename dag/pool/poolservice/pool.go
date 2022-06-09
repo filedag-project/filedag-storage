@@ -212,10 +212,8 @@ func (d *dagPoolService) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Li
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	reference, err := d.refer.QueryReference(ci.String(), true)
-	reference2, err := d.refer.QueryReference(ci.String(), true)
-	if reference <= 0 && reference2 <= 0 {
-		return nil, fmt.Errorf("block does not exist : %v", err)
+	if !d.refer.HasReference(ci.String()) {
+		return nil, fmt.Errorf("block : %v does not exist ", ci.String())
 	}
 	getNode, err := d.GetNode(ctx, ci)
 	if err != nil {
