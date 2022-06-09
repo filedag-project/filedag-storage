@@ -65,6 +65,16 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 	}, nil
 }
 
+func (s *server) DeleteMany(ctx context.Context, in *proto.DeleteManyRequest) (*proto.DeleteManyResponse, error) {
+	for _, key := range in.Keys {
+		err := s.kvdb.Delete(key)
+		if err != nil {
+			return &proto.DeleteManyResponse{Message: "failed"}, err
+		}
+	}
+	return &proto.DeleteManyResponse{Message: "success"}, nil
+}
+
 //func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 //	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 //}

@@ -9,6 +9,7 @@ service DataNode {
   rpc Get (GetRequest) returns (GetResponse) {}
   rpc Delete (DeleteRequest) returns (DeleteResponse) {}
   rpc Size (SizeRequest) returns (SizeResponse) {}
+  rpc DeleteMany (DeleteManyRequest) returns (DeleteManyResponse) {}
 }
 
 message AddRequest {
@@ -42,4 +43,12 @@ message SizeRequest {
 
 message SizeResponse {
   int64 size = 1;
+}
+
+message DeleteManyRequest {
+  repeated string keys = 1;
+}
+
+message DeleteManyResponse {
+  string message = 1;
 }
