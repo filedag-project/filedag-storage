@@ -56,7 +56,7 @@ func (i *ReferSys) QueryReference(cid string, isPin bool) (uint64, error) {
 			return 0, err
 		}
 		if ti != 0 {
-			return 2, nil
+			return 1, nil
 		}
 		return 0, errors.New("no record")
 
