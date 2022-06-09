@@ -37,7 +37,7 @@ func (d *dagPoolService) RunGC(ctx context.Context) error {
 		return err
 	}
 	if len(referMap) == 0 {
-		log.Warnf("no need to gc")
+		log.Warnf("no need for gc")
 	}
 	for k, v := range referMap {
 		if time.Now().After(time.Unix(v, 0).Add(gcExpiredTime)) {

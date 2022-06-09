@@ -91,22 +91,21 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, pin bool) 
 	}
 	d.gcl.Lock()
 	defer d.gcl.Unlock()
+	if !d.refer.HasReference(block.Cid().String()) {
+		useNode, err := d.UseNode(ctx, block.Cid())
+		if err != nil {
+			return err
+		}
+		err = useNode.Put(ctx, block)
+		if err != nil {
+			return err
+		}
+	}
 	err := d.refer.AddReference(block.Cid().String(), pin)
 	if err != nil {
 		return err
 	}
-	reference, err := d.refer.QueryReference(block.Cid().String(), pin)
-	if err != nil {
-		return err
-	}
-	if reference > 1 {
-		return nil
-	}
-	useNode, err := d.UseNode(ctx, block.Cid())
-	if err != nil {
-		return err
-	}
-	return useNode.Put(ctx, block)
+	return nil
 }
 
 // Get retrieves a node from the dagPoolService, fetching the block in the BlockService
@@ -116,9 +115,8 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, pin bool) (blocks.B
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	reference, err := d.refer.QueryReference(c.String(), pin)
-	if reference <= 0 {
-		return nil, fmt.Errorf("block does not exist : %v", err)
+	if !d.refer.HasReference(c.String()) {
+		return nil, fmt.Errorf("block:%v does not exist", c.String())
 	}
 	getNode, err := d.GetNode(ctx, c)
 	if err != nil {
@@ -140,11 +138,7 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, pin bool) error 
 	if d == nil { // FIXME remove this assertion. protect with constructor invariant
 		return fmt.Errorf("Pool is nil")
 	}
-	reference, err := d.refer.QueryReference(c.String(), pin)
-	if err != nil {
-		return err
-	}
-	if reference > 0 {
+	if d.refer.HasReference(c.String()) {
 		err := d.refer.RemoveReference(c.String(), pin)
 		if err != nil {
 			return err
