@@ -98,6 +98,9 @@ func startDagPoolServer(cfg config.PoolConfig) {
 	go func() {
 		service.Gc(context.TODO())
 	}()
+	go func() {
+		service.UnPinGc(context.TODO())
+	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server.
 	quit := make(chan os.Signal, 1)
