@@ -23,8 +23,10 @@ func (d *dagPoolService) Gc(ctx context.Context) error {
 			if err := d.RunGC(ctx); err != nil {
 				d.gcl.Unlock()
 				log.Error(err)
+			} else {
+				d.gcl.Unlock()
 			}
-			d.gcl.Unlock()
+
 		}
 	}
 }

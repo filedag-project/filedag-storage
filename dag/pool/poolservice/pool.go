@@ -37,7 +37,7 @@ type dagPoolService struct {
 
 func (d *dagPoolService) NeedPin(username string) bool {
 	//todo more check
-	if username != "dagpool" {
+	if username == "dagpool" {
 		return true
 	}
 	return false
@@ -90,27 +90,22 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, pin bool) 
 		return fmt.Errorf("Pool is nil")
 	}
 	d.gcl.Lock()
-	//defer d.gcl.Unlock()
+	defer d.gcl.Unlock()
 	err := d.refer.AddReference(block.Cid().String(), pin)
 	if err != nil {
-		d.gcl.Unlock()
 		return err
 	}
 	reference, err := d.refer.QueryReference(block.Cid().String(), pin)
 	if err != nil {
-		d.gcl.Unlock()
 		return err
 	}
 	if reference > 1 {
-		d.gcl.Unlock()
 		return nil
 	}
 	useNode, err := d.UseNode(ctx, block.Cid())
 	if err != nil {
-		d.gcl.Unlock()
 		return err
 	}
-	d.gcl.Unlock()
 	return useNode.Put(ctx, block)
 }
 

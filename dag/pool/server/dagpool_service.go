@@ -17,13 +17,13 @@ var log = logging.Logger("dag-pool-server")
 var policyNotRight = "policy not right ,must be:" +
 	fmt.Sprintf("%v,%v,%v", userpolicy.OnlyRead, userpolicy.OnlyWrite, userpolicy.ReadWrite)
 
-// DagPoolService is used to implement DagPoolServer.
-type DagPoolService struct {
+// DagPoolServer is used to implement DagPoolServer.
+type DagPoolServer struct {
 	proto.UnimplementedDagPoolServer
 	DagPool pool.DagPool
 }
 
-func (s *DagPoolService) Add(ctx context.Context, in *proto.AddReq) (*proto.AddReply, error) {
+func (s *DagPoolServer) Add(ctx context.Context, in *proto.AddReq) (*proto.AddReply, error) {
 	data := blocks.NewBlock(in.GetBlock())
 	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.AddReply{Cid: ""}, userpolicy.AccessDenied
@@ -34,7 +34,7 @@ func (s *DagPoolService) Add(ctx context.Context, in *proto.AddReq) (*proto.AddR
 	}
 	return &proto.AddReply{Cid: data.Cid().String()}, nil
 }
-func (s *DagPoolService) Get(ctx context.Context, in *proto.GetReq) (*proto.GetReply, error) {
+func (s *DagPoolServer) Get(ctx context.Context, in *proto.GetReq) (*proto.GetReply, error) {
 	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.GetReply{Block: nil}, userpolicy.AccessDenied
 	}
@@ -48,7 +48,7 @@ func (s *DagPoolService) Get(ctx context.Context, in *proto.GetReq) (*proto.GetR
 	}
 	return &proto.GetReply{Block: get.RawData()}, nil
 }
-func (s *DagPoolService) Remove(ctx context.Context, in *proto.RemoveReq) (*proto.RemoveReply, error) {
+func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto.RemoveReply, error) {
 	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.RemoveReply{Message: ""}, userpolicy.AccessDenied
 	}
@@ -62,7 +62,7 @@ func (s *DagPoolService) Remove(ctx context.Context, in *proto.RemoveReq) (*prot
 	}
 	return &proto.RemoveReply{Message: c.String()}, nil
 }
-func (s *DagPoolService) AddUser(ctx context.Context, in *proto.AddUserReq) (*proto.AddUserReply, error) {
+func (s *DagPoolServer) AddUser(ctx context.Context, in *proto.AddUserReq) (*proto.AddUserReply, error) {
 	if !dagpooluser.CheckAddUser(in.User.Username, in.User.Pass) {
 		return &proto.AddUserReply{Message: "you can not add user"}, xerrors.Errorf("you can not add user")
 	}
@@ -81,7 +81,7 @@ func (s *DagPoolService) AddUser(ctx context.Context, in *proto.AddUserReq) (*pr
 	}
 	return &proto.AddUserReply{Message: "ok"}, nil
 }
-func (s *DagPoolService) RemoveUser(ctx context.Context, in *proto.RemoveUserReq) (*proto.RemoveUserReply, error) {
+func (s *DagPoolServer) RemoveUser(ctx context.Context, in *proto.RemoveUserReq) (*proto.RemoveUserReply, error) {
 	if !s.DagPool.CheckDeal(in.Username, in.Password) {
 		return &proto.RemoveUserReply{Message: "you can not del user"}, xerrors.Errorf("you can not del user")
 	}
@@ -91,7 +91,7 @@ func (s *DagPoolService) RemoveUser(ctx context.Context, in *proto.RemoveUserReq
 	}
 	return &proto.RemoveUserReply{Message: "ok"}, nil
 }
-func (s *DagPoolService) QueryUser(ctx context.Context, in *proto.QueryUserReq) (*proto.QueryUserReply, error) {
+func (s *DagPoolServer) QueryUser(ctx context.Context, in *proto.QueryUserReq) (*proto.QueryUserReply, error) {
 	if !s.DagPool.CheckDeal(in.Username, in.Password) {
 		return &proto.QueryUserReply{}, xerrors.Errorf("you can not get user")
 	}
@@ -101,7 +101,7 @@ func (s *DagPoolService) QueryUser(ctx context.Context, in *proto.QueryUserReq) 
 	}
 	return &proto.QueryUserReply{Username: user.Username, Policy: string(user.Policy), Capacity: user.Capacity}, nil
 }
-func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
+func (s *DagPoolServer) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
 	if !s.DagPool.CheckDeal(in.User.Username, in.User.Pass) {
 		return &proto.UpdateUserReply{Message: "you can not update user"}, xerrors.Errorf("you can not update user")
 	}
@@ -136,7 +136,7 @@ func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq
 	}
 	return &proto.UpdateUserReply{Message: "ok"}, nil
 }
-func (s *DagPoolService) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinReply, error) {
+func (s *DagPoolServer) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinReply, error) {
 	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.PinReply{Message: ""}, userpolicy.AccessDenied
 	}
@@ -151,7 +151,7 @@ func (s *DagPoolService) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinR
 	return &proto.PinReply{Message: c.String()}, nil
 }
 
-func (s *DagPoolService) UnPin(ctx context.Context, in *proto.UnPinReq) (*proto.UnPinReply, error) {
+func (s *DagPoolServer) UnPin(ctx context.Context, in *proto.UnPinReq) (*proto.UnPinReply, error) {
 	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
 		return &proto.UnPinReply{Message: ""}, userpolicy.AccessDenied
 	}
