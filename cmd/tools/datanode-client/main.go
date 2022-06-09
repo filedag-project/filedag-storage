@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/google/martian/log"
@@ -66,7 +65,7 @@ var dnPut = &cli.Command{
 		client := proto.NewDataNodeClient(conn)
 		file, err := ioutil.ReadFile(c.String("file"))
 		block := blocks.NewBlock(file)
-		keyCode := sha256String(block.Cid().String())
+		keyCode := block.Cid().String()
 		fmt.Println("keyCode:", keyCode)
 		_, err = client.Put(context.TODO(), &proto.AddRequest{Key: keyCode, DataBlock: block.RawData()})
 		if err != nil {
@@ -188,8 +187,4 @@ var dnDelete = &cli.Command{
 		fmt.Println(res.Message)
 		return nil
 	},
-}
-
-func sha256String(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }

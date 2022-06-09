@@ -21,7 +21,6 @@ const dagPoolReferPin = "dagPoolReferPin/"
 
 //AddReference add refer for block
 func (i *ReferSys) AddReference(cid string, isPin bool) error {
-	//cidCode := sha256String(cid)
 	if !isPin {
 		i.cacheMu.Lock()
 		ti := time.Now().Unix()
@@ -46,7 +45,6 @@ func (i *ReferSys) AddReference(cid string, isPin bool) error {
 
 //QueryReference query block refer
 func (i *ReferSys) QueryReference(cid string, isPin bool) (uint64, error) {
-	//cidCode := sha256String(cid)
 	if !isPin {
 		ti := 0
 		i.cacheMu.RLock()
@@ -94,8 +92,6 @@ func (i *ReferSys) HasReference(cid string) bool {
 
 //RemoveReference reduce refer
 func (i *ReferSys) RemoveReference(cid string, isPin bool) error {
-	//cidCode := sha256String(cid)
-
 	if isPin {
 		var count int
 		i.storeMu.Lock()
@@ -164,8 +160,3 @@ func (i *ReferSys) RemoveRecord(c string) error {
 func NewIdentityRefe(db *uleveldb.ULevelDB) *ReferSys {
 	return &ReferSys{DB: db}
 }
-
-//
-//func sha256String(s string) string {
-//	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
-//}
