@@ -72,6 +72,26 @@ func (i *ReferSys) QueryReference(cid string, isPin bool) (uint64, error) {
 	}
 }
 
+//HasReference has block reference
+func (i *ReferSys) HasReference(cid string) bool {
+	ti := 0
+	i.cacheMu.RLock()
+	err := i.DB.Get(dagPoolReferCache+cid, &ti)
+	i.cacheMu.RUnlock()
+	if err == nil && ti != 0 {
+		return true
+	} else {
+		var count uint64
+		i.storeMu.RLock()
+		err := i.DB.Get(dagPoolReferPin+cid, &count)
+		i.storeMu.RUnlock()
+		if err == nil && count != 0 {
+			return true
+		}
+		return false
+	}
+}
+
 //RemoveReference reduce refer
 func (i *ReferSys) RemoveReference(cid string, isPin bool) error {
 	//cidCode := sha256String(cid)
@@ -107,6 +127,23 @@ func (i *ReferSys) QueryAllCacheReference() (map[string]int64, error) {
 	var m = make(map[string]int64)
 	for k, v := range all {
 		m[k], _ = strconv.ParseInt(v, 10, 64)
+	}
+	return m, nil
+}
+
+//QueryAllStoreNonRefer query all store refer which count 0
+func (i *ReferSys) QueryAllStoreNonRefer() ([]string, error) {
+	i.storeMu.RLock()
+	defer i.storeMu.RUnlock()
+	all, err := i.DB.ReadAll(dagPoolReferPin)
+	if err != nil {
+		return nil, err
+	}
+	var m []string
+	for k, v := range all {
+		if v == "0" {
+			m = append(m, k)
+		}
 	}
 	return m, nil
 }
