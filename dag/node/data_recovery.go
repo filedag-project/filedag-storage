@@ -32,7 +32,7 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 		return errors.New("the host does not exist")
 	}
 	for key, value := range keyCodeMap {
-		keyCode := sha256String(key)
+		keyCode := key
 		size, err := dataNode.Client.Size(ctx, &proto.SizeRequest{
 			Key: keyCode,
 		})
@@ -98,7 +98,7 @@ func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 	}
 	newDataNode := d.Nodes[index]
 	for key, value := range keyCodeMap {
-		keyCode := sha256String(key)
+		keyCode := key
 		merged := make([][]byte, len(d.Nodes))
 		for i, node := range d.Nodes {
 			if i == index {

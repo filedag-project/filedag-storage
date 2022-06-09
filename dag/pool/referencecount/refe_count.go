@@ -1,9 +1,7 @@
 package referencecount
 
 import (
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"sync"
 )
@@ -16,12 +14,11 @@ type IdentityRefe struct {
 const dagPoolRefe = "dagPoolRefe/"
 
 func (i *IdentityRefe) AddReference(cid string) error {
-	cidCode := sha256String(cid)
 	var count int
 	i.mu.Lock()
-	err := i.DB.Get(dagPoolRefe+cidCode, &count)
+	err := i.DB.Get(dagPoolRefe+cid, &count)
 	count++
-	err = i.DB.Put(dagPoolRefe+cidCode, count)
+	err = i.DB.Put(dagPoolRefe+cid, count)
 	i.mu.Unlock()
 	if err != nil {
 		return err
@@ -30,10 +27,9 @@ func (i *IdentityRefe) AddReference(cid string) error {
 }
 
 func (i *IdentityRefe) QueryReference(cid string) (int, error) {
-	cidCode := sha256String(cid)
 	var count int
 	i.mu.RLock()
-	err := i.DB.Get(dagPoolRefe+cidCode, &count)
+	err := i.DB.Get(dagPoolRefe+cid, &count)
 	i.mu.RUnlock()
 	if err != nil {
 		return 0, err
@@ -42,16 +38,14 @@ func (i *IdentityRefe) QueryReference(cid string) (int, error) {
 }
 
 func (i *IdentityRefe) RemoveReference(cid string) error {
-	//defer i.mu.RUnlock()
-	cidCode := sha256String(cid)
 	var count int
 	i.mu.Lock()
-	err := i.DB.Get(dagPoolRefe+cidCode, &count)
+	err := i.DB.Get(dagPoolRefe+cid, &count)
 	if count == 1 {
-		err = i.DB.Delete(dagPoolRefe + cidCode)
+		err = i.DB.Delete(dagPoolRefe + cid)
 	} else if count > 1 {
 		count--
-		err = i.DB.Put(dagPoolRefe+cidCode, count)
+		err = i.DB.Put(dagPoolRefe+cid, count)
 	} else {
 		return errors.New("cid does not exist")
 	}
@@ -64,8 +58,4 @@ func (i *IdentityRefe) RemoveReference(cid string) error {
 
 func NewIdentityRefe(db *uleveldb.ULevelDB) (IdentityRefe, error) {
 	return IdentityRefe{DB: db}, nil
-}
-
-func sha256String(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }

@@ -3,8 +3,6 @@ package node
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -78,7 +76,7 @@ func (d DagNode) GetIP() []string {
 }
 func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	log.Infof("delete block, cid :%v", cid)
-	keyCode := sha256String(cid.String())
+	keyCode := cid.String()
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for _, node := range d.Nodes {
@@ -113,7 +111,7 @@ func (d DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 
 func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	log.Infof("get block, cid :%v", cid)
-	keyCode := sha256String(cid.String())
+	keyCode := cid.String()
 	var err error
 	var size int
 	err = d.db.Get(cid.String(), &size)
@@ -168,7 +166,7 @@ func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 }
 
 func (d DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
-	keyCode := sha256String(cid.String())
+	keyCode := cid.String()
 	var err error
 	var count int64
 	for _, node := range d.Nodes {
@@ -190,7 +188,7 @@ func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	if err != nil {
 		return err
 	}
-	keyCode := sha256String(block.Cid().String())
+	keyCode := block.Cid().String()
 	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(len(block.RawData())))
 	if err != nil {
 		log.Errorf("newErasure fail :%v", err)
@@ -242,8 +240,4 @@ func (d DagNode) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 
 func (d DagNode) HashOnRead(enabled bool) {
 	panic("implement me")
-}
-
-func sha256String(s string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
 }
