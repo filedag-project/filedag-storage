@@ -199,7 +199,7 @@ var removeBlock = &cli.Command{
 			log.Errorf("remove block err:%v", err)
 			return err
 		}
-		log.Infof("remove block succes:%v", re.Message)
+		log.Infof("remove block success:%v", re.Message)
 		return nil
 	},
 }
@@ -304,7 +304,7 @@ var addUser = &cli.Command{
 }
 var removeUser = &cli.Command{
 	Name:  "removeuser",
-	Usage: "remove a user from dagpool eg.dagpool-client removeuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345",
+	Usage: "remove a user from dagpool eg.dagpool-client removeuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "addr",
@@ -322,13 +322,9 @@ var removeUser = &cli.Command{
 			Name:  "username",
 			Usage: "the username ",
 		},
-		&cli.StringFlag{
-			Name:  "pass",
-			Usage: "the password ",
-		},
 	},
 	Action: func(cctx *cli.Context) error {
-		var addr, clientuser, clientpass, username, pass string
+		var addr, clientuser, clientpass, username string
 		if cctx.String("addr") != "" {
 			addr = cctx.String("addr")
 		} else {
@@ -353,12 +349,6 @@ var removeUser = &cli.Command{
 			log.Errorf("you must give the username")
 			return xerrors.Errorf("you must give the username")
 		}
-		if cctx.String("pass") != "" {
-			pass = cctx.String("pass")
-		} else {
-			log.Errorf("you must give the pass")
-			return xerrors.Errorf("you must give the pass")
-		}
 
 		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
 		if err != nil {
@@ -366,8 +356,8 @@ var removeUser = &cli.Command{
 			return err
 		}
 		re, err := poolClient.DPClient.RemoveUser(cctx.Context, &proto.RemoveUserReq{
+			User:     poolClient.User,
 			Username: username,
-			Password: pass,
 		})
 		if err != nil {
 			log.Errorf("remove user err:%v", err)
@@ -379,7 +369,7 @@ var removeUser = &cli.Command{
 }
 var getUser = &cli.Command{
 	Name:  "getuser",
-	Usage: "get a user from dagpool eg.dagpool-client getuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345",
+	Usage: "get a user from dagpool eg.dagpool-client getuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "addr",
@@ -397,13 +387,9 @@ var getUser = &cli.Command{
 			Name:  "username",
 			Usage: "the username ",
 		},
-		&cli.StringFlag{
-			Name:  "pass",
-			Usage: "the password ",
-		},
 	},
 	Action: func(cctx *cli.Context) error {
-		var addr, clientuser, clientpass, username, pass string
+		var addr, clientuser, clientpass, username string
 		if cctx.String("addr") != "" {
 			addr = cctx.String("addr")
 		} else {
@@ -428,12 +414,6 @@ var getUser = &cli.Command{
 			log.Errorf("you must give the username")
 			return xerrors.Errorf("you must give the username")
 		}
-		if cctx.String("pass") != "" {
-			pass = cctx.String("pass")
-		} else {
-			log.Errorf("you must give the pass")
-			return xerrors.Errorf("you must give the pass")
-		}
 
 		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
 		if err != nil {
@@ -441,8 +421,8 @@ var getUser = &cli.Command{
 			return err
 		}
 		re, err := poolClient.DPClient.QueryUser(cctx.Context, &proto.QueryUserReq{
+			User:     poolClient.User,
 			Username: username,
-			Password: pass,
 		})
 		if err != nil {
 			log.Errorf("get user err:%v", err)
@@ -536,10 +516,10 @@ var updateUser = &cli.Command{
 			return err
 		}
 		re, err := poolClient.DPClient.UpdateUser(cctx.Context, &proto.UpdateUserReq{
-			NewUsername: username,
+			Username:    username,
 			NewPassword: pass,
-			Capacity:    capacity,
-			Policy:      policy,
+			NewCapacity: capacity,
+			NewPolicy:   policy,
 			User:        poolClient.User,
 		})
 		if err != nil {

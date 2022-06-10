@@ -12,15 +12,15 @@ import (
 	"os"
 )
 
-//go run -tags example main.go adduser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345 --capacity=1000 --policy=only-read
+//go run -tags example main.go adduser --addr=127.0.0.1:50001 --pool-user=dagpool --pool-pass=dagpool --username=test --pass=test123 --capacity=1000 --policy=only-read
 
 func main() {
 	var addr, clientuser, clientpass, username, pass, policy string
 	var capacity uint64
 	f := flag.NewFlagSet("adduser", flag.ExitOnError)
 	f.StringVar(&addr, "addr", "", "the addr of dagpool server eg.127.0.0.1:50001")
-	f.StringVar(&clientuser, "client-user", "", "the client user")
-	f.StringVar(&clientpass, "client-pass", "", "the client user pass")
+	f.StringVar(&clientuser, "pool-user", "", "the pool user")
+	f.StringVar(&clientpass, "pool-pass", "", "the pool user pass")
 	f.StringVar(&username, "username", "", "the username")
 	f.StringVar(&pass, "pass", "", "the password")
 	f.StringVar(&policy, "policy", "", "the policy")
@@ -56,6 +56,6 @@ func adduser(addr string, clientuser string, clientpass string, username string,
 		fmt.Printf("add user err:%v", err)
 		return err
 	}
-	fmt.Printf("add user succes:%v", re.Message)
+	fmt.Printf("add user success:%v", re.Message)
 	return nil
 }

@@ -5,9 +5,7 @@ import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
@@ -19,6 +17,11 @@ import (
 	"path"
 	"strings"
 	"syscall"
+)
+
+const (
+	EnvRootUser     = "DAGPOOL_ROOT_USER"
+	EnvRootPassword = "DAGPOOL_ROOT_PASSWORD"
 )
 
 var log = logging.Logger("pool-main")
@@ -42,14 +45,16 @@ var startCmd = &cli.Command{
 			Value: "./conf/node_config.json",
 		},
 		&cli.StringFlag{
-			Name:  "root",
-			Usage: "set root user",
-			Value: "dagpool",
+			Name:    "root-user",
+			Usage:   "set root user",
+			EnvVars: []string{EnvRootUser},
+			Value:   "dagpool",
 		},
 		&cli.StringFlag{
-			Name:  "password",
-			Usage: "set root password",
-			Value: "dagpool",
+			Name:    "root-password",
+			Usage:   "set root password",
+			EnvVars: []string{EnvRootPassword},
+			Value:   "dagpool",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -78,16 +83,7 @@ func startDagPoolServer(cfg config.PoolConfig) {
 		return
 	}
 	defer service.Close()
-	//add default user
-	err = service.AddUser(dagpooluser.DagPoolUser{
-		Username: cfg.DefaultUser,
-		Password: cfg.DefaultPass,
-		Policy:   userpolicy.ReadWrite,
-		Capacity: 0,
-	})
-	if err != nil {
-		return
-	}
+
 	proto.RegisterDagPoolServer(s, &server.DagPoolService{DagPool: service})
 	go func() {
 		if err := s.Serve(lis); err != nil {
@@ -117,16 +113,16 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 		return config.PoolConfig{}, err
 	}
 	cfg.LeveldbPath = path.Join(datadir, "leveldb")
-	cfg.DefaultUser = cctx.String("root")
-	if cfg.DefaultUser == "" {
+	cfg.RootUser = cctx.String("root-user")
+	if cfg.RootUser == "" {
 		return config.PoolConfig{}, errors.New("root param is invalid")
 	}
-	cfg.DefaultPass = cctx.String("password")
+	cfg.RootPassword = cctx.String("root-password")
 	nodeConfigPath := cctx.String("config")
 
-	var nodeConfigs []config.NodeConfig
+	var nodeConfigs []config.DagNodeConfig
 	for _, path := range strings.Split(nodeConfigPath, ",") {
-		var nc config.NodeConfig
+		var nc config.DagNodeConfig
 		file, err := ioutil.ReadFile(path)
 		if err != nil {
 			log.Errorf("ReadFile err:%v", err)

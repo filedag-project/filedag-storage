@@ -46,8 +46,8 @@ func NewPoolClient(addr, user, password string) (*DagPoolClient, error) {
 		DPClient: c,
 		Conn:     conn,
 		User: &proto.PoolUser{
-			Username: user,
-			Pass:     password,
+			User:     user,
+			Password: password,
 		},
 	}, nil
 }

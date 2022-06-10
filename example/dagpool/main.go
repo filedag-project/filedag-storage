@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"google.golang.org/grpc"
 	"io/ioutil"
@@ -17,15 +15,15 @@ import (
 	"strings"
 )
 
-//go run -tags example main.go daemon --pool-db-path=/tmp/leveldb2/pool.db --listen-addr=localhost:50001 --node-config-path=node_config.json --pool-user=pool --pool-pass=pool123
+//go run -tags example main.go daemon --pool-db-path=/tmp/dagpool-db --listen-addr=localhost:50001 --node-config-path=node_config.json --root-user=dagpool --root-pass=dagpool
 func main() {
 	var leveldbPath, listenAddr, nodeConfigPath, user, pass string
 	f := flag.NewFlagSet("daemon", flag.ExitOnError)
 	f.StringVar(&leveldbPath, "pool-db-path", "/tmp/leveldb2/pool.db", "set db path default:`/tmp/leveldb2/pool.db`")
 	f.StringVar(&listenAddr, "listen-addr", "localhost:50001", "set listen addr default:`localhost:50001`")
 	f.StringVar(&nodeConfigPath, "node-config-path", "node_config.json", "set node config path,default:`dag/config/node_config.json'")
-	f.StringVar(&user, "pool-user", "pool", "set root user default:pool")
-	f.StringVar(&pass, "pool-pass", "pool123", "set root user pass default:pool123")
+	f.StringVar(&user, "root-user", "pool", "set root user default:pool")
+	f.StringVar(&pass, "root-pass", "pool123", "set root user pass default:pool123")
 
 	switch os.Args[1] {
 	case "daemon":
@@ -52,9 +50,9 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 	}
 	// new server
 	s := grpc.NewServer()
-	var nodeConfigs []config.NodeConfig
+	var nodeConfigs []config.DagNodeConfig
 	for _, path := range strings.Split(nodeConfigPath, ",") {
-		var nc config.NodeConfig
+		var nc config.DagNodeConfig
 		file, err := ioutil.ReadFile(path)
 		if err != nil {
 			fmt.Printf("ReadFile err:%v\n", err)
@@ -70,22 +68,12 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 	cfg := config.PoolConfig{
 		DagNodeConfig: nodeConfigs,
 		LeveldbPath:   leveldbPath,
-		DefaultUser:   user,
-		DefaultPass:   pass,
+		RootUser:      user,
+		RootPassword:  pass,
 	}
 	service, err := pool.NewDagPoolService(cfg)
 	if err != nil {
 		fmt.Printf("NewDagPoolService err:%v\n", err)
-		return
-	}
-	//add default user
-	err = service.AddUser(dagpooluser.DagPoolUser{
-		Username: user,
-		Password: pass,
-		Policy:   userpolicy.ReadWrite,
-		Capacity: 0,
-	})
-	if err != nil {
 		return
 	}
 	proto.RegisterDagPoolServer(s, &server.DagPoolService{DagPool: service})

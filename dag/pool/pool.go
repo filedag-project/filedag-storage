@@ -15,6 +15,8 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
+	"golang.org/x/xerrors"
+
 	// blank import is used to register the IPLD raw codec
 	_ "github.com/ipld/go-ipld-prime/codec/raw"
 )
@@ -24,24 +26,21 @@ var log = logging.Logger("dag-pool")
 var _ DagPool = &Pool{}
 
 type DagPool interface {
-	Add(ctx context.Context, block blocks.Block) error
-	Get(ctx context.Context, c cid.Cid) (blocks.Block, error)
-	Remove(ctx context.Context, c cid.Cid) error
+	Add(ctx context.Context, block blocks.Block, user string, password string) error
+	Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error)
+	Remove(ctx context.Context, c cid.Cid, user string, password string) error
 	DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error
 	DataRepairDisk(ctx context.Context, ip, port string) error
-	CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool
-	CheckDeal(user, pass string) bool
-	AddUser(user dagpooluser.DagPoolUser) error
-	RemoveUser(username string) error
-	QueryUser(username string) (dagpooluser.DagPoolUser, error)
-	UpdateUser(u dagpooluser.DagPoolUser) error
+	AddUser(newUser dagpooluser.DagPoolUser, user string, password string) error
+	RemoveUser(rmUser string, user string, password string) error
+	QueryUser(qUser string, user string, password string) (*dagpooluser.DagPoolUser, error)
+	UpdateUser(uUser dagpooluser.DagPoolUser, user string, password string) error
 	Close() error
 }
 
-// Pool is an IPFS Merkle DAG service.
 type Pool struct {
 	DagNodes   map[string]*node.DagNode
-	iam        dagpooluser.IdentityUserSys
+	iam        *dagpooluser.IdentityUserSys
 	refer      referencecount.IdentityRefe
 	CidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
@@ -59,7 +58,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	i, err := dagpooluser.NewIdentityUserSys(db, cfg.DefaultUser, cfg.DefaultPass)
+	i, err := dagpooluser.NewIdentityUserSys(db, cfg.RootUser, cfg.RootPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +89,9 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 }
 
 // Add adds a node to the Pool, storing the block in the BlockService
-func (d *Pool) Add(ctx context.Context, block blocks.Block) error {
-	if d == nil { // FIXME remove this assertion. protect with constructor invariant
-		return fmt.Errorf("Pool is nil")
+func (d *Pool) Add(ctx context.Context, block blocks.Block, user string, password string) error {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
 	}
 	err := d.refer.AddReference(block.Cid().String())
 	if err != nil {
@@ -113,9 +112,9 @@ func (d *Pool) Add(ctx context.Context, block blocks.Block) error {
 }
 
 // Get retrieves a node from the Pool, fetching the block in the BlockService
-func (d *Pool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	if d == nil {
-		return nil, fmt.Errorf("Pool is nil")
+func (d *Pool) Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error) {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
+		return nil, userpolicy.AccessDenied
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -141,9 +140,9 @@ func (d *Pool) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	return b, nil
 }
 
-func (d *Pool) Remove(ctx context.Context, c cid.Cid) error {
-	if d == nil { // FIXME remove this assertion. protect with constructor invariant
-		return fmt.Errorf("Pool is nil")
+func (d *Pool) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
 	}
 	err := d.refer.RemoveReference(c.String())
 	if err != nil {
@@ -187,28 +186,57 @@ func (d *Pool) DataRepairDisk(ctx context.Context, ip, port string) error {
 	return dagNode.RepairDisk(ip, port)
 }
 
-func (d *Pool) CheckDeal(user, pass string) bool {
-	return d.iam.CheckDeal(user, pass)
+func (d *Pool) AddUser(newUser dagpooluser.DagPoolUser, user string, password string) error {
+	if !d.iam.CheckAdmin(user, password) {
+		return userpolicy.AccessDenied
+	}
+	if d.iam.IsAdmin(newUser.Username) {
+		return xerrors.New("the user already exists")
+	}
+	if _, err := d.iam.QueryUser(newUser.Username); err == nil {
+		return xerrors.New("the user already exists")
+	}
+	return d.iam.AddUser(newUser)
 }
 
-func (d *Pool) AddUser(user dagpooluser.DagPoolUser) error {
-	return d.iam.AddUser(user)
+func (d *Pool) RemoveUser(rmUser string, user string, password string) error {
+	if !d.iam.CheckAdmin(user, password) {
+		return userpolicy.AccessDenied
+	}
+	if d.iam.IsAdmin(rmUser) {
+		return xerrors.New("refuse to remove the admin user")
+	}
+	return d.iam.RemoveUser(rmUser)
 }
 
-func (d *Pool) RemoveUser(username string) error {
-	return d.iam.RemoveUser(username)
+func (d *Pool) QueryUser(qUser string, user string, password string) (*dagpooluser.DagPoolUser, error) {
+	if !d.iam.CheckUser(user, password) {
+		return nil, userpolicy.AccessDenied
+	}
+	return d.iam.QueryUser(qUser)
 }
 
-func (d *Pool) QueryUser(username string) (dagpooluser.DagPoolUser, error) {
-	return d.iam.QueryUser(username)
-}
-
-func (d *Pool) UpdateUser(u dagpooluser.DagPoolUser) error {
-	return d.iam.UpdateUser(u)
-}
-
-func (d *Pool) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
-	return d.iam.CheckUserPolicy(username, pass, policy)
+func (d *Pool) UpdateUser(uUser dagpooluser.DagPoolUser, user string, password string) error {
+	if !d.iam.CheckAdmin(user, password) {
+		return userpolicy.AccessDenied
+	}
+	if d.iam.IsAdmin(uUser.Username) {
+		return xerrors.New("refuse to update the admin user")
+	}
+	u, err := d.iam.QueryUser(uUser.Username)
+	if err != nil {
+		return xerrors.New("not found the user")
+	}
+	if uUser.Password != "" {
+		u.Password = uUser.Password
+	}
+	if uUser.Policy != "" {
+		u.Policy = uUser.Policy
+	}
+	if uUser.Capacity != 0 {
+		u.Capacity = uUser.Capacity
+	}
+	return d.iam.UpdateUser(*u)
 }
 
 func (d *Pool) Close() error {
