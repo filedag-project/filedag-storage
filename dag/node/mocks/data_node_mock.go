@@ -56,6 +56,26 @@ func (mr *MockDataNodeClientMockRecorder) Delete(ctx, in interface{}, opts ...in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockDataNodeClient)(nil).Delete), varargs...)
 }
 
+// DeleteMany mocks base method.
+func (m *MockDataNodeClient) DeleteMany(ctx context.Context, in *proto.DeleteManyRequest, opts ...grpc.CallOption) (*proto.DeleteManyResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteMany", varargs...)
+	ret0, _ := ret[0].(*proto.DeleteManyResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteMany indicates an expected call of DeleteMany.
+func (mr *MockDataNodeClientMockRecorder) DeleteMany(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMany", reflect.TypeOf((*MockDataNodeClient)(nil).DeleteMany), varargs...)
+}
+
 // Get mocks base method.
 func (m *MockDataNodeClient) Get(ctx context.Context, in *proto.GetRequest, opts ...grpc.CallOption) (*proto.GetResponse, error) {
 	m.ctrl.T.Helper()
@@ -152,6 +172,21 @@ func (m *MockDataNodeServer) Delete(arg0 context.Context, arg1 *proto.DeleteRequ
 func (mr *MockDataNodeServerMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockDataNodeServer)(nil).Delete), arg0, arg1)
+}
+
+// DeleteMany mocks base method.
+func (m *MockDataNodeServer) DeleteMany(arg0 context.Context, arg1 *proto.DeleteManyRequest) (*proto.DeleteManyResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteMany", arg0, arg1)
+	ret0, _ := ret[0].(*proto.DeleteManyResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteMany indicates an expected call of DeleteMany.
+func (mr *MockDataNodeServerMockRecorder) DeleteMany(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMany", reflect.TypeOf((*MockDataNodeServer)(nil).DeleteMany), arg0, arg1)
 }
 
 // Get mocks base method.
