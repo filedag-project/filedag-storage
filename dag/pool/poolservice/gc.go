@@ -2,8 +2,6 @@ package poolservice
 
 import (
 	"context"
-	"github.com/ipfs/go-cid"
-	"strings"
 	"time"
 )
 
@@ -50,60 +48,49 @@ func (d *dagPoolService) UnPinGc(ctx context.Context) error {
 }
 func (d *dagPoolService) RunUnpinGC(ctx context.Context) error {
 	log.Warnf("RunUnpinGC")
-	s, err := d.refer.QueryAllStoreNonRefer()
+	needGCCids, err := d.refer.QueryAllStoreNonRefer()
 	if err != nil {
 		return err
 	}
-	if len(s) == 0 {
+	if len(needGCCids) == 0 {
 		log.Warnf("no need for unpin gc")
 	}
-	for _, v := range s {
-		c, _ := cid.Decode(strings.Split(v, "/")[1])
-		log.Warnf("gc del block:%v", c.String())
-		node, err := d.GetNode(ctx, c)
+	m := make(map[string][]string)
+	for _, v := range needGCCids {
+		name, _ := d.nrSys.Get(v)
+		m[name] = append(m[name], v)
+	}
+	for n, cids := range m {
+		err := d.dagNodes[n].DeleteManyBlock(ctx, cids)
 		if err != nil {
+			log.Errorf("DeleteManyBlock err:%v", err)
 			continue
 		}
-		err = node.DeleteBlock(ctx, c)
-		if err != nil {
-			continue
-		}
-		err = d.refer.RemoveRecord(v)
+		err = d.refer.RemoveRecord(cids, true)
 	}
 	return nil
 }
 
 func (d *dagPoolService) RunGC(ctx context.Context) error {
-	referMap, err := d.refer.QueryAllCacheReference()
+	needGCCids, err := d.refer.QueryAllCacheReference()
 	if err != nil {
 		return err
 	}
-	if len(referMap) == 0 {
+	if len(needGCCids) == 0 {
 		log.Warnf("no need for gc")
 	}
-	for k, v := range referMap {
-		if time.Now().After(time.Unix(v, 0).Add(gcExpiredTime)) {
-			c, _ := cid.Decode(strings.Split(k, "/")[1])
-			reference, err := d.refer.QueryReference(c.String(), true)
-			if err != nil {
-				return err
-			}
-			if reference != 0 {
-				err = d.refer.RemoveRecord(k)
-				log.Warnf("gc del block:%v,but this was pin", c)
-				continue
-			}
-			log.Warnf("gc del block:%v", c)
-			node, err := d.GetNode(ctx, c)
-			if err != nil {
-				continue
-			}
-			err = node.DeleteBlock(ctx, c)
-			if err != nil {
-				continue
-			}
-			err = d.refer.RemoveRecord(k)
+	m := make(map[string][]string)
+	for _, v := range needGCCids {
+		name, _ := d.nrSys.Get(v)
+		m[name] = append(m[name], v)
+	}
+	for n, cids := range m {
+		err := d.dagNodes[n].DeleteManyBlock(ctx, cids)
+		if err != nil {
+			log.Errorf("DeleteManyBlock err:%v", err)
+			continue
 		}
+		d.refer.RemoveRecord(cids, false)
 	}
 	return nil
 }

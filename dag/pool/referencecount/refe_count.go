@@ -3,10 +3,14 @@ package referencecount
 import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	logging "github.com/ipfs/go-log/v2"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
+
+var log = logging.Logger("refer-count")
 
 //ReferSys reference sys
 type ReferSys struct {
@@ -15,6 +19,7 @@ type ReferSys struct {
 	DB      *uleveldb.ULevelDB
 }
 
+const gcExpiredTime = time.Minute
 const gcTime = time.Minute
 const dagPoolReferCache = "dagPoolReferCache/"
 const dagPoolReferPin = "dagPoolReferPin/"
@@ -113,16 +118,21 @@ func (i *ReferSys) RemoveReference(cid string, isPin bool) error {
 }
 
 //QueryAllCacheReference query all cache refer record
-func (i *ReferSys) QueryAllCacheReference() (map[string]int64, error) {
+func (i *ReferSys) QueryAllCacheReference() ([]string, error) {
 	i.cacheMu.RLock()
 	defer i.cacheMu.RUnlock()
 	all, err := i.DB.ReadAll(dagPoolReferCache)
 	if err != nil {
 		return nil, err
 	}
-	var m = make(map[string]int64)
+	var m []string
 	for k, v := range all {
-		m[k], _ = strconv.ParseInt(v, 10, 64)
+		tmp, _ := strconv.ParseInt(v, 10, 64)
+
+		if time.Now().After(time.Unix(tmp, 0).Add(gcExpiredTime)) {
+			m = append(m, strings.Split(k, "/")[1])
+		}
+
 	}
 	return m, nil
 }
@@ -138,21 +148,27 @@ func (i *ReferSys) QueryAllStoreNonRefer() ([]string, error) {
 	var m []string
 	for k, v := range all {
 		if v == "0" {
-			m = append(m, k)
+			m = append(m, strings.Split(k, "/")[1])
 		}
 	}
 	return m, nil
 }
 
 //RemoveRecord remove record in db
-func (i *ReferSys) RemoveRecord(c string) error {
+func (i *ReferSys) RemoveRecord(cids []string, pin bool) error {
 	i.cacheMu.Lock()
 	defer i.cacheMu.Unlock()
-
-	err := i.DB.Delete(c)
-	if err != nil {
-		return err
+	var path = dagPoolReferCache
+	if pin {
+		path = dagPoolReferPin
 	}
+	for _, c := range cids {
+		err := i.DB.Delete(path + c)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
