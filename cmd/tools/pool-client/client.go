@@ -71,7 +71,7 @@ var addBlock = &cli.Command{
 			log.Errorf("add block err:%v", err)
 			return err
 		}
-		log.Infof("add block succes cid:%v", add.Cid)
+		log.Infof("add block success cid:%v", add.Cid)
 		return nil
 	},
 }
@@ -135,7 +135,7 @@ var getBlock = &cli.Command{
 			log.Errorf("get block err:%v", err)
 			return err
 		}
-		log.Infof("get block succes block:%v", get.Block)
+		log.Infof("get block success block:%v", get.Block)
 		return nil
 	},
 }
@@ -298,7 +298,7 @@ var addUser = &cli.Command{
 			log.Errorf("add user err:%v", err)
 			return err
 		}
-		log.Infof("add user succes %v", add.Message)
+		log.Infof("add user success %v", add.Message)
 		return nil
 	},
 }
@@ -363,7 +363,7 @@ var removeUser = &cli.Command{
 			log.Errorf("remove user err:%v", err)
 			return err
 		}
-		log.Infof("remove user succes %v", re.Message)
+		log.Infof("remove user success %v", re.Message)
 		return nil
 	},
 }
@@ -526,7 +526,7 @@ var updateUser = &cli.Command{
 			log.Errorf("update user err:%v", err)
 			return err
 		}
-		log.Infof("update user succes %v", re.Message)
+		log.Infof("update user success %v", re.Message)
 		return nil
 	},
 }
