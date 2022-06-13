@@ -17,6 +17,7 @@ import (
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
+	"golang.org/x/xerrors"
 	"sync"
 )
 
@@ -27,7 +28,7 @@ var _ pool.DagPool = &dagPoolService{}
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
 	dagNodes   map[string]*node.DagNode
-	iam        dagpooluser.IdentityUserSys
+	iam        *dagpooluser.IdentityUserSys
 	gcl        sync.Mutex
 	refer      *referencecount.ReferSys
 	cidBuilder cid.Builder
@@ -54,7 +55,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	if err != nil {
 		return nil, err
 	}
-	i, err := dagpooluser.NewIdentityUserSys(db, cfg.DefaultUser, cfg.DefaultPass)
+	i, err := dagpooluser.NewIdentityUserSys(db, cfg.RootUser, cfg.RootPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -85,9 +86,9 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 }
 
 // Add adds a node to the dagPoolService, storing the block in the BlockService
-func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, pin bool) error {
-	if d == nil { // FIXME remove this assertion. protect with constructor invariant
-		return fmt.Errorf("Pool is nil")
+func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user string, password string) error {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
 	}
 	d.gcl.Lock()
 	defer d.gcl.Unlock()
@@ -101,7 +102,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, pin bool) 
 			return err
 		}
 	}
-	err := d.refer.AddReference(block.Cid().String(), pin)
+	err := d.refer.AddReference(block.Cid().String(), d.NeedPin(user))
 	if err != nil {
 		return err
 	}
@@ -109,9 +110,9 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, pin bool) 
 }
 
 // Get retrieves a node from the dagPoolService, fetching the block in the BlockService
-func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, pin bool) (blocks.Block, error) {
-	if d == nil {
-		return nil, fmt.Errorf("Pool is nil")
+func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error) {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
+		return nil, userpolicy.AccessDenied
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -134,12 +135,12 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, pin bool) (blocks.B
 }
 
 //Remove remove block from dagpool
-func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, pin bool) error {
-	if d == nil { // FIXME remove this assertion. protect with constructor invariant
-		return fmt.Errorf("Pool is nil")
+func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
+		return userpolicy.AccessDenied
 	}
 	if d.refer.HasReference(c.String()) {
-		err := d.refer.RemoveReference(c.String(), pin)
+		err := d.refer.RemoveReference(c.String(), d.NeedPin(user))
 		if err != nil {
 			return err
 		}
@@ -178,29 +179,69 @@ func (d *dagPoolService) DataRepairDisk(ctx context.Context, ip, port string) er
 	return dagNode.RepairDisk(ip, port)
 }
 
-func (d *dagPoolService) CheckDeal(user, pass string) bool {
-	return d.iam.CheckDeal(user, pass)
+func (d *dagPoolService) AddUser(newUser dagpooluser.DagPoolUser, user string, password string) error {
+	if !d.iam.CheckAdmin(user, password) {
+		return userpolicy.AccessDenied
+	}
+	if d.iam.IsAdmin(newUser.Username) {
+		return xerrors.New("the user already exists")
+	}
+	if _, err := d.iam.QueryUser(newUser.Username); err == nil {
+		return xerrors.New("the user already exists")
+	}
+	return d.iam.AddUser(newUser)
 }
 
-func (d *dagPoolService) AddUser(user dagpooluser.DagPoolUser) error {
-	return d.iam.AddUser(user)
+func (d *dagPoolService) RemoveUser(rmUser string, user string, password string) error {
+	if !d.iam.CheckAdmin(user, password) {
+		return userpolicy.AccessDenied
+	}
+	if d.iam.IsAdmin(rmUser) {
+		return xerrors.New("refuse to remove the admin user")
+	}
+	return d.iam.RemoveUser(rmUser)
 }
 
-func (d *dagPoolService) RemoveUser(username string) error {
-	return d.iam.RemoveUser(username)
+func (d *dagPoolService) QueryUser(qUser string, user string, password string) (*dagpooluser.DagPoolUser, error) {
+	if !d.iam.CheckUser(user, password) {
+		return nil, userpolicy.AccessDenied
+	}
+	if d.iam.IsAdmin(user) {
+		return d.iam.QueryUser(qUser)
+	}
+	// only query self config
+	if qUser != user {
+		return nil, userpolicy.AccessDenied
+	}
+	return d.iam.QueryUser(qUser)
 }
 
-func (d *dagPoolService) QueryUser(username string) (dagpooluser.DagPoolUser, error) {
-	return d.iam.QueryUser(username)
+func (d *dagPoolService) UpdateUser(uUser dagpooluser.DagPoolUser, user string, password string) error {
+	if !d.iam.CheckAdmin(user, password) {
+		return userpolicy.AccessDenied
+	}
+	if d.iam.IsAdmin(uUser.Username) {
+		return xerrors.New("refuse to update the admin user")
+	}
+	u, err := d.iam.QueryUser(uUser.Username)
+	if err != nil {
+		return xerrors.New("not found the user")
+	}
+	if uUser.Password != "" {
+		u.Password = uUser.Password
+	}
+	if uUser.Policy != "" {
+		u.Policy = uUser.Policy
+	}
+	if uUser.Capacity != 0 {
+		u.Capacity = uUser.Capacity
+	}
+	return d.iam.UpdateUser(*u)
 }
 
-func (d *dagPoolService) UpdateUser(u dagpooluser.DagPoolUser) error {
-	return d.iam.UpdateUser(u)
-}
-
-func (d *dagPoolService) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
-	return d.iam.CheckUserPolicy(username, pass, policy)
-}
+//func (d *dagPoolService) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
+//	return d.iam.CheckUserPolicy(username, pass, policy)
+//}
 
 func (d *dagPoolService) Close() error {
 	return d.db.Close()

@@ -36,7 +36,7 @@ func (s *DagPoolServer) Get(ctx context.Context, in *proto.GetReq) (*proto.GetRe
 	if err != nil {
 		return &proto.GetReply{Block: nil}, err
 	}
-	get, err := s.DagPool.Get(ctx, cid, s.DagPool.NeedPin(in.User.User))
+	get, err := s.DagPool.Get(ctx, cid, in.User.User, in.User.Password)
 	if err != nil {
 		return &proto.GetReply{Block: nil}, err
 	}
@@ -47,16 +47,13 @@ func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto
 	if err != nil {
 		return &proto.RemoveReply{Message: ""}, err
 	}
-	err = s.DagPool.Remove(ctx, c, s.DagPool.NeedPin(in.User.Username))
+	err = s.DagPool.Remove(ctx, c, in.User.User, in.User.Password)
 	if err != nil {
 		return &proto.RemoveReply{Message: ""}, err
 	}
 	return &proto.RemoveReply{Message: c.String()}, nil
 }
 func (s *DagPoolServer) AddUser(ctx context.Context, in *proto.AddUserReq) (*proto.AddUserReply, error) {
-	if !dagpooluser.CheckAddUser(in.User.Username, in.User.Pass) {
-		return &proto.AddUserReply{Message: "you can not add user"}, xerrors.Errorf("you can not add user")
-	}
 	if !userpolicy.CheckValid(in.Policy) {
 		return &proto.AddUserReply{Message: policyNotRight}, xerrors.Errorf(policyNotRight)
 	}
@@ -108,9 +105,9 @@ func (s *DagPoolServer) UpdateUser(ctx context.Context, in *proto.UpdateUserReq)
 	return &proto.UpdateUserReply{Message: "ok"}, nil
 }
 func (s *DagPoolServer) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinReply, error) {
-error	if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
-		return &proto.PinReply{Message: ""}, userpolicy.AccessDenied
-	}
+	//if !s.DagPool.CheckUserPolicy(in.User.Username, in.User.Pass, userpolicy.OnlyWrite) {
+	//	return &proto.PinReply{Message: ""}, userpolicy.AccessDenied
+	//}
 	c, err := cid.Decode(in.Cid)
 	if err != nil {
 		return &proto.PinReply{Message: ""}, err
