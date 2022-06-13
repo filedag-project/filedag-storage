@@ -12,20 +12,18 @@ import (
 	"os"
 )
 
-//go run -tags example main.go getuser --addr=127.0.0.1:50001 --client-user=dagpool --client-pass=dagpool --username=wpg --pass=wpg12345
+//go run -tags example main.go getuser --addr=127.0.0.1:50001 --pool-user=test --pool-pass=test123
 
 func main() {
-	var addr, clientuser, clientpass, username, pass string
+	var addr, clientuser, clientpass string
 	f := flag.NewFlagSet("getuser", flag.ExitOnError)
 	f.StringVar(&addr, "addr", "", "the addr of dagpool server eg.127.0.0.1:50001")
-	f.StringVar(&clientuser, "client-user", "", "the client user")
-	f.StringVar(&clientpass, "client-pass", "", "the client user pass")
-	f.StringVar(&username, "username", "", "the username")
-	f.StringVar(&pass, "pass", "", "the password")
+	f.StringVar(&clientuser, "pool-user", "", "the pool user")
+	f.StringVar(&clientpass, "pool-pass", "", "the pool user pass")
 	switch os.Args[1] {
 	case "getuser":
 		f.Parse(os.Args[2:])
-		err := getuser(addr, clientuser, clientpass, username, pass)
+		err := getuser(addr, clientuser, clientpass)
 		if err != nil {
 			fmt.Printf("get user err %v", err)
 			return
@@ -36,15 +34,18 @@ func main() {
 	}
 }
 
-func getuser(addr string, clientuser string, clientpass string, username string, pass string) error {
+func getuser(addr string, clientuser string, clientpass string) error {
 	poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
 	if err != nil {
 		fmt.Printf("NewPoolClient err:%v", err)
 		return err
 	}
 	re, err := poolClient.DPClient.QueryUser(context.TODO(), &proto.QueryUserReq{
-		Username: username,
-		Password: pass,
+		User: &proto.PoolUser{
+			User:     clientuser,
+			Password: clientpass,
+		},
+		Username: clientuser,
 	})
 	if err != nil {
 		fmt.Printf("get user err:%v", err)

@@ -9,7 +9,7 @@ import (
 )
 
 func TestRecovery_host(t *testing.T) {
-	var nc config.NodeConfig
+	var nc config.DagNodeConfig
 	file, err := ioutil.ReadFile("./node_config2.json")
 	if err != nil {
 

@@ -6,15 +6,12 @@ import (
 )
 
 type IdentityUserSys struct {
-	DB *uleveldb.ULevelDB
+	DB           *uleveldb.ULevelDB
+	rootUser     string
+	rootPassword string
 }
 
 const dagPoolUser = "dagPoolUser/"
-
-var (
-	defaultUser = ""
-	defaultPass = ""
-)
 
 type DagPoolUser struct {
 	Username string
@@ -23,10 +20,18 @@ type DagPoolUser struct {
 	Capacity uint64
 }
 
-func CheckAddUser(user, pass string) bool {
-	return defaultUser == user && defaultPass == pass
+func (i *IdentityUserSys) CheckAdmin(user, pass string) bool {
+	return i.rootUser == user && i.rootPassword == pass
 }
-func (i *IdentityUserSys) CheckDeal(user, pass string) bool {
+
+func (i *IdentityUserSys) IsAdmin(user string) bool {
+	return i.rootUser == user
+}
+
+func (i *IdentityUserSys) CheckUser(user, pass string) bool {
+	if i.CheckAdmin(user, pass) {
+		return true
+	}
 	queryUser, err := i.QueryUser(user)
 	if err != nil {
 		return false
@@ -56,13 +61,13 @@ func (i *IdentityUserSys) RemoveUser(username string) error {
 }
 
 // QueryUser query user
-func (i *IdentityUserSys) QueryUser(username string) (DagPoolUser, error) {
+func (i *IdentityUserSys) QueryUser(username string) (*DagPoolUser, error) {
 	var u DagPoolUser
 	err := i.DB.Get(dagPoolUser+username, &u)
 	if err != nil {
-		return u, err
+		return nil, err
 	}
-	return u, nil
+	return &u, nil
 }
 
 // UpdateUser Update user
@@ -74,6 +79,9 @@ func (i *IdentityUserSys) UpdateUser(u DagPoolUser) error {
 	return nil
 }
 func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
+	if i.CheckAdmin(username, pass) {
+		return true
+	}
 	user, err := i.QueryUser(username)
 	if err != nil {
 		return false
@@ -86,8 +94,10 @@ func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy userpoli
 	}
 	return true
 }
-func NewIdentityUserSys(db *uleveldb.ULevelDB, user, pass string) (IdentityUserSys, error) {
-	defaultUser = user
-	defaultPass = pass
-	return IdentityUserSys{db}, nil
+func NewIdentityUserSys(db *uleveldb.ULevelDB, rootUser, rootPassword string) (*IdentityUserSys, error) {
+	return &IdentityUserSys{
+		DB:           db,
+		rootUser:     rootUser,
+		rootPassword: rootPassword,
+	}, nil
 }

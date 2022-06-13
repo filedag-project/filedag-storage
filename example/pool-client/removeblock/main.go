@@ -49,6 +49,6 @@ func remove(addr string, clientuser string, clientpass string, cid string) error
 		fmt.Printf("remove block err:%v", err)
 		return err
 	}
-	fmt.Printf("remove block succes:%v", re.Message)
+	fmt.Printf("remove block success:%v", re.Message)
 	return nil
 }

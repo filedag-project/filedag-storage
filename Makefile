@@ -17,7 +17,7 @@ objectstore:
 	go build -ldflags "-s -w" -o ${OBJECTSTORE_TARGET} ./cmd/objectstore
 
 iamtools:
-	go build -ldflags "-s -w" -o ${IAMTOOLS_TARGET} ./cmd/iam-tools
+	go build -ldflags "-s -w" -o ${IAMTOOLS_TARGET} ./cmd/tools/iam-tools
 
 .PHONY: clean
 clean:

@@ -35,7 +35,7 @@ type DataNode struct {
 	Port        string
 }
 
-func NewDagNode(cfg config.NodeConfig) (*DagNode, error) {
+func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	var s []DataNode
 	for _, c := range cfg.Nodes {
 		dateNode := new(DataNode)
