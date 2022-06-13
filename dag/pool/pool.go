@@ -213,6 +213,13 @@ func (d *Pool) QueryUser(qUser string, user string, password string) (*dagpoolus
 	if !d.iam.CheckUser(user, password) {
 		return nil, userpolicy.AccessDenied
 	}
+	if d.iam.IsAdmin(user) {
+		return d.iam.QueryUser(qUser)
+	}
+	// only query self config
+	if qUser != user {
+		return nil, userpolicy.AccessDenied
+	}
 	return d.iam.QueryUser(qUser)
 }
 

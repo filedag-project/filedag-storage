@@ -10,6 +10,7 @@ func main() {
 	logging.SetLogLevel("*", "INFO")
 	local := []*cli.Command{
 		startCmd,
+		authCmd,
 	}
 	app := &cli.App{
 		Name:                 "dagpool",

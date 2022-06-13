@@ -113,3 +113,41 @@ func (p *DagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 func (p *DagPoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	return xerrors.Errorf("implement me")
 }
+
+func (p *DagPoolClient) AddUser(ctx context.Context, username string, password string, capacity uint64, policy string) error {
+	_, err := p.DPClient.AddUser(ctx, &proto.AddUserReq{
+		Username: username,
+		Password: password,
+		Capacity: capacity,
+		Policy:   policy,
+		User:     p.User,
+	})
+	return err
+}
+
+func (p *DagPoolClient) QueryUser(ctx context.Context, username string) (*proto.QueryUserReply, error) {
+	reply, err := p.DPClient.QueryUser(ctx, &proto.QueryUserReq{
+		Username: username,
+		User:     p.User,
+	})
+	return reply, err
+}
+
+func (p *DagPoolClient) UpdateUser(ctx context.Context, username string, newPassword string, newCapacity uint64, newPolicy string) error {
+	_, err := p.DPClient.UpdateUser(ctx, &proto.UpdateUserReq{
+		Username:    username,
+		NewPassword: newPassword,
+		NewCapacity: newCapacity,
+		NewPolicy:   newPolicy,
+		User:        p.User,
+	})
+	return err
+}
+
+func (p *DagPoolClient) RemoveUser(ctx context.Context, username string) error {
+	_, err := p.DPClient.RemoveUser(ctx, &proto.RemoveUserReq{
+		Username: username,
+		User:     p.User,
+	})
+	return err
+}
