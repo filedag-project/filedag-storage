@@ -6,8 +6,8 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid) error {
-	if !d.iam.CheckUserPolicy("", "", userpolicy.OnlyRead) {
+func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid, user string, password string) error {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
 		return userpolicy.AccessDenied
 	}
 	links, err := d.GetLinks(ctx, c)
@@ -27,8 +27,8 @@ func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid) error {
 	return nil
 }
 
-func (d *dagPoolService) UnPin(ctx context.Context, c cid.Cid) error {
-	if !d.iam.CheckUserPolicy("", "", userpolicy.OnlyRead) {
+func (d *dagPoolService) UnPin(ctx context.Context, c cid.Cid, user string, password string) error {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
 		return userpolicy.AccessDenied
 	}
 	links, err := d.GetLinks(ctx, c)

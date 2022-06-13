@@ -112,7 +112,7 @@ func (s *DagPoolServer) Pin(ctx context.Context, in *proto.PinReq) (*proto.PinRe
 	if err != nil {
 		return &proto.PinReply{Message: ""}, err
 	}
-	err = s.DagPool.Pin(ctx, c)
+	err = s.DagPool.Pin(ctx, c, in.User.User, in.User.Password)
 	if err != nil {
 		return &proto.PinReply{Message: ""}, err
 	}
@@ -127,7 +127,7 @@ func (s *DagPoolServer) UnPin(ctx context.Context, in *proto.UnPinReq) (*proto.U
 	if err != nil {
 		return &proto.UnPinReply{Message: ""}, err
 	}
-	err = s.DagPool.UnPin(ctx, c)
+	err = s.DagPool.UnPin(ctx, c, in.User.User, in.User.Password)
 	if err != nil {
 		return &proto.UnPinReply{Message: ""}, err
 	}
