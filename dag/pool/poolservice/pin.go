@@ -2,10 +2,14 @@ package poolservice
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
 	"github.com/ipfs/go-cid"
 )
 
 func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid) error {
+	if !d.iam.CheckUserPolicy("", "", userpolicy.OnlyRead) {
+		return userpolicy.AccessDenied
+	}
 	links, err := d.GetLinks(ctx, c)
 	if err != nil {
 		return err
@@ -24,6 +28,9 @@ func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid) error {
 }
 
 func (d *dagPoolService) UnPin(ctx context.Context, c cid.Cid) error {
+	if !d.iam.CheckUserPolicy("", "", userpolicy.OnlyRead) {
+		return userpolicy.AccessDenied
+	}
 	links, err := d.GetLinks(ctx, c)
 	if err != nil {
 		return err
