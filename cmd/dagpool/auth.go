@@ -12,16 +12,16 @@ var authCmd = &cli.Command{
 	Name:  "auth",
 	Usage: "manage dagpool user permissions",
 	Subcommands: []*cli.Command{
-		addUser,
-		removeUser,
-		getUser,
+		createUser,
+		queryUser,
 		updateUser,
+		removeUser,
 	},
 }
 
-var addUser = &cli.Command{
-	Name:  "add",
-	Usage: "add a user for dagpool",
+var createUser = &cli.Command{
+	Name:  "create",
+	Usage: "create a new user for dagpool",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
@@ -93,9 +93,9 @@ var addUser = &cli.Command{
 	},
 }
 
-var getUser = &cli.Command{
-	Name:  "get",
-	Usage: "get the user config from dagpool",
+var queryUser = &cli.Command{
+	Name:  "query",
+	Usage: "query the user config from dagpool",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
@@ -174,7 +174,7 @@ var updateUser = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "set the username ",
+			Usage: "set the username to update",
 		},
 		&cli.StringFlag{
 			Name:  "new-password",

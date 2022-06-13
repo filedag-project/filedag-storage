@@ -49,6 +49,6 @@ func removeuser(addr string, clientuser string, clientpass string, username stri
 		fmt.Printf("remove user err:%v", err)
 		return err
 	}
-	fmt.Printf("remove user:%v succes %v", username, re.Message)
+	fmt.Printf("remove user:%v success %v", username, re.Message)
 	return nil
 }
