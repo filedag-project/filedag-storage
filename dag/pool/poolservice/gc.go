@@ -5,21 +5,45 @@ import (
 	"time"
 )
 
-//todo as commandline param
-const gcExpiredTime = time.Minute
-const gcTime = time.Second * 10
-const gcUnPinTime = time.Second * 15
+//Gc is a goroutine to do GC
+func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
+	duration, err := time.ParseDuration(gcPeriod)
+	if err != nil {
+		return err
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			log.Warnf("ctx done")
+			return nil
+		case <-time.After(duration):
+			d.gcl.Lock()
+			//time.Sleep(time.Second * 5)
+			if err := d.runGC(ctx); err != nil {
+				d.gcl.Unlock()
+				log.Error(err)
+			} else {
+				d.gcl.Unlock()
+			}
+		}
+	}
+}
 
-func (d *dagPoolService) Gc(ctx context.Context) error {
+//UnPinGc is a goroutine to do UnPin GC
+func (d *dagPoolService) UnPinGc(ctx context.Context, gcPeriod string) error {
+	duration, err := time.ParseDuration(gcPeriod)
+	if err != nil {
+		return err
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			log.Warnf("ctx done")
 			return nil
-		case <-time.After(gcTime):
+		case <-time.After(duration):
 			d.gcl.Lock()
 			//time.Sleep(time.Second * 5)
-			if err := d.RunGC(ctx); err != nil {
+			if err := d.runUnpinGC(ctx); err != nil {
 				d.gcl.Unlock()
 				log.Error(err)
 			} else {
@@ -28,25 +52,7 @@ func (d *dagPoolService) Gc(ctx context.Context) error {
 		}
 	}
 }
-func (d *dagPoolService) UnPinGc(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			log.Warnf("ctx done")
-			return nil
-		case <-time.After(gcUnPinTime):
-			d.gcl.Lock()
-			//time.Sleep(time.Second * 5)
-			if err := d.RunUnpinGC(ctx); err != nil {
-				d.gcl.Unlock()
-				log.Error(err)
-			} else {
-				d.gcl.Unlock()
-			}
-		}
-	}
-}
-func (d *dagPoolService) RunUnpinGC(ctx context.Context) error {
+func (d *dagPoolService) runUnpinGC(ctx context.Context) error {
 	log.Warnf("RunUnpinGC")
 	needGCCids, err := d.refer.QueryAllStoreNonRefer()
 	if err != nil {
@@ -71,7 +77,7 @@ func (d *dagPoolService) RunUnpinGC(ctx context.Context) error {
 	return nil
 }
 
-func (d *dagPoolService) RunGC(ctx context.Context) error {
+func (d *dagPoolService) runGC(ctx context.Context) error {
 	needGCCids, err := d.refer.QueryAllCacheReference()
 	if err != nil {
 		return err

@@ -12,6 +12,7 @@ import (
 const UnixfsLinksPerLevel = 1 << 10
 const UnixfsChunkSize uint64 = 1 << 20
 
+//BalanceNode split the file and store it in DAGService as node
 func BalanceNode(f io.Reader, bufDs ipld.DAGService, cidBuilder cid.Builder) (node ipld.Node, err error) {
 	params := h.DagBuilderParams{
 		Maxlinks:   UnixfsLinksPerLevel,

@@ -57,6 +57,11 @@ var startCmd = &cli.Command{
 			EnvVars: []string{EnvRootPassword},
 			Value:   "dagpool",
 		},
+		&cli.StringFlag{
+			Name:  "gc-period",
+			Usage: "set gc period,such as 300ms, -1.5h or 2h45m",
+			Value: "12",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		cfg, err := loadPoolConfig(cctx)
@@ -92,10 +97,10 @@ func startDagPoolServer(cfg config.PoolConfig) {
 		}
 	}()
 	go func() {
-		service.Gc(context.TODO())
+		service.Gc(context.TODO(), cfg.GcPeriod)
 	}()
 	go func() {
-		service.UnPinGc(context.TODO())
+		service.UnPinGc(context.TODO(), cfg.GcPeriod)
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server.
@@ -125,6 +130,7 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 		return config.PoolConfig{}, errors.New("root param is invalid")
 	}
 	cfg.RootPassword = cctx.String("root-password")
+	cfg.GcPeriod = cctx.String("gc-period")
 	nodeConfigPath := cctx.String("config")
 
 	var nodeConfigs []config.DagNodeConfig

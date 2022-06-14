@@ -14,12 +14,13 @@ import (
 
 var log = logging.Logger("pool-client")
 
-var _ format.DAGService = &DagPoolClient{}
-var _ PoolClient = &DagPoolClient{}
-var _ DataPin = &DagPoolClient{}
+var _ format.DAGService = &dagPoolClient{}
+var _ PoolClient = &dagPoolClient{}
+var _ DataPin = &dagPoolClient{}
 
 //go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient,DataPin
 
+//PoolClient is a DAGService interface
 type PoolClient interface {
 	Close(ctx context.Context)
 	Get(ctx context.Context, cid cid.Cid) (format.Node, error)
@@ -29,26 +30,29 @@ type PoolClient interface {
 	GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption
 	RemoveMany(ctx context.Context, cids []cid.Cid) error
 }
+
+//DataPin is a pin interface
 type DataPin interface {
 	Pin(ctx context.Context, cid cid.Cid) error
 	UnPin(ctx context.Context, cid cid.Cid) error
 	IsPin(ctx context.Context, cid cid.Cid) (bool, error)
 }
 
-type DagPoolClient struct {
+type dagPoolClient struct {
 	DPClient proto.DagPoolClient
 	Conn     *grpc.ClientConn
 	User     *proto.PoolUser
 }
 
-func NewPoolClient(addr, user, password string) (*DagPoolClient, error) {
+//NewPoolClient new a dagPoolClient
+func NewPoolClient(addr, user, password string) (*dagPoolClient, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		log.Errorf("did not connect: %v", err)
 		return nil, err
 	}
 	c := proto.NewDagPoolClient(conn)
-	return &DagPoolClient{
+	return &dagPoolClient{
 		DPClient: c,
 		Conn:     conn,
 		User: &proto.PoolUser{
@@ -58,11 +62,11 @@ func NewPoolClient(addr, user, password string) (*DagPoolClient, error) {
 	}, nil
 }
 
-func (p *DagPoolClient) Close(ctx context.Context) {
+func (p *dagPoolClient) Close(ctx context.Context) {
 	p.Conn.Close()
 }
 
-func (p *DagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
+func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
 	log.Infof(cid.String())
 	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
 	if err != nil {
@@ -71,7 +75,7 @@ func (p *DagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, erro
 	return legacy.DecodeNode(ctx, blocks.NewBlock(get.Block))
 }
 
-func (p *DagPoolClient) Add(ctx context.Context, node format.Node) error {
+func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
 	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.User})
 	if err != nil {
 		return err
@@ -79,7 +83,7 @@ func (p *DagPoolClient) Add(ctx context.Context, node format.Node) error {
 	return nil
 }
 
-func (p *DagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
+func (p *dagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
 		Cid:  cid.String(),
 		User: p.User})
@@ -90,11 +94,11 @@ func (p *DagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
-func (p *DagPoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
+func (p *dagPoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
 	return xerrors.Errorf("implement me")
 }
 
-func (p *DagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
+func (p *dagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
 	out := make(chan *format.NodeOption, len(cids))
 	defer close(out)
 	for _, c := range cids {
@@ -116,11 +120,11 @@ func (p *DagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 	return out
 }
 
-func (p *DagPoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
+func (p *dagPoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	return xerrors.Errorf("implement me")
 }
 
-func (p *DagPoolClient) AddUser(ctx context.Context, username string, password string, capacity uint64, policy string) error {
+func (p *dagPoolClient) AddUser(ctx context.Context, username string, password string, capacity uint64, policy string) error {
 	_, err := p.DPClient.AddUser(ctx, &proto.AddUserReq{
 		Username: username,
 		Password: password,
@@ -131,7 +135,7 @@ func (p *DagPoolClient) AddUser(ctx context.Context, username string, password s
 	return err
 }
 
-func (p *DagPoolClient) QueryUser(ctx context.Context, username string) (*proto.QueryUserReply, error) {
+func (p *dagPoolClient) QueryUser(ctx context.Context, username string) (*proto.QueryUserReply, error) {
 	reply, err := p.DPClient.QueryUser(ctx, &proto.QueryUserReq{
 		Username: username,
 		User:     p.User,
@@ -139,7 +143,7 @@ func (p *DagPoolClient) QueryUser(ctx context.Context, username string) (*proto.
 	return reply, err
 }
 
-func (p *DagPoolClient) UpdateUser(ctx context.Context, username string, newPassword string, newCapacity uint64, newPolicy string) error {
+func (p *dagPoolClient) UpdateUser(ctx context.Context, username string, newPassword string, newCapacity uint64, newPolicy string) error {
 	_, err := p.DPClient.UpdateUser(ctx, &proto.UpdateUserReq{
 		Username:    username,
 		NewPassword: newPassword,
@@ -150,7 +154,7 @@ func (p *DagPoolClient) UpdateUser(ctx context.Context, username string, newPass
 	return err
 }
 
-func (p *DagPoolClient) RemoveUser(ctx context.Context, username string) error {
+func (p *dagPoolClient) RemoveUser(ctx context.Context, username string) error {
 	_, err := p.DPClient.RemoveUser(ctx, &proto.RemoveUserReq{
 		Username: username,
 		User:     p.User,
@@ -158,7 +162,7 @@ func (p *DagPoolClient) RemoveUser(ctx context.Context, username string) error {
 	return err
 }
 
-func (p DagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
+func (p dagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Pin(ctx, &proto.PinReq{
 		Cid:  cid.String(),
 		User: p.User})
@@ -169,7 +173,7 @@ func (p DagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
-func (p DagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
+func (p dagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.UnPin(ctx, &proto.UnPinReq{
 		Cid:  cid.String(),
 		User: p.User})
@@ -180,7 +184,7 @@ func (p DagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
-func (p DagPoolClient) IsPin(ctx context.Context, cid cid.Cid) (bool, error) {
+func (p dagPoolClient) IsPin(ctx context.Context, cid cid.Cid) (bool, error) {
 	reply, err := p.DPClient.IsPin(ctx, &proto.IsPinReq{
 		Cid:  cid.String(),
 		User: p.User})

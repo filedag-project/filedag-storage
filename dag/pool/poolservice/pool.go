@@ -44,8 +44,7 @@ func (d *dagPoolService) NeedPin(username string) bool {
 	return false
 }
 
-// NewDagPoolService constructs a new DAGService (using the default implementation).
-// Note that the default implementation is also an ipld.LinkGetter.
+// NewDagPoolService constructs a new DAGPool (using the default implementation).
 func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	if err != nil {
@@ -134,7 +133,7 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 	return b, nil
 }
 
-//Remove remove block from dagpool
+//Remove remove block from DAGPool
 func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
 	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
 		return userpolicy.AccessDenied
@@ -179,6 +178,7 @@ func (d *dagPoolService) DataRepairDisk(ctx context.Context, ip, port string) er
 	return dagNode.RepairDisk(ip, port)
 }
 
+//AddUser add a user
 func (d *dagPoolService) AddUser(newUser dagpooluser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return userpolicy.AccessDenied
@@ -192,6 +192,7 @@ func (d *dagPoolService) AddUser(newUser dagpooluser.DagPoolUser, user string, p
 	return d.iam.AddUser(newUser)
 }
 
+//RemoveUser remove the user
 func (d *dagPoolService) RemoveUser(rmUser string, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return userpolicy.AccessDenied
@@ -202,6 +203,7 @@ func (d *dagPoolService) RemoveUser(rmUser string, user string, password string)
 	return d.iam.RemoveUser(rmUser)
 }
 
+//QueryUser query the user
 func (d *dagPoolService) QueryUser(qUser string, user string, password string) (*dagpooluser.DagPoolUser, error) {
 	if !d.iam.CheckUser(user, password) {
 		return nil, userpolicy.AccessDenied
@@ -216,6 +218,7 @@ func (d *dagPoolService) QueryUser(qUser string, user string, password string) (
 	return d.iam.QueryUser(qUser)
 }
 
+//UpdateUser update the user
 func (d *dagPoolService) UpdateUser(uUser dagpooluser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return userpolicy.AccessDenied
@@ -243,10 +246,12 @@ func (d *dagPoolService) UpdateUser(uUser dagpooluser.DagPoolUser, user string, 
 //	return d.iam.CheckUserPolicy(username, pass, policy)
 //}
 
+//Close the dagPoolService
 func (d *dagPoolService) Close() error {
 	return d.db.Close()
 }
 
+//GetLinks get links from DAGPool
 func (d *dagPoolService) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Link, error) {
 	if d == nil {
 		return nil, fmt.Errorf("Pool is nil")
