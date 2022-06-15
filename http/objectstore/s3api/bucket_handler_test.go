@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
@@ -50,11 +51,12 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	return w
 }
 func TestS3ApiServer_PinHandler(t *testing.T) {
-	bucketName := "testbucketput"
-	objectName := "objecttest"
+	bucketName := "/testbucketput"
+	objectName := "/objecttest"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
 		bucketName string
+		objectName string
 		accessKey  string
 		secretKey  string
 		// expected output.
@@ -63,17 +65,25 @@ func TestS3ApiServer_PinHandler(t *testing.T) {
 		// Test case - 1.
 		// Fetching the entire Bucket and validating its contents.
 		{
-			bucketName:         bucketName,
+			bucketName:         "testbucketput",
+			objectName:         "objecttest",
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusOK,
 		},
 	}
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	a := reqTest(reqPutBucket)
+	fmt.Println("putbucket:", a.Code)
+	r1 := "1234567"
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// Add test case specific headers to the request.
+	reqTest(reqputObject)
 	// Iterating over the cases, fetching the object validating the response.
-	url := "http://127.0.0.1:9985/pin"
+	url := "/pin"
 	for i, testCase := range testCases {
 		// mock an HTTP request
-		reqPinBucket := utils.MustNewSignedV4Request(http.MethodPost, url+"?bucket="+bucketName+"&object="+objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqPinBucket := utils.MustNewSignedV4Request(http.MethodPost, url+"?bucket="+testCase.bucketName+"&object="+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		pinresult := reqTest(reqPinBucket)
 		if pinresult.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, pinresult.Code)
