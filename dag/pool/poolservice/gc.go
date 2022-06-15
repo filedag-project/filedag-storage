@@ -25,8 +25,22 @@ func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
 			} else {
 				d.gcl.Unlock()
 			}
+		case <-d.CheckStorage():
+			d.gcl.Lock()
+			//time.Sleep(time.Second * 5)
+			if err := d.runUnpinGC(ctx); err != nil {
+				d.gcl.Unlock()
+				log.Error(err)
+			} else {
+				d.gcl.Unlock()
+			}
 		}
 	}
+}
+
+func (d *dagPoolService) CheckStorage() <-chan int {
+	//todo check storage if reaches the maximum value
+	return nil
 }
 
 //UnPinGc is a goroutine to do UnPin GC
