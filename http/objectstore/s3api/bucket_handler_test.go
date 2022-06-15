@@ -51,8 +51,8 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	return w
 }
 func TestS3ApiServer_PinHandler(t *testing.T) {
-	bucketName := "/testbucketput"
-	objectName := "/objecttest"
+	bucketName := "/testbucketputpin"
+	objectName := "/objecttestpin"
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
 		bucketName string
@@ -65,8 +65,8 @@ func TestS3ApiServer_PinHandler(t *testing.T) {
 		// Test case - 1.
 		// Fetching the entire Bucket and validating its contents.
 		{
-			bucketName:         "testbucketput",
-			objectName:         "objecttest",
+			bucketName:         "testbucketputpin",
+			objectName:         "objecttestpin",
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusOK,
