@@ -27,8 +27,8 @@ func (d *dagPoolService) UseNode(ctx context.Context, c cid.Cid) (*node.DagNode,
 	return d.dagNodes[dn], nil
 }
 
-// GetNodeUseIP get the DagNode
-func (d *dagPoolService) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
+// getNodeUseIP get the DagNode
+func (d *dagPoolService) getNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
 	//todo mul node
 	get, err := d.nrSys.GetNameUseIp(ip)
 	if err != nil {

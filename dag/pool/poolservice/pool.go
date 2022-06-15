@@ -159,7 +159,7 @@ func (d *dagPoolService) DataRepairHost(ctx context.Context, oldIp, newIp, oldPo
 	if d == nil {
 		return fmt.Errorf("Pool is nil")
 	}
-	dagNode, err := d.GetNodeUseIP(ctx, oldIp)
+	dagNode, err := d.getNodeUseIP(ctx, oldIp)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (d *dagPoolService) DataRepairDisk(ctx context.Context, ip, port string) er
 	if d == nil {
 		return fmt.Errorf("Pool is nil")
 	}
-	dagNode, err := d.GetNodeUseIP(ctx, ip)
+	dagNode, err := d.getNodeUseIP(ctx, ip)
 	if err != nil {
 		return err
 	}

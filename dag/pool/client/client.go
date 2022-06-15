@@ -62,10 +62,12 @@ func NewPoolClient(addr, user, password string) (*dagPoolClient, error) {
 	}, nil
 }
 
+//Close  the client
 func (p *dagPoolClient) Close(ctx context.Context) {
 	p.Conn.Close()
 }
 
+//Get get a node by cid
 func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
 	log.Infof(cid.String())
 	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
@@ -75,6 +77,7 @@ func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, erro
 	return legacy.DecodeNode(ctx, blocks.NewBlock(get.Block))
 }
 
+//Add add a node
 func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
 	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.User})
 	if err != nil {
@@ -83,6 +86,7 @@ func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
 	return nil
 }
 
+//Remove remove a node by cid
 func (p *dagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
 		Cid:  cid.String(),
@@ -94,10 +98,12 @@ func (p *dagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
+//AddMany add many nodes
 func (p *dagPoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
 	return xerrors.Errorf("implement me")
 }
 
+//GetMany get many nodes
 func (p *dagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
 	out := make(chan *format.NodeOption, len(cids))
 	defer close(out)
@@ -120,10 +126,12 @@ func (p *dagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *for
 	return out
 }
 
+//RemoveMany remove many nodes
 func (p *dagPoolClient) RemoveMany(ctx context.Context, cids []cid.Cid) error {
 	return xerrors.Errorf("implement me")
 }
 
+//AddUser add a user
 func (p *dagPoolClient) AddUser(ctx context.Context, username string, password string, capacity uint64, policy string) error {
 	_, err := p.DPClient.AddUser(ctx, &proto.AddUserReq{
 		Username: username,
@@ -135,6 +143,7 @@ func (p *dagPoolClient) AddUser(ctx context.Context, username string, password s
 	return err
 }
 
+//QueryUser query user
 func (p *dagPoolClient) QueryUser(ctx context.Context, username string) (*proto.QueryUserReply, error) {
 	reply, err := p.DPClient.QueryUser(ctx, &proto.QueryUserReq{
 		Username: username,
@@ -143,6 +152,7 @@ func (p *dagPoolClient) QueryUser(ctx context.Context, username string) (*proto.
 	return reply, err
 }
 
+//UpdateUser update user
 func (p *dagPoolClient) UpdateUser(ctx context.Context, username string, newPassword string, newCapacity uint64, newPolicy string) error {
 	_, err := p.DPClient.UpdateUser(ctx, &proto.UpdateUserReq{
 		Username:    username,
@@ -154,6 +164,7 @@ func (p *dagPoolClient) UpdateUser(ctx context.Context, username string, newPass
 	return err
 }
 
+//RemoveUser remove a user
 func (p *dagPoolClient) RemoveUser(ctx context.Context, username string) error {
 	_, err := p.DPClient.RemoveUser(ctx, &proto.RemoveUserReq{
 		Username: username,
@@ -162,6 +173,7 @@ func (p *dagPoolClient) RemoveUser(ctx context.Context, username string) error {
 	return err
 }
 
+//Pin pin a node
 func (p dagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Pin(ctx, &proto.PinReq{
 		Cid:  cid.String(),
@@ -173,6 +185,7 @@ func (p dagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
+//UnPin unpin a node
 func (p dagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.UnPin(ctx, &proto.UnPinReq{
 		Cid:  cid.String(),
@@ -184,6 +197,7 @@ func (p dagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
+//IsPin check if the cid is pinned
 func (p dagPoolClient) IsPin(ctx context.Context, cid cid.Cid) (bool, error) {
 	reply, err := p.DPClient.IsPin(ctx, &proto.IsPinReq{
 		Cid:  cid.String(),

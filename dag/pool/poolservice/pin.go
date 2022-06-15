@@ -6,6 +6,7 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
+//Pin the node in the dag pool by the cid
 func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid, user string, password string) error {
 	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
 		return userpolicy.AccessDenied
@@ -27,6 +28,7 @@ func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid, user string, passwo
 	return nil
 }
 
+//UnPin the node in the dag pool by the cid
 func (d *dagPoolService) UnPin(ctx context.Context, c cid.Cid, user string, password string) error {
 	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
 		return userpolicy.AccessDenied
