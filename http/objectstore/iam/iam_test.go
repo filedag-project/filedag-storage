@@ -6,12 +6,11 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
 func TestIdentityAMSys_UserApi(t *testing.T) {
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, _ := uleveldb.OpenDb(t.TempDir())
 	iamSys := NewIdentityAMSys(db)
 	//var accessKey = "test1"
 	//var secretKey = "test12345"

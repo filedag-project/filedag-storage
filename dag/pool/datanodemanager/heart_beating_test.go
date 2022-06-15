@@ -3,7 +3,6 @@ package datanodemanager
 import (
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"strconv"
 	"testing"
@@ -12,12 +11,12 @@ import (
 
 func TestHeart_beating(t *testing.T) {
 	logging.SetLogLevel("*", "DEBUG")
-	db, err := uleveldb.OpenDb(utils.TmpDirPath(t))
+	db, err := uleveldb.OpenDb(t.TempDir())
 	if err != nil {
 		log.Errorf("err %v", err)
 	}
 	r := NewRecordSys(db)
-	go node.MutDataNodeServer(":9010", node.KVBadge, utils.TmpDirPath(t))
+	go node.MutDataNodeServer(":9010", node.KVBadge, t.TempDir())
 	time.Sleep(time.Second)
 	var a []node.DataNode
 	for i := 0; i < 3; i++ {

@@ -22,7 +22,7 @@ var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
 func TestMain(m *testing.M) {
-	db, err := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, err := uleveldb.OpenDb((&testing.T{}).TempDir())
 	if err != nil {
 		println(err)
 		return

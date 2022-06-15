@@ -96,6 +96,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 			log.Errorf("failed to serve: %v", err)
 		}
 	}()
+	ctx, cancel := context.WithCancel(ctx)
 	go func() {
 		err := service.Gc(ctx, cfg.GcPeriod)
 		if err != nil {
@@ -116,6 +117,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	cancel()
 	log.Info("Shutdown Server ...")
 
 	s.GracefulStop()

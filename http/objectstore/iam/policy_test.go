@@ -7,12 +7,11 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
 func TestPolicySys_IsAllowed(t *testing.T) {
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, _ := uleveldb.OpenDb(t.TempDir())
 	iamSys := NewIdentityAMSys(db)
 	//poli := NewIPolicySys(db)
 	initSys()

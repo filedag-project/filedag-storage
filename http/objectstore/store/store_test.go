@@ -12,10 +12,10 @@ import (
 )
 
 func TestStorageSys_Object(t *testing.T) {
-	poolCli, done := utils.NewMockPoolClient(&testing.T{})
+	poolCli, done := utils.NewMockPoolClient(t)
 	defer done()
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	pinCli, done := utils.NewMockPinClient(&testing.T{})
+	db, _ := uleveldb.OpenDb(t.TempDir())
+	pinCli, done := utils.NewMockPinClient(t)
 	defer done()
 	s := NewStorageSys(poolCli, pinCli, db)
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
@@ -43,7 +43,7 @@ func TestStorageSys_Object(t *testing.T) {
 func TestStorageSys_Pin(t *testing.T) {
 
 	poolCli, err := client.NewPoolClient("127.0.0.1:9985", "pool", "pool123")
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, _ := uleveldb.OpenDb(t.TempDir())
 	s := NewStorageSys(poolCli, poolCli, db)
 
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))

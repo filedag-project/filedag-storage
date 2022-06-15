@@ -6,7 +6,6 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node/mocks"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/golang/mock/gomock"
 	blocks "github.com/ipfs/go-block-format"
 	"testing"
@@ -18,7 +17,7 @@ func TestDagNode(t *testing.T) {
 	}
 	var s []DataNode
 	s = append(s, q)
-	db, err := uleveldb.OpenDb(utils.TmpDirPath(t))
+	db, err := uleveldb.OpenDb(t.TempDir())
 	if err != nil {
 		return
 	}

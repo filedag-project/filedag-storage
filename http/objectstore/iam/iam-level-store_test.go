@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
 func TestLoadUsers(t *testing.T) {
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, _ := uleveldb.OpenDb(t.TempDir())
 	iamSys := NewIdentityAMSys(db)
 
 	//add user
