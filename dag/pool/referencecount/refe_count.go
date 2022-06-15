@@ -19,7 +19,7 @@ type ReferSys struct {
 	DB      *uleveldb.ULevelDB
 }
 
-const gcExpiredTime = time.Minute
+const gcExpiredTime = time.Hour * 24
 const gcTime = time.Minute
 const dagPoolReferCache = "dagPoolReferCache/"
 const dagPoolReferPin = "dagPoolReferPin/"

@@ -68,12 +68,12 @@ var startCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		startDagPoolServer(cfg)
+		startDagPoolServer(cctx.Context, cfg)
 		return nil
 	},
 }
 
-func startDagPoolServer(cfg config.PoolConfig) {
+func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	log.Infof("dagpool start...")
 	log.Infof("listen %s", cfg.Listen)
 	// listen port
@@ -97,10 +97,16 @@ func startDagPoolServer(cfg config.PoolConfig) {
 		}
 	}()
 	go func() {
-		service.Gc(context.TODO(), cfg.GcPeriod)
+		err := service.Gc(ctx, cfg.GcPeriod)
+		if err != nil {
+			return
+		}
 	}()
 	go func() {
-		service.UnPinGc(context.TODO(), cfg.GcPeriod)
+		err := service.UnPinGc(ctx, cfg.GcPeriod)
+		if err != nil {
+			return
+		}
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server.
