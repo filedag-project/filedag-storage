@@ -2,16 +2,17 @@ package poolservice
 
 import (
 	"context"
-	"sync"
 	"time"
 )
 
 type gc struct {
-	operateMap map[string]uint64
-	lock       sync.RWMutex
+	stopCh chan struct{}
 }
 
-//var m = make(map[string]string)
+//Stop the gc
+func (g *gc) Stop() {
+	g.stopCh <- struct{}{}
+}
 
 //Gc is a goroutine to do GC
 func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
@@ -86,15 +87,18 @@ func (d *dagPoolService) runUnpinGC(ctx context.Context) error {
 		log.Warnf("no need for unpin gc")
 	}
 	for _, c := range needGCCids {
-		if d.gc.operateMap[c.String()] != 0 {
-			continue
-		}
-		err = d.refer.RemoveRecord(c.String(), true)
-		node, err := d.GetNode(ctx, c)
-		if err != nil {
+		select {
+		case <-d.gc.stopCh:
 			return err
+		default:
+			err = d.refer.RemoveRecord(c.String(), true)
+			node, err := d.GetNode(ctx, c)
+			if err != nil {
+				return err
+			}
+			node.DeleteBlock(ctx, c)
 		}
-		node.DeleteBlock(ctx, c)
+
 	}
 	return nil
 }
@@ -110,24 +114,23 @@ func (d *dagPoolService) runGC(ctx context.Context, c int) error {
 		return nil
 	}
 	for _, ci := range needGCCids {
-		d.gc.lock.RLock()
-
-		if d.gc.operateMap[ci.String()] != 0 {
-			d.gc.lock.RUnlock()
-			continue
-		}
-		d.gc.lock.RUnlock()
-		node, err := d.GetNode(ctx, ci)
-		if err != nil {
+		select {
+		case <-d.gc.stopCh:
 			return err
-		}
-		d.refer.RemoveRecord(ci.String(), false)
+		default:
+			node, err := d.GetNode(ctx, ci)
+			if err != nil {
+				return err
+			}
+			d.refer.RemoveRecord(ci.String(), false)
 
-		err = node.DeleteBlock(ctx, ci)
-		if err != nil {
-			log.Errorf("DeleteManyBlock err:%v", err)
-			continue
+			err = node.DeleteBlock(ctx, ci)
+			if err != nil {
+				log.Errorf("DeleteManyBlock err:%v", err)
+				continue
+			}
 		}
+
 	}
 	return nil
 }

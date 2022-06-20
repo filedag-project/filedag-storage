@@ -80,7 +80,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		cidBuilder: cidBuilder,
 		nrSys:      nrs,
 		gc: &gc{
-			operateMap: make(map[string]uint64),
+			stopCh: make(chan struct{}, 1000),
 		},
 		db: db,
 	}, nil
@@ -91,12 +91,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
 		return userpolicy.AccessDenied
 	}
-	d.gc.lock.Lock()
-	d.gc.operateMap[block.Cid().String()]++
-	defer func() {
-		d.gc.operateMap[block.Cid().String()]--
-		d.gc.lock.Unlock()
-	}()
+	d.gc.Stop()
 	if !d.refer.HasReference(block.Cid().String()) {
 		useNode, err := d.UseNode(ctx, block.Cid())
 		if err != nil {
