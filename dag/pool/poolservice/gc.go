@@ -20,31 +20,24 @@ func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
 	if err != nil {
 		return err
 	}
-	count := 0
 	for {
-		count++
-		log.Warnf("Gc count:%d", count)
 		select {
 		case <-ctx.Done():
 			log.Warnf("ctx done")
 			return nil
 		case <-d.CheckStorage():
 			//time.Sleep(time.Second * 5)
-			if err := d.runUnpinGC(ctx); err != nil {
+			if err := d.runGC(ctx); err != nil {
 				log.Error(err)
 			} else {
 				return err
 			}
+		case <-d.gc.stopCh:
+			log.Debugf("gc stop")
+			continue
 		case <-time.After(duration):
-			log.Warnf("start do gc")
-			err := d.runGC(ctx, count)
-			if err != nil {
-				return err
-			}
-
-		case <-time.After(duration * 2):
-			log.Warnf("start do gc")
-			err := d.runUnpinGC(ctx)
+			log.Debugf("start do gc")
+			err := d.runGC(ctx)
 			if err != nil {
 				return err
 			}
@@ -57,8 +50,8 @@ func (d *dagPoolService) CheckStorage() <-chan int {
 	return nil
 }
 
-//UnPinGc is a goroutine to do UnPin GC
-func (d *dagPoolService) UnPinGc(ctx context.Context, gcPeriod string) error {
+//StoreGc is a goroutine to do UnPin GC
+func (d *dagPoolService) StoreGc(ctx context.Context, gcPeriod string) error {
 	duration, err := time.ParseDuration(gcPeriod)
 	if err != nil {
 		return err
@@ -68,27 +61,32 @@ func (d *dagPoolService) UnPinGc(ctx context.Context, gcPeriod string) error {
 		case <-ctx.Done():
 			log.Warnf("ctx done")
 			return nil
+		case <-d.gc.stopCh:
+			log.Debugf("gc stop")
+			continue
 		case <-time.After(duration):
 			//time.Sleep(time.Second * 5)
-			if err := d.runUnpinGC(ctx); err != nil {
+			log.Debugf("start do store gc")
+			if err := d.runStoreGC(ctx); err != nil {
 				log.Error(err)
-			} else {
 			}
 		}
 	}
 }
-func (d *dagPoolService) runUnpinGC(ctx context.Context) error {
-	log.Warnf("RunUnpinGC")
+func (d *dagPoolService) runStoreGC(ctx context.Context) error {
+	//log.Warnf("RunUnpinGC")
 	needGCCids, err := d.refer.QueryAllStoreNonRefer()
 	if err != nil {
 		return err
 	}
 	if len(needGCCids) == 0 {
-		log.Warnf("no need for unpin gc")
+		//log.Warnf("no need for unpin gc")
+		return nil
 	}
 	for _, c := range needGCCids {
 		select {
 		case <-d.gc.stopCh:
+			log.Warnf("gc stop")
 			return err
 		default:
 			err = d.refer.RemoveRecord(c.String(), true)
@@ -103,19 +101,20 @@ func (d *dagPoolService) runUnpinGC(ctx context.Context) error {
 	return nil
 }
 
-func (d *dagPoolService) runGC(ctx context.Context, c int) error {
+func (d *dagPoolService) runGC(ctx context.Context) error {
 
 	needGCCids, err := d.refer.QueryAllCacheReference()
 	if err != nil {
 		return err
 	}
 	if len(needGCCids) == 0 {
-		log.Warnf("no need for gc %v", c)
+		//log.Warnf("no need for gc")
 		return nil
 	}
 	for _, ci := range needGCCids {
 		select {
 		case <-d.gc.stopCh:
+			log.Warnf("stop gc")
 			return err
 		default:
 			node, err := d.GetNode(ctx, ci)

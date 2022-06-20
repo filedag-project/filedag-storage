@@ -104,7 +104,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 		}
 	}()
 	go func() {
-		err := service.UnPinGc(ctx, cfg.GcPeriod)
+		err := service.StoreGc(ctx, cfg.GcPeriod)
 		if err != nil {
 			return
 		}

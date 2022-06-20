@@ -80,7 +80,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		cidBuilder: cidBuilder,
 		nrSys:      nrs,
 		gc: &gc{
-			stopCh: make(chan struct{}, 1000),
+			stopCh: make(chan struct{}),
 		},
 		db: db,
 	}, nil
