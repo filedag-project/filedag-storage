@@ -14,7 +14,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-cid v0.1.0
-	github.com/ipfs/go-datastore v0.5.0
 	github.com/ipfs/go-fs-lock v0.0.7
 	github.com/ipfs/go-ipfs-blockstore v1.2.0
 	github.com/ipfs/go-ipfs-chunker v0.0.5
@@ -26,9 +25,7 @@ require (
 	github.com/ipld/go-ipld-prime v0.12.2
 	github.com/json-iterator/go v1.1.12
 	github.com/klauspost/reedsolomon v1.9.16
-	github.com/multiformats/go-multibase v0.0.3
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/robfig/cron v1.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/urfave/cli/v2 v2.3.0
@@ -54,6 +51,7 @@ require (
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.0.0 // indirect
 	github.com/ipfs/go-blockservice v0.3.0 // indirect
+	github.com/ipfs/go-datastore v0.5.0 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
 	github.com/ipfs/go-ipfs-exchange-interface v0.1.0 // indirect
 	github.com/ipfs/go-ipfs-files v0.0.8 // indirect
@@ -81,6 +79,7 @@ require (
 	github.com/multiformats/go-base32 v0.0.4 // indirect
 	github.com/multiformats/go-base36 v0.1.0 // indirect
 	github.com/multiformats/go-multiaddr v0.4.0 // indirect
+	github.com/multiformats/go-multibase v0.0.3 // indirect
 	github.com/multiformats/go-multihash v0.0.16 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect

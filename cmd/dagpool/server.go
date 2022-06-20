@@ -60,7 +60,7 @@ var startCmd = &cli.Command{
 		&cli.StringFlag{
 			Name:  "gc-period",
 			Usage: "set gc period,such as 300ms, -1.5h or 2h45m",
-			Value: "12",
+			Value: "12h",
 		},
 	},
 	Action: func(cctx *cli.Context) error {

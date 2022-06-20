@@ -18,7 +18,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	"golang.org/x/xerrors"
-	"sync"
 )
 
 var log = logging.Logger("dag-pool")
@@ -29,10 +28,10 @@ var _ pool.DagPool = &dagPoolService{}
 type dagPoolService struct {
 	dagNodes   map[string]*node.DagNode
 	iam        *dagpooluser.IdentityUserSys
-	gcl        sync.Mutex
 	refer      *referencecount.ReferSys
 	cidBuilder cid.Builder
 	nrSys      *dnm.NodeRecordSys
+	gc         *gc
 	db         *uleveldb.ULevelDB
 }
 
@@ -80,7 +79,10 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		refer:      r,
 		cidBuilder: cidBuilder,
 		nrSys:      nrs,
-		db:         db,
+		gc: &gc{
+			operateMap: make(map[string]uint64),
+		},
+		db: db,
 	}, nil
 }
 
@@ -89,8 +91,12 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
 		return userpolicy.AccessDenied
 	}
-	d.gcl.Lock()
-	defer d.gcl.Unlock()
+	d.gc.lock.Lock()
+	d.gc.operateMap[block.Cid().String()]++
+	defer func() {
+		d.gc.operateMap[block.Cid().String()]--
+		d.gc.lock.Unlock()
+	}()
 	if !d.refer.HasReference(block.Cid().String()) {
 		useNode, err := d.UseNode(ctx, block.Cid())
 		if err != nil {

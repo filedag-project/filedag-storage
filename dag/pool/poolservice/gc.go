@@ -2,8 +2,16 @@ package poolservice
 
 import (
 	"context"
+	"sync"
 	"time"
 )
+
+type gc struct {
+	operateMap map[string]uint64
+	lock       sync.RWMutex
+}
+
+//var m = make(map[string]string)
 
 //Gc is a goroutine to do GC
 func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
@@ -11,28 +19,33 @@ func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
 	if err != nil {
 		return err
 	}
+	count := 0
 	for {
+		count++
+		log.Warnf("Gc count:%d", count)
 		select {
 		case <-ctx.Done():
 			log.Warnf("ctx done")
 			return nil
-		case <-time.After(duration):
-			d.gcl.Lock()
-			//time.Sleep(time.Second * 5)
-			if err := d.runGC(ctx); err != nil {
-				d.gcl.Unlock()
-				log.Error(err)
-			} else {
-				d.gcl.Unlock()
-			}
 		case <-d.CheckStorage():
-			d.gcl.Lock()
 			//time.Sleep(time.Second * 5)
 			if err := d.runUnpinGC(ctx); err != nil {
-				d.gcl.Unlock()
 				log.Error(err)
 			} else {
-				d.gcl.Unlock()
+				return err
+			}
+		case <-time.After(duration):
+			log.Warnf("start do gc")
+			err := d.runGC(ctx, count)
+			if err != nil {
+				return err
+			}
+
+		case <-time.After(duration * 2):
+			log.Warnf("start do gc")
+			err := d.runUnpinGC(ctx)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -55,13 +68,10 @@ func (d *dagPoolService) UnPinGc(ctx context.Context, gcPeriod string) error {
 			log.Warnf("ctx done")
 			return nil
 		case <-time.After(duration):
-			d.gcl.Lock()
 			//time.Sleep(time.Second * 5)
 			if err := d.runUnpinGC(ctx); err != nil {
-				d.gcl.Unlock()
 				log.Error(err)
 			} else {
-				d.gcl.Unlock()
 			}
 		}
 	}
@@ -75,42 +85,49 @@ func (d *dagPoolService) runUnpinGC(ctx context.Context) error {
 	if len(needGCCids) == 0 {
 		log.Warnf("no need for unpin gc")
 	}
-	m := make(map[string][]string)
-	for _, v := range needGCCids {
-		name, _ := d.nrSys.Get(v)
-		m[name] = append(m[name], v)
-	}
-	for n, cids := range m {
-		err := d.dagNodes[n].DeleteManyBlock(ctx, cids)
-		if err != nil {
-			log.Errorf("DeleteManyBlock err:%v", err)
+	for _, c := range needGCCids {
+		if d.gc.operateMap[c.String()] != 0 {
 			continue
 		}
-		err = d.refer.RemoveRecord(cids, true)
+		err = d.refer.RemoveRecord(c.String(), true)
+		node, err := d.GetNode(ctx, c)
+		if err != nil {
+			return err
+		}
+		node.DeleteBlock(ctx, c)
 	}
 	return nil
 }
 
-func (d *dagPoolService) runGC(ctx context.Context) error {
+func (d *dagPoolService) runGC(ctx context.Context, c int) error {
+
 	needGCCids, err := d.refer.QueryAllCacheReference()
 	if err != nil {
 		return err
 	}
 	if len(needGCCids) == 0 {
-		log.Warnf("no need for gc")
+		log.Warnf("no need for gc %v", c)
+		return nil
 	}
-	m := make(map[string][]string)
-	for _, v := range needGCCids {
-		name, _ := d.nrSys.Get(v)
-		m[name] = append(m[name], v)
-	}
-	for n, cids := range m {
-		err := d.dagNodes[n].DeleteManyBlock(ctx, cids)
+	for _, ci := range needGCCids {
+		d.gc.lock.RLock()
+
+		if d.gc.operateMap[ci.String()] != 0 {
+			d.gc.lock.RUnlock()
+			continue
+		}
+		d.gc.lock.RUnlock()
+		node, err := d.GetNode(ctx, ci)
+		if err != nil {
+			return err
+		}
+		d.refer.RemoveRecord(ci.String(), false)
+
+		err = node.DeleteBlock(ctx, ci)
 		if err != nil {
 			log.Errorf("DeleteManyBlock err:%v", err)
 			continue
 		}
-		d.refer.RemoveRecord(cids, false)
 	}
 	return nil
 }

@@ -3,6 +3,7 @@ package referencecount
 import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
 	"strconv"
 	"strings"
@@ -118,19 +119,20 @@ func (i *ReferSys) RemoveReference(cid string, isPin bool) error {
 }
 
 //QueryAllCacheReference query all cache refer record
-func (i *ReferSys) QueryAllCacheReference() ([]string, error) {
+func (i *ReferSys) QueryAllCacheReference() ([]cid.Cid, error) {
 	i.cacheMu.RLock()
 	defer i.cacheMu.RUnlock()
 	all, err := i.DB.ReadAll(dagPoolReferCache)
 	if err != nil {
 		return nil, err
 	}
-	var m []string
+	var m []cid.Cid
 	for k, v := range all {
 		tmp, _ := strconv.ParseInt(v, 10, 64)
 
 		if time.Now().After(time.Unix(tmp, 0).Add(gcExpiredTime)) {
-			m = append(m, strings.Split(k, "/")[1])
+			c, _ := cid.Decode(strings.Split(k, "/")[1])
+			m = append(m, c)
 		}
 
 	}
@@ -138,35 +140,35 @@ func (i *ReferSys) QueryAllCacheReference() ([]string, error) {
 }
 
 //QueryAllStoreNonRefer query all store refer which count 0
-func (i *ReferSys) QueryAllStoreNonRefer() ([]string, error) {
+func (i *ReferSys) QueryAllStoreNonRefer() ([]cid.Cid, error) {
 	i.storeMu.RLock()
 	defer i.storeMu.RUnlock()
 	all, err := i.DB.ReadAll(dagPoolReferPin)
 	if err != nil {
 		return nil, err
 	}
-	var m []string
+	var m []cid.Cid
 	for k, v := range all {
 		if v == "0" {
-			m = append(m, strings.Split(k, "/")[1])
+			c, _ := cid.Decode(strings.Split(k, "/")[1])
+			m = append(m, c)
 		}
 	}
 	return m, nil
 }
 
 //RemoveRecord remove record in db
-func (i *ReferSys) RemoveRecord(cids []string, pin bool) error {
+func (i *ReferSys) RemoveRecord(c string, pin bool) error {
 	i.cacheMu.Lock()
 	defer i.cacheMu.Unlock()
 	var path = dagPoolReferCache
 	if pin {
 		path = dagPoolReferPin
 	}
-	for _, c := range cids {
-		err := i.DB.Delete(path + c)
-		if err != nil {
-			return err
-		}
+
+	err := i.DB.Delete(path + c)
+	if err != nil {
+		return err
 	}
 
 	return nil
