@@ -27,38 +27,84 @@ The development of FileDAG Storage will provide a solution to the above challeng
 
 ## Roadmap
 
-- [ ] The development of a single Dag Node, which satisfies the interface of blockstore, provides basic storage services for Dag Pool
-- [ ] Implement the multi-user access and authentication mechanism of Dag Pool
-- [ ] Implement Dag Pool's reference record to data blocks
-- [ ] Implement Dag Pool's data pin strategy
-- [ ] Implement the interruptible garbage collection mechanism of Dag Pool
+### Milestone 1
+
+#### Goal:
+
+Build fundamental data structure, and the overall architecture of this project.
+
+#### Description:
+
+- Development of single DAG Node:
+    - supports API of the block store
+    - providers basic storage service for DAG Pool
+- DAG Pool:
+    - multi-user access
+    - authentication mechanism
+- Object store:
+    - implements basic data structure, such as user, region, bucket, and object
+    - implements API of user authentication
+
+### Millstone 2
+
+#### Goal: 
+
+Implement data management.
+
+#### Description:
+
+- DAG Pool:
+    - reference records of data blocks
+    - strategy of data pin
+    - interruptible garbage collection mechanism of DAG Pool
+- Object store:
+    - API of bucket related operations
+    - API of object manipulation
+    - API of permission operation
 
 
-- [ ] Dag Node - Develop data fault tolerance based on Reed-Solomon Erasure Code
-- [ ] Dag Pool - Organize multiple Dag Nodes to build a storage cluster based on libp2p and redis hash slots
-- [ ] Dag Pool - Storage node health report and global consistency state implementation
-- [ ] Dag Pool - Dynamic expansion of storage nodes
-- [ ] Dag Pool - Dynamic scaling of storage nodes
+### Milestone 3
 
+#### Goal: 
 
+Realize clustered DAG Node and development of data fault tolerance.
 
-- [ ] Object Store - Implementation of basic data structures such as users, regions, buckets, and objects
-- [ ] Object Store - Implement user authentication api
-- [ ] Object Store - Implement bucket related operations api
-- [ ] Object Store - Implement object manipulation api 
-- [ ] Object Store - Implement permission operation api
+#### Description:
 
+- DAG Node:
+    - develops data fault tolerance based on Reed-Solomon Erasure Code
+- DAG Pool:
+    - organizes multiple DAG Nodes to build a storage cluster based on libp2p and Redis Hash Slots
+    - provides health report of storage nodes and status of global consistency
+    - supports dynamic expansion of storage nodes
+    - supports dynamic scaling of storage nodes
 
-- [ ] Control Pannel - Implement Dashboard - storage pool statistics overview 
-- [ ] Control Pannel - Implement user interface
-- [ ] Control Pannel - Implement Object Store user and access interface
-- [ ] Control Pannel - Implement the object store bucket operation interface
-- [ ] Control Pannel - Implement Object Store permission setting interface
+### Milestone 4
 
+#### Goal: 
 
-- [ ] Implement satellite nodes that can connect to the IPFS network in the outer layer of Dag Pool
-- [ ] Provide lightweight IPFS gateway services according to user customization
+Develop the Control Panel of FileDAG Storage.
 
+#### Description:
+
+- Dashboard of storage pool statistics overview
+- User interface
+- Object Store interface:
+    - users
+    - user access operations
+    - bucket operations
+    - permission setting
+    
+## Milestone 5
+
+### Goal: 
+
+Connect with IPFS.
+
+### Description:
+
+- Implements Satellite Nodes connected to the IPFS network in the outer layer of the DAG Pool
+- Provides lightweight IPFS gateway services according to user customization
 
 
 <!-- CONTRIBUTING -->
