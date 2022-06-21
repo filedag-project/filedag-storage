@@ -13,14 +13,14 @@ const (
 	getUserUrl = "/admin/v1/user-info"
 )
 
-//go run -tags example main.go get-user --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg
+//go run -tags example main.go get-user --server-api=127.0.0.1:9985 --admin-access-key=filedagadmin --admin-secret-key=filedagadmin --username=wpg
 
 func main() {
 	var addr, accessKey, secretKey, username string
 	f := flag.NewFlagSet("get-user", flag.ExitOnError)
-	f.StringVar(&addr, "addr", "", "the addr of server eg.127.0.0.1:9985")
-	f.StringVar(&accessKey, "access-key", "", "the access-key which have getuser policy")
-	f.StringVar(&secretKey, "secret-key", "", "the secret-key which have getuser policy")
+	f.StringVar(&addr, "server-api", "", "the addr of server eg.127.0.0.1:9985")
+	f.StringVar(&accessKey, "admin-access-key", "", "the access-key which have getuser policy")
+	f.StringVar(&secretKey, "admin-secret-key", "", "the secret-key which have getuser policy")
 	f.StringVar(&username, "username", "", "the username that you want get")
 
 	switch os.Args[1] {
@@ -39,7 +39,7 @@ func main() {
 func get(addr, accessKey, secretKey, username string) error {
 	if addr == "" || accessKey == "" || secretKey == "" || username == "" {
 		fmt.Println("please check your input\n " +
-			"USAGE ERROR: go run -tags example main.go get-user --addr= --access-key= --secret-key= --username= ")
+			"USAGE ERROR: go run -tags example main.go get-user --server-api= --admin-access-key= --admin-secret-key=  --username= ")
 		return xerrors.Errorf("check your input")
 	}
 	err := exampleutils.SendSignedV4Request(http.MethodGet, "http://"+addr+getUserUrl+"?accessKey="+username,
