@@ -80,7 +80,7 @@ func TestIamApiServer_AddUser(t *testing.T) {
 			isRemove:           false,
 			accessKey:          "1",
 			secretKey:          "test1234",
-			expectedRespStatus: http.StatusInternalServerError,
+			expectedRespStatus: http.StatusBadRequest,
 		},
 		// Test case - 4.
 		// error  secret key length should be between 3 and 20.
@@ -88,7 +88,7 @@ func TestIamApiServer_AddUser(t *testing.T) {
 			isRemove:           false,
 			accessKey:          "test2",
 			secretKey:          "1",
-			expectedRespStatus: http.StatusInternalServerError,
+			expectedRespStatus: http.StatusBadRequest,
 		},
 	}
 	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
