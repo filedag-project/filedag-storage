@@ -183,18 +183,23 @@ func (d DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 
 func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	log.Infof("put block, cid :%v", block.Cid())
+	// copy data from block, because reedsolomon may modify data
+	buf := bytes.NewBuffer(nil)
+	buf.Write(block.RawData())
+	blockData := buf.Bytes()
+	blockDataSize := len(blockData)
+	keyCode := block.Cid().String()
 	//todo store this info in datanode
-	err = d.db.Put(block.Cid().String(), len(block.RawData()))
+	err = d.db.Put(keyCode, blockDataSize)
 	if err != nil {
 		return err
 	}
-	keyCode := block.Cid().String()
-	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(len(block.RawData())))
+	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(blockDataSize))
 	if err != nil {
 		log.Errorf("newErasure fail :%v", err)
 		return err
 	}
-	shards, err := enc.EncodeData(block.RawData())
+	shards, err := enc.EncodeData(blockData)
 	if err != nil {
 		log.Errorf("encodeData fail :%v", err)
 		return err
@@ -204,7 +209,7 @@ func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 		log.Errorf("encode fail :%v", err)
 		return err
 	}
-	if ok && err == nil {
+	if ok {
 		log.Debugf("encode ok, the data is the same format as Encode. No data is modified")
 	}
 	wg := sync.WaitGroup{}
