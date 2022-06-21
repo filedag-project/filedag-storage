@@ -37,10 +37,7 @@ type dagPoolService struct {
 
 func (d *dagPoolService) NeedPin(username string) bool {
 	//todo more check
-	if username == "dagpool" {
-		return true
-	}
-	return false
+	return d.iam.IsAdmin(username)
 }
 
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
