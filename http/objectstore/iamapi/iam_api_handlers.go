@@ -32,6 +32,12 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accessKey := vars[AccessKey]
 	secretKey := vars[SecretKey]
+	if !auth.IsAccessKeyValid(accessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+	}
+	if !auth.IsSecretKeyValid(secretKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+	}
 	resp.CreateUserResult.User.UserName = &accessKey
 	_, ok = iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
 	if ok {
@@ -139,6 +145,12 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 
 	user := r.FormValue(AccessKey)
 	status := r.FormValue("status")
+	switch status {
+	case auth.AccountOn, auth.AccountOff:
+	default:
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+		return
+	}
 	c, _ := iamApi.authSys.Iam.GetUser(r.Context(), user)
 	if c.AccessKey == "" {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)

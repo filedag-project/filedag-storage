@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -17,66 +19,86 @@ const (
 	setStatusUrl      = "/admin/v1/update-accessKey_status"
 )
 
+const (
+	ServerApi = "server-api"
+	AccessKey = "access-key"
+	SecretKey = "secret-key"
+)
+const (
+	// Minimum length for  access key.
+	accessKeyMinLen = 3
+
+	// Maximum length for  access key.
+	// There is no max length enforcement for access keys
+	accessKeyMaxLen = 20
+
+	// Minimum length for  secret key for both server and gateway mode.
+	secretKeyMinLen = 8
+
+	// Maximum secret key length , this
+	// is used when autogenerating new credentials.
+	// There is no max length enforcement for secret keys
+	secretKeyMaxLen = 40
+)
+
+var (
+	errInvalidAccessKeyLength = fmt.Errorf("username(access key) length should be between %d and %d", accessKeyMinLen, accessKeyMaxLen)
+	errInvalidSecretKeyLength = fmt.Errorf("password(secret key) length should be between %d and %d", secretKeyMinLen, secretKeyMaxLen)
+)
+
 var log = logging.Logger("tools")
 var addUserCmd = &cli.Command{
-	Name:  "adduser",
-	Usage: "add a user eg.demotools adduser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg --pass=wpg123456",
+	Name:  "add-user",
+	Usage: "Add a new user",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "addr",
-			Usage: "the addr of server eg.127.0.0.1:9985",
+			Name:  ServerApi,
+			Usage: "the api of objectstore server",
+			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  "access-key",
-			Usage: "the access-key which have adduser policy",
+			Name:  AccessKey,
+			Usage: "the access-key of user which have add user policy",
+			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  "secret-key",
-			Usage: "the secret-key which have adduser policy",
+			Name:  SecretKey,
+			Usage: "the secret-key of user which have add user policy",
+			Value: auth.DefaultSecretKey,
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "the username that you want add",
+			Usage: "the username that you want to add",
 		},
 		&cli.StringFlag{
-			Name:  "pass",
-			Usage: "the password that you want add",
+			Name:  "password",
+			Usage: "the password that you want to add",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		var addr, accessKey, secretKey, username, pass string
-		if cctx.String("addr") != "" {
-			addr = cctx.String("addr")
-		} else {
-			log.Errorf("you must give the addr")
-			return xerrors.Errorf("you must give the addr")
+		apiAddr := cctx.String(ServerApi)
+		if !strings.HasPrefix(apiAddr, "http") {
+			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		if cctx.String("access-key") != "" {
-			accessKey = cctx.String("access-key")
-		} else {
-			log.Errorf("you must give the access-key")
-			return xerrors.Errorf("you must give the access-key")
+		accessKey := cctx.String(AccessKey)
+		if accessKey == "" {
+			return xerrors.Errorf("you should give the access-key")
 		}
-		if cctx.String("secret-key") != "" {
-			secretKey = cctx.String("secret-key")
-		} else {
-			log.Errorf("you must give the secret-key")
-			return xerrors.Errorf("you must give the secret-key")
-		}
-		if cctx.String("username") != "" {
-			username = cctx.String("username")
-		} else {
-			log.Errorf("you must give the username")
-			return xerrors.Errorf("you must give the username")
-		}
-		if cctx.String("pass") != "" {
-			pass = cctx.String("pass")
-		} else {
-			log.Errorf("you must give the pass")
-			return xerrors.Errorf("you must give the pass")
+		secretKey := cctx.String(SecretKey)
+		if secretKey == "" {
+			return xerrors.Errorf("you should give the secret-key")
 		}
 
-		req, err := mustNewSignedV4Request(http.MethodPost, "http://"+addr+addUserUrl+"?accessKey="+username+"&secretKey="+pass,
+		username := cctx.String("username")
+		if !auth.IsAccessKeyValid(username) {
+			return errInvalidAccessKeyLength
+		}
+		password := cctx.String("password")
+		if !auth.IsSecretKeyValid(password) {
+			return errInvalidSecretKeyLength
+		}
+
+		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+addUserUrl+"?accessKey="+username+"&secretKey="+password,
 			0, nil, "s3", accessKey, secretKey)
 		if err != nil {
 			log.Errorf("mustNewSignedV4Request err: %v", err)
@@ -93,116 +115,54 @@ var addUserCmd = &cli.Command{
 			log.Errorf("read resp err: %v", err)
 			return err
 		}
-		log.Infof("response: %v\n", string(all))
+		fmt.Printf("response: %v\n", string(all))
 		return nil
 	},
 }
+
 var delUserCmd = &cli.Command{
-	Name:  "deluser",
-	Usage: "del a user eg.demotools deluser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg",
+	Name:  "del-user",
+	Usage: "Delete a user",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "addr",
-			Usage: "the addr of server eg.127.0.0.1:9985",
+			Name:  ServerApi,
+			Usage: "the api of objectstore server",
+			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  "access-key",
-			Usage: "the access-key which have adduser policy",
+			Name:  AccessKey,
+			Usage: "the access-key of user which have delete user policy",
+			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  "secret-key",
-			Usage: "the secret-key which have adduser policy",
+			Name:  SecretKey,
+			Usage: "the secret-key of user which have delete user policy",
+			Value: auth.DefaultSecretKey,
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "the username that you want add",
+			Usage: "the user that you want to delete",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		var addr, accessKey, secretKey, username string
-		if cctx.String("addr") != "" {
-			addr = cctx.String("addr")
-		} else {
-			return xerrors.Errorf("you must give the addr")
+		apiAddr := cctx.String(ServerApi)
+		if !strings.HasPrefix(apiAddr, "http") {
+			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		if cctx.String("access-key") != "" {
-			accessKey = cctx.String("access-key")
-		} else {
-			return xerrors.Errorf("you must give the access-key")
+		accessKey := cctx.String(AccessKey)
+		if accessKey == "" {
+			return xerrors.Errorf("you should give the access-key")
 		}
-		if cctx.String("secret-key") != "" {
-			secretKey = cctx.String("secret-key")
-		} else {
-			return xerrors.Errorf("you must give the secret-key")
-		}
-		if cctx.String("username") != "" {
-			username = cctx.String("username")
-		} else {
-			return xerrors.Errorf("you must give the username")
-		}
-		req, err := mustNewSignedV4Request(http.MethodPost, "http://"+addr+delUserUrl+"?accessKey="+username,
-			0, nil, "s3", accessKey, secretKey)
-		if err != nil {
-			return err
-		}
-		client := http.DefaultClient
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		all, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("response：%v\n", string(all))
-		return nil
-	},
-}
-var getUserCmd = &cli.Command{
-	Name:  "getuser",
-	Usage: "get a user info eg.demotools.exe getuser --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "addr",
-			Usage: "the addr of server eg.127.0.0.1:9985",
-		},
-		&cli.StringFlag{
-			Name:  "access-key",
-			Usage: "the access-key which have adduser policy",
-		},
-		&cli.StringFlag{
-			Name:  "secret-key",
-			Usage: "the secret-key which have adduser policy",
-		},
-		&cli.StringFlag{
-			Name:  "username",
-			Usage: "the username that you want get",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		var addr, accessKey, secretKey, username string
-		if cctx.String("addr") != "" {
-			addr = cctx.String("addr")
-		} else {
-			return xerrors.Errorf("you must give the addr")
-		}
-		if cctx.String("access-key") != "" {
-			accessKey = cctx.String("access-key")
-		} else {
-			return xerrors.Errorf("you must give the access-key")
-		}
-		if cctx.String("secret-key") != "" {
-			secretKey = cctx.String("secret-key")
-		} else {
-			return xerrors.Errorf("you must give the secret-key")
-		}
-		if cctx.String("username") != "" {
-			username = cctx.String("username")
-		} else {
-			return xerrors.Errorf("you must give the username")
+		secretKey := cctx.String(SecretKey)
+		if secretKey == "" {
+			return xerrors.Errorf("you should give the secret-key")
 		}
 
-		req, err := mustNewSignedV4Request(http.MethodGet, "http://"+addr+getUserUrl+"?accessKey="+username,
+		username := cctx.String("username")
+		if !auth.IsAccessKeyValid(username) {
+			return errInvalidAccessKeyLength
+		}
+		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+delUserUrl+"?accessKey="+username,
 			0, nil, "s3", accessKey, secretKey)
 		if err != nil {
 			return err
@@ -220,60 +180,120 @@ var getUserCmd = &cli.Command{
 		return nil
 	},
 }
+
+var getUserCmd = &cli.Command{
+	Name:  "get-user",
+	Usage: "Get a user info",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  ServerApi,
+			Usage: "the api of objectstore server",
+			Value: "http://127.0.0.1:9985",
+		},
+		&cli.StringFlag{
+			Name:  AccessKey,
+			Usage: "the access-key of user which have get user policy",
+			Value: auth.DefaultAccessKey,
+		},
+		&cli.StringFlag{
+			Name:  SecretKey,
+			Usage: "the secret-key of user which have get user policy",
+			Value: auth.DefaultSecretKey,
+		},
+		&cli.StringFlag{
+			Name:  "username",
+			Usage: "the username that you want to get",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		apiAddr := cctx.String(ServerApi)
+		if !strings.HasPrefix(apiAddr, "http") {
+			return xerrors.Errorf("you should set the api of objectstore server")
+		}
+		accessKey := cctx.String(AccessKey)
+		if accessKey == "" {
+			return xerrors.Errorf("you should give the access-key")
+		}
+		secretKey := cctx.String(SecretKey)
+		if secretKey == "" {
+			return xerrors.Errorf("you should give the secret-key")
+		}
+
+		username := cctx.String("username")
+		if !auth.IsAccessKeyValid(username) {
+			return errInvalidAccessKeyLength
+		}
+		req, err := mustNewSignedV4Request(http.MethodGet, apiAddr+getUserUrl+"?accessKey="+username,
+			0, nil, "s3", accessKey, secretKey)
+		if err != nil {
+			return err
+		}
+		client := http.DefaultClient
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		all, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("response：%v\n", string(all))
+		return nil
+	},
+}
+
 var changePassCmd = &cli.Command{
 	Name:  "change-pass",
-	Usage: "change the user pass eg.demotools change-pass --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg --new-pass=wpg123456",
+	Usage: "Change the user password",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "addr",
-			Usage: "the addr of server eg.127.0.0.1:9985",
+			Name:  ServerApi,
+			Usage: "the api of objectstore server",
+			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  "access-key",
-			Usage: "the access-key which have adduser policy",
+			Name:  AccessKey,
+			Usage: "the access-key of user which have change password policy",
+			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  "secret-key",
-			Usage: "the secret-key which have adduser policy",
+			Name:  SecretKey,
+			Usage: "the secret-key of user which have change password policy",
+			Value: auth.DefaultSecretKey,
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "the username that you want get",
+			Usage: "the username that you want to change",
 		},
 		&cli.StringFlag{
-			Name:  "new-pass",
-			Usage: "the new pass that you want change",
+			Name:  "new-password",
+			Usage: "the new password that you want to set",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		var addr, accessKey, secretKey, username, pass string
-		if cctx.String("addr") != "" {
-			addr = cctx.String("addr")
-		} else {
-			return xerrors.Errorf("you must give the addr")
+		apiAddr := cctx.String(ServerApi)
+		if !strings.HasPrefix(apiAddr, "http") {
+			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		if cctx.String("access-key") != "" {
-			accessKey = cctx.String("access-key")
-		} else {
-			return xerrors.Errorf("you must give the access-key")
+		accessKey := cctx.String(AccessKey)
+		if accessKey == "" {
+			return xerrors.Errorf("you should give the access-key")
 		}
-		if cctx.String("secret-key") != "" {
-			secretKey = cctx.String("secret-key")
-		} else {
-			return xerrors.Errorf("you must give the secret-key")
-		}
-		if cctx.String("username") != "" {
-			username = cctx.String("username")
-		} else {
-			return xerrors.Errorf("you must give the username")
-		}
-		if cctx.String("new-pass") != "" {
-			pass = cctx.String("new-pass")
-		} else {
-			return xerrors.Errorf("you must give the new pass")
+		secretKey := cctx.String(SecretKey)
+		if secretKey == "" {
+			return xerrors.Errorf("you should give the secret-key")
 		}
 
-		req, err := mustNewSignedV4Request(http.MethodPost, "http://"+addr+changePassUserUrl+"?newPassword="+pass+"&accessKey="+username,
+		username := cctx.String("username")
+		if !auth.IsAccessKeyValid(username) {
+			return errInvalidAccessKeyLength
+		}
+		password := cctx.String("new-password")
+		if !auth.IsSecretKeyValid(password) {
+			return errInvalidSecretKeyLength
+		}
+
+		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+changePassUserUrl+"?newPassword="+password+"&accessKey="+username,
 			0, nil, "s3", accessKey, secretKey)
 		if err != nil {
 			return err
@@ -287,64 +307,67 @@ var changePassCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("response：%v\n", string(all))
+		if string(all) != "" {
+			fmt.Printf("response：%v\n", string(all))
+		}
 		return nil
 	},
 }
+
 var setStatusCmd = &cli.Command{
 	Name:  "set-status",
-	Usage: "set the user status",
+	Usage: "Set the user status",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "addr",
-			Usage: "the addr of server eg.127.0.0.1:9985",
+			Name:  ServerApi,
+			Usage: "the api of objectstore server",
+			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  "access-key",
-			Usage: "the access-key which have adduser policy",
+			Name:  AccessKey,
+			Usage: "the access-key of user which have set status policy",
+			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  "secret-key",
-			Usage: "the secret-key which have adduser policy",
+			Name:  SecretKey,
+			Usage: "the secret-key of user which have set status policy",
+			Value: auth.DefaultSecretKey,
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "the username that you want add",
+			Usage: "the username that you want to set status",
 		},
 		&cli.StringFlag{
 			Name:  "status",
-			Usage: "the status that you want set",
+			Usage: "set the status of account, enum: on,off",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		var addr, accessKey, secretKey, username, status string
-		if cctx.String("addr") != "" {
-			addr = cctx.String("addr")
-		} else {
-			return xerrors.Errorf("you must give the addr")
+		apiAddr := cctx.String(ServerApi)
+		if !strings.HasPrefix(apiAddr, "http") {
+			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		if cctx.String("access-key") != "" {
-			accessKey = cctx.String("access-key")
-		} else {
-			return xerrors.Errorf("you must give the access-key")
+		accessKey := cctx.String(AccessKey)
+		if accessKey == "" {
+			return xerrors.Errorf("you should give the access-key")
 		}
-		if cctx.String("secret-key") != "" {
-			secretKey = cctx.String("secret-key")
-		} else {
-			return xerrors.Errorf("you must give the secret-key")
-		}
-		if cctx.String("username") != "" {
-			username = cctx.String("username")
-		} else {
-			return xerrors.Errorf("you must give the username")
-		}
-		if cctx.String("status") != "" {
-			status = cctx.String("status")
-		} else {
-			return xerrors.Errorf("you must give the status")
+		secretKey := cctx.String(SecretKey)
+		if secretKey == "" {
+			return xerrors.Errorf("you should give the secret-key")
 		}
 
-		req, err := mustNewSignedV4Request(http.MethodPost, "http://"+addr+setStatusUrl+"?accessKey="+username+"&status="+status,
+		username := cctx.String("username")
+		if !auth.IsAccessKeyValid(username) {
+			return errInvalidAccessKeyLength
+		}
+		status := cctx.String("status")
+		switch status {
+		case "on", "off":
+		default:
+			return xerrors.Errorf("invalid status, you should give the valid status, 'on' or 'off'")
+		}
+
+		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+setStatusUrl+"?accessKey="+username+"&status="+status,
 			0, nil, "s3", accessKey, secretKey)
 		if err != nil {
 			return err
@@ -358,7 +381,9 @@ var setStatusCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("response：%v\n", string(all))
+		if string(all) != "" {
+			fmt.Printf("response：%v\n", string(all))
+		}
 		return nil
 	},
 }

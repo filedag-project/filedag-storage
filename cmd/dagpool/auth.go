@@ -10,7 +10,7 @@ import (
 
 var authCmd = &cli.Command{
 	Name:  "auth",
-	Usage: "manage dagpool user permissions",
+	Usage: "Manage dagpool user permissions",
 	Subcommands: []*cli.Command{
 		createUser,
 		queryUser,
@@ -21,7 +21,7 @@ var authCmd = &cli.Command{
 
 var createUser = &cli.Command{
 	Name:  "create",
-	Usage: "create a new user for dagpool",
+	Usage: "Create a new user for dagpool",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
@@ -95,7 +95,7 @@ var createUser = &cli.Command{
 
 var queryUser = &cli.Command{
 	Name:  "query",
-	Usage: "query the user config from dagpool",
+	Usage: "Query the user config from dagpool",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
@@ -123,27 +123,23 @@ var queryUser = &cli.Command{
 		addr := cctx.String("address")
 		rootUser := cctx.String("root-user")
 		if rootUser == "" {
-			err := xerrors.New("root user is invalid")
-			fmt.Println(err)
-			return err
+			return xerrors.New("root user is invalid")
 		}
 		rootPassword := cctx.String("root-password")
 
 		username := cctx.String("username")
 		if username == "" {
-			err := xerrors.Errorf("you must give the username")
-			fmt.Println(err)
-			return err
+			return xerrors.Errorf("you must give the username")
 		}
 
 		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
 		if err != nil {
-			fmt.Println("NewPoolClient err:", err)
+			log.Errorf("NewPoolClient err:%v", err)
 			return err
 		}
 		reply, err := poolClient.QueryUser(cctx.Context, username)
 		if err != nil {
-			fmt.Println("get user err:", err)
+			log.Errorf("get user err:%v", err)
 			return err
 		}
 		fmt.Printf("username:%v policy:%v capacity:%v\n", reply.Username, reply.Policy, reply.Capacity)
@@ -153,7 +149,7 @@ var queryUser = &cli.Command{
 
 var updateUser = &cli.Command{
 	Name:  "update",
-	Usage: "update the user config",
+	Usage: "Update the user config",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
@@ -227,7 +223,7 @@ var updateUser = &cli.Command{
 
 var removeUser = &cli.Command{
 	Name:  "remove",
-	Usage: "remove a user from dagpool",
+	Usage: "Remove a user from dagpool",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
