@@ -17,8 +17,10 @@ const (
 	policyDocumentVersion = "2012-10-17"
 	AccessKey             = "accessKey"
 	SecretKey             = "secretKey"
+	NewSecretKey          = "newSecretKey"
 	UserName              = "userName"
 	PolicyName            = "policyName"
+	AccountStatus         = "status"
 )
 
 // CreateUser  add user
@@ -116,10 +118,11 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	secret := r.FormValue("newPassword")
+	secret := r.FormValue(NewSecretKey)
 	userName := r.FormValue(AccessKey)
 	if !auth.IsSecretKeyValid(secret) {
 		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+		return
 	}
 	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), userName)
 	if !ok {
@@ -144,7 +147,7 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := r.FormValue(AccessKey)
-	status := r.FormValue("status")
+	status := r.FormValue(AccountStatus)
 	switch status {
 	case auth.AccountOn, auth.AccountOff:
 	default:
