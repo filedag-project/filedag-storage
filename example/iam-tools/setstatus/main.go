@@ -13,14 +13,14 @@ const (
 	setStatusUrl = "/admin/v1/update-accessKey_status"
 )
 
-//go run -tags example main.go run set-status --addr=127.0.0.1:9985 --access-key=test --secret-key=test --username=wpg --status=off
+//go run -tags example main.go run set-status --server-api=127.0.0.1:9985 --admin-access-key=filedagadmin --admin-secret-key=filedagadmin --username=wpg --status=off
 
 func main() {
 	var addr, accessKey, secretKey, username, status string
 	f := flag.NewFlagSet("set-status", flag.ExitOnError)
-	f.StringVar(&addr, "addr", "", "the addr of server eg.127.0.0.1:9985")
-	f.StringVar(&accessKey, "access-key", "", "the access-key which have set-status policy")
-	f.StringVar(&secretKey, "secret-key", "", "the secret-key which have set-status policy")
+	f.StringVar(&addr, "server-api", "", "the addr of server eg.127.0.0.1:9985")
+	f.StringVar(&accessKey, "admin-access-key", "", "the access-key which have set-status policy")
+	f.StringVar(&secretKey, "admin-secret-key", "", "the secret-key which have set-status policy")
 	f.StringVar(&username, "username", "", "the username that you want set-status")
 	f.StringVar(&status, "status", "", "the status that you want set")
 	switch os.Args[1] {
@@ -39,7 +39,7 @@ func main() {
 func set(addr, accessKey, secretKey, username, status string) error {
 	if addr == "" || accessKey == "" || secretKey == "" || username == "" || status == "" {
 		fmt.Println("please check your input\n " +
-			"USAGE ERROR: go run -tags example main.go set-status --addr= --access-key= --secret-key= --username= --status=")
+			"USAGE ERROR: go run -tags example main.go set-status --server-api= --admin-access-key= --admin-secret-key= --username= --status=")
 		return xerrors.Errorf("check your input")
 	}
 	err := exampleutils.SendSignedV4Request(http.MethodPost, "http://"+addr+setStatusUrl+"?accessKey="+username+"&status="+status,
