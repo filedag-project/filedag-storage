@@ -20,9 +20,9 @@ const (
 )
 
 const (
-	ServerApi = "server-api"
-	AccessKey = "access-key"
-	SecretKey = "secret-key"
+	ServerApi      = "server-api"
+	AdminAccessKey = "admin-access-key"
+	AdminSecretKey = "admin-secret-key"
 )
 const (
 	// Minimum length for  access key.
@@ -57,12 +57,12 @@ var addUserCmd = &cli.Command{
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  AccessKey,
+			Name:  AdminAccessKey,
 			Usage: "the access-key of user which have add user policy",
 			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  SecretKey,
+			Name:  AdminSecretKey,
 			Usage: "the secret-key of user which have add user policy",
 			Value: auth.DefaultSecretKey,
 		},
@@ -80,13 +80,13 @@ var addUserCmd = &cli.Command{
 		if !strings.HasPrefix(apiAddr, "http") {
 			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		accessKey := cctx.String(AccessKey)
+		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
-			return xerrors.Errorf("you should give the access-key")
+			return xerrors.Errorf("you should give the admin-access-key")
 		}
-		secretKey := cctx.String(SecretKey)
+		secretKey := cctx.String(AdminSecretKey)
 		if secretKey == "" {
-			return xerrors.Errorf("you should give the secret-key")
+			return xerrors.Errorf("you should give the admin-secret-key")
 		}
 
 		username := cctx.String("username")
@@ -121,8 +121,8 @@ var addUserCmd = &cli.Command{
 }
 
 var delUserCmd = &cli.Command{
-	Name:  "del-user",
-	Usage: "Delete a user",
+	Name:  "remove-user",
+	Usage: "Remove a user",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  ServerApi,
@@ -130,18 +130,18 @@ var delUserCmd = &cli.Command{
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  AccessKey,
-			Usage: "the access-key of user which have delete user policy",
+			Name:  AdminAccessKey,
+			Usage: "the access-key of user which have remove user policy",
 			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  SecretKey,
-			Usage: "the secret-key of user which have delete user policy",
+			Name:  AdminSecretKey,
+			Usage: "the secret-key of user which have remove user policy",
 			Value: auth.DefaultSecretKey,
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "the user that you want to delete",
+			Usage: "the user that you want to remove",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -149,13 +149,13 @@ var delUserCmd = &cli.Command{
 		if !strings.HasPrefix(apiAddr, "http") {
 			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		accessKey := cctx.String(AccessKey)
+		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
-			return xerrors.Errorf("you should give the access-key")
+			return xerrors.Errorf("you should give the admin-access-key")
 		}
-		secretKey := cctx.String(SecretKey)
+		secretKey := cctx.String(AdminSecretKey)
 		if secretKey == "" {
-			return xerrors.Errorf("you should give the secret-key")
+			return xerrors.Errorf("you should give the admin-secret-key")
 		}
 
 		username := cctx.String("username")
@@ -191,12 +191,12 @@ var getUserCmd = &cli.Command{
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  AccessKey,
+			Name:  AdminAccessKey,
 			Usage: "the access-key of user which have get user policy",
 			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  SecretKey,
+			Name:  AdminSecretKey,
 			Usage: "the secret-key of user which have get user policy",
 			Value: auth.DefaultSecretKey,
 		},
@@ -210,13 +210,13 @@ var getUserCmd = &cli.Command{
 		if !strings.HasPrefix(apiAddr, "http") {
 			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		accessKey := cctx.String(AccessKey)
+		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
-			return xerrors.Errorf("you should give the access-key")
+			return xerrors.Errorf("you should give the admin-access-key")
 		}
-		secretKey := cctx.String(SecretKey)
+		secretKey := cctx.String(AdminSecretKey)
 		if secretKey == "" {
-			return xerrors.Errorf("you should give the secret-key")
+			return xerrors.Errorf("you should give the admin-secret-key")
 		}
 
 		username := cctx.String("username")
@@ -243,7 +243,7 @@ var getUserCmd = &cli.Command{
 }
 
 var changePassCmd = &cli.Command{
-	Name:  "change-pass",
+	Name:  "change-password",
 	Usage: "Change the user password",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -252,12 +252,12 @@ var changePassCmd = &cli.Command{
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  AccessKey,
+			Name:  AdminAccessKey,
 			Usage: "the access-key of user which have change password policy",
 			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  SecretKey,
+			Name:  AdminSecretKey,
 			Usage: "the secret-key of user which have change password policy",
 			Value: auth.DefaultSecretKey,
 		},
@@ -275,13 +275,13 @@ var changePassCmd = &cli.Command{
 		if !strings.HasPrefix(apiAddr, "http") {
 			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		accessKey := cctx.String(AccessKey)
+		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
-			return xerrors.Errorf("you should give the access-key")
+			return xerrors.Errorf("you should give the admin-access-key")
 		}
-		secretKey := cctx.String(SecretKey)
+		secretKey := cctx.String(AdminSecretKey)
 		if secretKey == "" {
-			return xerrors.Errorf("you should give the secret-key")
+			return xerrors.Errorf("you should give the admin-secret-key")
 		}
 
 		username := cctx.String("username")
@@ -293,7 +293,7 @@ var changePassCmd = &cli.Command{
 			return errInvalidSecretKeyLength
 		}
 
-		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+changePassUserUrl+"?newPassword="+password+"&accessKey="+username,
+		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+changePassUserUrl+"?newSecretKey="+password+"&accessKey="+username,
 			0, nil, "s3", accessKey, secretKey)
 		if err != nil {
 			return err
@@ -324,12 +324,12 @@ var setStatusCmd = &cli.Command{
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
-			Name:  AccessKey,
+			Name:  AdminAccessKey,
 			Usage: "the access-key of user which have set status policy",
 			Value: auth.DefaultAccessKey,
 		},
 		&cli.StringFlag{
-			Name:  SecretKey,
+			Name:  AdminSecretKey,
 			Usage: "the secret-key of user which have set status policy",
 			Value: auth.DefaultSecretKey,
 		},
@@ -347,13 +347,13 @@ var setStatusCmd = &cli.Command{
 		if !strings.HasPrefix(apiAddr, "http") {
 			return xerrors.Errorf("you should set the api of objectstore server")
 		}
-		accessKey := cctx.String(AccessKey)
+		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
-			return xerrors.Errorf("you should give the access-key")
+			return xerrors.Errorf("you should give the admin-access-key")
 		}
-		secretKey := cctx.String(SecretKey)
+		secretKey := cctx.String(AdminSecretKey)
 		if secretKey == "" {
-			return xerrors.Errorf("you should give the secret-key")
+			return xerrors.Errorf("you should give the admin-secret-key")
 		}
 
 		username := cctx.String("username")
