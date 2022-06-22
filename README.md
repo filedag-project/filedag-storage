@@ -95,13 +95,13 @@ Develop the Control Panel of FileDAG Storage.
     - bucket operations
     - permission setting
     
-## Milestone 5
+### Milestone 5
 
-### Goal: 
+#### Goal: 
 
 Connect with IPFS.
 
-### Description:
+#### Description:
 
 - Implements Satellite Nodes connected to the IPFS network in the outer layer of the DAG Pool
 - Provides lightweight IPFS gateway services according to user customization

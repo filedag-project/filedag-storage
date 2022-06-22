@@ -95,13 +95,13 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
     - 桶操作
     - 权限设置
 
-## Milestone 5
+### Milestone 5
 
-### Goal:
+#### Goal:
 
 连接IPFS。
 
-### Description:
+#### Description:
 
 - 实现与DAG Pool与外层IPFS网络连接的卫星节点
 - 提供可定制化的轻量级IPFS网关服务
