@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/ipfs/go-blockservice"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-merkledag"
 	"io/ioutil"
 	"testing"
 )
@@ -14,7 +17,8 @@ func TestStorageSys_Object(t *testing.T) {
 	poolCli, done := utils.NewMockPoolClient(&testing.T{})
 	defer done()
 	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	s := NewStorageSys(poolCli, db)
+	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
+	s := NewStorageSys(dagServ, db)
 
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	ctx := context.TODO()

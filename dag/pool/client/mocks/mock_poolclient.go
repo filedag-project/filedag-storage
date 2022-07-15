@@ -9,8 +9,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	format "github.com/ipfs/go-ipld-format"
 )
 
 // MockPoolClient is a mock of PoolClient interface.
@@ -36,32 +36,19 @@ func (m *MockPoolClient) EXPECT() *MockPoolClientMockRecorder {
 	return m.recorder
 }
 
-// Add mocks base method.
-func (m *MockPoolClient) Add(arg0 context.Context, arg1 format.Node) error {
+// AllKeysChan mocks base method.
+func (m *MockPoolClient) AllKeysChan(arg0 context.Context) (<-chan cid.Cid, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Add", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "AllKeysChan", arg0)
+	ret0, _ := ret[0].(<-chan cid.Cid)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// Add indicates an expected call of Add.
-func (mr *MockPoolClientMockRecorder) Add(arg0, arg1 interface{}) *gomock.Call {
+// AllKeysChan indicates an expected call of AllKeysChan.
+func (mr *MockPoolClientMockRecorder) AllKeysChan(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockPoolClient)(nil).Add), arg0, arg1)
-}
-
-// AddMany mocks base method.
-func (m *MockPoolClient) AddMany(arg0 context.Context, arg1 []format.Node) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddMany", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddMany indicates an expected call of AddMany.
-func (mr *MockPoolClientMockRecorder) AddMany(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMany", reflect.TypeOf((*MockPoolClient)(nil).AddMany), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllKeysChan", reflect.TypeOf((*MockPoolClient)(nil).AllKeysChan), arg0)
 }
 
 // Close mocks base method.
@@ -76,11 +63,25 @@ func (mr *MockPoolClientMockRecorder) Close(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockPoolClient)(nil).Close), arg0)
 }
 
+// DeleteBlock mocks base method.
+func (m *MockPoolClient) DeleteBlock(arg0 context.Context, arg1 cid.Cid) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteBlock", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBlock indicates an expected call of DeleteBlock.
+func (mr *MockPoolClientMockRecorder) DeleteBlock(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBlock", reflect.TypeOf((*MockPoolClient)(nil).DeleteBlock), arg0, arg1)
+}
+
 // Get mocks base method.
-func (m *MockPoolClient) Get(arg0 context.Context, arg1 cid.Cid) (format.Node, error) {
+func (m *MockPoolClient) Get(arg0 context.Context, arg1 cid.Cid) (blocks.Block, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1)
-	ret0, _ := ret[0].(format.Node)
+	ret0, _ := ret[0].(blocks.Block)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -91,44 +92,72 @@ func (mr *MockPoolClientMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockPoolClient)(nil).Get), arg0, arg1)
 }
 
-// GetMany mocks base method.
-func (m *MockPoolClient) GetMany(arg0 context.Context, arg1 []cid.Cid) <-chan *format.NodeOption {
+// GetSize mocks base method.
+func (m *MockPoolClient) GetSize(arg0 context.Context, arg1 cid.Cid) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMany", arg0, arg1)
-	ret0, _ := ret[0].(<-chan *format.NodeOption)
-	return ret0
+	ret := m.ctrl.Call(m, "GetSize", arg0, arg1)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// GetMany indicates an expected call of GetMany.
-func (mr *MockPoolClientMockRecorder) GetMany(arg0, arg1 interface{}) *gomock.Call {
+// GetSize indicates an expected call of GetSize.
+func (mr *MockPoolClientMockRecorder) GetSize(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMany", reflect.TypeOf((*MockPoolClient)(nil).GetMany), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSize", reflect.TypeOf((*MockPoolClient)(nil).GetSize), arg0, arg1)
 }
 
-// Remove mocks base method.
-func (m *MockPoolClient) Remove(arg0 context.Context, arg1 cid.Cid) error {
+// Has mocks base method.
+func (m *MockPoolClient) Has(arg0 context.Context, arg1 cid.Cid) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Remove", arg0, arg1)
+	ret := m.ctrl.Call(m, "Has", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Has indicates an expected call of Has.
+func (mr *MockPoolClientMockRecorder) Has(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Has", reflect.TypeOf((*MockPoolClient)(nil).Has), arg0, arg1)
+}
+
+// HashOnRead mocks base method.
+func (m *MockPoolClient) HashOnRead(arg0 bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HashOnRead", arg0)
+}
+
+// HashOnRead indicates an expected call of HashOnRead.
+func (mr *MockPoolClientMockRecorder) HashOnRead(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HashOnRead", reflect.TypeOf((*MockPoolClient)(nil).HashOnRead), arg0)
+}
+
+// Put mocks base method.
+func (m *MockPoolClient) Put(arg0 context.Context, arg1 blocks.Block) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Put", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Remove indicates an expected call of Remove.
-func (mr *MockPoolClientMockRecorder) Remove(arg0, arg1 interface{}) *gomock.Call {
+// Put indicates an expected call of Put.
+func (mr *MockPoolClientMockRecorder) Put(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Remove", reflect.TypeOf((*MockPoolClient)(nil).Remove), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockPoolClient)(nil).Put), arg0, arg1)
 }
 
-// RemoveMany mocks base method.
-func (m *MockPoolClient) RemoveMany(arg0 context.Context, arg1 []cid.Cid) error {
+// PutMany mocks base method.
+func (m *MockPoolClient) PutMany(arg0 context.Context, arg1 []blocks.Block) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveMany", arg0, arg1)
+	ret := m.ctrl.Call(m, "PutMany", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RemoveMany indicates an expected call of RemoveMany.
-func (mr *MockPoolClientMockRecorder) RemoveMany(arg0, arg1 interface{}) *gomock.Call {
+// PutMany indicates an expected call of PutMany.
+func (mr *MockPoolClientMockRecorder) PutMany(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveMany", reflect.TypeOf((*MockPoolClient)(nil).RemoveMany), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutMany", reflect.TypeOf((*MockPoolClient)(nil).PutMany), arg0, arg1)
 }

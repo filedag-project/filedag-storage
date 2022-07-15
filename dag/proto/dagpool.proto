@@ -7,6 +7,7 @@ service DagPool {
   rpc Add (AddReq) returns (AddReply) {}
   rpc Get (GetReq) returns (GetReply) {}
   rpc Remove (RemoveReq) returns (RemoveReply) {}
+  rpc GetSize (GetSizeReq) returns (GetSizeReply) {}
 
   rpc AddUser (AddUserReq) returns (AddUserReply){}
   rpc RemoveUser (RemoveUserReq) returns (RemoveUserReply){}
@@ -35,6 +36,15 @@ message GetReq {
 
 message GetReply {
   bytes block = 1;
+}
+
+message GetSizeReq {
+  string cid = 1;
+  PoolUser user = 2;
+}
+
+message GetSizeReply {
+  int32 size = 1;
 }
 
 message RemoveReq {

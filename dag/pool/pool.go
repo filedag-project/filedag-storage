@@ -28,6 +28,7 @@ var _ DagPool = &Pool{}
 type DagPool interface {
 	Add(ctx context.Context, block blocks.Block, user string, password string) error
 	Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error)
+	GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error)
 	Remove(ctx context.Context, c cid.Cid, user string, password string) error
 	DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error
 	DataRepairDisk(ctx context.Context, ip, port string) error
@@ -138,6 +139,26 @@ func (d *Pool) Get(ctx context.Context, c cid.Cid, user string, password string)
 	}
 
 	return b, nil
+}
+
+func (d *Pool) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
+	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
+		return 0, userpolicy.AccessDenied
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	reference, err := d.refer.QueryReference(c.String())
+	if err != nil {
+		return 0, err
+	}
+	if reference <= 0 {
+		return 0, fmt.Errorf("block does not exist : %v", err)
+	}
+	getNode, err := d.GetNode(ctx, c)
+	if err != nil {
+		return 0, err
+	}
+	return getNode.GetSize(ctx, c)
 }
 
 func (d *Pool) Remove(ctx context.Context, c cid.Cid, user string, password string) error {

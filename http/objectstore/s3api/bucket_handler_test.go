@@ -11,6 +11,9 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-blockservice"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-merkledag"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -37,7 +40,8 @@ func TestMain(m *testing.M) {
 	iamapi.NewIamApiServer(router, authSys)
 	poolCli, done := utils.NewMockPoolClient(&testing.T{})
 	defer done()
-	NewS3Server(router, poolCli, authSys, db)
+	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
+	NewS3Server(router, dagServ, authSys, db)
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
