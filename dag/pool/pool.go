@@ -124,7 +124,7 @@ func (d *Pool) Get(ctx context.Context, c cid.Cid, user string, password string)
 		return nil, err
 	}
 	if reference <= 0 {
-		return nil, fmt.Errorf("block does not exist : %v", err)
+		return nil, format.ErrNotFound{Cid: c}
 	}
 	getNode, err := d.GetNode(ctx, c)
 	if err != nil {
@@ -152,7 +152,7 @@ func (d *Pool) GetSize(ctx context.Context, c cid.Cid, user string, password str
 		return 0, err
 	}
 	if reference <= 0 {
-		return 0, fmt.Errorf("block does not exist : %v", err)
+		return 0, format.ErrNotFound{Cid: c}
 	}
 	getNode, err := d.GetNode(ctx, c)
 	if err != nil {

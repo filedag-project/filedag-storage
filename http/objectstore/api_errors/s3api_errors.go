@@ -99,6 +99,7 @@ const (
 	ErrInvalidPart
 	ErrInvalidPartOrder
 	ErrAuthorizationHeaderMalformed
+	ErrMalformedDate
 	ErrMalformedPOSTRequest
 	ErrPOSTFileRequired
 	ErrSignatureVersionNotSupported

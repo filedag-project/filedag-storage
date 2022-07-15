@@ -3,6 +3,7 @@ package referencecount
 import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/syndtr/goleveldb/leveldb"
 	"sync"
 )
 
@@ -31,7 +32,7 @@ func (i *IdentityRefe) QueryReference(cid string) (int, error) {
 	i.mu.RLock()
 	err := i.DB.Get(dagPoolRefe+cid, &count)
 	i.mu.RUnlock()
-	if err != nil {
+	if err != nil && err != leveldb.ErrNotFound {
 		return 0, err
 	}
 	return count, nil

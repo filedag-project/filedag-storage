@@ -34,8 +34,8 @@ func (sys *IPolicySys) GetMeta(bucket, accessKey string) (BucketMetadata, error)
 	return sys.bmSys.GetMeta(bucket, accessKey)
 }
 
-// Head returns stored bucket policy
-func (sys *IPolicySys) Head(bucket, accessKey string) bool {
+// Has returns stored bucket policy
+func (sys *IPolicySys) Has(bucket, accessKey string) bool {
 	return sys.bmSys.HasBucketMeta(bucket, accessKey)
 }
 

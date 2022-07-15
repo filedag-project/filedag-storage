@@ -3,11 +3,12 @@ package client
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/proto"
-	"github.com/filedag-project/filedag-storage/kv"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
+	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
 	"strings"
 )
@@ -66,7 +67,7 @@ func (p *DagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 func (p *DagPoolClient) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 	_, err := p.GetSize(ctx, cid)
 	if err != nil {
-		if strings.Contains(err.Error(), kv.ErrNotFound.Error()) {
+		if xerrors.Is(err, format.ErrNotFound{Cid: cid}) {
 			return false, nil
 		}
 		return false, err
@@ -79,6 +80,9 @@ func (p *DagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, err
 	log.Infof(cid.String())
 	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, format.ErrNotFound{Cid: cid}
+		}
 		return nil, err
 	}
 	return blocks.NewBlock(get.Block), nil
@@ -87,6 +91,9 @@ func (p *DagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, err
 func (p *DagPoolClient) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 	reply, err := p.DPClient.GetSize(ctx, &proto.GetSizeReq{Cid: cid.String(), User: p.User})
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return 0, format.ErrNotFound{Cid: cid}
+		}
 		return 0, err
 	}
 	return int(reply.Size), nil

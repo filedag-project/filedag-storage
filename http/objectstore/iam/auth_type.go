@@ -51,35 +51,39 @@ type AuthType int
 
 // List of all supported auth types.
 const (
-	authTypeUnknown AuthType = iota
-	authTypeAnonymous
-	authTypePresigned
-	authTypePresignedV2
-	authTypePostPolicy
+	AuthTypeUnknown AuthType = iota
+	AuthTypeAnonymous
+	AuthTypePresigned
+	AuthTypePresignedV2
+	AuthTypePostPolicy
 	AuthTypeStreamingSigned
-	authTypeSigned
-	authTypeSignedV2
-	authTypeJWT
+	AuthTypeSigned
+	AuthTypeSignedV2
+	AuthTypeJWT
 )
 
 // GetRequestAuthType Get request authentication type.
 func GetRequestAuthType(r *http.Request) AuthType {
 	if isRequestSignatureV2(r) {
-		return authTypeSignedV2
+		return AuthTypeSignedV2
 	} else if isRequestPresignedSignatureV2(r) {
-		return authTypePresignedV2
+		return AuthTypePresignedV2
 	} else if isRequestSignStreamingV4(r) {
 		return AuthTypeStreamingSigned
 	} else if IsRequestSignatureV4(r) {
-		return authTypeSigned
+		return AuthTypeSigned
 	} else if isRequestPresignedSignatureV4(r) {
-		return authTypePresigned
+		return AuthTypePresigned
 	} else if isRequestJWT(r) {
-		return authTypeJWT
+		return AuthTypeJWT
 	} else if isRequestPostPolicySignatureV4(r) {
-		return authTypePostPolicy
+		return AuthTypePostPolicy
 	} else if _, ok := r.Header["Authorization"]; !ok {
-		return authTypeAnonymous
+		return AuthTypeAnonymous
 	}
-	return authTypeUnknown
+	return AuthTypeUnknown
+}
+
+func IsAuthTypeStreamingSigned(atype AuthType) bool {
+	return atype == AuthTypeStreamingSigned
 }

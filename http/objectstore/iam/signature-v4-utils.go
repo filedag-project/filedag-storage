@@ -35,9 +35,9 @@ import (
 // client did not calculate sha256 of the payload.
 const unsignedPayload = "UNSIGNED-PAYLOAD"
 
-// skipContentSha256Cksum returns true if caller needs to skip
+// SkipContentSha256Cksum returns true if caller needs to skip
 // payload checksum, false if not.
-func skipContentSha256Cksum(r *http.Request) bool {
+func SkipContentSha256Cksum(r *http.Request) bool {
 	var (
 		v  []string
 		ok bool
@@ -79,7 +79,7 @@ func skipContentSha256Cksum(r *http.Request) bool {
 }
 
 // Returns SHA256 for calculating canonical-request.
-func getContentSha256Cksum(r *http.Request, stype serviceType) string {
+func GetContentSha256Cksum(r *http.Request, stype serviceType) string {
 	if stype == ServiceSTS {
 		payload, err := ioutil.ReadAll(io.LimitReader(r.Body, consts.StsRequestBodyLimit))
 		if err != nil {

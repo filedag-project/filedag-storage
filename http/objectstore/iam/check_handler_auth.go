@@ -43,23 +43,23 @@ func NewAuthSys(db *uleveldb.ULevelDB, adminCred auth.Credentials) *AuthSys {
 // Additionally, returns the accessKey used in the request, and if this request is by an admin.
 func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
 	switch GetRequestAuthType(r) {
-	case authTypeUnknown, AuthTypeStreamingSigned:
+	case AuthTypeUnknown, AuthTypeStreamingSigned:
 		return cred, owner, api_errors.ErrSignatureVersionNotSupported
-	case authTypePresignedV2, authTypeSignedV2:
-		if s3Err = s.isReqAuthenticatedV2(r); s3Err != api_errors.ErrNone {
+	case AuthTypePresignedV2, AuthTypeSignedV2:
+		if s3Err = s.IsReqAuthenticatedV2(r); s3Err != api_errors.ErrNone {
 			return cred, owner, s3Err
 		}
 		cred, owner, s3Err = s.getReqAccessKeyV2(r)
-	case authTypeSigned, authTypePresigned:
+	case AuthTypeSigned, AuthTypePresigned:
 		region := ""
 		switch action {
 		case s3action.GetBucketLocationAction, s3action.ListAllMyBucketsAction:
 			region = ""
 		}
-		if s3Err = s.IsReqAuthenticated(ctx, r, region, serviceS3); s3Err != api_errors.ErrNone {
+		if s3Err = s.IsReqAuthenticated(ctx, r, region, ServiceS3); s3Err != api_errors.ErrNone {
 			return cred, owner, s3Err
 		}
-		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, serviceS3)
+		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, ServiceS3)
 	}
 	if s3Err != api_errors.ErrNone {
 		return cred, owner, s3Err
@@ -145,15 +145,15 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 }
 
 // Verify if request has valid AWS Signature Version '2'.
-func (s *AuthSys) isReqAuthenticatedV2(r *http.Request) (s3Error api_errors.ErrorCode) {
+func (s *AuthSys) IsReqAuthenticatedV2(r *http.Request) (s3Error api_errors.ErrorCode) {
 	if isRequestSignatureV2(r) {
 		return s.doesSignV2Match(r)
 	}
 	return s.doesPresignV2SignatureMatch(r)
 }
 
-func (s *AuthSys) reqSignatureV4Verify(r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
-	sha256sum := getContentSha256Cksum(r, stype)
+func (s *AuthSys) ReqSignatureV4Verify(r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
+	sha256sum := GetContentSha256Cksum(r, stype)
 	switch {
 	case IsRequestSignatureV4(r):
 		return s.doesSignatureMatch(sha256sum, r, region, stype)
@@ -166,7 +166,7 @@ func (s *AuthSys) reqSignatureV4Verify(r *http.Request, region string, stype ser
 
 // IsReqAuthenticated Verify if request has valid AWS Signature Version '4'.
 func (s *AuthSys) IsReqAuthenticated(ctx context.Context, r *http.Request, region string, stype serviceType) (s3Error api_errors.ErrorCode) {
-	if errCode := s.reqSignatureV4Verify(r, region, stype); errCode != api_errors.ErrNone {
+	if errCode := s.ReqSignatureV4Verify(r, region, stype); errCode != api_errors.ErrNone {
 		return errCode
 	}
 	clientETag, err := etag.FromContentMD5(r.Header)
@@ -177,7 +177,7 @@ func (s *AuthSys) IsReqAuthenticated(ctx context.Context, r *http.Request, regio
 	// Extract either 'X-Amz-Content-Sha256' header or 'X-Amz-Content-Sha256' query parameter (if V4 presigned)
 	// Do not verify 'X-Amz-Content-Sha256' if skipSHA256.
 	var contentSHA256 []byte
-	if skipSHA256 := skipContentSha256Cksum(r); !skipSHA256 && isRequestPresignedSignatureV4(r) {
+	if skipSHA256 := SkipContentSha256Cksum(r); !skipSHA256 && isRequestPresignedSignatureV4(r) {
 		if sha256Sum, ok := r.Form[consts.AmzContentSha256]; ok && len(sha256Sum) > 0 {
 			contentSHA256, err = hex.DecodeString(sha256Sum[0])
 			if err != nil {
@@ -207,15 +207,15 @@ func (s *AuthSys) ValidateAdminSignature(ctx context.Context, r *http.Request, r
 	var owner bool
 	s3Err := api_errors.ErrAccessDenied
 	if _, ok := r.Header[consts.AmzContentSha256]; ok &&
-		GetRequestAuthType(r) == authTypeSigned {
+		GetRequestAuthType(r) == AuthTypeSigned {
 		// We only support admin credentials to access admin APIs.
-		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, serviceS3)
+		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, ServiceS3)
 		if s3Err != api_errors.ErrNone {
 			return cred, nil, owner, s3Err
 		}
 
 		// we only support V4 (no presign) with auth body
-		s3Err = s.IsReqAuthenticated(ctx, r, region, serviceS3)
+		s3Err = s.IsReqAuthenticated(ctx, r, region, ServiceS3)
 	}
 	if s3Err != api_errors.ErrNone {
 		return cred, nil, owner, s3Err
@@ -235,19 +235,19 @@ func getConditions(r *http.Request, username string) map[string][]string {
 	at := GetRequestAuthType(r)
 	var signatureVersion string
 	switch at {
-	case authTypeSignedV2, authTypePresignedV2:
+	case AuthTypeSignedV2, AuthTypePresignedV2:
 		signatureVersion = signV2Algorithm
-	case authTypeSigned, authTypePresigned, AuthTypeStreamingSigned, authTypePostPolicy:
+	case AuthTypeSigned, AuthTypePresigned, AuthTypeStreamingSigned, AuthTypePostPolicy:
 		signatureVersion = signV4Algorithm
 	}
 
 	var authtype string
 	switch at {
-	case authTypePresignedV2, authTypePresigned:
+	case AuthTypePresignedV2, AuthTypePresigned:
 		authtype = "REST-QUERY-STRING"
-	case authTypeSignedV2, authTypeSigned, AuthTypeStreamingSigned:
+	case AuthTypeSignedV2, AuthTypeSigned, AuthTypeStreamingSigned:
 		authtype = "REST-HEADER"
-	case authTypePostPolicy:
+	case AuthTypePostPolicy:
 		authtype = "POST"
 	}
 
@@ -288,4 +288,72 @@ func getConditions(r *http.Request, username string) map[string][]string {
 	}
 
 	return args
+}
+
+// IsPutActionAllowed - check if PUT operation is allowed on the resource, this
+// call verifies bucket policies and IAM policies, supports multi user
+// checks etc.
+func (s *AuthSys) IsPutActionAllowed(ctx context.Context, r *http.Request, action s3action.Action, bucketName, objectName string) (s3Err api_errors.ErrorCode) {
+	var cred auth.Credentials
+	var owner bool
+	switch GetRequestAuthType(r) {
+	case AuthTypeUnknown:
+		return api_errors.ErrSignatureVersionNotSupported
+	case AuthTypeSignedV2, AuthTypePresignedV2:
+		cred, owner, s3Err = s.getReqAccessKeyV2(r)
+	case AuthTypeStreamingSigned, AuthTypePresigned, AuthTypeSigned:
+		region := ""
+		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, ServiceS3)
+	}
+	if s3Err != api_errors.ErrNone {
+		return s3Err
+	}
+
+	// Do not check for PutObjectRetentionAction permission,
+	// if mode and retain until date are not set.
+	// Can happen when bucket has default lock config set
+	if action == s3action.PutObjectRetentionAction &&
+		r.Header.Get(consts.AmzObjectLockMode) == "" &&
+		r.Header.Get(consts.AmzObjectLockRetainUntilDate) == "" {
+		return api_errors.ErrNone
+	}
+
+	if cred.AccessKey == "" {
+		if s.PolicySys.IsAllowed(auth.Args{
+			AccountName: cred.AccessKey,
+			Action:      action,
+			BucketName:  bucketName,
+			Conditions:  getConditions(r, ""),
+			IsOwner:     false,
+			ObjectName:  objectName,
+		}) {
+			return api_errors.ErrNone
+		}
+		return api_errors.ErrAccessDenied
+	}
+
+	if s.Iam.IsAllowed(ctx, auth.Args{
+		AccountName: cred.AccessKey,
+		Action:      action,
+		BucketName:  bucketName,
+		Conditions:  getConditions(r, cred.AccessKey),
+		ObjectName:  objectName,
+		IsOwner:     owner,
+	}) {
+		return api_errors.ErrNone
+	}
+	return api_errors.ErrAccessDenied
+}
+
+func (s *AuthSys) GetCredential(r *http.Request) (cred auth.Credentials, owner bool, s3Err api_errors.ErrorCode) {
+	switch GetRequestAuthType(r) {
+	case AuthTypeUnknown:
+		s3Err = api_errors.ErrSignatureVersionNotSupported
+	case AuthTypeSignedV2, AuthTypePresignedV2:
+		cred, owner, s3Err = s.getReqAccessKeyV2(r)
+	case AuthTypeStreamingSigned, AuthTypePresigned, AuthTypeSigned:
+		region := ""
+		cred, owner, s3Err = s.GetReqAccessKeyV4(r, region, ServiceS3)
+	}
+	return
 }

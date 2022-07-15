@@ -14,6 +14,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
 	"github.com/gorilla/mux"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -43,7 +44,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	// if Content-Length is unknown/missing, deny the request
 	size := r.ContentLength
 	rAuthType := iam.GetRequestAuthType(r)
-	if rAuthType == iam.AuthTypeStreamingSigned {
+	if iam.IsAuthTypeStreamingSigned(rAuthType) {
 		if sizeStr, ok := r.Header[consts.AmzDecodedContentLength]; ok {
 			if sizeStr[0] == "" {
 				response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
@@ -66,24 +67,62 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrEntityTooLarge)
 		return
 	}
-	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutObjectAction, "testbuckets", "")
+
+	// Check if put is allowed
+	s3err := s3a.authSys.IsPutActionAllowed(r.Context(), r, s3action.PutObjectAction, bucket, object)
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
-	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+
+	cred, _, s3err := s3a.authSys.GetCredential(r)
+	if s3err != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
+		return
+	}
+	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	dataReader := r.Body
 
-	hashReader, err1 := hash.NewReader(dataReader, size, clientETag.String(), r.Header.Get(consts.AmzContentSha256), size)
-	if err1 != nil {
-		log.Errorf("PutObjectHandler NewReader err:%v", err1)
+	var (
+		md5hex              = clientETag.String()
+		sha256hex           = ""
+		reader    io.Reader = r.Body
+	)
+
+	switch rAuthType {
+	case iam.AuthTypeStreamingSigned:
+		// Initialize stream signature verifier.
+		reader, s3err = iam.NewSignV4ChunkedReader(r, s3a.authSys)
+		if s3err != api_errors.ErrNone {
+			response.WriteErrorResponse(w, r, s3err)
+			return
+		}
+	case iam.AuthTypeSignedV2, iam.AuthTypePresignedV2:
+		s3err = s3a.authSys.IsReqAuthenticatedV2(r)
+		if s3err != api_errors.ErrNone {
+			response.WriteErrorResponse(w, r, s3err)
+			return
+		}
+
+	case iam.AuthTypePresigned, iam.AuthTypeSigned:
+		if s3err = s3a.authSys.ReqSignatureV4Verify(r, "", iam.ServiceS3); s3err != api_errors.ErrNone {
+			response.WriteErrorResponse(w, r, s3err)
+			return
+		}
+		if !iam.SkipContentSha256Cksum(r) {
+			sha256hex = iam.GetContentSha256Cksum(r, iam.ServiceS3)
+		}
+	}
+
+	hashReader, err := hash.NewReader(reader, size, md5hex, sha256hex, size)
+	if err != nil {
+		log.Errorf("PutObjectHandler NewReader err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	defer dataReader.Close()
+	// TODO: if bucket is unique, there is no need to store user in Object
 	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader, size)
 	if err2 != nil {
 		log.Errorf("PutObjectHandler StoreObject err:%v", err2)
@@ -109,7 +148,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -155,7 +194,7 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -189,7 +228,7 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -227,7 +266,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Head(dstBucket, cred.AccessKey) {
+	if !s3a.authSys.PolicySys.Has(dstBucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -240,7 +279,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
-	if !s3a.authSys.PolicySys.Head(srcBucket, cred.AccessKey) {
+	if !s3a.authSys.PolicySys.Has(srcBucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -299,7 +338,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Head(bucket, cred.AccessKey) {
+	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -336,7 +375,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	urlValues := r.Form
-	if !s3a.authSys.PolicySys.Head(bucket, cerd.AccessKey) {
+	if !s3a.authSys.PolicySys.Has(bucket, cerd.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -528,11 +567,11 @@ func validateListObjectsArgs(marker, delimiter, encodingType string, maxKeys int
 // GenerateListObjectsV2Response Generates an ListObjectsV2 response for the said bucket with other enumerated options.
 func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter, delimiter, encodingType string, isTruncated bool, maxKeys int, objects []store.ObjectInfo, prefixes []string) response.ListObjectsV2Response {
 	contents := make([]response.Object, 0, len(objects))
-	a := consts.DefaultOwnerID
-	b := "fds"
+	id := consts.DefaultOwnerID
+	name := consts.DisplayName
 	owner := s3.Owner{
-		ID:          &a,
-		DisplayName: &b,
+		ID:          &id,
+		DisplayName: &name,
 	}
 	data := response.ListObjectsV2Response{}
 
@@ -576,11 +615,11 @@ func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter,
 // generates an ListObjectsV1 response for the said bucket with other enumerated options.
 func generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, resp response.ListObjectsInfo) response.ListObjectsResponse {
 	contents := make([]response.Object, 0, len(resp.Objects))
-	a := consts.DefaultOwnerID
-	b := "fds"
+	id := consts.DefaultOwnerID
+	name := consts.DisplayName
 	owner := s3.Owner{
-		ID:          &a,
-		DisplayName: &b,
+		ID:          &id,
+		DisplayName: &name,
 	}
 	data := response.ListObjectsResponse{}
 
