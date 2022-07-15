@@ -45,7 +45,7 @@ func remove(addr string, clientuser string, clientpass string, cidStr string) er
 	if err != nil {
 		return err
 	}
-	err = poolClient.Remove(context.TODO(), c)
+	err = poolClient.DeleteBlock(context.TODO(), c)
 	if err != nil {
 		fmt.Printf("remove block err:%v", err)
 		return err

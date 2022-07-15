@@ -45,7 +45,7 @@ func add(addr string, clientuser string, clientpass string, blockdata string) er
 
 	nd := dag.NodeWithData(unixfs.FilePBData([]byte(blockdata), uint64(len(blockdata))))
 
-	err = poolClient.Add(context.TODO(), nd)
+	err = poolClient.Put(context.TODO(), nd)
 	if err != nil {
 		fmt.Printf("add block err:%v", err)
 		return err
