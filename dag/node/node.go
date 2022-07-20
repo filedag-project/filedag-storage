@@ -232,7 +232,7 @@ func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 		return err
 	}
 	if ok {
-		log.Debugf("encode ok, the data is the same format as Encode. No data is modified")
+		//log.Debugf("encode ok, the data is the same format as Encode. No data is modified")
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))

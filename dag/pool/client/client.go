@@ -18,6 +18,7 @@ var log = logging.Logger("pool-client")
 var _ blockstore.Blockstore = (*dagPoolClient)(nil)
 var _ PoolClient = (*dagPoolClient)(nil)
 var _ DataPin = &dagPoolClient{}
+
 //go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient,DataPin
 
 //PoolClient is a DAGService interface
@@ -63,14 +64,15 @@ func (p *dagPoolClient) Close(ctx context.Context) {
 	p.Conn.Close()
 }
 
-//Add add a node
-func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
-	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.User})
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//
+////Add add a node
+//func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
+//	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.User})
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
 
 func (p *dagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{

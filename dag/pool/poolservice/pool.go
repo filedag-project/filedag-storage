@@ -136,6 +136,7 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
 		return userpolicy.AccessDenied
 	}
+	d.gc.Stop()
 	if d.refer.HasReference(c.String()) {
 		err := d.refer.RemoveReference(c.String(), d.NeedPin(user))
 		if err != nil {
