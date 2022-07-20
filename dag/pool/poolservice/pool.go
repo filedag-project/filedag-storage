@@ -55,7 +55,6 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		return nil, err
 	}
 	r := referencecount.NewIdentityRefe(db)
-	r, err := referencecount.NewIdentityRefe(db)
 	dn := make(map[string]*node.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
@@ -150,6 +149,7 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 	//	}
 	//	go getNode.DeleteBlock(ctx, c)
 	//}
+	return nil
 }
 func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
 	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
@@ -157,11 +157,8 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	reference, err := d.refer.QueryReference(c.String())
-	if err != nil {
-		return 0, err
-	}
-	if reference <= 0 {
+	has := d.refer.HasReference(c.String())
+	if !has {
 		return 0, format.ErrNotFound{Cid: c}
 	}
 	getNode, err := d.GetNode(ctx, c)
@@ -169,28 +166,6 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 		return 0, err
 	}
 	return getNode.GetSize(ctx, c)
-}
-
-func (d *Pool) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
-	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
-		return userpolicy.AccessDenied
-	}
-	err := d.refer.RemoveReference(c.String())
-	if err != nil {
-		return err
-	}
-	reference, err := d.refer.QueryReference(c.String())
-	if err != nil {
-		return err
-	}
-	if reference == 0 {
-		getNode, err := d.GetNode(ctx, c)
-		if err != nil {
-			return err
-		}
-		go getNode.DeleteBlock(ctx, c)
-	}
-	return nil
 }
 
 // DataRepairHost Data repair host

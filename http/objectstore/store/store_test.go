@@ -20,11 +20,8 @@ func TestStorageSys_Object(t *testing.T) {
 	db, _ := uleveldb.OpenDb(t.TempDir())
 	pinCli, done := utils.NewMockPinClient(t)
 	defer done()
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
-	s := NewStorageSys(dagServ, db)
-
-	s := NewStorageSys(poolCli, pinCli, db)
+	s := NewStorageSys(dagServ, pinCli, db)
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	ctx := context.TODO()
 	object, err := s.StoreObject(ctx, "test", "testbucket", "testobject", r, 6)
@@ -50,8 +47,9 @@ func TestStorageSys_Object(t *testing.T) {
 func TestStorageSys_Pin(t *testing.T) {
 
 	poolCli, err := client.NewPoolClient("127.0.0.1:9985", "pool", "pool123")
+	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
 	db, _ := uleveldb.OpenDb(t.TempDir())
-	s := NewStorageSys(poolCli, poolCli, db)
+	s := NewStorageSys(dagServ, poolCli, db)
 
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	ctx := context.TODO()
