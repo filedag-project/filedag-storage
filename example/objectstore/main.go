@@ -12,6 +12,9 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-blockservice"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-merkledag"
 	"log"
 	"net/http"
 	"os"
@@ -62,6 +65,8 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
 	defer poolClient.Close(context.TODO())
+	dagServ := merkledag.NewDAGService(blockservice.New(poolClient, offline.Exchange(poolClient)))
+	s3api.NewS3Server(router, dagServ, authSys, db)
 	s3api.NewS3Server(router, poolClient, poolClient, authSys, db)
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {

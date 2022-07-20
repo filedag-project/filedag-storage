@@ -25,6 +25,7 @@ type DagPoolClient interface {
 	Add(ctx context.Context, in *AddReq, opts ...grpc.CallOption) (*AddReply, error)
 	Get(ctx context.Context, in *GetReq, opts ...grpc.CallOption) (*GetReply, error)
 	Remove(ctx context.Context, in *RemoveReq, opts ...grpc.CallOption) (*RemoveReply, error)
+	GetSize(ctx context.Context, in *GetSizeReq, opts ...grpc.CallOption) (*GetSizeReply, error)
 	AddUser(ctx context.Context, in *AddUserReq, opts ...grpc.CallOption) (*AddUserReply, error)
 	RemoveUser(ctx context.Context, in *RemoveUserReq, opts ...grpc.CallOption) (*RemoveUserReply, error)
 	QueryUser(ctx context.Context, in *QueryUserReq, opts ...grpc.CallOption) (*QueryUserReply, error)
@@ -63,6 +64,15 @@ func (c *dagPoolClient) Get(ctx context.Context, in *GetReq, opts ...grpc.CallOp
 func (c *dagPoolClient) Remove(ctx context.Context, in *RemoveReq, opts ...grpc.CallOption) (*RemoveReply, error) {
 	out := new(RemoveReply)
 	err := c.cc.Invoke(ctx, "/proto.DagPool/Remove", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagPoolClient) GetSize(ctx context.Context, in *GetSizeReq, opts ...grpc.CallOption) (*GetSizeReply, error) {
+	out := new(GetSizeReply)
+	err := c.cc.Invoke(ctx, "/proto.DagPool/GetSize", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +149,7 @@ type DagPoolServer interface {
 	Add(context.Context, *AddReq) (*AddReply, error)
 	Get(context.Context, *GetReq) (*GetReply, error)
 	Remove(context.Context, *RemoveReq) (*RemoveReply, error)
+	GetSize(context.Context, *GetSizeReq) (*GetSizeReply, error)
 	AddUser(context.Context, *AddUserReq) (*AddUserReply, error)
 	RemoveUser(context.Context, *RemoveUserReq) (*RemoveUserReply, error)
 	QueryUser(context.Context, *QueryUserReq) (*QueryUserReply, error)
@@ -161,6 +172,9 @@ func (UnimplementedDagPoolServer) Get(context.Context, *GetReq) (*GetReply, erro
 }
 func (UnimplementedDagPoolServer) Remove(context.Context, *RemoveReq) (*RemoveReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Remove not implemented")
+}
+func (UnimplementedDagPoolServer) GetSize(context.Context, *GetSizeReq) (*GetSizeReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSize not implemented")
 }
 func (UnimplementedDagPoolServer) AddUser(context.Context, *AddUserReq) (*AddUserReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddUser not implemented")
@@ -246,6 +260,24 @@ func _DagPool_Remove_Handler(srv interface{}, ctx context.Context, dec func(inte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DagPoolServer).Remove(ctx, req.(*RemoveReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DagPool_GetSize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSizeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolServer).GetSize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPool/GetSize",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolServer).GetSize(ctx, req.(*GetSizeReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -394,6 +426,10 @@ var DagPool_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Remove",
 			Handler:    _DagPool_Remove_Handler,
+		},
+		{
+			MethodName: "GetSize",
+			Handler:    _DagPool_GetSize_Handler,
 		},
 		{
 			MethodName: "AddUser",

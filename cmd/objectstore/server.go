@@ -12,7 +12,10 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-blockservice"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/go-merkledag"
 	"github.com/urfave/cli/v2"
 	"net/http"
 	"os"
@@ -67,6 +70,8 @@ func startServer(cctx *cli.Context) {
 	}
 	defer poolClient.Close(context.TODO())
 	s3api.NewS3Server(router, poolClient, poolClient, authSys, db)
+	dagServ := merkledag.NewDAGService(blockservice.New(poolClient, offline.Exchange(poolClient)))
+	s3api.NewS3Server(router, dagServ, authSys, db)
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 			log.Infof("start sever at http://%v%v", ip, listen)

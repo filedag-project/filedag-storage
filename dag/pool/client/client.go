@@ -5,30 +5,26 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	format "github.com/ipfs/go-ipld-format"
-	legacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
+	"strings"
 )
 
 var log = logging.Logger("pool-client")
 
-var _ format.DAGService = &dagPoolClient{}
-var _ PoolClient = &dagPoolClient{}
+var _ blockstore.Blockstore = (*dagPoolClient)(nil)
+var _ PoolClient = (*dagPoolClient)(nil)
 var _ DataPin = &dagPoolClient{}
-
 //go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient,DataPin
 
 //PoolClient is a DAGService interface
 type PoolClient interface {
+	blockstore.Blockstore
+
 	Close(ctx context.Context)
-	Get(ctx context.Context, cid cid.Cid) (format.Node, error)
-	Add(ctx context.Context, node format.Node) error
-	Remove(ctx context.Context, cid cid.Cid) error
-	AddMany(ctx context.Context, nodes []format.Node) error
-	GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption
-	RemoveMany(ctx context.Context, cids []cid.Cid) error
 }
 
 //DataPin is a pin interface
@@ -67,16 +63,6 @@ func (p *dagPoolClient) Close(ctx context.Context) {
 	p.Conn.Close()
 }
 
-//Get get a node by cid
-func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (format.Node, error) {
-	log.Infof(cid.String())
-	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
-	if err != nil {
-		return nil, err
-	}
-	return legacy.DecodeNode(ctx, blocks.NewBlock(get.Block))
-}
-
 //Add add a node
 func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
 	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.User})
@@ -86,8 +72,7 @@ func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
 	return nil
 }
 
-//Remove remove a node by cid
-func (p *dagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
+func (p *dagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
 		Cid:  cid.String(),
 		User: p.User})
@@ -98,32 +83,64 @@ func (p *dagPoolClient) Remove(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
-//AddMany add many nodes
-func (p *dagPoolClient) AddMany(ctx context.Context, nodes []format.Node) error {
-	return xerrors.Errorf("implement me")
+func (p *dagPoolClient) Has(ctx context.Context, cid cid.Cid) (bool, error) {
+	_, err := p.GetSize(ctx, cid)
+	if err != nil {
+		if xerrors.Is(err, format.ErrNotFound{Cid: cid}) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
-//GetMany get many nodes
-func (p *dagPoolClient) GetMany(ctx context.Context, cids []cid.Cid) <-chan *format.NodeOption {
-	out := make(chan *format.NodeOption, len(cids))
-	defer close(out)
-	for _, c := range cids {
-		log.Infof(c.String())
-
-		b, err := p.Get(ctx, c)
-		if err != nil {
-			return nil
+func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
+	log.Infof(cid.String())
+	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, format.ErrNotFound{Cid: cid}
 		}
-
-		nd, err := legacy.DecodeNode(ctx, b)
-		if err != nil {
-			out <- &format.NodeOption{Err: err}
-			return nil
-		}
-		out <- &format.NodeOption{Node: nd}
-
+		return nil, err
 	}
-	return out
+	return blocks.NewBlock(get.Block), nil
+}
+
+func (p *dagPoolClient) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
+	reply, err := p.DPClient.GetSize(ctx, &proto.GetSizeReq{Cid: cid.String(), User: p.User})
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return 0, format.ErrNotFound{Cid: cid}
+		}
+		return 0, err
+	}
+	return int(reply.Size), nil
+}
+
+func (p *dagPoolClient) Put(ctx context.Context, blk blocks.Block) error {
+	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: blk.RawData(), User: p.User})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *dagPoolClient) PutMany(ctx context.Context, blks []blocks.Block) error {
+	for _, block := range blks {
+		if err := p.Put(ctx, block); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *dagPoolClient) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
+	panic("unimplemented")
+}
+
+func (p *dagPoolClient) HashOnRead(enabled bool) {
+	panic("unimplemented")
 }
 
 //RemoveMany remove many nodes

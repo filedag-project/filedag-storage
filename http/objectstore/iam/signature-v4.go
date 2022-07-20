@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -39,7 +40,7 @@ const (
 type serviceType string
 
 const (
-	serviceS3 serviceType = "s3"
+	ServiceS3 serviceType = "s3"
 	//ServiceSTS STS
 	ServiceSTS serviceType = "sts"
 )
@@ -243,4 +244,15 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 
 	// Return error none.
 	return api_errors.ErrNone
+}
+
+// getScope generate a string of a specific date, an AWS region, and a service.
+func getScope(t time.Time, region string) string {
+	scope := strings.Join([]string{
+		t.Format(yyyymmdd),
+		region,
+		string(ServiceS3),
+		"aws4_request",
+	}, consts.SlashSeparator)
+	return scope
 }

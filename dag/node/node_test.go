@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/node/mocks"
@@ -27,31 +28,40 @@ func TestDagNode(t *testing.T) {
 		dataBlocks:   3,
 		parityBlocks: 1,
 	}
-	block := blocks.NewBlock([]byte("123456"))
+	content := "123456"
+	block := blocks.NewBlock([]byte(content))
 	ctx := context.TODO()
 	err = d.Put(ctx, block)
 	if err != nil {
 		fmt.Println("put err", err)
 		return
 	}
+
 	get, err := d.Get(ctx, block.Cid())
 	if err != nil {
 		fmt.Println("get err", err)
 		return
 	}
-	fmt.Println(get.String())
-	err = d.DeleteBlock(ctx, block.Cid())
-	if err != nil {
-		fmt.Println("del err", err)
-		return
+	if !bytes.Equal(block.RawData(), get.RawData()) {
+		t.Fatal("the block from dagnode is not equal the origin block")
 	}
+
 	size, err := d.GetSize(ctx, block.Cid())
 	if err != nil {
 		fmt.Println("size err", err)
 		return
 	}
-	fmt.Println(size)
+	if size != len(content) {
+		t.Fatal("the size of block from dagnode is not equal the origin block size")
+	}
+
+	err = d.DeleteBlock(ctx, block.Cid())
+	if err != nil {
+		fmt.Println("del err", err)
+		return
+	}
 }
+
 func newDatanode(t *testing.T) *mocks.MockDataNodeClient {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockDataNodeClient(ctrl)

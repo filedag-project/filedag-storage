@@ -7,59 +7,59 @@ import (
 )
 
 // GetNode get the DagNode
-func (d *dagPoolService) GetNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
+func (d *Pool) GetNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
 	//todo mul node
-	get, err := d.nrSys.Get(c.String())
+	get, err := d.NRSys.Get(c.String())
 	if err != nil {
 		return nil, err
 	}
-	return d.dagNodes[get], nil
+	return d.DagNodes[get], nil
 }
 
 // UseNode get the DagNode
-func (d *dagPoolService) UseNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
+func (d *Pool) UseNode(ctx context.Context, c cid.Cid) (*node.DagNode, error) {
 	//todo mul node
-	dn := d.nrSys.GetCanUseNode()
-	err := d.nrSys.Add(c.String(), dn)
+	dn := d.NRSys.GetCanUseNode()
+	err := d.NRSys.Add(c.String(), dn)
 	if err != nil {
 		return nil, err
 	}
-	return d.dagNodes[dn], nil
+	return d.DagNodes[dn], nil
 }
 
-// getNodeUseIP get the DagNode
-func (d *dagPoolService) getNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
+// GetNodeUseIP get the DagNode
+func (d *Pool) GetNodeUseIP(ctx context.Context, ip string) (*node.DagNode, error) {
 	//todo mul node
-	get, err := d.nrSys.GetNameUseIp(ip)
+	get, err := d.NRSys.GetNameUseIp(ip)
 	if err != nil {
 		return nil, err
 	}
-	return d.dagNodes[get], nil
+	return d.DagNodes[get], nil
 }
 
 //
 //// GetNodes get the DagNode
-//func (d *DagPoolService) GetNodes(ctx context.Context, cids []cid.Cid) map[*node.DagNode][]cid.Cid {
+//func (d *Pool) GetNodes(ctx context.Context, cids []cid.Cid) map[*node.DagNode][]cid.Cid {
 //	//todo mul node
 //	//
 //	m := make(map[*node.DagNode][]cid.Cid)
 //	for _, c := range cids {
-//		get, err := d.nrSys.Get(c.String())
+//		get, err := d.NRSys.Get(c.String())
 //		if err != nil {
 //			return nil
 //		}
-//		m[d.dagNodes[get]] = append(m[d.dagNodes[get]], c)
+//		m[d.DagNodes[get]] = append(m[d.DagNodes[get]], c)
 //	}
 //	return m
 //}
 //
 //// UseNodes get the DagNode
-//func (d *DagPoolService) UseNodes(ctx context.Context, c []cid.Cid) *node.DagNode {
+//func (d *Pool) UseNodes(ctx context.Context, c []cid.Cid) *node.DagNode {
 //	//todo mul node
-//	dn := d.nrSys.GetCanUseNode()
-//	err := d.nrSys.Add(c[0].String(), dn)
+//	dn := d.NRSys.GetCanUseNode()
+//	err := d.NRSys.Add(c[0].String(), dn)
 //	if err != nil {
 //		return nil
 //	}
-//	return d.dagNodes[dn]
+//	return d.DagNodes[dn]
 //}

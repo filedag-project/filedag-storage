@@ -330,10 +330,10 @@ func GetStringToSign(canonicalRequest string, t time.Time, scope string) string 
 }
 
 // GetSigningKey hmac seed to calculate final signature.
-func GetSigningKey(secretKey string, t time.Time, region string, stype string) []byte {
+func GetSigningKey(secretKey string, t time.Time, region string, serviceType string) []byte {
 	date := sumHMAC([]byte("AWS4"+secretKey), []byte(t.Format(yyyymmdd)))
 	regionBytes := sumHMAC(date, []byte(region))
-	service := sumHMAC(regionBytes, []byte(stype))
+	service := sumHMAC(regionBytes, []byte(serviceType))
 	signingKey := sumHMAC(service, []byte("aws4_request"))
 	return signingKey
 }

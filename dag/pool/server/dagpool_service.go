@@ -42,6 +42,19 @@ func (s *DagPoolServer) Get(ctx context.Context, in *proto.GetReq) (*proto.GetRe
 	}
 	return &proto.GetReply{Block: get.RawData()}, nil
 }
+
+func (s *DagPoolServer) GetSize(ctx context.Context, in *proto.GetSizeReq) (*proto.GetSizeReply, error) {
+	cid, err := cid.Decode(in.Cid)
+	if err != nil {
+		return &proto.GetSizeReply{Size: 0}, err
+	}
+	size, err := s.DagPool.GetSize(ctx, cid, in.User.User, in.User.Password)
+	if err != nil {
+		return &proto.GetSizeReply{Size: 0}, err
+	}
+	return &proto.GetSizeReply{Size: int32(size)}, nil
+}
+
 func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto.RemoveReply, error) {
 	c, err := cid.Decode(in.Cid)
 	if err != nil {

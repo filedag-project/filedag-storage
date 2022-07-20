@@ -250,7 +250,6 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, pre
 		}
 		count++
 		o.ContinuationToken = token
-		o.IsTruncated = true
 		o.Objects = append(o.Objects, v)
 	}
 	return o, nil

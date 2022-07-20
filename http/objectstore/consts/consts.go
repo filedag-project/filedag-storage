@@ -14,26 +14,7 @@ const (
 
 	Authorization = "Authorization"
 	ETag          = "ETag"
-	// S3 object version ID
-	AmzVersionID    = "x-amz-version-id"
-	AmzDeleteMarker = "x-amz-delete-marker"
-
-	AmzCredential = "X-Amz-Credential"
 	ContentType   = "Content-Type"
-
-	// AmzSignatureV2 Signature v2 related constants
-	AmzSignatureV2 = "Signature"
-	AmzAccessKeyID = "AWSAccessKeyId"
-	// Signature V4 related contants.
-	AmzSignature     = "X-Amz-Signature"
-	AmzDate          = "X-Amz-Date"
-	AmzExpires       = "X-Amz-Expires"
-	AmzSignedHeaders = "X-Amz-SignedHeaders"
-	AmzSecurityToken = "X-Amz-Security-Token"
-	AmzAlgorithm     = "X-Amz-Algorithm"
-
-	// AmzContentSha256 Signature V4 related contants.
-	AmzContentSha256 = "X-Amz-Content-Sha256"
 
 	// MaxLocationConstraintSize Limit of location constraint XML for unauthenticated PUT bucket operations.
 	MaxLocationConstraintSize = 3 * humanize.MiByte
@@ -48,34 +29,113 @@ const (
 	MaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
 
 	ContentLength = "Content-Length"
-	// Response request id.
-	AmzRequestID    = "x-amz-request-id"
-	SignV4Algorithm = "AWS4-HMAC-SHA256"
 
 	// STS API version.
-	StsAPIVersion = "2011-06-15"
-	StsVersion    = "Version"
-	StsAction     = "Action"
-	AssumeRole    = "AssumeRole"
+	StsAPIVersion   = "2011-06-15"
+	StsVersion      = "Version"
+	StsAction       = "Action"
+	AssumeRole      = "AssumeRole"
+	SignV4Algorithm = "AWS4-HMAC-SHA256"
 
-	// Dummy putBucketACL
-	AmzACL         = "x-amz-acl"
 	Location       = "Location"
 	DefaultOwnerID = "02d6176db174dc93cb1b899f7c6078f08654445fe8cf1b6ce98d8855f66bdbf4"
+	DisplayName    = "FileDagStorage"
+)
+
+// Standard S3 HTTP request constants
+const (
+	IfModifiedSince   = "If-Modified-Since"
+	IfUnmodifiedSince = "If-Unmodified-Since"
+	IfMatch           = "If-Match"
+	IfNoneMatch       = "If-None-Match"
+
+	// S3 storage class
+	AmzStorageClass = "x-amz-storage-class"
+
+	// S3 object version ID
+	AmzVersionID    = "x-amz-version-id"
+	AmzDeleteMarker = "x-amz-delete-marker"
+
+	// S3 object tagging
+	AmzObjectTagging = "X-Amz-Tagging"
+	AmzTagCount      = "x-amz-tagging-count"
+	AmzTagDirective  = "X-Amz-Tagging-Directive"
+
+	// S3 transition restore
+	AmzRestore            = "x-amz-restore"
+	AmzRestoreExpiryDays  = "X-Amz-Restore-Expiry-Days"
+	AmzRestoreRequestDate = "X-Amz-Restore-Request-Date"
+	AmzRestoreOutputPath  = "x-amz-restore-output-path"
+
+	// S3 extensions
+	AmzCopySourceIfModifiedSince   = "x-amz-copy-source-if-modified-since"
+	AmzCopySourceIfUnmodifiedSince = "x-amz-copy-source-if-unmodified-since"
+
+	AmzCopySourceIfNoneMatch = "x-amz-copy-source-if-none-match"
+	AmzCopySourceIfMatch     = "x-amz-copy-source-if-match"
+
+	AmzCopySource                 = "X-Amz-Copy-Source"
+	AmzCopySourceVersionID        = "X-Amz-Copy-Source-Version-Id"
+	AmzCopySourceRange            = "X-Amz-Copy-Source-Range"
+	AmzMetadataDirective          = "X-Amz-Metadata-Directive"
+	AmzObjectLockMode             = "X-Amz-Object-Lock-Mode"
+	AmzObjectLockRetainUntilDate  = "X-Amz-Object-Lock-Retain-Until-Date"
+	AmzObjectLockLegalHold        = "X-Amz-Object-Lock-Legal-Hold"
+	AmzObjectLockBypassGovernance = "X-Amz-Bypass-Governance-Retention"
+	AmzBucketReplicationStatus    = "X-Amz-Replication-Status"
+	AmzSnowballExtract            = "X-Amz-Meta-Snowball-Auto-Extract"
+
+	// Multipart parts count
+	AmzMpPartsCount = "x-amz-mp-parts-count"
+
+	// Object date/time of expiration
+	AmzExpiration = "x-amz-expiration"
+
+	// Dummy putBucketACL
+	AmzACL = "x-amz-acl"
+
+	// Signature V4 related contants.
+	AmzContentSha256        = "X-Amz-Content-Sha256"
+	AmzDate                 = "X-Amz-Date"
+	AmzAlgorithm            = "X-Amz-Algorithm"
+	AmzExpires              = "X-Amz-Expires"
+	AmzSignedHeaders        = "X-Amz-SignedHeaders"
+	AmzSignature            = "X-Amz-Signature"
+	AmzCredential           = "X-Amz-Credential"
+	AmzSecurityToken        = "X-Amz-Security-Token"
+	AmzDecodedContentLength = "X-Amz-Decoded-Content-Length"
+
+	AmzMetaUnencryptedContentLength = "X-Amz-Meta-X-Amz-Unencrypted-Content-Length"
+	AmzMetaUnencryptedContentMD5    = "X-Amz-Meta-X-Amz-Unencrypted-Content-Md5"
+
+	// AWS server-side encryption headers for SSE-S3, SSE-KMS and SSE-C.
+	AmzServerSideEncryption                      = "X-Amz-Server-Side-Encryption"
+	AmzServerSideEncryptionKmsID                 = AmzServerSideEncryption + "-Aws-Kms-Key-Id"
+	AmzServerSideEncryptionKmsContext            = AmzServerSideEncryption + "-Context"
+	AmzServerSideEncryptionCustomerAlgorithm     = AmzServerSideEncryption + "-Customer-Algorithm"
+	AmzServerSideEncryptionCustomerKey           = AmzServerSideEncryption + "-Customer-Key"
+	AmzServerSideEncryptionCustomerKeyMD5        = AmzServerSideEncryption + "-Customer-Key-Md5"
+	AmzServerSideEncryptionCopyCustomerAlgorithm = "X-Amz-Copy-Source-Server-Side-Encryption-Customer-Algorithm"
+	AmzServerSideEncryptionCopyCustomerKey       = "X-Amz-Copy-Source-Server-Side-Encryption-Customer-Key"
+	AmzServerSideEncryptionCopyCustomerKeyMD5    = "X-Amz-Copy-Source-Server-Side-Encryption-Customer-Key-Md5"
+
+	AmzEncryptionAES = "AES256"
+	AmzEncryptionKMS = "aws:kms"
+
+	// Signature v2 related constants
+	AmzSignatureV2 = "Signature"
+	AmzAccessKeyID = "AWSAccessKeyId"
+
+	// Response request id.
+	AmzRequestID = "x-amz-request-id"
 )
 
 //object const
 const (
-	AmzCopySource           = "X-Amz-Copy-Source"
-	AmzDecodedContentLength = "X-Amz-Decoded-Content-Length"
-	MaxObjectSize           = 5 * humanize.TiByte
-	LastModified            = "Last-Modified"
-	ContentEncoding         = "Content-Encoding"
-	AmzTagCount             = "x-amz-tagging-count"
-	AmzServerSideEncryption = "X-Amz-Server-Side-Encryption"
-	AmzEncryptionAES        = "AES256"
-	ContentLanguage         = "Content-Language"
-	ContentDisposition      = "Content-Disposition"
-	MaxObjectList           = 1000 // Limit number of objects in a listObjectsResponse/listObjectsVersionsResponse.
-
+	MaxObjectSize      = 5 * humanize.TiByte
+	LastModified       = "Last-Modified"
+	ContentEncoding    = "Content-Encoding"
+	ContentLanguage    = "Content-Language"
+	ContentDisposition = "Content-Disposition"
+	MaxObjectList      = 1000 // Limit number of objects in a listObjectsResponse/listObjectsVersionsResponse.
 )

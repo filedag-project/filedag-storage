@@ -42,7 +42,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 	resp := response.ListAllMyBucketsResult{
 		Owner: &s3.Owner{
 			ID:          aws.String(consts.DefaultOwnerID),
-			DisplayName: aws.String(cred.AccessKey),
+			DisplayName: aws.String(consts.DisplayName),
 		},
 		Buckets: buckets,
 	}
@@ -128,7 +128,7 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
+	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -147,7 +147,7 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-	get := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey)
+	get := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey)
 	if !get {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -263,7 +263,7 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
+	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -295,7 +295,7 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
+	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -330,7 +330,7 @@ func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *htt
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.authSys.PolicySys.Head(bucket, cred.AccessKey); !ok {
+	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}

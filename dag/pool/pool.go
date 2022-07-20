@@ -13,6 +13,7 @@ import (
 type DagPool interface {
 	Add(ctx context.Context, block blocks.Block, user string, password string) error
 	Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error)
+	GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error)
 	Remove(ctx context.Context, c cid.Cid, user string, password string) error
 	DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error
 	DataRepairDisk(ctx context.Context, ip, port string) error
