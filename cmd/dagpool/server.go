@@ -18,6 +18,7 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -61,6 +62,11 @@ var startCmd = &cli.Command{
 			Name:  "gc-period",
 			Usage: "set gc period,such as 300ms, -1.5h or 2h45m",
 			Value: "1h",
+		},
+		&cli.StringFlag{
+			Name:  "cache-expire-time",
+			Usage: "set cache expire time,such as 300ms, -1.5h or 2h45m",
+			Value: "1m",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -138,7 +144,18 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 		return config.PoolConfig{}, errors.New("root param is invalid")
 	}
 	cfg.RootPassword = cctx.String("root-password")
-	cfg.GcPeriod = cctx.String("gc-period")
+	gcPeriod := cctx.String("gc-period")
+	cacheExpireTime := cctx.String("cache-expire-time")
+	gcPer, err := time.ParseDuration(gcPeriod)
+	if err != nil {
+		return config.PoolConfig{}, err
+	}
+	cacheExp, err := time.ParseDuration(cacheExpireTime)
+	if err != nil {
+		return config.PoolConfig{}, err
+	}
+	cfg.GcPeriod = gcPer
+	cfg.CacheExpireTime = cacheExp
 	nodeConfigPath := cctx.String("config")
 
 	var nodeConfigs []config.DagNodeConfig

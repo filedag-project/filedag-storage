@@ -54,7 +54,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := referencecount.NewIdentityRefe(db)
+	r := referencecount.NewIdentityRefe(db, cfg.CacheExpireTime)
 	dn := make(map[string]*node.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {

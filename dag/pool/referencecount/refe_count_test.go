@@ -8,7 +8,7 @@ import (
 
 func TestIdentityRefer(t *testing.T) {
 	db, _ := uleveldb.OpenDb(t.TempDir())
-	identityRefe := ReferSys{DB: db}
+	identityRefe := ReferSys{db: db}
 	cid := "123456789"
 	testCases := []struct {
 		isRemove bool

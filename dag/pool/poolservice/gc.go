@@ -15,11 +15,7 @@ func (g *gc) Stop() {
 }
 
 //Gc is a goroutine to do GC
-func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
-	duration, err := time.ParseDuration(gcPeriod)
-	if err != nil {
-		return err
-	}
+func (d *dagPoolService) Gc(ctx context.Context, gcPeriod time.Duration) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -35,7 +31,7 @@ func (d *dagPoolService) Gc(ctx context.Context, gcPeriod string) error {
 		case <-d.gc.stopCh:
 			log.Debugf("gc stop")
 			continue
-		case <-time.After(duration):
+		case <-time.After(gcPeriod):
 			log.Debugf("start do gc")
 			err := d.runGC(ctx)
 			if err != nil {
@@ -51,11 +47,7 @@ func (d *dagPoolService) CheckStorage() <-chan int {
 }
 
 //StoreGc is a goroutine to do UnPin GC
-func (d *dagPoolService) StoreGc(ctx context.Context, gcPeriod string) error {
-	duration, err := time.ParseDuration(gcPeriod)
-	if err != nil {
-		return err
-	}
+func (d *dagPoolService) StoreGc(ctx context.Context, gcPeriod time.Duration) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -64,7 +56,7 @@ func (d *dagPoolService) StoreGc(ctx context.Context, gcPeriod string) error {
 		case <-d.gc.stopCh:
 			log.Debugf("gc stop")
 			continue
-		case <-time.After(duration):
+		case <-time.After(gcPeriod):
 			//time.Sleep(time.Second * 5)
 			log.Debugf("start do store gc")
 			if err := d.runStoreGC(ctx); err != nil {
@@ -75,7 +67,7 @@ func (d *dagPoolService) StoreGc(ctx context.Context, gcPeriod string) error {
 }
 func (d *dagPoolService) runStoreGC(ctx context.Context) error {
 	//log.Warnf("RunUnpinGC")
-	needGCCids, err := d.refer.QueryAllStoreNonRefer()
+	needGCCids, err := d.refer.QueryAllStoreNonRef()
 	if err != nil {
 		return err
 	}
@@ -103,7 +95,7 @@ func (d *dagPoolService) runStoreGC(ctx context.Context) error {
 
 func (d *dagPoolService) runGC(ctx context.Context) error {
 
-	needGCCids, err := d.refer.QueryAllCacheReference()
+	needGCCids, err := d.refer.QueryAllCacheRef()
 	if err != nil {
 		return err
 	}

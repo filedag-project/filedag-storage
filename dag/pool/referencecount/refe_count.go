@@ -15,13 +15,12 @@ var log = logging.Logger("refer-count")
 
 //ReferSys reference sys
 type ReferSys struct {
-	cacheMu sync.RWMutex
-	storeMu sync.RWMutex
-	DB      *uleveldb.ULevelDB
+	cacheMu         sync.RWMutex
+	storeMu         sync.RWMutex
+	db              *uleveldb.ULevelDB
+	cacheExpireTime time.Duration
 }
 
-const gcExpiredTime = time.Minute * 1
-const gcTime = time.Minute
 const dagPoolReferCache = "dagPoolReferCache/"
 const dagPoolReferPin = "dagPoolReferPin/"
 
@@ -30,7 +29,7 @@ func (i *ReferSys) AddReference(cid string, isPin bool) error {
 	if !isPin {
 		i.cacheMu.Lock()
 		ti := time.Now().Unix()
-		err := i.DB.Put(dagPoolReferCache+cid, ti)
+		err := i.db.Put(dagPoolReferCache+cid, ti)
 		i.cacheMu.Unlock()
 		if err != nil {
 			return err
@@ -38,9 +37,9 @@ func (i *ReferSys) AddReference(cid string, isPin bool) error {
 	} else {
 		var count int64
 		i.storeMu.Lock()
-		err := i.DB.Get(dagPoolReferPin+cid, &count)
+		err := i.db.Get(dagPoolReferPin+cid, &count)
 		count++
-		err = i.DB.Put(dagPoolReferPin+cid, count)
+		err = i.db.Put(dagPoolReferPin+cid, count)
 		i.storeMu.Unlock()
 		if err != nil {
 			return err
@@ -54,7 +53,7 @@ func (i *ReferSys) QueryReference(cid string, isPin bool) (uint64, error) {
 	if !isPin {
 		ti := 0
 		i.cacheMu.RLock()
-		err := i.DB.Get(dagPoolReferCache+cid, &ti)
+		err := i.db.Get(dagPoolReferCache+cid, &ti)
 		i.cacheMu.RUnlock()
 		if err != nil {
 			return 0, err
@@ -67,7 +66,7 @@ func (i *ReferSys) QueryReference(cid string, isPin bool) (uint64, error) {
 	} else {
 		var count uint64
 		i.storeMu.RLock()
-		err := i.DB.Get(dagPoolReferPin+cid, &count)
+		err := i.db.Get(dagPoolReferPin+cid, &count)
 		i.storeMu.RUnlock()
 		if err != nil {
 			return 0, err
@@ -80,14 +79,14 @@ func (i *ReferSys) QueryReference(cid string, isPin bool) (uint64, error) {
 func (i *ReferSys) HasReference(cid string) bool {
 	ti := 0
 	i.cacheMu.RLock()
-	err := i.DB.Get(dagPoolReferCache+cid, &ti)
+	err := i.db.Get(dagPoolReferCache+cid, &ti)
 	i.cacheMu.RUnlock()
 	if err == nil && ti != 0 {
 		return true
 	} else {
 		var count uint64
 		i.storeMu.RLock()
-		err := i.DB.Get(dagPoolReferPin+cid, &count)
+		err := i.db.Get(dagPoolReferPin+cid, &count)
 		i.storeMu.RUnlock()
 		if err == nil && count != 0 {
 			return true
@@ -101,12 +100,12 @@ func (i *ReferSys) RemoveReference(cid string, isPin bool) error {
 	if isPin {
 		var count int
 		i.storeMu.Lock()
-		err := i.DB.Get(dagPoolReferPin+cid, &count)
+		err := i.db.Get(dagPoolReferPin+cid, &count)
 		if count == 0 {
 			return errors.New("cid does not exist")
 		} else if count >= 1 {
 			count--
-			err = i.DB.Put(dagPoolReferPin+cid, count)
+			err = i.db.Put(dagPoolReferPin+cid, count)
 		} else {
 			return errors.New("cid does not exist")
 		}
@@ -118,11 +117,11 @@ func (i *ReferSys) RemoveReference(cid string, isPin bool) error {
 	return nil
 }
 
-//QueryAllCacheReference query all cache refer record
-func (i *ReferSys) QueryAllCacheReference() ([]cid.Cid, error) {
+//QueryAllCacheRef query all cache refer record
+func (i *ReferSys) QueryAllCacheRef() ([]cid.Cid, error) {
 	i.cacheMu.RLock()
 	defer i.cacheMu.RUnlock()
-	all, err := i.DB.ReadAll(dagPoolReferCache)
+	all, err := i.db.ReadAll(dagPoolReferCache)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +129,7 @@ func (i *ReferSys) QueryAllCacheReference() ([]cid.Cid, error) {
 	for k, v := range all {
 		tmp, _ := strconv.ParseInt(v, 10, 64)
 
-		if time.Now().After(time.Unix(tmp, 0).Add(gcExpiredTime)) {
+		if time.Now().After(time.Unix(tmp, 0).Add(i.cacheExpireTime)) {
 			c, _ := cid.Decode(strings.Split(k, "/")[1])
 			m = append(m, c)
 		}
@@ -139,11 +138,11 @@ func (i *ReferSys) QueryAllCacheReference() ([]cid.Cid, error) {
 	return m, nil
 }
 
-//QueryAllStoreNonRefer query all store refer which count 0
-func (i *ReferSys) QueryAllStoreNonRefer() ([]cid.Cid, error) {
+//QueryAllStoreNonRef query all store refer which count 0
+func (i *ReferSys) QueryAllStoreNonRef() ([]cid.Cid, error) {
 	i.storeMu.RLock()
 	defer i.storeMu.RUnlock()
-	all, err := i.DB.ReadAll(dagPoolReferPin)
+	all, err := i.db.ReadAll(dagPoolReferPin)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +165,7 @@ func (i *ReferSys) RemoveRecord(c string, pin bool) error {
 		path = dagPoolReferPin
 	}
 
-	err := i.DB.Delete(path + c)
+	err := i.db.Delete(path + c)
 	if err != nil {
 		return err
 	}
@@ -175,6 +174,6 @@ func (i *ReferSys) RemoveRecord(c string, pin bool) error {
 }
 
 //NewIdentityRefe new a reference sys
-func NewIdentityRefe(db *uleveldb.ULevelDB) *ReferSys {
-	return &ReferSys{DB: db}
+func NewIdentityRefe(db *uleveldb.ULevelDB, cacheExpireTime time.Duration) *ReferSys {
+	return &ReferSys{db: db, cacheExpireTime: cacheExpireTime}
 }
