@@ -104,13 +104,13 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	}()
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
-		err := service.Gc(ctx, cfg.GcPeriod)
+		err := service.Gc(ctx)
 		if err != nil {
 			return
 		}
 	}()
 	go func() {
-		err := service.StoreGc(ctx, cfg.GcPeriod)
+		err := service.StoreGc(ctx)
 		if err != nil {
 			return
 		}

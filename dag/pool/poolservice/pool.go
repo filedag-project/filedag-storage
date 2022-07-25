@@ -77,7 +77,8 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		cidBuilder: cidBuilder,
 		nrSys:      nrs,
 		gc: &gc{
-			stopCh: make(chan struct{}),
+			stopCh:   make(chan struct{}),
+			gcPeriod: cfg.GcPeriod,
 		},
 		db: db,
 	}, nil

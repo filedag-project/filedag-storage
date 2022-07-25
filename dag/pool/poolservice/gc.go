@@ -6,7 +6,8 @@ import (
 )
 
 type gc struct {
-	stopCh chan struct{}
+	stopCh   chan struct{}
+	gcPeriod time.Duration
 }
 
 //Stop the gc
@@ -15,7 +16,7 @@ func (g *gc) Stop() {
 }
 
 //Gc is a goroutine to do GC
-func (d *dagPoolService) Gc(ctx context.Context, gcPeriod time.Duration) error {
+func (d *dagPoolService) Gc(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -31,7 +32,7 @@ func (d *dagPoolService) Gc(ctx context.Context, gcPeriod time.Duration) error {
 		case <-d.gc.stopCh:
 			log.Debugf("gc stop")
 			continue
-		case <-time.After(gcPeriod):
+		case <-time.After(d.gc.gcPeriod):
 			log.Debugf("start do gc")
 			err := d.runGC(ctx)
 			if err != nil {
@@ -47,7 +48,7 @@ func (d *dagPoolService) CheckStorage() <-chan int {
 }
 
 //StoreGc is a goroutine to do UnPin GC
-func (d *dagPoolService) StoreGc(ctx context.Context, gcPeriod time.Duration) error {
+func (d *dagPoolService) StoreGc(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -56,7 +57,7 @@ func (d *dagPoolService) StoreGc(ctx context.Context, gcPeriod time.Duration) er
 		case <-d.gc.stopCh:
 			log.Debugf("gc stop")
 			continue
-		case <-time.After(gcPeriod):
+		case <-time.After(d.gc.gcPeriod):
 			//time.Sleep(time.Second * 5)
 			log.Debugf("start do store gc")
 			if err := d.runStoreGC(ctx); err != nil {
