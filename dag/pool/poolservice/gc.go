@@ -51,7 +51,7 @@ func (d *dagPoolService) Gc(ctx context.Context) error {
 				cancel()
 			case <-d.gc.normalCh:
 				log.Debugf(" cache gc normal stop ")
-				cancel()
+				//cancel()
 			}
 		}
 	}
@@ -75,7 +75,7 @@ func (d *dagPoolService) StoreGc(ctx context.Context) error {
 				cancel()
 			case <-d.gc.normalCh:
 				log.Debugf("store gc normal stop ")
-				cancel()
+				//cancel()
 			}
 		}
 	}
@@ -142,6 +142,7 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 			log.Errorf("RemoveRecord err:%v", err1)
 			continue
 		}
+		time.Sleep(time.Second * 5)
 	}
 	return nil
 }
