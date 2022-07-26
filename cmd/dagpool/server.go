@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/pool"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice"
 	"github.com/filedag-project/filedag-storage/dag/pool/server"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	logging "github.com/ipfs/go-log/v2"
@@ -77,7 +77,7 @@ func startDagPoolServer(cfg config.PoolConfig) {
 	}
 	// new server
 	s := grpc.NewServer()
-	service, err := pool.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(cfg)
 	if err != nil {
 		log.Errorf("NewDagPoolService err:%v", err)
 		return
