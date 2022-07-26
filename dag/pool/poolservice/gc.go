@@ -95,12 +95,20 @@ func (d *dagPoolService) runStoreGC(ctx context.Context) error {
 		return nil
 	}
 	for _, c := range needGCCids {
-		err = d.refer.RemoveRecord(c.String(), true)
-		node, err := d.GetNode(ctx, c)
-		if err != nil {
-			return err
+		node, err1 := d.GetNode(ctx, c)
+		if err1 != nil {
+			return err1
 		}
-		node.DeleteBlock(ctx, c)
+		err1 = node.DeleteBlock(ctx, c)
+		if err1 != nil {
+			log.Errorf("DeleteBlock err:%v", err1)
+			continue
+		}
+		err1 = d.refer.RemoveRecord(c.String(), true)
+		if err1 != nil {
+			log.Errorf("RemoveRecord err:%v", err1)
+			continue
+		}
 	}
 	return nil
 }
@@ -120,15 +128,18 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 		return nil
 	}
 	for _, ci := range needGCCids {
-		node, err := d.GetNode(ctx, ci)
-		if err != nil {
-			return err
+		node, err1 := d.GetNode(ctx, ci)
+		if err1 != nil {
+			return err1
 		}
-		d.refer.RemoveRecord(ci.String(), false)
-
-		err = node.DeleteBlock(ctx, ci)
-		if err != nil {
-			log.Errorf("DeleteBlock err:%v", err)
+		err1 = node.DeleteBlock(ctx, ci)
+		if err1 != nil {
+			log.Errorf("DeleteBlock err:%v", err1)
+			continue
+		}
+		err1 = d.refer.RemoveRecord(ci.String(), false)
+		if err1 != nil {
+			log.Errorf("RemoveRecord err:%v", err1)
 			continue
 		}
 	}

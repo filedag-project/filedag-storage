@@ -89,7 +89,8 @@ func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 			}()
 			_, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
 			if err != nil {
-				log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
+				//todo print error
+				//log.Debugf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
 			}
 		}(node)
 	}
