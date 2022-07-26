@@ -1,4 +1,4 @@
-package userpolicy
+package upolicy
 
 import "golang.org/x/xerrors"
 

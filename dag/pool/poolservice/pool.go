@@ -6,10 +6,10 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
-	dnm "github.com/filedag-project/filedag-storage/dag/pool/datanodemanager"
-	"github.com/filedag-project/filedag-storage/dag/pool/referencecount"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dnm"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/refSys"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -25,8 +25,8 @@ var _ pool.DagPool = &Pool{}
 
 type Pool struct {
 	DagNodes   map[string]*node.DagNode
-	iam        *dagpooluser.IdentityUserSys
-	refer      referencecount.IdentityRefe
+	iam        *dpuser.IdentityUserSys
+	refer      refSys.IdentityRefe
 	CidBuilder cid.Builder
 	NRSys      dnm.NodeRecordSys
 	db         *uleveldb.ULevelDB
@@ -43,11 +43,11 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	i, err := dagpooluser.NewIdentityUserSys(db, cfg.RootUser, cfg.RootPassword)
+	i, err := dpuser.NewIdentityUserSys(db, cfg.RootUser, cfg.RootPassword)
 	if err != nil {
 		return nil, err
 	}
-	r, err := referencecount.NewIdentityRefe(db)
+	r, err := refSys.NewIdentityRefe(db)
 	dn := make(map[string]*node.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
@@ -75,8 +75,8 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 
 // Add adds a node to the Pool, storing the block in the BlockService
 func (d *Pool) Add(ctx context.Context, block blocks.Block, user string, password string) error {
-	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
-		return userpolicy.AccessDenied
+	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyWrite) {
+		return upolicy.AccessDenied
 	}
 	err := d.refer.AddReference(block.Cid().String())
 	if err != nil {
@@ -98,8 +98,8 @@ func (d *Pool) Add(ctx context.Context, block blocks.Block, user string, passwor
 
 // Get retrieves a node from the Pool, fetching the block in the BlockService
 func (d *Pool) Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error) {
-	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
-		return nil, userpolicy.AccessDenied
+	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
+		return nil, upolicy.AccessDenied
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -126,8 +126,8 @@ func (d *Pool) Get(ctx context.Context, c cid.Cid, user string, password string)
 }
 
 func (d *Pool) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
-	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyRead) {
-		return 0, userpolicy.AccessDenied
+	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
+		return 0, upolicy.AccessDenied
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -146,8 +146,8 @@ func (d *Pool) GetSize(ctx context.Context, c cid.Cid, user string, password str
 }
 
 func (d *Pool) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
-	if !d.iam.CheckUserPolicy(user, password, userpolicy.OnlyWrite) {
-		return userpolicy.AccessDenied
+	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyWrite) {
+		return upolicy.AccessDenied
 	}
 	err := d.refer.RemoveReference(c.String())
 	if err != nil {
@@ -191,9 +191,9 @@ func (d *Pool) DataRepairDisk(ctx context.Context, ip, port string) error {
 	return dagNode.RepairDisk(ip, port)
 }
 
-func (d *Pool) AddUser(newUser dagpooluser.DagPoolUser, user string, password string) error {
+func (d *Pool) AddUser(newUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
-		return userpolicy.AccessDenied
+		return upolicy.AccessDenied
 	}
 	if d.iam.IsAdmin(newUser.Username) {
 		return xerrors.New("the user already exists")
@@ -206,7 +206,7 @@ func (d *Pool) AddUser(newUser dagpooluser.DagPoolUser, user string, password st
 
 func (d *Pool) RemoveUser(rmUser string, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
-		return userpolicy.AccessDenied
+		return upolicy.AccessDenied
 	}
 	if d.iam.IsAdmin(rmUser) {
 		return xerrors.New("refuse to remove the admin user")
@@ -214,23 +214,23 @@ func (d *Pool) RemoveUser(rmUser string, user string, password string) error {
 	return d.iam.RemoveUser(rmUser)
 }
 
-func (d *Pool) QueryUser(qUser string, user string, password string) (*dagpooluser.DagPoolUser, error) {
+func (d *Pool) QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error) {
 	if !d.iam.CheckUser(user, password) {
-		return nil, userpolicy.AccessDenied
+		return nil, upolicy.AccessDenied
 	}
 	if d.iam.IsAdmin(user) {
 		return d.iam.QueryUser(qUser)
 	}
 	// only query self config
 	if qUser != user {
-		return nil, userpolicy.AccessDenied
+		return nil, upolicy.AccessDenied
 	}
 	return d.iam.QueryUser(qUser)
 }
 
-func (d *Pool) UpdateUser(uUser dagpooluser.DagPoolUser, user string, password string) error {
+func (d *Pool) UpdateUser(uUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
-		return userpolicy.AccessDenied
+		return upolicy.AccessDenied
 	}
 	if d.iam.IsAdmin(uUser.Username) {
 		return xerrors.New("refuse to update the admin user")

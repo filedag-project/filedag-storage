@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 )
@@ -55,7 +55,7 @@ var createUser = &cli.Command{
 		&cli.StringFlag{
 			Name:  "policy",
 			Usage: "set the policy, enum: only-read, only-write, read-write",
-			Value: string(userpolicy.ReadWrite),
+			Value: string(upolicy.ReadWrite),
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -77,7 +77,7 @@ var createUser = &cli.Command{
 		capacity := cctx.Uint64("capacity")
 
 		policy := cctx.String("policy")
-		if !userpolicy.CheckValid(policy) {
+		if !upolicy.CheckValid(policy) {
 			return xerrors.Errorf("the policy is invalid")
 		}
 		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
@@ -204,7 +204,7 @@ var updateUser = &cli.Command{
 		capacity := cctx.Uint64("new-capacity")
 
 		policy := cctx.String("new-policy")
-		if !userpolicy.CheckValid(policy) {
+		if !upolicy.CheckValid(policy) {
 			return xerrors.Errorf("the policy is invalid")
 		}
 

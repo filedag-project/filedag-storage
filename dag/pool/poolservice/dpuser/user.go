@@ -1,7 +1,7 @@
-package dagpooluser
+package dpuser
 
 import (
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 )
 
@@ -16,7 +16,7 @@ const dagPoolUser = "dagPoolUser/"
 type DagPoolUser struct {
 	Username string
 	Password string
-	Policy   userpolicy.DagPoolPolicy
+	Policy   upolicy.DagPoolPolicy
 	Capacity uint64
 }
 
@@ -78,7 +78,7 @@ func (i *IdentityUserSys) UpdateUser(u DagPoolUser) error {
 	}
 	return nil
 }
-func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
+func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy upolicy.DagPoolPolicy) bool {
 	if i.CheckAdmin(username, pass) {
 		return true
 	}
