@@ -29,9 +29,6 @@ func (d *dagPoolService) Gc(ctx context.Context) error {
 			} else {
 				return err
 			}
-		case <-d.gc.stopCh:
-			log.Debugf("gc stop")
-			continue
 		case <-time.After(d.gc.gcPeriod):
 			log.Debugf("start do gc")
 			err := d.runGC(ctx)
@@ -54,9 +51,6 @@ func (d *dagPoolService) StoreGc(ctx context.Context) error {
 		case <-ctx.Done():
 			log.Warnf("ctx done")
 			return nil
-		case <-d.gc.stopCh:
-			log.Debugf("gc stop")
-			continue
 		case <-time.After(d.gc.gcPeriod):
 			//time.Sleep(time.Second * 5)
 			log.Debugf("start do store gc")
