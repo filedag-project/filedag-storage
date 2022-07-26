@@ -1,4 +1,4 @@
-package datanodemanager
+package dnm
 
 import (
 	"context"

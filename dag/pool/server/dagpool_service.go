@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/dagpooluser"
-	"github.com/filedag-project/filedag-storage/dag/pool/userpolicy"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -15,7 +15,7 @@ import (
 
 var log = logging.Logger("dag-pool-server")
 var policyNotRight = "policy not right ,must be:" +
-	fmt.Sprintf("%v,%v,%v", userpolicy.OnlyRead, userpolicy.OnlyWrite, userpolicy.ReadWrite)
+	fmt.Sprintf("%v,%v,%v", upolicy.OnlyRead, upolicy.OnlyWrite, upolicy.ReadWrite)
 
 // DagPoolServer is used to implement DagPoolServer.
 type DagPoolServer struct {
@@ -66,15 +66,16 @@ func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto
 	}
 	return &proto.RemoveReply{Message: c.String()}, nil
 }
+
 func (s *DagPoolServer) AddUser(ctx context.Context, in *proto.AddUserReq) (*proto.AddUserReply, error) {
-	if !userpolicy.CheckValid(in.Policy) {
+	if !upolicy.CheckValid(in.Policy) {
 		return &proto.AddUserReply{Message: policyNotRight}, xerrors.Errorf(policyNotRight)
 	}
 	err := s.DagPool.AddUser(
-		dagpooluser.DagPoolUser{
+		dpuser.DagPoolUser{
 			Username: in.Username,
 			Password: in.Password,
-			Policy:   userpolicy.DagPoolPolicy(in.Policy),
+			Policy:   upolicy.DagPoolPolicy(in.Policy),
 			Capacity: in.Capacity,
 		}, in.User.User, in.User.Password)
 	if err != nil {
@@ -100,16 +101,16 @@ func (s *DagPoolServer) QueryUser(ctx context.Context, in *proto.QueryUserReq) (
 }
 
 func (s *DagPoolServer) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
-	user := dagpooluser.DagPoolUser{
+	user := dpuser.DagPoolUser{
 		Username: in.Username,
 		Password: in.NewPassword,
 		Capacity: in.NewCapacity,
 	}
 	if in.NewPolicy != "" {
-		if !userpolicy.CheckValid(in.NewPolicy) {
+		if !upolicy.CheckValid(in.NewPolicy) {
 			return &proto.UpdateUserReply{Message: policyNotRight}, xerrors.Errorf(policyNotRight)
 		}
-		user.Policy = userpolicy.DagPoolPolicy(in.NewPolicy)
+		user.Policy = upolicy.DagPoolPolicy(in.NewPolicy)
 	}
 	err := s.DagPool.UpdateUser(user, in.User.User, in.User.Password)
 	if err != nil {

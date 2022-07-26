@@ -1,4 +1,4 @@
-package datanodemanager
+package dnm
 
 import (
 	"github.com/filedag-project/filedag-storage/dag/node"
