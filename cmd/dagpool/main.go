@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	logging.SetLogLevel("*", "INFO")
+	logging.SetLogLevel("*", "DEBUG")
 	local := []*cli.Command{
 		startCmd,
 		authCmd,
