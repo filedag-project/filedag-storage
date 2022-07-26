@@ -31,10 +31,10 @@ func (d *dagPoolService) Gc(ctx context.Context) error {
 			}
 		case <-time.After(d.gc.gcPeriod):
 			log.Debugf("start do gc")
-			err := d.runGC(ctx)
-			if err != nil {
-				return err
-			}
+			ct, cancel := context.WithCancel(ctx)
+			go d.runGC(ct)
+			<-d.gc.stopCh
+			cancel()
 		}
 	}
 }
@@ -54,9 +54,10 @@ func (d *dagPoolService) StoreGc(ctx context.Context) error {
 		case <-time.After(d.gc.gcPeriod):
 			//time.Sleep(time.Second * 5)
 			log.Debugf("start do store gc")
-			if err := d.runStoreGC(ctx); err != nil {
-				log.Error(err)
-			}
+			ct, cancel := context.WithCancel(ctx)
+			go d.runStoreGC(ct)
+			<-d.gc.stopCh
+			cancel()
 		}
 	}
 }
@@ -71,20 +72,14 @@ func (d *dagPoolService) runStoreGC(ctx context.Context) error {
 		return nil
 	}
 	for _, c := range needGCCids {
-		select {
-		case <-d.gc.stopCh:
-			log.Warnf("gc stop")
+		err = d.refer.RemoveRecord(c.String(), true)
+		node, err := d.GetNode(ctx, c)
+		if err != nil {
 			return err
-		default:
-			err = d.refer.RemoveRecord(c.String(), true)
-			node, err := d.GetNode(ctx, c)
-			if err != nil {
-				return err
-			}
-			node.DeleteBlock(ctx, c)
 		}
-
+		node.DeleteBlock(ctx, c)
 	}
+	d.gc.stopCh <- struct{}{}
 	return nil
 }
 
@@ -99,24 +94,18 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 		return nil
 	}
 	for _, ci := range needGCCids {
-		select {
-		case <-d.gc.stopCh:
-			log.Warnf("stop gc")
+		node, err := d.GetNode(ctx, ci)
+		if err != nil {
 			return err
-		default:
-			node, err := d.GetNode(ctx, ci)
-			if err != nil {
-				return err
-			}
-			d.refer.RemoveRecord(ci.String(), false)
-
-			err = node.DeleteBlock(ctx, ci)
-			if err != nil {
-				log.Errorf("DeleteManyBlock err:%v", err)
-				continue
-			}
 		}
+		d.refer.RemoveRecord(ci.String(), false)
 
+		err = node.DeleteBlock(ctx, ci)
+		if err != nil {
+			log.Errorf("DeleteManyBlock err:%v", err)
+			continue
+		}
 	}
+	d.gc.stopCh <- struct{}{}
 	return nil
 }
