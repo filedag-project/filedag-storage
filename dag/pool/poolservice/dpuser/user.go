@@ -85,7 +85,7 @@ func (i *IdentityUserSys) UpdateUser(u DagPoolUser) error {
 }
 
 //CheckUserPolicy check user policy
-func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy userpolicy.DagPoolPolicy) bool {
+func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy upolicy.DagPoolPolicy) bool {
 	if i.CheckAdmin(username, pass) {
 		return true
 	}
