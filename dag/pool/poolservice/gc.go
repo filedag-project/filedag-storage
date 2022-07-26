@@ -2,6 +2,7 @@ package poolservice
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -101,6 +102,10 @@ func (d *dagPoolService) runStoreGC(ctx context.Context) error {
 		}
 		err1 = node.DeleteBlock(ctx, c)
 		if err1 != nil {
+			if strings.Contains(err1.Error(), "context canceled") {
+				log.Debugf("store gc canceled")
+				break
+			}
 			log.Errorf("DeleteBlock err:%v", err1)
 			continue
 		}
@@ -134,6 +139,10 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 		}
 		err1 = node.DeleteBlock(ctx, ci)
 		if err1 != nil {
+			if strings.Contains(err1.Error(), "context canceled") {
+				log.Debugf("cache gc canceled")
+				break
+			}
 			log.Errorf("DeleteBlock err:%v", err1)
 			continue
 		}
@@ -142,7 +151,6 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 			log.Errorf("RemoveRecord err:%v", err1)
 			continue
 		}
-		time.Sleep(time.Second * 5)
 	}
 	return nil
 }
