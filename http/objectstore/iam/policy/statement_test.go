@@ -62,17 +62,36 @@ func TestStatement_IsAllowed(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "test2",
+			fields: fields{
+				SID:       ID("test2"),
+				Effect:    Allow,
+				Principal: NewPrincipal("test1"),
+				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
+				Resources: NewResourceSet(NewResource("mybucket", "*")),
+			},
+			args: args{
+				args: auth.Args{
+					AccountName: "test2",
+					Action:      "s3:GetObject",
+					BucketName:  "mybucket",
+					ObjectName:  "test1.txt",
+				},
+			},
+			want: false,
+		},
+		{
 			name: "test3",
 			fields: fields{
 				SID:       ID("test3"),
 				Effect:    Allow,
-				Principal: NewPrincipal("test3"),
-				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
-				Resources: NewResourceSet(NewResource("mybucket", "test1.txt")),
+				Principal: NewPrincipal("*"),
+				Actions:   s3action.NewActionSet(s3action.GetObjectAction),
+				Resources: NewResourceSet(NewResource("mybucket", "*")),
 			},
 			args: args{
 				args: auth.Args{
-					AccountName: "test3",
+					AccountName: "test1",
 					Action:      "s3:GetObject",
 					BucketName:  "mybucket",
 					ObjectName:  "test1.txt",
@@ -83,18 +102,57 @@ func TestStatement_IsAllowed(t *testing.T) {
 		{
 			name: "test3",
 			fields: fields{
-				SID:       ID("test3"),
+				SID:       ID("test1"),
 				Effect:    Allow,
-				Principal: NewPrincipal("test3"),
+				Principal: NewPrincipal("*"),
+				Actions:   s3action.NewActionSet(s3action.CreateBucketAction),
+				Resources: NewResourceSet(NewResource("mybucket", "*")),
+			},
+			args: args{
+				args: auth.Args{
+					AccountName: "test1",
+					Action:      "s3:GetObject",
+					BucketName:  "mybucket",
+					ObjectName:  "test1.txt",
+				},
+			},
+			want: false,
+		},
+
+		{
+			name: "test4",
+			fields: fields{
+				SID:       ID("test4"),
+				Effect:    Allow,
+				Principal: NewPrincipal("test4"),
+				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
+				Resources: NewResourceSet(NewResource("mybucket", "test4.txt")),
+			},
+			args: args{
+				args: auth.Args{
+					AccountName: "test4",
+					Action:      "s3:GetObject",
+					BucketName:  "mybucket",
+					ObjectName:  "test4.txt",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "test4",
+			fields: fields{
+				SID:       ID("test4"),
+				Effect:    Allow,
+				Principal: NewPrincipal("test4"),
 				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
 				Resources: NewResourceSet(NewResource("mybucket", "test2.txt")),
 			},
 			args: args{
 				args: auth.Args{
-					AccountName: "test3",
+					AccountName: "test4",
 					Action:      "s3:GetObject",
 					BucketName:  "mybucket",
-					ObjectName:  "test1.txt",
+					ObjectName:  "test4.txt",
 				},
 			},
 			want: false,

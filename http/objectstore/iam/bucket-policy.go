@@ -61,13 +61,8 @@ func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket strin
 	if err != nil {
 		return err
 	}
-	if meta.PolicyConfig != nil {
-		*p = p.Merge(*meta.PolicyConfig)
-	}
-	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &BucketMetadata{
-		Name:         bucket,
-		PolicyConfig: p,
-	})
+	meta.PolicyConfig = p
+	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &meta)
 	if err != nil {
 		return err
 	}

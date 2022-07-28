@@ -43,9 +43,8 @@ func TestMain(m *testing.M) {
 	defer done()
 	pinCli, done := utils.NewMockPinClient(&testing.T{})
 	defer done()
-	NewS3Server(router, poolCli, pinCli, authSys, db)
 	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
-	NewS3Server(router, dagServ, authSys, db)
+	NewS3Server(router, dagServ, pinCli, authSys, db)
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
