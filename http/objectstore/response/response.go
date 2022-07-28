@@ -177,7 +177,6 @@ type ListObjectsInfo struct {
 	// request to get next set of objects.
 	//
 	// NOTE: AWS S3 returns NextMarker only if you have delimiter request parameter specified,
-	//       MinIO always returns NextMarker.
 	NextMarker string
 
 	// List of objects info for this request.
