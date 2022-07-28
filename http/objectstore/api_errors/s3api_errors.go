@@ -254,7 +254,6 @@ const (
 	ErrInvalidColumnIndex
 	ErrPostPolicyConditionInvalidFormat
 
-	// ErrMalformedJSON todo
 	ErrMalformedJSON
 )
 
