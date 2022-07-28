@@ -1,7 +1,6 @@
-package policy
+package condition
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -14,12 +13,8 @@ type KeyName string
 // Name - returns key name which is stripped value of prefixes "aws:" and "s3:"
 func (key KeyName) Name() string {
 	name := string(key)
-	switch {
-	case strings.HasPrefix(name, "aws:"):
-		return strings.TrimPrefix(name, "aws:")
-	default:
-		return strings.TrimPrefix(name, "s3:")
-	}
+	return strings.TrimPrefix(name, "s3:")
+
 }
 
 // VarName - returns variable key name, such as "${aws:username}"
@@ -27,76 +22,16 @@ func (key KeyName) VarName() string {
 	return fmt.Sprintf("${%s}", key)
 }
 
-// Key - conditional key whose name and it's optional variable.
-type Key struct {
-	name     KeyName
-	variable string
-}
-
-// IsValid - checks if key is valid or not.
-func (key Key) IsValid() bool {
-	for _, name := range AllSupportedKeys {
-		if key.name == name {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (key Key) String() string {
-	if key.variable != "" {
-		return string(key.name) + "/" + key.variable
-	}
-	return string(key.name)
-}
-
-// MarshalJSON - encodes Key to JSON data.
-func (key Key) MarshalJSON() ([]byte, error) {
-	if !key.IsValid() {
-		return nil, fmt.Errorf("unknown key %v", key)
-	}
-
-	return json.Marshal(key.String())
-}
-
-// UnmarshalJSON - decodes JSON data to Key.
-func (key *Key) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-
-	parsedKey, err := parseKey(s)
-	if err != nil {
-		return err
-	}
-
-	*key = parsedKey
-	return nil
-}
-
-func parseKey(s string) (Key, error) {
-	name, variable := s, ""
-	if strings.Contains(s, "/") {
-		tokens := strings.SplitN(s, "/", 2)
-		name, variable = tokens[0], tokens[1]
-	}
-
-	key := Key{
-		name:     KeyName(name),
-		variable: variable,
-	}
-
-	if key.IsValid() {
-		return key, nil
-	}
-
-	return key, fmt.Errorf("invalid condition key '%v'", s)
+// ToKey - creates key from name.
+func (key KeyName) ToKey() Key {
+	return NewKey(key, "")
 }
 
 // Condition key names.
 const (
+	// S3Prefix - key representing prefix query parameter of ListBucket API only.
+	S3Prefix KeyName = "s3:prefix"
+
 	// S3XAmzCopySource - key representing x-amz-copy-source HTTP header applicable to PutObject API only.
 	S3XAmzCopySource KeyName = "s3:x-amz-copy-source"
 
@@ -121,9 +56,6 @@ const (
 
 	// S3LocationConstraint - key representing LocationConstraint XML tag of CreateBucket API only.
 	S3LocationConstraint KeyName = "s3:LocationConstraint"
-
-	// S3Prefix - key representing prefix query parameter of ListBucket API only.
-	S3Prefix KeyName = "s3:prefix"
 
 	// S3Delimiter - key representing delimiter query parameter of ListBucket API only.
 	S3Delimiter KeyName = "s3:delimiter"
@@ -186,7 +118,7 @@ const (
 	// S3AuthType - optionally use this condition key to restrict incoming requests to use a specific authentication method.
 	S3AuthType KeyName = "s3:authType"
 
-	// ExistingObjectTag Refer https://docs.aws.amazon.com/AmazonS3/latest/userguide/tagging-and-policies.html
+	// Refer https://docs.aws.amazon.com/AmazonS3/latest/userguide/tagging-and-policies.html
 	ExistingObjectTag KeyName = "s3:ExistingObjectTag"
 )
 
@@ -218,7 +150,6 @@ var AllSupportedKeys = append([]KeyName{
 	AWSPrincipalType,
 	AWSUserID,
 	AWSUsername,
-	ExistingObjectTag,
 	// Add new supported condition keys.
 })
 
@@ -237,5 +168,4 @@ var CommonKeys = append([]KeyName{
 	AWSPrincipalType,
 	AWSUserID,
 	AWSUsername,
-	ExistingObjectTag,
 })

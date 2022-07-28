@@ -2,6 +2,7 @@ package policy
 
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy/condition"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"golang.org/x/xerrors"
 	"strings"
@@ -33,11 +34,12 @@ import (
 //        }
 //    ]
 type Statement struct {
-	SID       ID                 `json:"Sid,omitempty"`
-	Effect    Effect             `json:"Effect"`
-	Principal Principal          `json:"Principal"`
-	Actions   s3action.ActionSet `json:"Action"`
-	Resources ResourceSet        `json:"Resource"`
+	SID       ID                   `json:"Sid,omitempty"`
+	Effect    Effect               `json:"Effect"`
+	Principal Principal            `json:"Principal"`
+	Actions   s3action.ActionSet   `json:"Action"`
+	Resources ResourceSet          `json:"Resource"`
+	Condition condition.Conditions `json:"Condition,omitempty"`
 }
 
 // ID - policy ID.

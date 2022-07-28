@@ -5,6 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"golang.org/x/xerrors"
 )
 
 // IPolicySys - policy subsystem.
@@ -62,6 +63,9 @@ func (sys *IPolicySys) UpdatePolicy(ctx context.Context, accessKey, bucket strin
 		return err
 	}
 	meta.PolicyConfig = p
+	if p == nil {
+		return xerrors.Errorf("policy is nil")
+	}
 	err = sys.bmSys.UpdateBucketMeta(accessKey, bucket, &meta)
 	if err != nil {
 		return err

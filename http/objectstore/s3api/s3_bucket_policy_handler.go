@@ -41,11 +41,11 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		response.WriteErrorResponse(w, r, api_errors.ErrMalformedPolicy)
 		return
 	}
-	// Version in policy must not be empty
-	if bucketPolicy.Version == "" {
-		response.WriteErrorResponse(w, r, api_errors.ErrMalformedPolicy)
-		return
-	}
+	//// Version in policy must not be empty
+	//if bucketPolicy.Version == "" {
+	//	response.WriteErrorResponse(w, r, api_errors.ErrMalformedPolicy)
+	//	return
+	//}
 
 	if err = s3a.authSys.PolicySys.UpdatePolicy(r.Context(), cred.AccessKey, bucket, bucketPolicy); err != nil {
 		log.Errorf("PutBucketPolicyHandler UpdatePolicy err:%v", err)

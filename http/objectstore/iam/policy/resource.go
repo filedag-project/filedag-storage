@@ -2,6 +2,7 @@ package policy
 
 import (
 	"encoding/json"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy/condition"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
 	"golang.org/x/xerrors"
 	"path"
@@ -28,7 +29,7 @@ func (r Resource) IsValid() bool {
 // Match - matches object name with resource pattern, including specific conditionals.
 func (r Resource) Match(resource string, conditionValues map[string][]string) bool {
 	pattern := r.Pattern
-	for _, key := range CommonKeys {
+	for _, key := range condition.CommonKeys {
 		// Empty values are not supported for policy variables.
 		if rvalues, ok := conditionValues[key.Name()]; ok && rvalues[0] != "" {
 			pattern = strings.Replace(pattern, key.VarName(), rvalues[0], -1)
