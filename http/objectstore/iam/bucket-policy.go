@@ -7,20 +7,20 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 )
 
-// IPolicySys - policy subsystem.
-type IPolicySys struct {
+// iPolicySys - policy subsystem.
+type iPolicySys struct {
 	bmSys *store.BucketMetadataSys
 }
 
-// NewIPolicySys  - creates new policy system.
-func NewIPolicySys(db *uleveldb.ULevelDB) *IPolicySys {
-	return &IPolicySys{
+// newIPolicySys  - creates new policy system.
+func newIPolicySys(db *uleveldb.ULevelDB) *iPolicySys {
+	return &iPolicySys{
 		bmSys: store.NewBucketMetadataSys(db),
 	}
 }
 
-// IsAllowed - checks given policy args is allowed to continue the Rest API.
-func (sys *IPolicySys) IsAllowed(args auth.Args) bool {
+// isAllowed - checks given policy args is allowed to continue the Rest API.
+func (sys *iPolicySys) isAllowed(args auth.Args) bool {
 	p, err := sys.bmSys.GetPolicyConfig(args.BucketName, args.AccountName)
 	if err != nil {
 		return false
@@ -29,12 +29,12 @@ func (sys *IPolicySys) IsAllowed(args auth.Args) bool {
 	}
 }
 
-// SetPolicy returns stored bucket policy
-func (sys *IPolicySys) SetPolicy(bucket, accessKey, region string) error {
+// SetPolicy sets bucket policy
+func (sys *iPolicySys) SetPolicy(bucket, accessKey, region string) error {
 	return sys.bmSys.SetBucketMeta(bucket, accessKey, store.NewBucketMetadata(bucket, region, accessKey))
 }
 
 // GetPolicy returns stored bucket policy
-func (sys *IPolicySys) GetPolicy(bucket, accessKey string) (*policy.Policy, error) {
+func (sys *iPolicySys) GetPolicy(bucket, accessKey string) (*policy.Policy, error) {
 	return sys.bmSys.GetPolicyConfig(bucket, accessKey)
 }

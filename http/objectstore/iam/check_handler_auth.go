@@ -22,7 +22,7 @@ import (
 // AuthSys auth and sign system
 type AuthSys struct {
 	Iam       *IdentityAMSys
-	PolicySys *IPolicySys
+	PolicySys *iPolicySys
 	AdminCred auth.Credentials
 }
 
@@ -30,7 +30,7 @@ type AuthSys struct {
 func NewAuthSys(db *uleveldb.ULevelDB, adminCred auth.Credentials) *AuthSys {
 	return &AuthSys{
 		Iam:       NewIdentityAMSys(db),
-		PolicySys: NewIPolicySys(db),
+		PolicySys: newIPolicySys(db),
 		AdminCred: adminCred,
 	}
 }
@@ -85,7 +85,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 
 	if action != s3action.ListAllMyBucketsAction && cred.AccessKey == "" {
 		// Anonymous checks are not meant for ListBuckets action
-		if s.PolicySys.IsAllowed(auth.Args{
+		if s.PolicySys.isAllowed(auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      action,
 			BucketName:  bucketName,
@@ -99,7 +99,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 		if action == s3action.ListBucketVersionsAction {
 			// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
 			// verify as a fallback.
-			if s.PolicySys.IsAllowed(auth.Args{
+			if s.PolicySys.isAllowed(auth.Args{
 				AccountName: cred.AccessKey,
 				Action:      s3action.ListBucketAction,
 				BucketName:  bucketName,
@@ -319,7 +319,7 @@ func (s *AuthSys) IsPutActionAllowed(ctx context.Context, r *http.Request, actio
 	}
 
 	if cred.AccessKey == "" {
-		if s.PolicySys.IsAllowed(auth.Args{
+		if s.PolicySys.isAllowed(auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      action,
 			BucketName:  bucketName,
