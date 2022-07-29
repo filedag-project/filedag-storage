@@ -167,5 +167,10 @@ func (sys *bucketMetadataSys) getAllBucketOfUser(username string) ([]BucketMetad
 		key = strings.Split(key, "-")[1]
 		m = append(m, a)
 	}
+	for i, bm := range m {
+		if bm.Owner != username {
+			m = append(m[:i], m[i+1:]...)
+		}
+	}
 	return m, nil
 }
