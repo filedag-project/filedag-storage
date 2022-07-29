@@ -6,9 +6,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
+	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"io"
@@ -26,7 +26,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-	bucketMetas, erro := s3a.authSys.PolicySys.GetAllBucketOfUser(cred.AccessKey)
+	bucketMetas, erro := s3a.bmSys.GetAllBucketOfUser(cred.AccessKey)
 	if erro != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -61,7 +61,7 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-	bucketMetas, erro := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
+	bucketMetas, erro := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
 	if erro != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
@@ -96,7 +96,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// todo check policy and bucket
-	erro := s3a.authSys.PolicySys.Set(bucket, cred.AccessKey, region)
+	erro := s3a.authSys.PolicySys.SetPolicy(bucket, cred.AccessKey, region)
 	if erro != nil {
 		log.Errorf("PutBucketHandler set default policy err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
@@ -128,7 +128,7 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -147,12 +147,12 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-	get := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey)
+	get := s3a.bmSys.HasBucket(bucket, cred.AccessKey)
 	if !get {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
 	}
-	errc := s3a.authSys.PolicySys.Delete(r.Context(), cred.AccessKey, bucket)
+	errc := s3a.bmSys.DeleteBucket(cred.AccessKey, bucket)
 	if errc != nil {
 		log.Errorf("DeleteBucketHandler delete bucket err: %v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
@@ -263,7 +263,7 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -273,8 +273,13 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-
-	if err1 = s3a.authSys.PolicySys.UpdateBucketMeta(r.Context(), cred.AccessKey, bucket, tags); err1 != nil {
+	meta, err1 := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
+	if err1 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	meta.TaggingConfig = tags
+	if err1 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, meta); err1 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -295,11 +300,11 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	meta, err2 := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
+	meta, err2 := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -330,11 +335,17 @@ func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *htt
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.authSys.PolicySys.Has(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	err2 := s3a.authSys.PolicySys.UpdateBucketMeta(r.Context(), cred.AccessKey, bucket, nil)
+	meta, err2 := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
+	if err2 != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
+	meta.TaggingConfig = nil
+	err2 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, meta)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
@@ -378,9 +389,9 @@ func pathClean(p string) string {
 	}
 	return cp
 }
-func unmarshalXML(reader io.Reader, isObject bool) (*iam.Tags, error) {
-	tagging := &iam.Tags{
-		TagSet: &iam.TagSet{
+func unmarshalXML(reader io.Reader, isObject bool) (*store.Tags, error) {
+	tagging := &store.Tags{
+		TagSet: &store.TagSet{
 			TagMap:   make(map[string]string),
 			IsObject: isObject,
 		},

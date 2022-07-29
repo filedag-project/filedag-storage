@@ -80,7 +80,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
-	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -148,13 +148,13 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
 	userName := cred.AccessKey
 	if cred.AccessKey == "" {
-		meta, err := s3a.authSys.PolicySys.GetMeta(bucket, cred.AccessKey)
+		meta, err := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
 		if err != nil {
 			response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 			return
@@ -194,7 +194,7 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -228,7 +228,7 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -266,7 +266,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Has(dstBucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(dstBucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -279,7 +279,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
-	if !s3a.authSys.PolicySys.Has(srcBucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(srcBucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -338,7 +338,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.authSys.PolicySys.Has(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
@@ -375,7 +375,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	urlValues := r.Form
-	if !s3a.authSys.PolicySys.Has(bucket, cerd.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket, cerd.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}

@@ -16,6 +16,7 @@ import (
 type s3ApiServer struct {
 	authSys *iam.AuthSys
 	store   *store.StorageSys
+	bmSys   *store.BucketMetadataSys
 }
 
 //registerS3Router Register S3Router
@@ -100,6 +101,7 @@ func NewS3Server(router *mux.Router, dagService ipld.DAGService, pin client.Data
 	s3server := &s3ApiServer{
 		authSys: authSys,
 		store:   store.NewStorageSys(dagService, pin, db),
+		bmSys:   store.NewBucketMetadataSys(db),
 	}
 	s3server.registerS3Router(router)
 }
