@@ -5,7 +5,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/google/martian/log"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 	"io"
@@ -15,7 +14,7 @@ import (
 )
 
 func main() {
-	logging.SetLogLevel("*", "INFO")
+	utils.SetupLogLevels()
 	local := []*cli.Command{
 		pin,
 		unpin,

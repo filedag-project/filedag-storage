@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	logging.SetLogLevel("*", "INFO")
+	utils.SetupLogLevels()
 	local := []*cli.Command{
 		dnPut,
 		dnGet,

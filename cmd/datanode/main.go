@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/node"
-	logging "github.com/ipfs/go-log/v2"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/urfave/cli/v2"
 	"os"
 )
 
 func main() {
-	logging.SetLogLevel("*", "INFO")
+	utils.SetupLogLevels()
 	local := []*cli.Command{
 		startCmd,
 	}

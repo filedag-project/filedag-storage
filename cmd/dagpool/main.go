@@ -2,21 +2,21 @@ package main
 
 import (
 	"fmt"
-	logging "github.com/ipfs/go-log/v2"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/urfave/cli/v2"
 	"os"
 )
 
 func main() {
-	logging.SetLogLevel("*", "DEBUG")
+	utils.SetupLogLevels()
 	local := []*cli.Command{
 		startCmd,
 		authCmd,
 	}
 	app := &cli.App{
-		Name:                 "dagpool",
-		Usage:                "dagpool",
-		Version:              "0.0.3",
+		Name:                 "dag-pool",
+		Usage:                "dag pool daemon",
+		Version:              "0.0.1",
 		EnableBashCompletion: true,
 		Commands:             local,
 	}
