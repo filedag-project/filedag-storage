@@ -1212,7 +1212,7 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	},
 	ErrPostPolicyConditionInvalidFormat: {
 		Code:           "PostPolicyInvalidKeyName",
-		Description:    "Invalid according to Policy: Policy Condition failed",
+		Description:    "Invalid according to Policy: Policy Conditions failed",
 		HTTPStatusCode: http.StatusForbidden,
 	},
 	// Add your error structure here.

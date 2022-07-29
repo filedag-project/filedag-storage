@@ -26,7 +26,7 @@ import (
 //                "s3:PutObject"
 //            ],
 //            "Resource": "arn:aws:s3:::DOC-EXAMPLE-BUCKET/*",
-//            "Condition": {
+//            "Conditions": {
 //                "StringEquals": {
 //                    "s3:x-amz-acl": "bucket-owner-full-control"
 //                }
@@ -34,12 +34,12 @@ import (
 //        }
 //    ]
 type Statement struct {
-	SID       ID                   `json:"Sid,omitempty"`
-	Effect    Effect               `json:"Effect"`
-	Principal Principal            `json:"Principal"`
-	Actions   s3action.ActionSet   `json:"Action"`
-	Resources ResourceSet          `json:"Resource"`
-	Condition condition.Conditions `json:"Condition,omitempty"`
+	SID        ID                   `json:"Sid,omitempty"`
+	Effect     Effect               `json:"Effect"`
+	Principal  Principal            `json:"Principal"`
+	Actions    s3action.ActionSet   `json:"Action"`
+	Resources  ResourceSet          `json:"Resource"`
+	Conditions condition.Conditions `json:"Condition,omitempty"`
 }
 
 // ID - policy ID.
@@ -124,7 +124,7 @@ func (statement Statement) IsAllowed(args auth.Args) bool {
 		if !statement.Resources.Match(resource, args.Conditions) {
 			return false
 		}
-		return true
+		return statement.Conditions.Evaluate(args.Conditions)
 
 	}
 	return statement.Effect.IsAllowed(check())

@@ -27,7 +27,8 @@ func (key KeyName) ToKey() Key {
 	return NewKey(key, "")
 }
 
-// Condition key names.
+// Conditions key names.
+//https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html#context_keys_table
 const (
 	// S3Prefix - key representing prefix query parameter of ListBucket API only.
 	S3Prefix KeyName = "s3:prefix"
