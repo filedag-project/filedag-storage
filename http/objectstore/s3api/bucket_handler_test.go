@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
@@ -39,9 +40,9 @@ func TestMain(m *testing.M) {
 	}
 	authSys := iam.NewAuthSys(db, cred)
 	iamapi.NewIamApiServer(router, authSys)
-	poolCli, done := utils.NewMockPoolClient(&testing.T{})
+	poolCli, done := client.NewMockPoolClient(&testing.T{})
 	defer done()
-	pinCli, done := utils.NewMockPinClient(&testing.T{})
+	pinCli, done := client.NewMockPinClient(&testing.T{})
 	defer done()
 	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
 	NewS3Server(router, dagServ, pinCli, authSys, db)

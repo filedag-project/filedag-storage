@@ -1,14 +1,14 @@
-package utils
+package client
 
 import (
-	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/dag/pool/client/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/ipfs/go-merkledag"
 	"testing"
 )
 
-func NewMockPoolClient(t *testing.T) (client.PoolClient, func()) {
+//NewMockPoolClient creates a mock of PoolClient
+func NewMockPoolClient(t *testing.T) (PoolClient, func()) {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockPoolClient(ctrl)
 	node := merkledag.NodeWithData([]byte("\b\u0002\u0012\a1234567\u0018\a"))
@@ -21,7 +21,8 @@ func NewMockPoolClient(t *testing.T) (client.PoolClient, func()) {
 	return m, ctrl.Finish
 }
 
-func NewMockPinClient(t *testing.T) (client.DataPin, func()) {
+//NewMockPinClient creates a mock of PinClient
+func NewMockPinClient(t *testing.T) (DataPin, func()) {
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockDataPin(ctrl)
 	node := merkledag.NodeWithData([]byte("\b\u0002\u0012\a1234567\u0018\a"))
