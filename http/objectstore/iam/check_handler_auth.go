@@ -77,8 +77,8 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 
 		// Populate payload to extract location constraint.
 		r.Body = ioutil.NopCloser(bytes.NewReader(payload))
-		pol, err := s.PolicySys.bmSys.GetMeta(bucketName, cred.AccessKey)
-		if pol != (BucketMetadata{}) {
+		ok := s.PolicySys.bmSys.HasBucket(bucketName, cred.AccessKey)
+		if ok {
 			return cred, owner, api_errors.ErrBucketAlreadyExists
 		}
 	}

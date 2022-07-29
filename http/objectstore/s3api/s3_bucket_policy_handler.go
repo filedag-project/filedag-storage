@@ -47,8 +47,8 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	if err = s3a.authSys.PolicySys.UpdatePolicy(r.Context(), cred.AccessKey, bucket, bucketPolicy); err != nil {
-		log.Errorf("PutBucketPolicyHandler UpdatePolicy err:%v", err)
+	if err = s3a.bmSys.UpdateBucketPolicy(r.Context(), cred.AccessKey, bucket, bucketPolicy); err != nil {
+		log.Errorf("PutBucketPolicyHandler UpdateBucketPolicy err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -66,8 +66,8 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
-	if err := s3a.authSys.PolicySys.DeletePolicy(r.Context(), cred.AccessKey, bucket, nil); err != nil {
-		log.Errorf("DeleteBucketPolicyHandler DeletePolicy err:%v", err)
+	if err := s3a.bmSys.DeleteBucketPolicy(r.Context(), cred.AccessKey, bucket, nil); err != nil {
+		log.Errorf("DeleteBucketPolicyHandler DeleteBucketPolicy err:%v", err)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -87,7 +87,7 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Read bucket access policy.
-	config, err := s3a.authSys.PolicySys.Get(bucket, cred.AccessKey)
+	config, err := s3a.authSys.PolicySys.GetPolicy(bucket, cred.AccessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
