@@ -122,11 +122,13 @@ func (cs Conditions) String() string {
 }
 
 var conditionFuncMap = map[string]func(Key, ValueSet, string) (condFunction, error){
-	stringEquals:    newStringEqualsFunc,
-	stringNotEquals: newStringNotEqualsFunc,
-	binaryEquals:    newBinaryEqualsFunc,
-	stringLike:      newStringLikeFunc,
-	stringNotLike:   newStringNotLikeFunc,
+	stringEquals:              newStringEqualsFunc,
+	stringNotEquals:           newStringNotEqualsFunc,
+	stringEqualsIgnoreCase:    newStringEqualsIgnoreCaseFunc,
+	stringNotEqualsIgnoreCase: newStringNotEqualsIgnoreCaseFunc,
+	binaryEquals:              newBinaryEqualsFunc,
+	stringLike:                newStringLikeFunc,
+	stringNotLike:             newStringNotLikeFunc,
 
 	null: newNullFunc,
 	// todo Add  conditions

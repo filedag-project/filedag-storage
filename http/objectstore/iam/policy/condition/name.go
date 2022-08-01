@@ -8,21 +8,25 @@ import (
 
 const (
 	// names
-	stringEquals    = "StringEquals"
-	stringNotEquals = "StringNotEquals"
-	stringLike      = "StringLike"
-	stringNotLike   = "StringNotLike"
-	binaryEquals    = "BinaryEquals"
-	null            = "Null"
+	stringEquals              = "StringEquals"
+	stringNotEquals           = "StringNotEquals"
+	stringEqualsIgnoreCase    = "StringEqualsIgnoreCase"
+	stringNotEqualsIgnoreCase = "StringNotEqualsIgnoreCase"
+	stringLike                = "StringLike"
+	stringNotLike             = "StringNotLike"
+	binaryEquals              = "BinaryEquals"
+	null                      = "Null"
 )
 
 var names = map[string]struct{}{
-	stringEquals:    {},
-	stringNotEquals: {},
-	binaryEquals:    {},
-	stringLike:      {},
-	stringNotLike:   {},
-	null:            {},
+	stringEquals:              {},
+	stringNotEquals:           {},
+	stringEqualsIgnoreCase:    {},
+	stringNotEqualsIgnoreCase: {},
+	binaryEquals:              {},
+	stringLike:                {},
+	stringNotLike:             {},
+	null:                      {},
 }
 
 type name struct {

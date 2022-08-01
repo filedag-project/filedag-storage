@@ -22,22 +22,28 @@ func substitute(values map[string][]string) func(string) string {
 }
 
 //https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition_operators.html#Conditions_String
-// StringEquals
-// StringNotEquals
-// StringEqualsIgnoreCase
-// StringNotEqualsIgnoreCase
-// StringLike
-// StringNotLike
+// StringEquals Exact matching, case sensitive
+// StringNotEquals Negated matching
+// StringEqualsIgnoreCase Exact matching, ignoring case
+// StringNotEqualsIgnoreCase Negated matching, ignoring case
+// StringLike Case-sensitive matching. The values can include multi-character match wildcards (*) and single-character match wildcards (?) anywhere in the string.
+// StringNotLike Negated case-sensitive matching. The values can include multi-character match wildcards (*) or single-character match wildcards (?) anywhere in the string.
 type stringFunc struct {
-	n      name
-	k      Key
-	values set.StringSet
-	negate bool
+	n          name
+	k          Key
+	values     set.StringSet
+	ignoreCase bool
+	base64     bool
+	negate     bool
 }
 
 func (f stringFunc) eval(values map[string][]string) bool {
 	rvalues := set.CreateStringSet(getValuesByKey(values, f.k)...)
 	fvalues := f.values.ApplyFunc(substitute(values))
+	if f.ignoreCase {
+		rvalues = rvalues.ApplyFunc(strings.ToLower)
+		fvalues = fvalues.ApplyFunc(strings.ToLower)
+	}
 	ivalues := rvalues.Intersection(fvalues)
 	return !ivalues.IsEmpty()
 }
@@ -71,8 +77,11 @@ func (f stringFunc) toMap() map[Key]ValueSet {
 
 	values := NewValueSet()
 	for _, value := range f.values.ToSlice() {
-		values.Add(NewStringValue(value))
-
+		if f.base64 {
+			values.Add(NewStringValue(base64.StdEncoding.EncodeToString([]byte(value))))
+		} else {
+			values.Add(NewStringValue(value))
+		}
 	}
 
 	return map[Key]ValueSet{
@@ -82,9 +91,12 @@ func (f stringFunc) toMap() map[Key]ValueSet {
 
 func (f stringFunc) copy() stringFunc {
 	return stringFunc{
-		n:      f.n,
-		k:      f.k,
-		values: f.values.Union(set.NewStringSet()),
+		n:          f.n,
+		k:          f.k,
+		values:     f.values.Union(set.NewStringSet()),
+		ignoreCase: f.ignoreCase,
+		base64:     f.base64,
+		negate:     f.negate,
 	}
 }
 
@@ -144,7 +156,7 @@ func valuesToStringSlice(n string, values ValueSet) ([]string, error) {
 }
 
 func validateStringValues(n string, key Key, values set.StringSet) error {
-	// todo: validate string values
+	// todo: validate key and values
 
 	return nil
 }
@@ -161,10 +173,12 @@ func newStringFunc(n string, key Key, values ValueSet, qualifier string, ignoreC
 	}
 
 	return &stringFunc{
-		n:      name{name: n},
-		k:      key,
-		values: sset,
-		negate: negate,
+		n:          name{name: n},
+		k:          key,
+		values:     sset,
+		ignoreCase: ignoreCase,
+		base64:     base64,
+		negate:     negate,
 	}, nil
 }
 
@@ -185,6 +199,16 @@ func NewStringEqualsFunc(qualifier string, key Key, values ...string) (condFunct
 // newStringNotEqualsFunc - returns new StringNotEquals function.
 func newStringNotEqualsFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
 	return newStringFunc(stringNotEquals, key, values, qualifier, false, false, true)
+}
+
+// newStringEqualsIgnoreCaseFunc - returns new StringEqualsIgnoreCase function.
+func newStringEqualsIgnoreCaseFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+	return newStringFunc(stringEqualsIgnoreCase, key, values, qualifier, true, false, false)
+}
+
+// newStringNotEqualsIgnoreCaseFunc - returns new StringNotEqualsIgnoreCase function.
+func newStringNotEqualsIgnoreCaseFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+	return newStringFunc(stringNotEqualsIgnoreCase, key, values, qualifier, true, false, true)
 }
 
 // newBinaryEqualsFunc - returns new BinaryEquals function.
