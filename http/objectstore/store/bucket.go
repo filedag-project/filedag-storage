@@ -88,8 +88,8 @@ func (sys *BucketMetadataSys) SetBucketMeta(bucket, username string, meta Bucket
 }
 
 // GetBucketMeta metadata for a bucket.
-func (sys *BucketMetadataSys) GetBucketMeta(bucket, username string) (meta *BucketMetadata, err error) {
-	err = sys.db.Get(bucketPrefix+"-"+bucket, meta)
+func (sys *BucketMetadataSys) GetBucketMeta(bucket, username string) (meta BucketMetadata, err error) {
+	err = sys.db.Get(bucketPrefix+"-"+bucket, &meta)
 	return meta, err
 }
 
