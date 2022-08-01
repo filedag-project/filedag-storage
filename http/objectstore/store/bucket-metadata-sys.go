@@ -19,7 +19,7 @@ func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, accessKey,
 	if p == nil {
 		return xerrors.Errorf("policy is nil")
 	}
-	err = sys.UpdateBucket(accessKey, bucket, meta)
+	err = sys.UpdateBucket(accessKey, bucket, &meta)
 	if err != nil {
 		return err
 	}

@@ -79,7 +79,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html
 func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
-	log.Infof("PutBucketPolicyHandler %s", bucket)
+	log.Infof("GetBucketPolicyHandler %s", bucket)
 	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
 	if errc != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)

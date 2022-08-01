@@ -279,7 +279,7 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	meta.TaggingConfig = tags
-	if err1 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, meta); err1 != nil {
+	if err1 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, &meta); err1 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
@@ -345,7 +345,7 @@ func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *htt
 		return
 	}
 	meta.TaggingConfig = nil
-	err2 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, meta)
+	err2 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, &meta)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
