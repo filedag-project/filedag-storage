@@ -7,7 +7,6 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy/condition"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"strings"
 	"time"
 )
 
@@ -135,19 +134,16 @@ func (sys *BucketMetadataSys) GetAllBucketOfUser(username string) ([]BucketMetad
 	if err != nil {
 		return nil, err
 	}
-	for key, value := range mb {
+	for _, value := range mb {
 		a := BucketMetadata{}
 		err := json.Unmarshal([]byte(value), &a)
 		if err != nil {
 			continue
 		}
-		key = strings.Split(key, "-")[1]
-		m = append(m, a)
-	}
-	for i, bm := range m {
-		if bm.Owner != username {
-			m = append(m[:i], m[i+1:]...)
+		if a.Owner != username {
+			continue
 		}
+		m = append(m, a)
 	}
 	return m, nil
 }
