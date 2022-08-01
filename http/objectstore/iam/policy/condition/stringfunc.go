@@ -32,6 +32,7 @@ type stringFunc struct {
 	n      name
 	k      Key
 	values set.StringSet
+	negate bool
 }
 
 func (f stringFunc) eval(values map[string][]string) bool {
@@ -43,6 +44,9 @@ func (f stringFunc) eval(values map[string][]string) bool {
 
 func (f stringFunc) evaluate(values map[string][]string) bool {
 	result := f.eval(values)
+	if f.negate {
+		return !result
+	}
 	return result
 }
 
@@ -114,6 +118,9 @@ func (f stringLikeFunc) eval(values map[string][]string) bool {
 // matching in condition values.
 func (f stringLikeFunc) evaluate(values map[string][]string) bool {
 	result := f.eval(values)
+	if f.negate {
+		return !result
+	}
 	return result
 }
 
@@ -157,6 +164,7 @@ func newStringFunc(n string, key Key, values ValueSet, qualifier string, ignoreC
 		n:      name{name: n},
 		k:      key,
 		values: sset,
+		negate: negate,
 	}, nil
 }
 
