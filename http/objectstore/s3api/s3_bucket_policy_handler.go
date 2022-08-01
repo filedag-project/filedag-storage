@@ -87,7 +87,7 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Read bucket access policy.
-	config, err := s3a.authSys.PolicySys.GetPolicy(bucket, cred.AccessKey)
+	config, err := s3a.bmSys.GetPolicyConfig(bucket, cred.AccessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucketPolicy)
 		return
