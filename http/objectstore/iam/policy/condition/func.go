@@ -6,7 +6,7 @@ import (
 	"sort"
 )
 
-// condFunction - condition function interface.
+// CondFunction - condition function interface.
 //https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_condition_operators.html
 //String condition operators
 //Numeric condition operators
@@ -17,7 +17,7 @@ import (
 //Amazon Resource Name (ARN) condition operators
 //...IfExists condition operators
 //Condition operator to check existence of condition keys
-type condFunction interface {
+type CondFunction interface {
 	// evaluate() - evaluates this condition function with given values.
 	evaluate(values map[string][]string) bool
 
@@ -34,11 +34,11 @@ type condFunction interface {
 	toMap() map[Key]ValueSet
 
 	// clone - returns copy of this function.
-	clone() condFunction
+	clone() CondFunction
 }
 
 // Conditions - list of functions.
-type Conditions []condFunction
+type Conditions []CondFunction
 
 // Evaluate - evaluates all functions with given values map. Each function is evaluated
 // sequencely and next function is called only if current function succeeds.
@@ -65,7 +65,7 @@ func (cs Conditions) Keys() KeySet {
 
 // Clone clones Conditions structure
 func (cs Conditions) Clone() Conditions {
-	funcs := []condFunction{}
+	funcs := []CondFunction{}
 	for _, f := range cs {
 		funcs = append(funcs, f.clone())
 	}
@@ -121,7 +121,7 @@ func (cs Conditions) String() string {
 	return fmt.Sprintf("%v", funcStrings)
 }
 
-var conditionFuncMap = map[string]func(Key, ValueSet, string) (condFunction, error){
+var conditionFuncMap = map[string]func(Key, ValueSet, string) (CondFunction, error){
 	stringEquals:              newStringEqualsFunc,
 	stringNotEquals:           newStringNotEqualsFunc,
 	stringEqualsIgnoreCase:    newStringEqualsIgnoreCaseFunc,
@@ -145,7 +145,7 @@ func (cs *Conditions) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("condition must not be empty")
 	}
 
-	var funcs []condFunction
+	var funcs []CondFunction
 	for nameString, args := range nm {
 		n, err := parseName(nameString)
 		if err != nil {
@@ -188,6 +188,6 @@ func (cs *Conditions) GobDecode(data []byte) error {
 }
 
 // NewConFunctions - returns new Conditions with given function list.
-func NewConFunctions(functions ...condFunction) Conditions {
+func NewConFunctions(functions ...CondFunction) Conditions {
 	return functions
 }

@@ -49,14 +49,14 @@ func (f nullFunc) toMap() map[Key]ValueSet {
 	}
 }
 
-func (f nullFunc) clone() condFunction {
+func (f nullFunc) clone() CondFunction {
 	return &nullFunc{
 		k:     f.k,
 		value: f.value,
 	}
 }
 
-func newNullFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newNullFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	if len(values) != 1 {
 		return nil, fmt.Errorf("only one value is allowed for Null condition")
 	}

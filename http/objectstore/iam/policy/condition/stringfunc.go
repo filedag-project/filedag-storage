@@ -100,7 +100,7 @@ func (f stringFunc) copy() stringFunc {
 	}
 }
 
-func (f stringFunc) clone() condFunction {
+func (f stringFunc) clone() CondFunction {
 	c := f.copy()
 	return &c
 }
@@ -136,7 +136,7 @@ func (f stringLikeFunc) evaluate(values map[string][]string) bool {
 	return result
 }
 
-func (f stringLikeFunc) clone() condFunction {
+func (f stringLikeFunc) clone() CondFunction {
 	return &stringLikeFunc{stringFunc: f.copy()}
 }
 
@@ -183,12 +183,12 @@ func newStringFunc(n string, key Key, values ValueSet, qualifier string, ignoreC
 }
 
 // newStringEqualsFunc - returns new StringEquals function.
-func newStringEqualsFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newStringEqualsFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	return newStringFunc(stringEquals, key, values, qualifier, false, false, false)
 }
 
 // NewStringEqualsFunc - returns new StringEquals function.
-func NewStringEqualsFunc(qualifier string, key Key, values ...string) (condFunction, error) {
+func NewStringEqualsFunc(qualifier string, key Key, values ...string) (CondFunction, error) {
 	vset := NewValueSet()
 	for _, value := range values {
 		vset.Add(NewStringValue(value))
@@ -197,22 +197,22 @@ func NewStringEqualsFunc(qualifier string, key Key, values ...string) (condFunct
 }
 
 // newStringNotEqualsFunc - returns new StringNotEquals function.
-func newStringNotEqualsFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newStringNotEqualsFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	return newStringFunc(stringNotEquals, key, values, qualifier, false, false, true)
 }
 
 // newStringEqualsIgnoreCaseFunc - returns new StringEqualsIgnoreCase function.
-func newStringEqualsIgnoreCaseFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newStringEqualsIgnoreCaseFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	return newStringFunc(stringEqualsIgnoreCase, key, values, qualifier, true, false, false)
 }
 
 // newStringNotEqualsIgnoreCaseFunc - returns new StringNotEqualsIgnoreCase function.
-func newStringNotEqualsIgnoreCaseFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newStringNotEqualsIgnoreCaseFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	return newStringFunc(stringNotEqualsIgnoreCase, key, values, qualifier, true, false, true)
 }
 
 // newBinaryEqualsFunc - returns new BinaryEquals function.
-func newBinaryEqualsFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newBinaryEqualsFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	valueStrings, err := valuesToStringSlice(binaryEquals, values)
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ func newBinaryEqualsFunc(key Key, values ValueSet, qualifier string) (condFuncti
 }
 
 // NewBinaryEqualsFunc - returns new BinaryEquals function.
-func NewBinaryEqualsFunc(qualifier string, key Key, values ...string) (condFunction, error) {
+func NewBinaryEqualsFunc(qualifier string, key Key, values ...string) (CondFunction, error) {
 	vset := NewValueSet()
 	for _, value := range values {
 		data, err := base64.StdEncoding.DecodeString(value)
@@ -235,7 +235,7 @@ func NewBinaryEqualsFunc(qualifier string, key Key, values ...string) (condFunct
 }
 
 // newStringLikeFunc - returns new StringLike function.
-func newStringLikeFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newStringLikeFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	sf, err := newStringFunc(stringLike, key, values, qualifier, false, false, false)
 	if err != nil {
 		return nil, err
@@ -245,7 +245,7 @@ func newStringLikeFunc(key Key, values ValueSet, qualifier string) (condFunction
 }
 
 // newStringNotLikeFunc - returns new StringNotLike function.
-func newStringNotLikeFunc(key Key, values ValueSet, qualifier string) (condFunction, error) {
+func newStringNotLikeFunc(key Key, values ValueSet, qualifier string) (CondFunction, error) {
 	sf, err := newStringFunc(stringNotLike, key, values, qualifier, false, false, true)
 	if err != nil {
 		return nil, err

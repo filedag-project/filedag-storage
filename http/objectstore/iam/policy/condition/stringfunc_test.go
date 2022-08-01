@@ -29,7 +29,7 @@ func TestStringEqualsFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
@@ -70,7 +70,7 @@ func TestStringNotEqualsFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
@@ -107,7 +107,7 @@ func TestStringEqualsIgnoreCaseFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
@@ -144,7 +144,7 @@ func TestStringNotEqualsIgnoreCaseFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
@@ -190,7 +190,7 @@ func TestBinaryEqualsFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
@@ -225,7 +225,7 @@ func TestStringLikeFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
@@ -261,7 +261,7 @@ func TestStringNotLikeFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
@@ -292,7 +292,7 @@ func TestStringFuncKey(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		expectedResult Key
 	}{
 		{case1Function, S3XAmzCopySource.ToKey()},
@@ -348,7 +348,7 @@ func TestStringFuncName(t *testing.T) {
 	}
 
 	testCases := []struct {
-		function       condFunction
+		function       CondFunction
 		expectedResult name
 	}{
 		{case1Function, name{name: stringEquals}},
@@ -420,7 +420,7 @@ func TestStringEqualsFuncToMap(t *testing.T) {
 	}
 
 	testCases := []struct {
-		f              condFunction
+		f              CondFunction
 		expectedResult map[Key]ValueSet
 	}{
 		{case1Function, case1Result},
@@ -543,8 +543,8 @@ func TestStringFuncClone(t *testing.T) {
 	}}
 
 	testCases := []struct {
-		function       condFunction
-		expectedResult condFunction
+		function       CondFunction
+		expectedResult CondFunction
 	}{
 		{case1Function, case1Result},
 		{case2Function, case2Result},
