@@ -172,7 +172,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	response.SetObjectHeaders(w, r, objInfo)
 	w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
 	response.SetHeadGetRespHeaders(w, r.Form)
-	log.Infof("%v", reader.Size())
+	log.Debugf("%v", reader.Size())
 	_, err = reader.WriteTo(w)
 	if err != nil {
 		log.Errorf("GetObjectHandler reader readAll err:%v", err)
@@ -283,7 +283,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
-	log.Infof("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
+	log.Debugf("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
 	a, i, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
 	if err != nil {
 		log.Errorf("CopyObjectHandler StoreObject err:%v", err)

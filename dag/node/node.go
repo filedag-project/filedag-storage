@@ -75,7 +75,7 @@ func (d DagNode) GetIP() []string {
 	return s
 }
 func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
-	log.Infof("delete block, cid :%v", cid)
+	log.Warnf("delete block, cid :%v", cid)
 	keyCode := cid.String()
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
@@ -99,7 +99,7 @@ func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 }
 
 func (d DagNode) DeleteManyBlock(ctx context.Context, keys []string) (err error) {
-	log.Infof("delete many block, cid :%v", len(keys))
+	log.Debugf("delete many block, cid :%v", len(keys))
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for _, node := range d.Nodes {
@@ -133,7 +133,7 @@ func (d DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 }
 
 func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
-	log.Infof("get block, cid :%v", cid)
+	log.Debugf("get block, cid :%v", cid)
 	keyCode := cid.String()
 	var err error
 	var size int
@@ -205,7 +205,7 @@ func (d DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 }
 
 func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
-	log.Infof("put block, cid :%v", block.Cid())
+	log.Debugf("put block, cid :%v", block.Cid())
 	// copy data from block, because reedsolomon may modify data
 	buf := bytes.NewBuffer(nil)
 	buf.Write(block.RawData())

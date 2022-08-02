@@ -36,5 +36,5 @@ func TestHeart_beating(t *testing.T) {
 		return
 	}
 	time.Sleep(time.Second * 10)
-	log.Infof("the node : %+v", r.RN)
+	log.Debugf("the node : %+v", r.RN)
 }

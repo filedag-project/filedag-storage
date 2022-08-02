@@ -81,7 +81,7 @@ func (p *dagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("delete sucess %v ", reply.Message)
+	log.Debugf("delete sucess %v ", reply.Message)
 	return err
 }
 
@@ -98,7 +98,7 @@ func (p *dagPoolClient) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 }
 
 func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
-	log.Infof(cid.String())
+	log.Debugf(cid.String())
 	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -200,7 +200,7 @@ func (p dagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("pin sucess %v ", reply.Message)
+	log.Debugf("pin sucess %v ", reply.Message)
 	return err
 }
 
@@ -212,7 +212,7 @@ func (p dagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("unpin sucess %v ", reply.Message)
+	log.Debugf("unpin sucess %v ", reply.Message)
 	return err
 }
 
@@ -224,6 +224,6 @@ func (p dagPoolClient) IsPin(ctx context.Context, cid cid.Cid) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	log.Infof("ispin sucess %v ", reply.Is)
+	log.Debugf("ispin sucess %v ", reply.Is)
 	return reply.Is, err
 }

@@ -239,7 +239,7 @@ var ispin = &cli.Command{
 
 //mustNewSignedV4Request  NewSignedV4Request
 func mustNewSignedV4Request(method string, urlStr string, contentLength int64, body io.ReadSeeker, st string, accessKey, secretKey string) (*http.Request, error) {
-	log.Infof(urlStr)
+	log.Debugf(urlStr)
 	req, err := utils.NewRequest(method, urlStr, contentLength, body)
 	if err != nil {
 		return nil, err
