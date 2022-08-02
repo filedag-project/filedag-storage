@@ -29,32 +29,35 @@ func TestStringEqualsFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
-		{case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
-		{case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
-		{case1Function, map[string][]string{}, false},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
+		{"test1", case1Function, map[string][]string{}, false},
 
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
-		{case2Function, map[string][]string{}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
+		{"test2", case2Function, map[string][]string{}, false},
 
-		{case3Function, map[string][]string{"LocationConstraint": {"us-west-1"}}, true},
+		{"test3", case3Function, map[string][]string{"LocationConstraint": {"us-west-1"}}, true},
 
-		{case4Function, map[string][]string{"ExistingObjectTag/security": {"public"}}, true},
-		{case4Function, map[string][]string{"ExistingObjectTag/security": {"private"}}, false},
-		{case4Function, map[string][]string{"ExistingObjectTag/project": {"foo"}}, false},
+		{"test4", case4Function, map[string][]string{"ExistingObjectTag/security": {"public"}}, true},
+		{"test4", case4Function, map[string][]string{"ExistingObjectTag/security": {"private"}}, false},
+		{"test4", case4Function, map[string][]string{"ExistingObjectTag/project": {"foo"}}, false},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.evaluate(testCase.values)
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.evaluate(testCase.values)
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -70,28 +73,31 @@ func TestStringNotEqualsFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
-		{case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, false},
-		{case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, true},
-		{case1Function, map[string][]string{}, true},
-		{case1Function, map[string][]string{"delimiter": {"/"}}, true},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, false},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, true},
+		{"test1", case1Function, map[string][]string{}, true},
+		{"test1", case1Function, map[string][]string{"delimiter": {"/"}}, true},
 
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, false},
-		{case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, false},
-		{case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, true},
-		{case2Function, map[string][]string{}, true},
-		{case2Function, map[string][]string{"delimiter": {"/"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, true},
+		{"test2", case2Function, map[string][]string{}, true},
+		{"test2", case2Function, map[string][]string{"delimiter": {"/"}}, true},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.evaluate(testCase.values)
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.evaluate(testCase.values)
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -107,28 +113,31 @@ func TestStringEqualsIgnoreCaseFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
-		{case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
-		{case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
-		{case1Function, map[string][]string{}, false},
-		{case1Function, map[string][]string{"delimiter": {"/"}}, false},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
+		{"test1", case1Function, map[string][]string{}, false},
+		{"test1", case1Function, map[string][]string{"delimiter": {"/"}}, false},
 
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
-		{case2Function, map[string][]string{}, false},
-		{case2Function, map[string][]string{"delimiter": {"/"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
+		{"test2", case2Function, map[string][]string{}, false},
+		{"test2", case2Function, map[string][]string{"delimiter": {"/"}}, false},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.evaluate(testCase.values)
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.evaluate(testCase.values)
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -144,26 +153,29 @@ func TestStringNotEqualsIgnoreCaseFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
-		{case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, false},
-		{case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, true},
-		{case1Function, map[string][]string{}, true},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, false},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, true},
+		{"test1", case1Function, map[string][]string{}, true},
 
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, false},
-		{case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, false},
-		{case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, true},
-		{case2Function, map[string][]string{}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, true},
+		{"test2", case2Function, map[string][]string{}, true},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.evaluate(testCase.values)
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.evaluate(testCase.values)
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -190,26 +202,29 @@ func TestBinaryEqualsFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
-		{case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
-		{case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
-		{case1Function, map[string][]string{}, false},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
+		{"test1", case1Function, map[string][]string{}, false},
 
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
-		{case2Function, map[string][]string{}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
+		{"test2", case2Function, map[string][]string{}, false},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.evaluate(testCase.values)
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.evaluate(testCase.values)
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -225,27 +240,30 @@ func TestStringLikeFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
-		{case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
-		{case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
-		{case1Function, map[string][]string{}, false},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, true},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, false},
+		{"test1", case1Function, map[string][]string{}, false},
 
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-2"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
-		{case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
-		{case2Function, map[string][]string{}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-2"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, false},
+		{"test2", case2Function, map[string][]string{}, false},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.evaluate(testCase.values)
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.evaluate(testCase.values)
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -261,27 +279,30 @@ func TestStringNotLikeFuncEvaluate(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		values         map[string][]string
 		expectedResult bool
 	}{
-		{case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, false},
-		{case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, true},
-		{case1Function, map[string][]string{}, true},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"mybucket/myobject"}}, false},
+		{"test1", case1Function, map[string][]string{"x-amz-copy-source": {"yourbucket/myobject"}}, true},
+		{"test1", case1Function, map[string][]string{}, true},
 
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, false},
-		{case2Function, map[string][]string{"LocationConstraint": {"eu-west-2"}}, false},
-		{case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, false},
-		{case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, true},
-		{case2Function, map[string][]string{}, true},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-1"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"eu-west-2"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"ap-southeast-1"}}, false},
+		{"test2", case2Function, map[string][]string{"LocationConstraint": {"us-east-1"}}, true},
+		{"test2", case2Function, map[string][]string{}, true},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.evaluate(testCase.values)
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.evaluate(testCase.values)
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -348,24 +369,27 @@ func TestStringFuncName(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		expectedResult name
 	}{
-		{case1Function, name{name: stringEquals}},
-		{case2Function, name{name: stringNotEquals}},
-		{case3Function, name{name: stringEqualsIgnoreCase}},
-		{case4Function, name{name: stringNotEqualsIgnoreCase}},
-		{case5Function, name{name: binaryEquals}},
-		{case6Function, name{name: stringLike}},
-		{case7Function, name{name: stringNotLike}},
+		{"test1", case1Function, name{name: stringEquals}},
+		{"test2", case2Function, name{name: stringNotEquals}},
+		{"test3", case3Function, name{name: stringEqualsIgnoreCase}},
+		{"test4", case4Function, name{name: stringNotEqualsIgnoreCase}},
+		{"test5", case5Function, name{name: binaryEquals}},
+		{"test6", case6Function, name{name: stringLike}},
+		{"test7", case7Function, name{name: stringNotLike}},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.name()
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.name()
 
-		if result != testCase.expectedResult {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if result != testCase.expectedResult {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -420,22 +444,25 @@ func TestStringEqualsFuncToMap(t *testing.T) {
 	}
 
 	testCases := []struct {
+		testname       string
 		f              CondFunction
 		expectedResult map[Key]ValueSet
 	}{
-		{case1Function, case1Result},
-		{case2Function, case2Result},
-		{case3Function, case3Result},
-		{case4Function, case4Result},
-		{&stringFunc{}, nil},
+		{"test1", case1Function, case1Result},
+		{"test2", case2Function, case2Result},
+		{"test3", case3Function, case3Result},
+		{"test4", case4Function, case4Result},
+		{"test5", &stringFunc{}, nil},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.f.toMap()
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.f.toMap()
 
-		if !reflect.DeepEqual(result, testCase.expectedResult) {
-			t.Fatalf("case %v: result: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if !reflect.DeepEqual(result, testCase.expectedResult) {
+				t.Fatalf("case %v: result: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }
 
@@ -543,23 +570,26 @@ func TestStringFuncClone(t *testing.T) {
 	}}
 
 	testCases := []struct {
+		testname       string
 		function       CondFunction
 		expectedResult CondFunction
 	}{
-		{case1Function, case1Result},
-		{case2Function, case2Result},
-		{case3Function, case3Result},
-		{case4Function, case4Result},
-		{case5Function, case5Result},
-		{case6Function, case6Result},
-		{case7Function, case7Result},
+		{"test1", case1Function, case1Result},
+		{"test2", case2Function, case2Result},
+		{"test3", case3Function, case3Result},
+		{"test4", case4Function, case4Result},
+		{"test5", case5Function, case5Result},
+		{"test6", case6Function, case6Result},
+		{"test7", case7Function, case7Result},
 	}
 
-	for i, testCase := range testCases {
-		result := testCase.function.clone()
+	for _, testCase := range testCases {
+		t.Run(testCase.testname, func(t *testing.T) {
+			result := testCase.function.clone()
 
-		if !reflect.DeepEqual(result, testCase.expectedResult) {
-			t.Fatalf("case %v: expected: %v, got: %v\n", i+1, testCase.expectedResult, result)
-		}
+			if !reflect.DeepEqual(result, testCase.expectedResult) {
+				t.Fatalf("case %v: expected: %v, got: %v\n", testCase.testname, testCase.expectedResult, result)
+			}
+		})
 	}
 }

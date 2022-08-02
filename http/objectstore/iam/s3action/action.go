@@ -2,6 +2,8 @@ package s3action
 
 import "github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
 
+// ActionSet - set of actions.
+//https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazons3.html#amazons3-actions-as-permissions
 const (
 	// AbortMultipartUploadAction - AbortMultipartUpload Rest API action.
 	AbortMultipartUploadAction Action = "s3:AbortMultipartUpload"
