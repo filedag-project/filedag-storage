@@ -10,7 +10,7 @@ import (
 )
 
 func TestHeart_beating(t *testing.T) {
-	logging.SetLogLevel("*", "DEBUG")
+	logging.SetAllLoggers(logging.LevelDebug)
 	db, err := uleveldb.OpenDb(t.TempDir())
 	if err != nil {
 		log.Errorf("err %v", err)

@@ -14,7 +14,7 @@ import (
 
 func TestPoolClient_Add_Get(t *testing.T) {
 	time.Sleep(time.Second * 1)
-	logging.SetLogLevel("*", "INFO")
+	logging.SetAllLoggers(logging.LevelDebug)
 	r := bytes.NewReader([]byte("123456"))
 	cidBuilder, err := merkledag.PrefixForCidVersion(0)
 	poolCli, cancel := NewMockPoolClient(t)
