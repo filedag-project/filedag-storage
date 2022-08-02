@@ -16,10 +16,10 @@ type iamStoreAPI interface {
 	removeUserIdentity(ctx context.Context, name string) error
 	loadUser(ctx context.Context, user string, m *auth.Credentials) error
 	loadUsers(ctx context.Context) (map[string]auth.Credentials, error)
-	loadGroup(ctx context.Context, group string, m *GroupInfo) error
-	loadGroups(ctx context.Context) (map[string]GroupInfo, error)
-	saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error
-	removeGroupInfo(ctx context.Context, name string) error
+	//loadGroup(ctx context.Context, group string, m *GroupInfo) error
+	//loadGroups(ctx context.Context) (map[string]GroupInfo, error)
+	//saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error
+	//removeGroupInfo(ctx context.Context, name string) error
 	createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
 	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
 	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error
@@ -59,31 +59,32 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 	}
 	return nil
 }
-func (store *iamStoreSys) CreateGroup(ctx context.Context, groupName string, version int) error {
-	var g = GroupInfo{
-		Name:    groupName,
-		Version: version,
-		Status:  "on",
-		Members: nil,
-	}
-	err := store.saveGroupInfo(ctx, groupName, g)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (store *iamStoreSys) GetGroup(ctx context.Context, groupName string) (GroupInfo, error) {
-	var g GroupInfo
-	err := store.loadGroup(ctx, groupName, &g)
-	if err != nil {
-		return g, err
-	}
-	return g, nil
-}
-func (store *iamStoreSys) DeleteGroup(ctx context.Context, groupName string) error {
-	err := store.removeGroupInfo(ctx, groupName)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+
+//func (store *iamStoreSys) CreateGroup(ctx context.Context, groupName string, version int) error {
+//	var g = GroupInfo{
+//		Name:    groupName,
+//		Version: version,
+//		Status:  "on",
+//		Members: nil,
+//	}
+//	err := store.saveGroupInfo(ctx, groupName, g)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//func (store *iamStoreSys) GetGroup(ctx context.Context, groupName string) (GroupInfo, error) {
+//	var g GroupInfo
+//	err := store.loadGroup(ctx, groupName, &g)
+//	if err != nil {
+//		return g, err
+//	}
+//	return g, nil
+//}
+//func (store *iamStoreSys) DeleteGroup(ctx context.Context, groupName string) error {
+//	err := store.removeGroupInfo(ctx, groupName)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}

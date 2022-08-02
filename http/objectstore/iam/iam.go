@@ -102,7 +102,7 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 	if err != nil {
 		return nil, err
 	}
-	for i, _ := range users {
+	for i := range users {
 		cerd := users[i]
 		if cerd.IsExpired() {
 			continue
@@ -270,35 +270,35 @@ func (sys *IdentityAMSys) SetTempUser(ctx context.Context, accessKey string, cre
 	return nil
 }
 
-func (sys *IdentityAMSys) CreateGroup(ctx context.Context, groupName string, version int) error {
-	err := sys.store.CreateGroup(ctx, groupName, version)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (sys *IdentityAMSys) GetGroup(ctx context.Context, groupName string) (GroupInfo, error) {
-	g, err := sys.store.GetGroup(ctx, groupName)
-	if err != nil {
-		return g, err
-	}
-	return g, nil
-}
-func (sys *IdentityAMSys) DeleteGroup(ctx context.Context, groupName string) error {
-	err := sys.store.DeleteGroup(ctx, groupName)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (sys *IdentityAMSys) ListGroups(ctx context.Context, path string) ([]GroupInfo, error) {
-	m, err := sys.store.loadGroups(ctx)
-	var s []GroupInfo
-	for _, v := range m {
-		s = append(s, v)
-	}
-	if err != nil {
-		return s, err
-	}
-	return s, nil
-}
+//func (sys *IdentityAMSys) CreateGroup(ctx context.Context, groupName string, version int) error {
+//	err := sys.store.CreateGroup(ctx, groupName, version)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//func (sys *IdentityAMSys) GetGroup(ctx context.Context, groupName string) (GroupInfo, error) {
+//	g, err := sys.store.GetGroup(ctx, groupName)
+//	if err != nil {
+//		return g, err
+//	}
+//	return g, nil
+//}
+//func (sys *IdentityAMSys) DeleteGroup(ctx context.Context, groupName string) error {
+//	err := sys.store.DeleteGroup(ctx, groupName)
+//	if err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//func (sys *IdentityAMSys) ListGroups(ctx context.Context, path string) ([]GroupInfo, error) {
+//	m, err := sys.store.loadGroups(ctx)
+//	var s []GroupInfo
+//	for _, v := range m {
+//		s = append(s, v)
+//	}
+//	if err != nil {
+//		return s, err
+//	}
+//	return s, nil
+//}

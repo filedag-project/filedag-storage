@@ -111,25 +111,26 @@ func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policy
 	}
 	return nil
 }
-func (I *iamLevelDBStore) loadGroup(ctx context.Context, group string, m *GroupInfo) error {
-	//TODO implement me
-	panic("implement me")
-}
 
-func (I *iamLevelDBStore) loadGroups(ctx context.Context) (map[string]GroupInfo, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (I *iamLevelDBStore) saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (I *iamLevelDBStore) removeGroupInfo(ctx context.Context, name string) error {
-	//TODO implement me
-	panic("implement me")
-}
+//func (I *iamLevelDBStore) loadGroup(ctx context.Context, group string, m *GroupInfo) error {
+//	//TODO implement me
+//	panic("implement me")
+//}
+//
+//func (I *iamLevelDBStore) loadGroups(ctx context.Context) (map[string]GroupInfo, error) {
+//	//TODO implement me
+//	panic("implement me")
+//}
+//
+//func (I *iamLevelDBStore) saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error {
+//	//TODO implement me
+//	panic("implement me")
+//}
+//
+//func (I *iamLevelDBStore) removeGroupInfo(ctx context.Context, name string) error {
+//	//TODO implement me
+//	panic("implement me")
+//}
 
 func newIAMLevelDBStore(db *uleveldb.ULevelDB) *iamLevelDBStore {
 	return &iamLevelDBStore{
