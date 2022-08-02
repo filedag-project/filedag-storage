@@ -188,6 +188,6 @@ func (cs *Conditions) GobDecode(data []byte) error {
 }
 
 // NewConFunctions - returns new Conditions with given function list.
-func NewConFunctions(functions ...CondFunction) Conditions {
-	return functions
+func NewConFunctions(conditions ...CondFunction) Conditions {
+	return conditions
 }
