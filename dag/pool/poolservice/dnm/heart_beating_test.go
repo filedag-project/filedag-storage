@@ -20,16 +20,16 @@ func TestHeart_beating(t *testing.T) {
 	go datanode.MutDataNodeServer(":9010", datanode.KVBadge, t.TempDir())
 	time.Sleep(time.Second)
 	var a []*dagnode.DataNodeClient
-	for i := 0; i < 3; i++ {
-		datanodeClient, err := dagnode.InitDataNodeClient(config.DataNodeConfig{
-			Ip:   "",
-			Port: "",
-		})
-		if err != nil {
-			return
-		}
-		a = append(a, datanodeClient)
+
+	datanodeClient, err := dagnode.InitDataNodeClient(config.DataNodeConfig{
+		Ip:   "",
+		Port: ":9010",
+	})
+	if err != nil {
+		return
 	}
+	a = append(a, datanodeClient)
+
 	err = r.HandleDagNode(a, "test")
 	if err != nil {
 		return

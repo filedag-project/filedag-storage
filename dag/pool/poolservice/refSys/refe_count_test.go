@@ -36,7 +36,7 @@ func TestIdentityRefer(t *testing.T) {
 			fmt.Println(err)
 		}
 	}
-	count, err := identityRefe.QueryReference(cid)
+	count, err := identityRefe.queryReference(cid)
 	if err != nil {
 		fmt.Println(err)
 	}

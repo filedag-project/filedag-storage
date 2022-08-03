@@ -6,8 +6,8 @@ import (
 	"github.com/ipfs/go-cid"
 )
 
-// GetNode get the DagNode
-func (d *dagPoolService) GetNode(ctx context.Context, c cid.Cid) (*dagnode.DagNode, error) {
+// getDagNodeInfo get the DagNode
+func (d *dagPoolService) getDagNodeInfo(ctx context.Context, c cid.Cid) (*dagnode.DagNode, error) {
 	//todo mul node
 	get, err := d.nrSys.Get(c.String())
 	if err != nil {
@@ -16,8 +16,8 @@ func (d *dagPoolService) GetNode(ctx context.Context, c cid.Cid) (*dagnode.DagNo
 	return d.dagNodes[get], nil
 }
 
-// UseNode get the DagNode
-func (d *dagPoolService) UseNode(ctx context.Context, c cid.Cid) (*dagnode.DagNode, error) {
+// choseDagNode chose the DagNode for the Cid
+func (d *dagPoolService) choseDagNode(ctx context.Context, c cid.Cid) (*dagnode.DagNode, error) {
 	//todo mul node
 	dn := d.nrSys.GetCanUseNode()
 	err := d.nrSys.Add(c.String(), dn)

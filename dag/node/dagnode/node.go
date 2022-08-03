@@ -22,9 +22,10 @@ var _ blockstore.Blockstore = (*DagNode)(nil)
 
 //DagNode Implemented the Blockstore interface
 type DagNode struct {
-	Nodes                    []*DataNodeClient
-	db                       *uleveldb.ULevelDB
-	dataBlocks, parityBlocks int
+	Nodes        []*DataNodeClient
+	db           *uleveldb.ULevelDB
+	dataBlocks   int // Number of data shards
+	parityBlocks int //Number of parity shards
 }
 
 //DataNodeClient is a node that stores erasure-coded sharded data

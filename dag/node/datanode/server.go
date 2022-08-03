@@ -79,6 +79,7 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 //	return nil
 //}
 
+//MutDataNodeServer is the gRPC server for the MutDataNode
 func MutDataNodeServer(listen string, kvType KVType, dataDir string) {
 	log.Infof("datanode start...")
 	log.Infof("listen %s", listen)

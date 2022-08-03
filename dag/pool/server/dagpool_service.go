@@ -23,6 +23,7 @@ type DagPoolServer struct {
 	DagPool pool.DagPool
 }
 
+//Add is used to add a block to the dag pool server
 func (s *DagPoolServer) Add(ctx context.Context, in *proto.AddReq) (*proto.AddReply, error) {
 	data := blocks.NewBlock(in.GetBlock())
 	err := s.DagPool.Add(ctx, data, in.User.User, in.User.Password)
@@ -31,6 +32,8 @@ func (s *DagPoolServer) Add(ctx context.Context, in *proto.AddReq) (*proto.AddRe
 	}
 	return &proto.AddReply{Cid: data.Cid().String()}, nil
 }
+
+//Get is used to get a block from the dag pool server
 func (s *DagPoolServer) Get(ctx context.Context, in *proto.GetReq) (*proto.GetReply, error) {
 	cid, err := cid.Decode(in.Cid)
 	if err != nil {
@@ -43,6 +46,7 @@ func (s *DagPoolServer) Get(ctx context.Context, in *proto.GetReq) (*proto.GetRe
 	return &proto.GetReply{Block: get.RawData()}, nil
 }
 
+//GetSize is used to get the size of the block
 func (s *DagPoolServer) GetSize(ctx context.Context, in *proto.GetSizeReq) (*proto.GetSizeReply, error) {
 	cid, err := cid.Decode(in.Cid)
 	if err != nil {
@@ -55,6 +59,7 @@ func (s *DagPoolServer) GetSize(ctx context.Context, in *proto.GetSizeReq) (*pro
 	return &proto.GetSizeReply{Size: int32(size)}, nil
 }
 
+//Remove is used to remove a block from the dag pool server
 func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto.RemoveReply, error) {
 	c, err := cid.Decode(in.Cid)
 	if err != nil {
@@ -67,6 +72,7 @@ func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto
 	return &proto.RemoveReply{Message: c.String()}, nil
 }
 
+//AddUser is used to add a user to the dag pool server
 func (s *DagPoolServer) AddUser(ctx context.Context, in *proto.AddUserReq) (*proto.AddUserReply, error) {
 	if !upolicy.CheckValid(in.Policy) {
 		return &proto.AddUserReply{Message: policyNotRight}, xerrors.Errorf(policyNotRight)
@@ -84,6 +90,7 @@ func (s *DagPoolServer) AddUser(ctx context.Context, in *proto.AddUserReq) (*pro
 	return &proto.AddUserReply{Message: "ok"}, nil
 }
 
+//RemoveUser is used to remove a user from the dag pool server
 func (s *DagPoolServer) RemoveUser(ctx context.Context, in *proto.RemoveUserReq) (*proto.RemoveUserReply, error) {
 	err := s.DagPool.RemoveUser(in.Username, in.User.User, in.User.Password)
 	if err != nil {
@@ -92,6 +99,7 @@ func (s *DagPoolServer) RemoveUser(ctx context.Context, in *proto.RemoveUserReq)
 	return &proto.RemoveUserReply{Message: "ok"}, nil
 }
 
+//QueryUser is used to query a user from the dag pool server
 func (s *DagPoolServer) QueryUser(ctx context.Context, in *proto.QueryUserReq) (*proto.QueryUserReply, error) {
 	user, err := s.DagPool.QueryUser(in.Username, in.User.User, in.User.Password)
 	if err != nil {
@@ -100,6 +108,7 @@ func (s *DagPoolServer) QueryUser(ctx context.Context, in *proto.QueryUserReq) (
 	return &proto.QueryUserReply{Username: user.Username, Policy: string(user.Policy), Capacity: user.Capacity}, nil
 }
 
+//UpdateUser is used to update a user from the dag pool server
 func (s *DagPoolServer) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
 	user := dpuser.DagPoolUser{
 		Username: in.Username,

@@ -29,8 +29,20 @@ func (i *ReferSys) AddReference(cid string) error {
 	return nil
 }
 
-//QueryReference query block refer
-func (i *ReferSys) QueryReference(cid string) (int, error) {
+//HasReference check if cid has reference
+func (i *ReferSys) HasReference(cid string) bool {
+	ti := 0
+	i.mu.RLock()
+	err := i.DB.Get(dagPoolRefe+cid, &ti)
+	i.mu.RUnlock()
+	if err == nil && ti != 0 {
+		return true
+	}
+	return false
+}
+
+//queryReference query block refer
+func (i *ReferSys) queryReference(cid string) (int, error) {
 	var count int
 	i.mu.RLock()
 	err := i.DB.Get(dagPoolRefe+cid, &count)

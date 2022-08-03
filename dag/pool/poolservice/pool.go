@@ -76,18 +76,15 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 	if err != nil {
 		return err
 	}
-	reference, err := d.refer.QueryReference(block.Cid().String())
-	if err != nil {
-		return err
+	if !d.refer.HasReference(block.Cid().String()) {
+		useNode, err := d.choseDagNode(ctx, block.Cid())
+		if err != nil {
+			return err
+		}
+		return useNode.Put(ctx, block)
 	}
-	if reference > 1 {
-		return nil
-	}
-	useNode, err := d.UseNode(ctx, block.Cid())
-	if err != nil {
-		return err
-	}
-	return useNode.Put(ctx, block)
+	return nil
+
 }
 
 // Get retrieves a node from the dagPoolService, fetching the block in the BlockService
@@ -97,14 +94,10 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	reference, err := d.refer.QueryReference(c.String())
-	if err != nil {
-		return nil, err
-	}
-	if reference <= 0 {
+	if !d.refer.HasReference(c.String()) {
 		return nil, format.ErrNotFound{Cid: c}
 	}
-	getNode, err := d.GetNode(ctx, c)
+	getNode, err := d.getDagNodeInfo(ctx, c)
 	if err != nil {
 		return nil, err
 	}
@@ -126,14 +119,10 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	reference, err := d.refer.QueryReference(c.String())
-	if err != nil {
-		return 0, err
-	}
-	if reference <= 0 {
+	if !d.refer.HasReference(c.String()) {
 		return 0, format.ErrNotFound{Cid: c}
 	}
-	getNode, err := d.GetNode(ctx, c)
+	getNode, err := d.getDagNodeInfo(ctx, c)
 	if err != nil {
 		return 0, err
 	}
@@ -149,17 +138,17 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 	if err != nil {
 		return err
 	}
-	reference, err := d.refer.QueryReference(c.String())
-	if err != nil {
-		return err
-	}
-	if reference == 0 {
-		getNode, err := d.GetNode(ctx, c)
-		if err != nil {
-			return err
-		}
-		go getNode.DeleteBlock(ctx, c)
-	}
+	//reference, err := d.refer.QueryReference(c.String())
+	//if err != nil {
+	//	return err
+	//}
+	//if reference == 0 {
+	//	getNode, err := d.GetDagNodeInfo(ctx, c)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	go getNode.DeleteBlock(ctx, c)
+	//}
 	return nil
 }
 
