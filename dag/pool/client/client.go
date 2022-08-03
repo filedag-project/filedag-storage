@@ -64,6 +64,7 @@ func (p *dagPoolClient) Close(ctx context.Context) {
 	p.Conn.Close()
 }
 
+//DeleteBlock delete a block
 func (p *dagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
 		Cid:  cid.String(),
@@ -75,6 +76,7 @@ func (p *dagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 	return err
 }
 
+//Has returns if the blockstore has a block with the given key
 func (p *dagPoolClient) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 	_, err := p.GetSize(ctx, cid)
 	if err != nil {
@@ -87,6 +89,7 @@ func (p *dagPoolClient) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 	return true, nil
 }
 
+//Get the block with the given key, or nil if not found
 func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	log.Debugf(cid.String())
 	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
@@ -99,6 +102,7 @@ func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, err
 	return blocks.NewBlock(get.Block), nil
 }
 
+//GetSize get the size of the block with the given key
 func (p *dagPoolClient) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 	reply, err := p.DPClient.GetSize(ctx, &proto.GetSizeReq{Cid: cid.String(), User: p.User})
 	if err != nil {
@@ -110,6 +114,7 @@ func (p *dagPoolClient) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 	return int(reply.Size), nil
 }
 
+//Put  a block
 func (p *dagPoolClient) Put(ctx context.Context, blk blocks.Block) error {
 	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: blk.RawData(), User: p.User})
 	if err != nil {
@@ -118,6 +123,7 @@ func (p *dagPoolClient) Put(ctx context.Context, blk blocks.Block) error {
 	return nil
 }
 
+//PutMany put many nodes
 func (p *dagPoolClient) PutMany(ctx context.Context, blks []blocks.Block) error {
 	for _, block := range blks {
 		if err := p.Put(ctx, block); err != nil {
@@ -127,10 +133,12 @@ func (p *dagPoolClient) PutMany(ctx context.Context, blks []blocks.Block) error 
 	return nil
 }
 
+//AllKeysChan returns a channel from which all keys of the dag can be read.
 func (p *dagPoolClient) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	panic("unimplemented")
 }
 
+//HashOnRead hash on read
 func (p *dagPoolClient) HashOnRead(enabled bool) {
 	panic("unimplemented")
 }
