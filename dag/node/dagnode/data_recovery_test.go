@@ -1,4 +1,4 @@
-package node
+package dagnode
 
 import (
 	"encoding/json"

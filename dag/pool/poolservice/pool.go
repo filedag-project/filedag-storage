@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dnm"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
@@ -16,7 +16,6 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipfs/go-merkledag"
 	"golang.org/x/xerrors"
 )
 
@@ -58,7 +57,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	dn := make(map[string]*node.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
-		bs, err := node.NewDagNode(c)
+		bs, err := dagnode.NewDagNode(c)
 		if err != nil {
 			log.Errorf("new dagnode err:%v", err)
 			return nil, err

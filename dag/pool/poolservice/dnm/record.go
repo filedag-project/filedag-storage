@@ -2,7 +2,7 @@ package dnm
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -47,6 +47,10 @@ func (r *NodeRecordSys) Add(cid string, name string) error {
 //HandleDagNode handle the dag node
 func (r *NodeRecordSys) HandleDagNode(cons []*node.DataNodeClient, name string) error {
 	m := make(map[string]*dataNodeInfo)
+
+//HandleDagNode handle the dag node
+func (r *NodeRecordSys) HandleDagNode(cons []*dagnode.DataNodeClient, name string) error {
+	m := make(map[string]*dataNodeInfo)
 	for i, c := range cons {
 		var dni = dataNodeInfo{
 			name:   strconv.Itoa(i),
@@ -66,7 +70,7 @@ func (r *NodeRecordSys) HandleDagNode(cons []*node.DataNodeClient, name string) 
 	}
 	return nil
 }
-func (r *NodeRecordSys) handleConn(c *node.DataNodeClient, name string, dataName string) {
+func (r *NodeRecordSys) handleConn(c *dagnode.DataNodeClient, name string, dataName string) {
 
 	for {
 		r.NodeLock.Lock()

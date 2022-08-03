@@ -2,7 +2,7 @@ package poolservice
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/ipfs/go-cid"
 )
 

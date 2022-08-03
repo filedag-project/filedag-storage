@@ -1,8 +1,4 @@
-package node
-
-const (
-	slashSeparator = "/"
-)
+package dagnode
 
 // ceilFrac takes a numerator and denominator representing a fraction
 // and returns its ceiling. If denominator is 0, it returns 0 instead

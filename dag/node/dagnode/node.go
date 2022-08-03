@@ -1,4 +1,4 @@
-package node
+package dagnode
 
 import (
 	"bytes"
@@ -91,29 +91,6 @@ func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 			_, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
 			if err != nil {
 				log.Debugf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
-			}
-		}(node)
-	}
-	wg.Wait()
-	return err
-}
-
-//DeleteManyBlock delete some block from the DagNode
-func (d DagNode) DeleteManyBlock(ctx context.Context, keys []string) (err error) {
-	log.Debugf("delete many block, cid :%v", len(keys))
-	wg := sync.WaitGroup{}
-	wg.Add(len(d.Nodes))
-	for _, node := range d.Nodes {
-		go func(node *DataNodeClient) {
-			defer func() {
-				if err := recover(); err != nil {
-					log.Errorf("%s:%s, keyCode count :%d, delete many block err :%v", node.Ip, node.Port, len(keys), err)
-				}
-				wg.Done()
-			}()
-			_, err = node.Client.DeleteMany(ctx, &proto.DeleteManyRequest{Keys: keys})
-			if err != nil {
-				log.Errorf("%s:%s, keyCode count :%d, delete many block err :%v", node.Ip, node.Port, len(keys), err)
 			}
 		}(node)
 	}
