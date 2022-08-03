@@ -3,10 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/node"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
-	logging "github.com/ipfs/go-log/v2"
+	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/urfave/cli/v2"
 	"os"
 )

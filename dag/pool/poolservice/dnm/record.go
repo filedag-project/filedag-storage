@@ -45,10 +45,6 @@ func (r *NodeRecordSys) Add(cid string, name string) error {
 }
 
 //HandleDagNode handle the dag node
-func (r *NodeRecordSys) HandleDagNode(cons []*node.DataNodeClient, name string) error {
-	m := make(map[string]*dataNodeInfo)
-
-//HandleDagNode handle the dag node
 func (r *NodeRecordSys) HandleDagNode(cons []*dagnode.DataNodeClient, name string) error {
 	m := make(map[string]*dataNodeInfo)
 	for i, c := range cons {

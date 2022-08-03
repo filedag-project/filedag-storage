@@ -16,6 +16,7 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/go-merkledag"
 	"golang.org/x/xerrors"
 )
 
@@ -25,7 +26,7 @@ var _ pool.DagPool = &dagPoolService{}
 
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
-	dagNodes   map[string]*node.DagNode
+	dagNodes   map[string]*dagnode.DagNode
 	iam        *dpuser.IdentityUserSys
 	refer      *refSys.ReferSys
 	cidBuilder cid.Builder
@@ -54,7 +55,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		return nil, err
 	}
 	r := refSys.NewIdentityRefe(db, cfg.CacheExpireTime)
-	dn := make(map[string]*node.DagNode)
+	dn := make(map[string]*dagnode.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
 		bs, err := dagnode.NewDagNode(c)
