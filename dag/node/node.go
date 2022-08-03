@@ -18,69 +18,70 @@ import (
 	"sync"
 )
 
-const lockFileName = "repo.lock"
-
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
+//DagNode Implemented the Blockstore interface
 type DagNode struct {
-	Nodes                    []DataNode
+	Nodes                    []*DataNodeClient
 	db                       *uleveldb.ULevelDB
 	dataBlocks, parityBlocks int
 }
 
-type DataNode struct {
+//DataNodeClient is a node that stores erasure-coded sharded data
+type DataNodeClient struct {
 	Client      proto.DataNodeClient
 	HeartClient healthpb.HealthClient
 	Ip          string
 	Port        string
 }
 
+//NewDagNode creates a new DagNode
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
-	var s []DataNode
+	var s []*DataNodeClient
 	for _, c := range cfg.Nodes {
-		dateNode := new(DataNode)
-		sc, hc, err := InitSliceConn(c.Ip + ":" + c.Port)
+		dateNode, err := InitDataNodeClient(c)
 		if err != nil {
 			return nil, err
 		}
-		dateNode.Ip = c.Ip
-		dateNode.Port = c.Port
-		dateNode.Client = sc
-		dateNode.HeartClient = hc
-		s = append(s, *dateNode)
+		s = append(s, dateNode)
 	}
 	db, _ := uleveldb.OpenDb(cfg.LevelDbPath)
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
 }
 
-func InitSliceConn(addr string) (c proto.DataNodeClient, h healthpb.HealthClient, err error) {
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+//InitDataNodeClient creates a grpc connection to a slice
+func InitDataNodeClient(cfg config.DataNodeConfig) (datanode *DataNodeClient, err error) {
+	conn, err := grpc.Dial(cfg.Ip+cfg.Port, grpc.WithInsecure())
 	if err != nil {
-		conn.Close()
 		log.Errorf("did not connect: %v", err)
-		return c, h, err
+		return nil, err
 	}
-	//defer conn.Close()
-	// init client
-	h = healthpb.NewHealthClient(conn)
-	c = proto.NewDataNodeClient(conn)
-	return c, h, nil
+	defer conn.Close()
+	datanode = &DataNodeClient{
+		Client:      proto.NewDataNodeClient(conn),
+		HeartClient: healthpb.NewHealthClient(conn),
+		Ip:          cfg.Ip,
+		Port:        cfg.Port,
+	}
+	return datanode, nil
 }
 
-func (d DagNode) GetIP() []string {
-	var s []string
-	for _, n := range d.Nodes {
-		s = append(s, n.Ip)
-	}
-	return s
-}
+//func (d DagNode) GetIP() []string {
+//	var s []string
+//	for _, n := range d.Nodes {
+//		s = append(s, n.Ip)
+//	}
+//	return s
+//}
+
+//DeleteBlock deletes a block from the DagNode
 func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	log.Warnf("delete block, cid :%v", cid)
 	keyCode := cid.String()
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for _, node := range d.Nodes {
-		go func(node DataNode) {
+		go func(node *DataNodeClient) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
@@ -89,8 +90,7 @@ func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 			}()
 			_, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
 			if err != nil {
-				//todo print error
-				//log.Debugf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
+				log.Debugf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
 			}
 		}(node)
 	}
@@ -98,12 +98,13 @@ func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	return err
 }
 
+//DeleteManyBlock delete some block from the DagNode
 func (d DagNode) DeleteManyBlock(ctx context.Context, keys []string) (err error) {
 	log.Debugf("delete many block, cid :%v", len(keys))
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for _, node := range d.Nodes {
-		go func(node DataNode) {
+		go func(node *DataNodeClient) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s, keyCode count :%d, delete many block err :%v", node.Ip, node.Port, len(keys), err)
@@ -120,6 +121,7 @@ func (d DagNode) DeleteManyBlock(ctx context.Context, keys []string) (err error)
 	return err
 }
 
+//Has returns true if the given cid is in the DagNode
 func (d DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 	_, err := d.GetSize(ctx, cid)
 	if err != nil {
@@ -132,6 +134,7 @@ func (d DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 	return true, nil
 }
 
+//Get returns the block with the given cid
 func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	log.Debugf("get block, cid :%v", cid)
 	keyCode := cid.String()
@@ -148,7 +151,7 @@ func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for i, node := range d.Nodes {
-		go func(i int, node DataNode) {
+		go func(i int, node *DataNodeClient) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s, keyCode:%s, kvdb get err :%v", node.Ip, node.Port, keyCode, err)
@@ -177,9 +180,6 @@ func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	}
 	var data []byte
 	data = bytes.Join(merged, []byte(""))
-	if err != nil {
-		return nil, err
-	}
 	data = data[:size]
 	b, err := blocks.NewBlockWithCid(data, cid)
 	if err == blocks.ErrWrongHash {
@@ -188,6 +188,7 @@ func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	return b, err
 }
 
+//GetSize returns the size of the block with the given cid
 func (d DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 	keyCode := cid.String()
 	var err error
@@ -204,6 +205,7 @@ func (d DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 	return int(count), err
 }
 
+//Put adds the given block to the DagNode
 func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	log.Debugf("put block, cid :%v", block.Cid())
 	// copy data from block, because reedsolomon may modify data
@@ -238,7 +240,7 @@ func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for i, node := range d.Nodes {
-		go func(i int, node DataNode) {
+		go func(i int, node *DataNodeClient) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s,keyCode:%s,kvdb put :%v", node.Ip, node.Port, keyCode, err)
@@ -255,6 +257,7 @@ func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	return err
 }
 
+//PutMany adds the given blocks to the DagNode
 func (d DagNode) PutMany(ctx context.Context, blocks []blocks.Block) (err error) {
 	for _, block := range blocks {
 		err = d.Put(ctx, block)
@@ -262,10 +265,12 @@ func (d DagNode) PutMany(ctx context.Context, blocks []blocks.Block) (err error)
 	return err
 }
 
+//AllKeysChan returns a channel that will yield every key in the dag
 func (d DagNode) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	panic("implement me")
 }
 
+//HashOnRead tells the dag node to calculate the hash of the block
 func (d DagNode) HashOnRead(enabled bool) {
 	panic("implement me")
 }

@@ -45,7 +45,7 @@ func (r *NodeRecordSys) Add(cid string, name string) error {
 }
 
 //HandleDagNode handle the dag node
-func (r *NodeRecordSys) HandleDagNode(cons []node.DataNode, name string) error {
+func (r *NodeRecordSys) HandleDagNode(cons []*node.DataNodeClient, name string) error {
 	m := make(map[string]*dataNodeInfo)
 	for i, c := range cons {
 		var dni = dataNodeInfo{
@@ -62,11 +62,11 @@ func (r *NodeRecordSys) HandleDagNode(cons []node.DataNode, name string) error {
 	}
 	r.RN[name] = &tmp
 	for i, c := range cons {
-		go r.handleConn(&c, name, strconv.Itoa(i))
+		go r.handleConn(c, name, strconv.Itoa(i))
 	}
 	return nil
 }
-func (r *NodeRecordSys) handleConn(c *node.DataNode, name string, dataName string) {
+func (r *NodeRecordSys) handleConn(c *node.DataNodeClient, name string, dataName string) {
 
 	for {
 		r.NodeLock.Lock()

@@ -13,10 +13,10 @@ import (
 )
 
 func TestDagNode(t *testing.T) {
-	q := DataNode{
+	q := &DataNodeClient{
 		Client: newDatanode(t),
 	}
-	var s []DataNode
+	var s []*DataNodeClient
 	s = append(s, q)
 	db, err := uleveldb.OpenDb(t.TempDir())
 	if err != nil {

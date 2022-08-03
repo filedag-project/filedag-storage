@@ -15,14 +15,14 @@ type PoolConfig struct {
 
 //DagNodeConfig is the configuration for a dag node
 type DagNodeConfig struct {
-	Nodes        []dataNodeConfig `json:"nodes"`
+	Nodes        []DataNodeConfig `json:"nodes"`
 	DataBlocks   int              `json:"data_blocks"`
 	ParityBlocks int              `json:"parity_blocks"`
 	LevelDbPath  string           `json:"level_db_path"`
 }
 
-type dataNodeConfig struct {
-	Ip        string `json:"ip"`
-	Port      string `json:"port"`
-	HeartAddr string `json:"heart_addr"`
+//DataNodeConfig is the configuration for a datanode
+type DataNodeConfig struct {
+	Ip   string `json:"ip"`
+	Port string `json:"port"`
 }

@@ -21,10 +21,10 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 		return err
 	}
 	index := -1
-	dataNode := new(DataNode)
+	dataNode := new(DataNodeClient)
 	for i, node := range d.Nodes {
 		if node.Ip == ip && node.Port == port {
-			dataNode = &d.Nodes[i]
+			dataNode = d.Nodes[i]
 			index = i
 		}
 	}
@@ -137,9 +137,6 @@ func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 			log.Errorf("data node put fail :%v", err)
 			return err
 		}
-		if err != nil {
-			break
-		}
 	}
 	return err
 }
@@ -158,9 +155,9 @@ func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, erro
 	addr := flag.String("addr"+fmt.Sprint(len(d.Nodes)+1), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
-		conn.Close()
 		return index, err
 	}
+	defer conn.Close()
 	client := proto.NewDataNodeClient(conn)
 	d.Nodes[index].Client = client
 	d.Nodes[index].Ip = newIp
