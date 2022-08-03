@@ -84,7 +84,7 @@ func startDagPoolServer(cfg config.PoolConfig) {
 	}
 	defer service.Close()
 
-	proto.RegisterDagPoolServer(s, &server.DagPoolService{DagPool: service})
+	proto.RegisterDagPoolServer(s, &server.DagPoolServer{DagPool: service})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)

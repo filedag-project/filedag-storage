@@ -7,14 +7,16 @@ import (
 	"sync"
 )
 
-type IdentityRefe struct {
+// ReferSys Reference count system
+type ReferSys struct {
 	mu sync.RWMutex
 	DB *uleveldb.ULevelDB
 }
 
 const dagPoolRefe = "dagPoolRefe/"
 
-func (i *IdentityRefe) AddReference(cid string) error {
+//AddReference add refer for block
+func (i *ReferSys) AddReference(cid string) error {
 	var count int
 	i.mu.Lock()
 	err := i.DB.Get(dagPoolRefe+cid, &count)
@@ -27,7 +29,8 @@ func (i *IdentityRefe) AddReference(cid string) error {
 	return nil
 }
 
-func (i *IdentityRefe) QueryReference(cid string) (int, error) {
+//QueryReference query block refer
+func (i *ReferSys) QueryReference(cid string) (int, error) {
 	var count int
 	i.mu.RLock()
 	err := i.DB.Get(dagPoolRefe+cid, &count)
@@ -38,7 +41,8 @@ func (i *IdentityRefe) QueryReference(cid string) (int, error) {
 	return count, nil
 }
 
-func (i *IdentityRefe) RemoveReference(cid string) error {
+//RemoveReference reduce refer
+func (i *ReferSys) RemoveReference(cid string) error {
 	var count int
 	i.mu.Lock()
 	err := i.DB.Get(dagPoolRefe+cid, &count)
@@ -57,6 +61,7 @@ func (i *IdentityRefe) RemoveReference(cid string) error {
 	return nil
 }
 
-func NewIdentityRefe(db *uleveldb.ULevelDB) (*IdentityRefe, error) {
-	return &IdentityRefe{DB: db}, nil
+//NewReferSys new a reference sys
+func NewReferSys(db *uleveldb.ULevelDB) (*ReferSys, error) {
+	return &ReferSys{DB: db}, nil
 }

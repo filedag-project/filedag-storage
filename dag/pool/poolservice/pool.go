@@ -20,19 +20,19 @@ import (
 
 var log = logging.Logger("dag-pool")
 
-var _ pool.DagPool = &Pool{}
+var _ pool.DagPool = &dagPoolService{}
 
-type Pool struct {
-	DagNodes map[string]*dagnode.DagNode
+// dagPoolService is an IPFS Merkle DAG service.
+type dagPoolService struct {
+	dagNodes map[string]*dagnode.DagNode
 	iam      *dpuser.IdentityUserSys
-	refer    *refSys.IdentityRefe
-	NRSys    *dnm.NodeRecordSys
+	refer    *refSys.ReferSys
+	nrSys    *dnm.NodeRecordSys
 	db       *uleveldb.ULevelDB
 }
 
-// NewDagPoolService constructs a new DAGService (using the default implementation).
-// Note that the default implementation is also an ipld.LinkGetter.
-func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
+// NewDagPoolService constructs a new DAGPool (using the default implementation).
+func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
@@ -42,7 +42,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, err := refSys.NewIdentityRefe(db)
+	r, err := refSys.NewReferSys(db)
 	dn := make(map[string]*dagnode.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
@@ -58,17 +58,17 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 		}
 		dn[name] = bs
 	}
-	return &Pool{
-		DagNodes: dn,
+	return &dagPoolService{
+		dagNodes: dn,
 		iam:      i,
 		refer:    r,
-		NRSys:    nrs,
+		nrSys:    nrs,
 		db:       db,
 	}, nil
 }
 
-// Add adds a node to the Pool, storing the block in the BlockService
-func (d *Pool) Add(ctx context.Context, block blocks.Block, user string, password string) error {
+// Add adds a node to the dagPoolService, storing the block in the BlockService
+func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user string, password string) error {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyWrite) {
 		return upolicy.AccessDenied
 	}
@@ -90,8 +90,8 @@ func (d *Pool) Add(ctx context.Context, block blocks.Block, user string, passwor
 	return useNode.Put(ctx, block)
 }
 
-// Get retrieves a node from the Pool, fetching the block in the BlockService
-func (d *Pool) Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error) {
+// Get retrieves a node from the dagPoolService, fetching the block in the BlockService
+func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error) {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
 		return nil, upolicy.AccessDenied
 	}
@@ -119,7 +119,8 @@ func (d *Pool) Get(ctx context.Context, c cid.Cid, user string, password string)
 	return b, nil
 }
 
-func (d *Pool) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
+//GetSize get the block size
+func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
 		return 0, upolicy.AccessDenied
 	}
@@ -139,7 +140,8 @@ func (d *Pool) GetSize(ctx context.Context, c cid.Cid, user string, password str
 	return getNode.GetSize(ctx, c)
 }
 
-func (d *Pool) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
+//Remove remove block from DAGPool
+func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyWrite) {
 		return upolicy.AccessDenied
 	}
@@ -162,11 +164,11 @@ func (d *Pool) Remove(ctx context.Context, c cid.Cid, user string, password stri
 }
 
 // DataRepairHost Data repair host
-func (d *Pool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
+func (d *dagPoolService) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
 	if d == nil {
 		return fmt.Errorf("Pool is nil")
 	}
-	dagNode, err := d.GetNodeUseIP(ctx, oldIp)
+	dagNode, err := d.getNodeUseIP(ctx, oldIp)
 	if err != nil {
 		return err
 	}
@@ -174,18 +176,19 @@ func (d *Pool) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPor
 }
 
 // DataRepairDisk Data repair disk
-func (d *Pool) DataRepairDisk(ctx context.Context, ip, port string) error {
+func (d *dagPoolService) DataRepairDisk(ctx context.Context, ip, port string) error {
 	if d == nil {
 		return fmt.Errorf("Pool is nil")
 	}
-	dagNode, err := d.GetNodeUseIP(ctx, ip)
+	dagNode, err := d.getNodeUseIP(ctx, ip)
 	if err != nil {
 		return err
 	}
 	return dagNode.RepairDisk(ip, port)
 }
 
-func (d *Pool) AddUser(newUser dpuser.DagPoolUser, user string, password string) error {
+//AddUser add a user
+func (d *dagPoolService) AddUser(newUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
 	}
@@ -198,7 +201,8 @@ func (d *Pool) AddUser(newUser dpuser.DagPoolUser, user string, password string)
 	return d.iam.AddUser(newUser)
 }
 
-func (d *Pool) RemoveUser(rmUser string, user string, password string) error {
+//RemoveUser remove the user
+func (d *dagPoolService) RemoveUser(rmUser string, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
 	}
@@ -208,7 +212,8 @@ func (d *Pool) RemoveUser(rmUser string, user string, password string) error {
 	return d.iam.RemoveUser(rmUser)
 }
 
-func (d *Pool) QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error) {
+//QueryUser query the user
+func (d *dagPoolService) QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error) {
 	if !d.iam.CheckUser(user, password) {
 		return nil, upolicy.AccessDenied
 	}
@@ -222,7 +227,8 @@ func (d *Pool) QueryUser(qUser string, user string, password string) (*dpuser.Da
 	return d.iam.QueryUser(qUser)
 }
 
-func (d *Pool) UpdateUser(uUser dpuser.DagPoolUser, user string, password string) error {
+//UpdateUser update the user
+func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
 	}
@@ -245,6 +251,7 @@ func (d *Pool) UpdateUser(uUser dpuser.DagPoolUser, user string, password string
 	return d.iam.UpdateUser(*u)
 }
 
-func (d *Pool) Close() error {
+//Close the dagPoolService
+func (d *dagPoolService) Close() error {
 	return d.db.Close()
 }

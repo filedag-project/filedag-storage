@@ -17,13 +17,13 @@ var log = logging.Logger("dag-pool-server")
 var policyNotRight = "policy not right ,must be:" +
 	fmt.Sprintf("%v,%v,%v", upolicy.OnlyRead, upolicy.OnlyWrite, upolicy.ReadWrite)
 
-// DagPoolService is used to implement DagPoolServer.
-type DagPoolService struct {
+// DagPoolServer is used to implement DagPoolServer.
+type DagPoolServer struct {
 	proto.UnimplementedDagPoolServer
 	DagPool pool.DagPool
 }
 
-func (s *DagPoolService) Add(ctx context.Context, in *proto.AddReq) (*proto.AddReply, error) {
+func (s *DagPoolServer) Add(ctx context.Context, in *proto.AddReq) (*proto.AddReply, error) {
 	data := blocks.NewBlock(in.GetBlock())
 	err := s.DagPool.Add(ctx, data, in.User.User, in.User.Password)
 	if err != nil {
@@ -31,8 +31,7 @@ func (s *DagPoolService) Add(ctx context.Context, in *proto.AddReq) (*proto.AddR
 	}
 	return &proto.AddReply{Cid: data.Cid().String()}, nil
 }
-
-func (s *DagPoolService) Get(ctx context.Context, in *proto.GetReq) (*proto.GetReply, error) {
+func (s *DagPoolServer) Get(ctx context.Context, in *proto.GetReq) (*proto.GetReply, error) {
 	cid, err := cid.Decode(in.Cid)
 	if err != nil {
 		return &proto.GetReply{Block: nil}, err
@@ -44,7 +43,7 @@ func (s *DagPoolService) Get(ctx context.Context, in *proto.GetReq) (*proto.GetR
 	return &proto.GetReply{Block: get.RawData()}, nil
 }
 
-func (s *DagPoolService) GetSize(ctx context.Context, in *proto.GetSizeReq) (*proto.GetSizeReply, error) {
+func (s *DagPoolServer) GetSize(ctx context.Context, in *proto.GetSizeReq) (*proto.GetSizeReply, error) {
 	cid, err := cid.Decode(in.Cid)
 	if err != nil {
 		return &proto.GetSizeReply{Size: 0}, err
@@ -56,7 +55,7 @@ func (s *DagPoolService) GetSize(ctx context.Context, in *proto.GetSizeReq) (*pr
 	return &proto.GetSizeReply{Size: int32(size)}, nil
 }
 
-func (s *DagPoolService) Remove(ctx context.Context, in *proto.RemoveReq) (*proto.RemoveReply, error) {
+func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto.RemoveReply, error) {
 	c, err := cid.Decode(in.Cid)
 	if err != nil {
 		return &proto.RemoveReply{Message: ""}, err
@@ -68,7 +67,7 @@ func (s *DagPoolService) Remove(ctx context.Context, in *proto.RemoveReq) (*prot
 	return &proto.RemoveReply{Message: c.String()}, nil
 }
 
-func (s *DagPoolService) AddUser(ctx context.Context, in *proto.AddUserReq) (*proto.AddUserReply, error) {
+func (s *DagPoolServer) AddUser(ctx context.Context, in *proto.AddUserReq) (*proto.AddUserReply, error) {
 	if !upolicy.CheckValid(in.Policy) {
 		return &proto.AddUserReply{Message: policyNotRight}, xerrors.Errorf(policyNotRight)
 	}
@@ -85,7 +84,7 @@ func (s *DagPoolService) AddUser(ctx context.Context, in *proto.AddUserReq) (*pr
 	return &proto.AddUserReply{Message: "ok"}, nil
 }
 
-func (s *DagPoolService) RemoveUser(ctx context.Context, in *proto.RemoveUserReq) (*proto.RemoveUserReply, error) {
+func (s *DagPoolServer) RemoveUser(ctx context.Context, in *proto.RemoveUserReq) (*proto.RemoveUserReply, error) {
 	err := s.DagPool.RemoveUser(in.Username, in.User.User, in.User.Password)
 	if err != nil {
 		return &proto.RemoveUserReply{Message: fmt.Sprintf("del user err:%v", err)}, err
@@ -93,7 +92,7 @@ func (s *DagPoolService) RemoveUser(ctx context.Context, in *proto.RemoveUserReq
 	return &proto.RemoveUserReply{Message: "ok"}, nil
 }
 
-func (s *DagPoolService) QueryUser(ctx context.Context, in *proto.QueryUserReq) (*proto.QueryUserReply, error) {
+func (s *DagPoolServer) QueryUser(ctx context.Context, in *proto.QueryUserReq) (*proto.QueryUserReply, error) {
 	user, err := s.DagPool.QueryUser(in.Username, in.User.User, in.User.Password)
 	if err != nil {
 		return &proto.QueryUserReply{}, err
@@ -101,7 +100,7 @@ func (s *DagPoolService) QueryUser(ctx context.Context, in *proto.QueryUserReq) 
 	return &proto.QueryUserReply{Username: user.Username, Policy: string(user.Policy), Capacity: user.Capacity}, nil
 }
 
-func (s *DagPoolService) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
+func (s *DagPoolServer) UpdateUser(ctx context.Context, in *proto.UpdateUserReq) (*proto.UpdateUserReply, error) {
 	user := dpuser.DagPoolUser{
 		Username: in.Username,
 		Password: in.NewPassword,

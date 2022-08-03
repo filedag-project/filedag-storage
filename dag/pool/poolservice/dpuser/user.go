@@ -5,6 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 )
 
+//IdentityUserSys identity user sys
 type IdentityUserSys struct {
 	DB           *uleveldb.ULevelDB
 	rootUser     string
@@ -13,6 +14,7 @@ type IdentityUserSys struct {
 
 const dagPoolUser = "dagPoolUser/"
 
+//DagPoolUser DagPool User
 type DagPoolUser struct {
 	Username string
 	Password string
@@ -20,14 +22,17 @@ type DagPoolUser struct {
 	Capacity uint64
 }
 
+//CheckAdmin check user admin policy
 func (i *IdentityUserSys) CheckAdmin(user, pass string) bool {
 	return i.rootUser == user && i.rootPassword == pass
 }
 
+//IsAdmin check user if admin user
 func (i *IdentityUserSys) IsAdmin(user string) bool {
 	return i.rootUser == user
 }
 
+//CheckUser check user if correct
 func (i *IdentityUserSys) CheckUser(user, pass string) bool {
 	if i.CheckAdmin(user, pass) {
 		return true
@@ -78,6 +83,8 @@ func (i *IdentityUserSys) UpdateUser(u DagPoolUser) error {
 	}
 	return nil
 }
+
+//CheckUserPolicy check user policy
 func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy upolicy.DagPoolPolicy) bool {
 	if i.CheckAdmin(username, pass) {
 		return true
@@ -94,6 +101,8 @@ func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy upolicy.
 	}
 	return true
 }
+
+//NewIdentityUserSys new identity user sys
 func NewIdentityUserSys(db *uleveldb.ULevelDB, rootUser, rootPassword string) (*IdentityUserSys, error) {
 	return &IdentityUserSys{
 		DB:           db,

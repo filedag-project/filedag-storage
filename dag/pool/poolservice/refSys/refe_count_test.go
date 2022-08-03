@@ -3,13 +3,12 @@ package refSys
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"testing"
 )
 
 func TestIdentityRefer(t *testing.T) {
-	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	identityRefe := IdentityRefe{DB: db}
+	db, _ := uleveldb.OpenDb(t.TempDir())
+	identityRefe := ReferSys{DB: db}
 	cid := "123456789"
 	testCases := []struct {
 		isRemove bool

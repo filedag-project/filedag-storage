@@ -76,7 +76,7 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 		fmt.Printf("NewDagPoolService err:%v\n", err)
 		return
 	}
-	proto.RegisterDagPoolServer(s, &server.DagPoolService{DagPool: service})
+	proto.RegisterDagPoolServer(s, &server.DagPoolServer{DagPool: service})
 	fmt.Printf("server listening at %v\n", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		fmt.Printf("failed to serve: %v\n", err)
