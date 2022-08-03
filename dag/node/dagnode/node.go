@@ -1,4 +1,4 @@
-package node
+package dagnode
 
 import (
 	"bytes"
@@ -17,8 +17,6 @@ import (
 	"strings"
 	"sync"
 )
-
-const lockFileName = "repo.lock"
 
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
@@ -56,11 +54,11 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 func InitSliceConn(addr string) (c proto.DataNodeClient, h healthpb.HealthClient, err error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
-		conn.Close()
+		//conn.Close()
 		log.Errorf("did not connect: %v", err)
 		return c, h, err
 	}
-	//defer conn.Close()
+	defer conn.Close()
 	// init client
 	h = healthpb.NewHealthClient(conn)
 	c = proto.NewDataNodeClient(conn)
@@ -154,9 +152,6 @@ func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	}
 	var data []byte
 	data = bytes.Join(merged, []byte(""))
-	if err != nil {
-		return nil, err
-	}
 	data = data[:size]
 	b, err := blocks.NewBlockWithCid(data, cid)
 	if err == blocks.ErrWrongHash {

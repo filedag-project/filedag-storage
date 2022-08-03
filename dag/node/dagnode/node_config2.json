@@ -1,0 +1,19 @@
+{
+  "nodes": [
+    {
+      "ip": "127.0.0.1",
+      "port": "9011"
+    },
+    {
+      "ip": "127.0.0.1",
+      "port": "9012"
+    },
+    {
+      "ip": "127.0.0.1",
+      "port": "9013"
+    }
+  ],
+  "data_blocks": 2,
+  "parity_blocks": 1,
+  "level_db_path": "/tmp/leveldb2/node"
+}

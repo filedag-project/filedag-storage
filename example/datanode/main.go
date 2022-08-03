@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"os"
 )
 
@@ -31,5 +31,5 @@ func main() {
 	}
 }
 func run(host, port, path string) {
-	node.MutDataNodeServer(fmt.Sprintf("%s:%s", host, port), node.KVBadge, path)
+	datanode.MutDataNodeServer(fmt.Sprintf("%s:%s", host, port), datanode.KVBadge, path)
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dnm"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
@@ -24,7 +24,7 @@ var log = logging.Logger("dag-pool")
 var _ pool.DagPool = &Pool{}
 
 type Pool struct {
-	DagNodes   map[string]*node.DagNode
+	DagNodes   map[string]*dagnode.DagNode
 	iam        *dpuser.IdentityUserSys
 	refer      refSys.IdentityRefe
 	CidBuilder cid.Builder
@@ -48,10 +48,10 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 		return nil, err
 	}
 	r, err := refSys.NewIdentityRefe(db)
-	dn := make(map[string]*node.DagNode)
+	dn := make(map[string]*dagnode.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
-		bs, err := node.NewDagNode(c)
+		bs, err := dagnode.NewDagNode(c)
 		if err != nil {
 			log.Errorf("new dagnode err:%v", err)
 			return nil, err

@@ -1,4 +1,4 @@
-package node
+package datanode
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/filedag-project/filedag-storage/kv"
 	"github.com/filedag-project/filedag-storage/kv/badger"
 	"github.com/filedag-project/filedag-storage/kv/mutcask"
+	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -14,6 +15,8 @@ import (
 	"os/signal"
 	"syscall"
 )
+
+var log = logging.Logger("datanode")
 
 type KVType string
 

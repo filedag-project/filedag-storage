@@ -2,7 +2,7 @@ package dnm
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/node"
+	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -39,7 +39,7 @@ func NewRecordSys(db *uleveldb.ULevelDB) NodeRecordSys {
 func (r *NodeRecordSys) Add(cid string, name string) error {
 	return r.Db.Put(dagPoolRecord+cid, name)
 }
-func (r *NodeRecordSys) HandleDagNode(cons []node.DataNode, name string) error {
+func (r *NodeRecordSys) HandleDagNode(cons []dagnode.DataNode, name string) error {
 	m := make(map[string]*DataNodeInfo)
 	for i, c := range cons {
 		var dni = DataNodeInfo{
@@ -60,7 +60,7 @@ func (r *NodeRecordSys) HandleDagNode(cons []node.DataNode, name string) error {
 	}
 	return nil
 }
-func (r *NodeRecordSys) HandleConn(c *node.DataNode, name string, dataName string) {
+func (r *NodeRecordSys) HandleConn(c *dagnode.DataNode, name string, dataName string) {
 
 	for {
 		r.NodeLock.Lock()
