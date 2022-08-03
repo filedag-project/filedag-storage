@@ -1,5 +1,6 @@
 package config
 
+//PoolConfig is the configuration for the dag pool
 type PoolConfig struct {
 	Listen        string          `json:"listen"`
 	DagNodeConfig []DagNodeConfig `json:"dag_node"`
