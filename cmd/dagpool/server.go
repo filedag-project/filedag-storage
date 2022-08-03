@@ -73,13 +73,13 @@ func startDagPoolServer(cfg config.PoolConfig) {
 	// listen port
 	lis, err := net.Listen("tcp", cfg.Listen)
 	if err != nil {
-		log.Errorf("failed to listen: %v", err)
+		log.Fatalf("failed to listen: %v", err)
 	}
 	// new server
 	s := grpc.NewServer()
 	service, err := poolservice.NewDagPoolService(cfg)
 	if err != nil {
-		log.Errorf("NewDagPoolService err:%v", err)
+		log.Fatalf("NewDagPoolService err:%v", err)
 		return
 	}
 	defer service.Close()
@@ -87,7 +87,7 @@ func startDagPoolServer(cfg config.PoolConfig) {
 	proto.RegisterDagPoolServer(s, &server.DagPoolService{DagPool: service})
 	go func() {
 		if err := s.Serve(lis); err != nil {
-			log.Errorf("failed to serve: %v", err)
+			log.Fatalf("failed to serve: %v", err)
 		}
 	}()
 
