@@ -15,7 +15,6 @@ import (
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipfs/go-merkledag"
 	"golang.org/x/xerrors"
 )
 
@@ -24,21 +23,17 @@ var log = logging.Logger("dag-pool")
 var _ pool.DagPool = &Pool{}
 
 type Pool struct {
-	DagNodes   map[string]*dagnode.DagNode
-	iam        *dpuser.IdentityUserSys
-	refer      refSys.IdentityRefe
-	CidBuilder cid.Builder
-	NRSys      dnm.NodeRecordSys
-	db         *uleveldb.ULevelDB
+	DagNodes map[string]*dagnode.DagNode
+	iam      *dpuser.IdentityUserSys
+	refer    *refSys.IdentityRefe
+	NRSys    *dnm.NodeRecordSys
+	db       *uleveldb.ULevelDB
 }
 
 // NewDagPoolService constructs a new DAGService (using the default implementation).
 // Note that the default implementation is also an ipld.LinkGetter.
 func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
-	cidBuilder, err := merkledag.PrefixForCidVersion(0)
-	if err != nil {
-		return nil, err
-	}
+
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
@@ -64,12 +59,11 @@ func NewDagPoolService(cfg config.PoolConfig) (*Pool, error) {
 		dn[name] = bs
 	}
 	return &Pool{
-		DagNodes:   dn,
-		iam:        i,
-		refer:      r,
-		CidBuilder: cidBuilder,
-		NRSys:      nrs,
-		db:         db,
+		DagNodes: dn,
+		iam:      i,
+		refer:    r,
+		NRSys:    nrs,
+		db:       db,
 	}, nil
 }
 

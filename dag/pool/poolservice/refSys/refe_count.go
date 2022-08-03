@@ -57,6 +57,6 @@ func (i *IdentityRefe) RemoveReference(cid string) error {
 	return nil
 }
 
-func NewIdentityRefe(db *uleveldb.ULevelDB) (IdentityRefe, error) {
-	return IdentityRefe{DB: db}, nil
+func NewIdentityRefe(db *uleveldb.ULevelDB) (*IdentityRefe, error) {
+	return &IdentityRefe{DB: db}, nil
 }
