@@ -16,7 +16,6 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipfs/go-merkledag"
 	"golang.org/x/xerrors"
 )
 
@@ -26,13 +25,12 @@ var _ pool.DagPool = &dagPoolService{}
 
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
-	dagNodes   map[string]*dagnode.DagNode
-	iam        *dpuser.IdentityUserSys
-	refer      *refSys.ReferSys
-	cidBuilder cid.Builder
-	nrSys      *dnm.NodeRecordSys
-	gc         *gc
-	db         *uleveldb.ULevelDB
+	dagNodes map[string]*dagnode.DagNode
+	iam      *dpuser.IdentityUserSys
+	refer    *refSys.ReferSys
+	nrSys    *dnm.NodeRecordSys
+	gc       *gc
+	db       *uleveldb.ULevelDB
 }
 
 func (d *dagPoolService) NeedPin(username string) bool {
@@ -42,10 +40,6 @@ func (d *dagPoolService) NeedPin(username string) bool {
 
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
 func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
-	cidBuilder, err := merkledag.PrefixForCidVersion(0)
-	if err != nil {
-		return nil, err
-	}
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
@@ -71,11 +65,10 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		dn[name] = bs
 	}
 	return &dagPoolService{
-		dagNodes:   dn,
-		iam:        i,
-		refer:      r,
-		cidBuilder: cidBuilder,
-		nrSys:      nrs,
+		dagNodes: dn,
+		iam:      i,
+		refer:    r,
+		nrSys:    nrs,
 		gc: &gc{
 			stopCacheCh: make(chan struct{}),
 			stopStoreCh: make(chan struct{}),
