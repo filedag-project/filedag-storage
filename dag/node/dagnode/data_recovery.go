@@ -21,10 +21,10 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 		return err
 	}
 	index := -1
-	dataNode := new(DataNode)
+	dataNode := new(DataNodeClient)
 	for i, node := range d.Nodes {
 		if node.Ip == ip && node.Port == port {
-			dataNode = &d.Nodes[i]
+			dataNode = d.Nodes[i]
 			index = i
 		}
 	}
@@ -50,11 +50,11 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 			}
 			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
-				log.Infof("this node err : %s,: %s", node.Ip, node.Port)
+				log.Errorf("this node err : %s,: %s", node.Ip, node.Port)
 				return err
 			}
 			if len(res.DataBlock) == 0 {
-				log.Infof("There is no data in this node")
+				log.Errorf("There is no data in this node")
 				merged = append(merged, nil)
 				continue
 			}
@@ -107,11 +107,11 @@ func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 			}
 			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
-				log.Infof("this node err : %s,: %s", node.Ip, node.Port)
+				log.Errorf("this node err : %s,: %s", node.Ip, node.Port)
 				return err
 			}
 			if len(res.DataBlock) == 0 {
-				log.Infof("There is no data in this node")
+				log.Errorf("There is no data in this node")
 				merged[i] = nil
 				continue
 			}
@@ -155,7 +155,6 @@ func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, erro
 	addr := flag.String("addr"+fmt.Sprint(len(d.Nodes)+1), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
 	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
 	if err != nil {
-
 		return index, err
 	}
 	defer conn.Close()

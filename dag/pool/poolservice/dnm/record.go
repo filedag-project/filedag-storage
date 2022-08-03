@@ -12,37 +12,43 @@ import (
 	"time"
 )
 
+//NodeRecordSys is a struct for record the dag node
 type NodeRecordSys struct {
 	Db       *uleveldb.ULevelDB
-	RN       map[string]*DagNodeInfo
+	RN       map[string]*dagNodeInfo
 	NodeLock sync.Mutex
 }
-type DagNodeInfo struct {
+type dagNodeInfo struct {
 	status       bool
-	dataNodeInfo map[string]*DataNodeInfo
+	dataNodeInfo map[string]*dataNodeInfo
 }
-type DataNodeInfo struct {
+type dataNodeInfo struct {
 	name   string
 	status bool
 	ip     string
 	port   string
 }
 
-const HealthCheckService = "grpc.health.v1.Health"
+const healthCheckService = "grpc.health.v1.Health"
 const dagPoolRecord = "dagPoolRecord/"
 
 var log = logging.Logger("data-node-manager")
 
+//NewRecordSys  create a new record system
 func NewRecordSys(db *uleveldb.ULevelDB) *NodeRecordSys {
-	return &NodeRecordSys{Db: db, RN: make(map[string]*DagNodeInfo)}
+	return &NodeRecordSys{Db: db, RN: make(map[string]*dagNodeInfo)}
 }
+
+//Add  a new record
 func (r *NodeRecordSys) Add(cid string, name string) error {
 	return r.Db.Put(dagPoolRecord+cid, name)
 }
-func (r *NodeRecordSys) HandleDagNode(cons []dagnode.DataNode, name string) error {
-	m := make(map[string]*DataNodeInfo)
+
+//HandleDagNode handle the dag node
+func (r *NodeRecordSys) HandleDagNode(cons []*dagnode.DataNodeClient, name string) error {
+	m := make(map[string]*dataNodeInfo)
 	for i, c := range cons {
-		var dni = DataNodeInfo{
+		var dni = dataNodeInfo{
 			name:   strconv.Itoa(i),
 			status: true,
 			ip:     c.Ip,
@@ -50,23 +56,23 @@ func (r *NodeRecordSys) HandleDagNode(cons []dagnode.DataNode, name string) erro
 		}
 		m[strconv.Itoa(i)] = &dni
 	}
-	tmp := DagNodeInfo{
+	tmp := dagNodeInfo{
 		status:       true,
 		dataNodeInfo: m,
 	}
 	r.RN[name] = &tmp
 	for i, c := range cons {
-		go r.HandleConn(&c, name, strconv.Itoa(i))
+		go r.handleConn(c, name, strconv.Itoa(i))
 	}
 	return nil
 }
-func (r *NodeRecordSys) HandleConn(c *dagnode.DataNode, name string, dataName string) {
+func (r *NodeRecordSys) handleConn(c *dagnode.DataNodeClient, name string, dataName string) {
 
 	for {
 		r.NodeLock.Lock()
 		dni := r.RN[name].dataNodeInfo[dataName]
 		log.Debugf("heart")
-		check, err := c.HeartClient.Check(context.TODO(), &healthpb.HealthCheckRequest{Service: HealthCheckService})
+		check, err := c.HeartClient.Check(context.TODO(), &healthpb.HealthCheckRequest{Service: healthCheckService})
 		if err != nil {
 			log.Errorf("Check the %v ip:%v,port:%v err:%v", dni.name, dni.ip, dni.port, err)
 			r.Remove(name, dataName)
@@ -80,6 +86,8 @@ func (r *NodeRecordSys) HandleConn(c *dagnode.DataNode, name string, dataName st
 		time.Sleep(time.Second * 10)
 	}
 }
+
+//Remove a record
 func (r *NodeRecordSys) Remove(name, dataName string) {
 	r.RN[name].dataNodeInfo[dataName].status = false
 	count := 0
@@ -94,6 +102,7 @@ func (r *NodeRecordSys) Remove(name, dataName string) {
 	}
 }
 
+//Get a record by cid
 func (r *NodeRecordSys) Get(cid string) (string, error) {
 	var name string
 	err := r.Db.Get(dagPoolRecord+cid, &name)
@@ -102,6 +111,8 @@ func (r *NodeRecordSys) Get(cid string) (string, error) {
 	}
 	return name, nil
 }
+
+//GetNameUseIp get the name by ip
 func (r *NodeRecordSys) GetNameUseIp(ip string) (string, error) {
 	for name, n := range r.RN {
 		for _, i := range n.dataNodeInfo {
@@ -112,6 +123,8 @@ func (r *NodeRecordSys) GetNameUseIp(ip string) (string, error) {
 	}
 	return "", xerrors.Errorf("no dagnode")
 }
+
+//GetCanUseNode get the can use node
 func (r *NodeRecordSys) GetCanUseNode() string {
 	for n, st := range r.RN {
 		if st.status == true {

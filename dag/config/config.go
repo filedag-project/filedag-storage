@@ -8,6 +8,7 @@ type PoolConfig struct {
 	RootPassword  string          `json:"root_password"`
 }
 
+//DagNodeConfig is the configuration for a dag node
 type DagNodeConfig struct {
 	Nodes        []DataNodeConfig `json:"nodes"`
 	DataBlocks   int              `json:"data_blocks"`
@@ -15,8 +16,8 @@ type DagNodeConfig struct {
 	LevelDbPath  string           `json:"level_db_path"`
 }
 
+//DataNodeConfig is the configuration for a datanode
 type DataNodeConfig struct {
-	Ip        string `json:"ip"`
-	Port      string `json:"port"`
-	HeartAddr string `json:"heart_addr"`
+	Ip   string `json:"ip"`
+	Port string `json:"port"`
 }
