@@ -173,7 +173,7 @@ func (i *ReferSys) RemoveRecord(c string, pin bool) error {
 	return nil
 }
 
-//NewIdentityRefe new a reference sys
-func NewIdentityRefe(db *uleveldb.ULevelDB, cacheExpireTime time.Duration) *ReferSys {
+//NewReferSys new a reference sys
+func NewReferSys(db *uleveldb.ULevelDB, cacheExpireTime time.Duration) *ReferSys {
 	return &ReferSys{db: db, cacheExpireTime: cacheExpireTime}
 }

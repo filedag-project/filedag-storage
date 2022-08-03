@@ -54,7 +54,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := refSys.NewIdentityRefe(db, cfg.CacheExpireTime)
+	r, err := refSys.NewReferSys(db)
 	dn := make(map[string]*dagnode.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
@@ -155,6 +155,8 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 	//}
 	return nil
 }
+
+//GetSize get the block size
 func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
 		return 0, upolicy.AccessDenied

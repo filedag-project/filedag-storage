@@ -64,16 +64,6 @@ func (p *dagPoolClient) Close(ctx context.Context) {
 	p.Conn.Close()
 }
 
-//
-////Add add a node
-//func (p *dagPoolClient) Add(ctx context.Context, node format.Node) error {
-//	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: node.RawData(), User: p.User})
-//	if err != nil {
-//		return err
-//	}
-//	return nil
-//}
-
 func (p *dagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
 		Cid:  cid.String(),
