@@ -96,7 +96,7 @@ func (d *dagPoolService) runStoreGC(ctx context.Context) error {
 		return nil
 	}
 	for _, c := range needGCCids {
-		node, err1 := d.GetNode(ctx, c)
+		node, err1 := d.getDagNodeInfo(ctx, c)
 		if err1 != nil {
 			return err1
 		}
@@ -133,7 +133,7 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 		return nil
 	}
 	for _, ci := range needGCCids {
-		node, err1 := d.GetNode(ctx, ci)
+		node, err1 := d.getDagNodeInfo(ctx, ci)
 		if err1 != nil {
 			return err1
 		}

@@ -86,7 +86,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 	}
 	d.gc.Stop()
 	if !d.refer.HasReference(block.Cid().String()) {
-		useNode, err := d.UseNode(ctx, block.Cid())
+		useNode, err := d.choseDagNode(ctx, block.Cid())
 		if err != nil {
 			return err
 		}
@@ -112,7 +112,7 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 	if !d.refer.HasReference(c.String()) {
 		return nil, fmt.Errorf("block:%v does not exist", c.String())
 	}
-	getNode, err := d.GetNode(ctx, c)
+	getNode, err := d.getDagNodeInfo(ctx, c)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 	if !has {
 		return 0, format.ErrNotFound{Cid: c}
 	}
-	getNode, err := d.GetNode(ctx, c)
+	getNode, err := d.getDagNodeInfo(ctx, c)
 	if err != nil {
 		return 0, err
 	}
@@ -274,7 +274,7 @@ func (d *dagPoolService) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Li
 	if !d.refer.HasReference(ci.String()) {
 		return nil, fmt.Errorf("block : %v does not exist ", ci.String())
 	}
-	getNode, err := d.GetNode(ctx, ci)
+	getNode, err := d.getDagNodeInfo(ctx, ci)
 	if err != nil {
 		return nil, err
 	}
