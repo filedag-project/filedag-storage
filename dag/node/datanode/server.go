@@ -18,10 +18,13 @@ import (
 
 var log = logging.Logger("datanode")
 
+//KVType is the type of kv
 type KVType string
 
 const (
-	KVBadge   KVType = "badger"
+	//KVBadge is the kv type of badger
+	KVBadge KVType = "badger"
+	//KVMutcask is the kv type of mutcask
 	KVMutcask KVType = "mutcask"
 )
 
@@ -30,8 +33,9 @@ type server struct {
 	kvdb kv.KVDB
 }
 
-const HealthCheckService = "grpc.health.v1.Health"
+const healthCheckService = "grpc.health.v1.Health"
 
+//Put puts the data by key
 func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*proto.AddResponse, error) {
 	err := s.kvdb.Put(in.Key, in.DataBlock)
 	if err != nil {
@@ -40,6 +44,7 @@ func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*proto.AddRespo
 	return &proto.AddResponse{Message: "success"}, nil
 }
 
+//Get gets the data by key
 func (s *server) Get(ctx context.Context, in *proto.GetRequest) (*proto.GetResponse, error) {
 	bytes, err := s.kvdb.Get(in.Key)
 	if err != nil {
@@ -50,6 +55,7 @@ func (s *server) Get(ctx context.Context, in *proto.GetRequest) (*proto.GetRespo
 	}, nil
 }
 
+//Delete deletes the data by key
 func (s *server) Delete(ctx context.Context, in *proto.DeleteRequest) (*proto.DeleteResponse, error) {
 	err := s.kvdb.Delete(in.Key)
 	if err != nil {
@@ -58,6 +64,7 @@ func (s *server) Delete(ctx context.Context, in *proto.DeleteRequest) (*proto.De
 	return &proto.DeleteResponse{Message: "success"}, nil
 }
 
+//Size  returns the size of data by key
 func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeResponse, error) {
 	size, err := s.kvdb.Size(in.Key)
 	if err != nil {
@@ -92,7 +99,7 @@ func MutDataNodeServer(listen string, kvType KVType, dataDir string) {
 
 	//HealthCheck
 	hs := health.NewServer()
-	hs.SetServingStatus(HealthCheckService, healthpb.HealthCheckResponse_SERVING)
+	hs.SetServingStatus(healthCheckService, healthpb.HealthCheckResponse_SERVING)
 	healthpb.RegisterHealthServer(s, hs)
 
 	if err := os.MkdirAll(dataDir, 0777); err != nil {
