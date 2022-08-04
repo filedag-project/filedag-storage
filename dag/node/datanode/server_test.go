@@ -100,8 +100,8 @@ func TestServer_Delete(t *testing.T) {
 	}{
 		{"badge", KVBadge, "1234567", true, "success"},
 		{"mutcask", KVMutcask, "1234567", true, "success"},
-		{"badge", KVBadge, "122", false, "failed"},
-		{"mutcask", KVMutcask, "", false, "failed"},
+		{"badge", KVBadge, "122", false, "success"},
+		{"mutcask", KVMutcask, "", false, "success"},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
