@@ -72,16 +72,16 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyWrite) {
 		return upolicy.AccessDenied
 	}
-	err := d.refer.AddReference(block.Cid().String())
-	if err != nil {
-		return err
-	}
 	if !d.refer.HasReference(block.Cid().String()) {
 		useNode, err := d.choseDagNode(ctx, block.Cid())
 		if err != nil {
 			return err
 		}
 		return useNode.Put(ctx, block)
+	}
+	err := d.refer.AddReference(block.Cid().String())
+	if err != nil {
+		return err
 	}
 	return nil
 
