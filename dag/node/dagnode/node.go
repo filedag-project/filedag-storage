@@ -3,6 +3,7 @@ package dagnode
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -34,13 +35,14 @@ type DataNodeClient struct {
 	HeartClient healthpb.HealthClient
 	Ip          string
 	Port        string
+	Conn        *grpc.ClientConn
 }
 
 //NewDagNode creates a new DagNode
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	var s []*DataNodeClient
 	for _, c := range cfg.Nodes {
-		dateNode, err := InitDataNodeClient(c)
+		dateNode, err := newDataNodeClient(c)
 		if err != nil {
 			return nil, err
 		}
@@ -50,19 +52,19 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
 }
 
-//InitDataNodeClient creates a grpc connection to a slice
-func InitDataNodeClient(cfg config.DataNodeConfig) (datanode *DataNodeClient, err error) {
-	conn, err := grpc.Dial(cfg.Ip+cfg.Port, grpc.WithInsecure())
+//newDataNodeClient creates a grpc connection to a slice
+func newDataNodeClient(cfg config.DataNodeConfig) (datanode *DataNodeClient, err error) {
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", cfg.Ip, cfg.Port), grpc.WithInsecure())
 	if err != nil {
 		log.Errorf("did not connect: %v", err)
 		return nil, err
 	}
-	defer conn.Close()
 	datanode = &DataNodeClient{
 		Client:      proto.NewDataNodeClient(conn),
 		HeartClient: healthpb.NewHealthClient(conn),
 		Ip:          cfg.Ip,
 		Port:        cfg.Port,
+		Conn:        conn,
 	}
 	return datanode, nil
 }
@@ -251,4 +253,10 @@ func (d DagNode) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 //HashOnRead tells the dag node to calculate the hash of the block
 func (d DagNode) HashOnRead(enabled bool) {
 	panic("implement me")
+}
+
+func (d *DagNode) Close() {
+	for _, nd := range d.Nodes {
+		nd.Conn.Close()
+	}
 }
