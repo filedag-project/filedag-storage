@@ -21,7 +21,7 @@ func TestHeart_beating(t *testing.T) {
 	time.Sleep(time.Second)
 	var a []*dagnode.DataNodeClient
 
-	datanodeClient, err := dagnode.InitDataNodeClient(config.DataNodeConfig{
+	datanodeClient, err := dagnode.NewDataNodeClient(config.DataNodeConfig{
 		Ip:   "",
 		Port: ":9010",
 	})

@@ -42,7 +42,7 @@ type DataNodeClient struct {
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	var s []*DataNodeClient
 	for _, c := range cfg.Nodes {
-		dateNode, err := newDataNodeClient(c)
+		dateNode, err := NewDataNodeClient(c)
 		if err != nil {
 			return nil, err
 		}
@@ -52,8 +52,8 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
 }
 
-//newDataNodeClient creates a grpc connection to a slice
-func newDataNodeClient(cfg config.DataNodeConfig) (datanode *DataNodeClient, err error) {
+//NewDataNodeClient creates a grpc connection to a slice
+func NewDataNodeClient(cfg config.DataNodeConfig) (datanode *DataNodeClient, err error) {
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", cfg.Ip, cfg.Port), grpc.WithInsecure())
 	if err != nil {
 		log.Errorf("did not connect: %v", err)
