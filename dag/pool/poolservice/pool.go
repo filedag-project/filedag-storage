@@ -242,5 +242,8 @@ func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, passw
 
 //Close the dagPoolService
 func (d *dagPoolService) Close() error {
+	for _, nd := range d.dagNodes {
+		nd.Close()
+	}
 	return d.db.Close()
 }
