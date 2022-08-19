@@ -81,7 +81,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 
 // Add adds a node to the dagPoolService, storing the block in the BlockService
 func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user string, password string) error {
-	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyWrite) {
+	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
 	}
 	d.gc.Stop()
@@ -104,7 +104,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 
 // Get retrieves a node from the dagPoolService, fetching the block in the BlockService
 func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error) {
-	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
+	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return nil, upolicy.AccessDenied
 	}
 	ctx, cancel := context.WithCancel(ctx)
@@ -129,7 +129,7 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 
 //Remove remove block from DAGPool
 func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
-	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyWrite) {
+	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
 	}
 	d.gc.Stop()
@@ -151,7 +151,7 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 
 //GetSize get the block size
 func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
-	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
+	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return 0, upolicy.AccessDenied
 	}
 	ctx, cancel := context.WithCancel(ctx)

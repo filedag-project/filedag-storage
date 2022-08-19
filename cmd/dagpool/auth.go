@@ -54,7 +54,7 @@ var createUser = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "policy",
-			Usage: "set the policy, enum: only-read, only-write, read-write",
+			Usage: "set the policy, enum: read-only, write-only, read-write",
 			Value: string(upolicy.ReadWrite),
 		},
 	},

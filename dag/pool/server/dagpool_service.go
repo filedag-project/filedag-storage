@@ -14,8 +14,8 @@ import (
 )
 
 var log = logging.Logger("dag-pool-server")
-var policyNotRight = "policy not right ,must be:" +
-	fmt.Sprintf("%v,%v,%v", upolicy.OnlyRead, upolicy.OnlyWrite, upolicy.ReadWrite)
+var policyNotRight = "policy is illegal, it should be: " +
+	fmt.Sprintf("%v,%v,%v", upolicy.ReadOnly, upolicy.WriteOnly, upolicy.ReadWrite)
 
 // DagPoolServer is used to implement DagPoolServer.
 type DagPoolServer struct {

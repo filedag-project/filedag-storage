@@ -8,7 +8,7 @@ import (
 
 //Pin the node in the dag pool by the cid
 func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid, user string, password string) error {
-	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
+	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return upolicy.AccessDenied
 	}
 	links, err := d.GetLinks(ctx, c)
@@ -30,7 +30,7 @@ func (d *dagPoolService) Pin(ctx context.Context, c cid.Cid, user string, passwo
 
 //UnPin the node in the dag pool by the cid
 func (d *dagPoolService) UnPin(ctx context.Context, c cid.Cid, user string, password string) error {
-	if !d.iam.CheckUserPolicy(user, password, upolicy.OnlyRead) {
+	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return upolicy.AccessDenied
 	}
 	links, err := d.GetLinks(ctx, c)
