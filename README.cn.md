@@ -27,39 +27,84 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 
 ## Roadmap
 
-- 单体的 Dag Node 开发，满足 blockstore 的接口，为 Dag Pool 提供基础的存储服务
-- 实现 Dag Pool 的多用户访问和认证机制
-- 实现 Dag Pool 对数据块的引用记录
-- 实现 Dag Pool 的数据固定策略
-- 实现 Dag Pool 可中断的垃圾回收机制
+### Milestone 1
+
+#### Goal:
+
+构建基本的数据结构，以及本项目的整体架构。
+
+#### Description:
+      
+- 单DAG Node模式的开发:
+    - 支持block store API
+    - 为DAG Pool提供基础存储服务
+- DAG Pool:
+    - 多用户访问
+    - 身份验证机制
+- 对象存储:
+    - 实现用户、区域、桶、对象等基本数据结构
+    - 实现用户认证的API
+
+### Millstone 2
+
+#### Goal:
+
+实现数据管理。
+
+#### Description:
+
+- DAG Pool:
+    - 数据块的引用记录
+    - 数据pin策略
+    - DAG Pool的可中断垃圾回收机制
+- 对象存储:
+    - 桶相关操作的API
+    - 对象操作的API
+    - 权限操作API
 
 
-- Dag Node 基于 Reed-Solomon Erasure Code 开发数据容错能力
-- Dag Pool 基于 libp2p 和 redis hash slots 组织多个 Dag Node 构建存储集群
-- Dag Pool 存储节点健康报告和全局一致性状态实现
-- Dag Pool 存储节点动态扩容
-- Dag Pool 存储节点动态缩容
+### Milestone 3
 
+#### Goal:
 
+实现DAG Node集群，开发数据容错功能。
 
-- Object Store 用户、地域、桶、对象等基本数据结构实现
-- Object Store 用户认证 api 实现
-- Object Store 桶相关操作 api 实现
-- Object Store 对象操作 api 实现
-- Object Store 权限操作 api 实现
+#### Description:
 
+- DAG Node:
+    - 基于Reed-Solomon Erasure Code开发数据容错技术
+- DAG Pool:
+    - 基于libp2p和Redis Hash Slots，组织多个DAG Node构建存储集群
+    - 提供存储节点的运行状况报告和全局一致性状态
+    - 支持存储节点动态扩容
+    - 支持存储节点动态扩展
 
-- Control Pannel 实现 Dashboard, 统计存储池概况
-- Control Pannel 实现用户操作界面
-- Control Pannel 实现 Object Store 用户和接入操作界面
-- Control Pannel 实现 Object Store 桶操作界面
-- Control Pannel 实现 Object Store 权限设置界面
+### Milestone 4
 
+#### Goal:
 
-- 在 Dag Pool 外层实现可以连接 IPFS 网络的卫星节点
-- 根据用户定制提供轻量 IPFS gateway 服务
+开发FileDAG Storage控制面板。
 
+#### Description:
 
+- 存储池统计概况面板
+- 用户界面
+- 对象存储接口:
+    - 用户
+    - 用户访问操作
+    - 桶操作
+    - 权限设置
+
+### Milestone 5
+
+#### Goal:
+
+连接IPFS。
+
+#### Description:
+
+- 实现与DAG Pool与外层IPFS网络连接的卫星节点
+- 提供可定制化的轻量级IPFS网关服务
 
 
 <!-- CONTRIBUTING -->

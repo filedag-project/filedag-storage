@@ -9,13 +9,14 @@ import (
 
 //iamApiServer the IamApi Server
 type iamApiServer struct {
-	authSys iam.AuthSys
+	authSys *iam.AuthSys
 }
 
 //NewIamApiServer New iamApiServer
-func NewIamApiServer(router *mux.Router) {
-	iamApiSer := &iamApiServer{}
-	iamApiSer.authSys.Init()
+func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys) {
+	iamApiSer := &iamApiServer{
+		authSys: authSys,
+	}
 	iamApiSer.registerRouter(router)
 
 }
@@ -26,7 +27,7 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	//root user
 	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iamApi.CreateUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(iamApi.DeleteUser).Queries("accessKey", "{accessKey:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(iamApi.ChangePassword).Queries("newPassword", "{newPassword:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(iamApi.ChangePassword).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(iamApi.SetStatus).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("accessKey", "{accessKey:.*}")
 

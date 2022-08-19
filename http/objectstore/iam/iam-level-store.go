@@ -131,8 +131,8 @@ func (I *iamLevelDBStore) removeGroupInfo(ctx context.Context, name string) erro
 	panic("implement me")
 }
 
-func newIAMLevelDBStore() *iamLevelDBStore {
+func newIAMLevelDBStore(db *uleveldb.ULevelDB) *iamLevelDBStore {
 	return &iamLevelDBStore{
-		levelDB: uleveldb.DBClient,
+		levelDB: db,
 	}
 }

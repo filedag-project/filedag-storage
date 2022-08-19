@@ -6,13 +6,16 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/gorilla/mux"
+	ipld "github.com/ipfs/go-ipld-format"
 	"net/http"
 )
 
 type s3ApiServer struct {
-	authSys iam.AuthSys
-	store   store.StorageSys
+	authSys *iam.AuthSys
+	store   *store.StorageSys
+	bmSys   *store.BucketMetadataSys
 }
 
 //registerS3Router Register S3Router
@@ -83,19 +86,18 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		bucket.Methods(http.MethodHead).HandlerFunc(s3a.HeadBucketHandler)
 		// DeleteBucket
 		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketHandler)
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV1Handler)
 	}
 	// ListBuckets
 	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
 }
 
 //NewS3Server Start a S3Server
-func NewS3Server(router *mux.Router) {
-	var s3server s3ApiServer
-	s3server.authSys.Init()
-	err := s3server.store.Init()
-	if err != nil {
-		log.Errorf("s3 store init err%v", err)
-		return
+func NewS3Server(router *mux.Router, dagService ipld.DAGService, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
+	s3server := &s3ApiServer{
+		authSys: authSys,
+		store:   store.NewStorageSys(dagService, db),
+		bmSys:   store.NewBucketMetadataSys(db),
 	}
 	s3server.registerS3Router(router)
 }

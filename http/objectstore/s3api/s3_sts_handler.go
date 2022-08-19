@@ -58,7 +58,7 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 		parentClaim: user.AccessKey,
 	}
 
-	secret := auth.GetDefaultActiveCred().SecretKey
+	secret := s3a.authSys.AdminCred.SecretKey
 	cred, err := auth.GetNewCredentialsWithMetadata(m, secret)
 	if err != nil {
 		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInternalError, err)

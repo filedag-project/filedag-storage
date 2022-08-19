@@ -35,10 +35,8 @@ func SetObjectHeaders(w http.ResponseWriter, r *http.Request, objInfo store.Obje
 		w.Header().Set(consts.Expires, objInfo.Expires.UTC().Format(http.TimeFormat))
 	}
 
-	var rangeLen int64
-
 	// Set content length
-	w.Header().Set(consts.ContentLength, strconv.FormatInt(rangeLen, 10))
+	w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
 
 	// Set the relevant version ID as part of the response header.
 	if objInfo.VersionID != "" {

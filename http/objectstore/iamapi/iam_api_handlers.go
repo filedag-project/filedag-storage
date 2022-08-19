@@ -17,8 +17,10 @@ const (
 	policyDocumentVersion = "2012-10-17"
 	AccessKey             = "accessKey"
 	SecretKey             = "secretKey"
+	NewSecretKey          = "newSecretKey"
 	UserName              = "userName"
 	PolicyName            = "policyName"
+	AccountStatus         = "status"
 )
 
 // CreateUser  add user
@@ -32,6 +34,12 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accessKey := vars[AccessKey]
 	secretKey := vars[SecretKey]
+	if !auth.IsAccessKeyValid(accessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+	}
+	if !auth.IsSecretKeyValid(secretKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+	}
 	resp.CreateUserResult.User.UserName = &accessKey
 	_, ok = iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
 	if ok {
@@ -104,17 +112,19 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 
 // ChangePassword change password
 func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 
-	secret := r.FormValue("newPassword")
+	secret := r.FormValue(NewSecretKey)
+	userName := r.FormValue(AccessKey)
 	if !auth.IsSecretKeyValid(secret) {
 		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+		return
 	}
-	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), cred.AccessKey)
+	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), userName)
 	if !ok {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
 		return
@@ -130,16 +140,22 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 
 // SetStatus set user status
 func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "Set-Status", "", "")
 	if s3err != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
 		return
 	}
 
 	user := r.FormValue(AccessKey)
-	status := r.FormValue("status")
-	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), user)
-	if !ok {
+	status := r.FormValue(AccountStatus)
+	switch status {
+	case auth.AccountOn, auth.AccountOff:
+	default:
+		response.WriteErrorResponse(w, r, api_errors.ErrInvalidQueryParams)
+		return
+	}
+	c, _ := iamApi.authSys.Iam.GetUser(r.Context(), user)
+	if c.AccessKey == "" {
 		response.WriteErrorResponse(w, r, api_errors.ErrAccessKeyDisabled)
 		return
 	}

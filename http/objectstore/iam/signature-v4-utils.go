@@ -19,7 +19,6 @@ package iam
 
 import (
 	"bytes"
-	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
@@ -30,16 +29,15 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 // http Header "x-amz-content-sha256" == "UNSIGNED-PAYLOAD" indicates that the
 // client did not calculate sha256 of the payload.
 const unsignedPayload = "UNSIGNED-PAYLOAD"
 
-// skipContentSha256Cksum returns true if caller needs to skip
+// SkipContentSha256Cksum returns true if caller needs to skip
 // payload checksum, false if not.
-func skipContentSha256Cksum(r *http.Request) bool {
+func SkipContentSha256Cksum(r *http.Request) bool {
 	var (
 		v  []string
 		ok bool
@@ -81,7 +79,7 @@ func skipContentSha256Cksum(r *http.Request) bool {
 }
 
 // Returns SHA256 for calculating canonical-request.
-func getContentSha256Cksum(r *http.Request, stype serviceType) string {
+func GetContentSha256Cksum(r *http.Request, stype serviceType) string {
 	if stype == ServiceSTS {
 		payload, err := ioutil.ReadAll(io.LimitReader(r.Body, consts.StsRequestBodyLimit))
 		if err != nil {
@@ -143,7 +141,7 @@ func isValidRegion(reqRegion string, confRegion string) bool {
 // also returns if the access key is owner/admin.
 func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, api_errors.ErrorCode) {
 
-	cred := auth.GetDefaultActiveCred()
+	cred := s.AdminCred
 	if cred.AccessKey != accessKey {
 		// Check if the access key is part of users credentials.
 		ucred, ok := s.Iam.GetUser(r.Context(), accessKey)
@@ -157,16 +155,10 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 		}
 		cred = ucred
 	}
-	owner := cred.AccessKey == auth.GetDefaultActiveCred().AccessKey
+	owner := cred.AccessKey == s.AdminCred.AccessKey
 	return cred, owner, api_errors.ErrNone
 }
 
-// sumHMAC calculate hmac between two input byte array.
-func sumHMAC(key []byte, data []byte) []byte {
-	hash := hmac.New(sha256.New, key)
-	hash.Write(data)
-	return hash.Sum(nil)
-}
 func contains(slice interface{}, elem interface{}) bool {
 	v := reflect.ValueOf(slice)
 	if v.Kind() == reflect.Slice {
@@ -236,12 +228,4 @@ func extractSignedHeaders(signedHeaders []string, r *http.Request) (http.Header,
 		}
 	}
 	return extractedSignedHeaders, api_errors.ErrNone
-}
-
-// Trim leading and trailing spaces and replace sequential spaces with one space, following Trimall()
-// in http://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
-func signV4TrimAll(input string) string {
-	// Compress adjacent spaces (a space is determined by
-	// unicode.IsSpace() internally here) to one space and return
-	return strings.Join(strings.Fields(input), " ")
 }

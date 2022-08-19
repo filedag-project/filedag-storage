@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -12,13 +13,14 @@ func main() {
 		startCmd,
 	}
 	app := &cli.App{
-		Name:                 "file-dag-storage",
-		Usage:                "file-dag-storage",
+		Name:                 "filedag-storage",
+		Usage:                "filedag-storage",
 		Version:              "0.0.11",
 		EnableBashCompletion: true,
 		Commands:             local,
 	}
 	app.Setup()
-	app.Run(os.Args)
-
+	if err := app.Run(os.Args); err != nil {
+		fmt.Println("Error: ", err)
+	}
 }

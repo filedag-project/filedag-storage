@@ -4,45 +4,36 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/ipfs/go-blockservice"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-merkledag"
 	"io/ioutil"
 	"testing"
 )
 
 func TestStorageSys_Object(t *testing.T) {
-	var s StorageSys
-	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(t))
+	poolCli, done := utils.NewMockPoolClient(&testing.T{})
+	defer done()
+	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
+	s := NewStorageSys(dagServ, db)
+
+	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
+	ctx := context.TODO()
+	object, err := s.StoreObject(ctx, "test", "testbucket", "testobject", r, 6)
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
-	defer uleveldb.DBClient.Close()
-	s.Db = uleveldb.DBClient
-	s.DagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
-		StorePath: utils.TmpDirPath(t),
-		BatchNum:  4,
-		CaskNum:   2,
-	})
+	fmt.Printf("object:%v", object)
+	getObject, i, err := s.GetObject(ctx, "test", "testbucket", "testobject")
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
-	r := ioutil.NopCloser(bytes.NewReader([]byte("hello world")))
-	object, err := s.StoreObject(context.Background(), "test", "testBucket", "testobject", r)
-	if err != nil {
-		fmt.Println("StoreObject", err)
-		return
-	}
-	fmt.Println(object)
-	res, i, err := s.GetObject(context.Background(), "test", "testBucket", "testobject")
-	if err != nil {
-		fmt.Println("GetObject", err)
-		return
-	}
-	all, err := ioutil.ReadAll(i)
-	if err != nil {
-		return
-	}
-	fmt.Printf("res:%v,\ni:%v", res, string(all))
+	fmt.Println(getObject)
+	all, _ := ioutil.ReadAll(i)
+	fmt.Println(string(all))
 }
