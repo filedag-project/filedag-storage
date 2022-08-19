@@ -77,7 +77,10 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 		if err != nil {
 			return err
 		}
-		return useNode.Put(ctx, block)
+		err = useNode.Put(ctx, block)
+		if err != nil {
+			return err
+		}
 	}
 	err := d.refer.AddReference(block.Cid().String())
 	if err != nil {
