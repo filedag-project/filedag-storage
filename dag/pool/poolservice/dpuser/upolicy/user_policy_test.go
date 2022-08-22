@@ -4,17 +4,17 @@ import "testing"
 
 func TestDagPoolPolicy_Allow(t *testing.T) {
 	var (
-		a = OnlyRead
-		b = OnlyWrite
+		a = ReadOnly
+		b = WriteOnly
 		c = ReadWrite
 	)
 	testCases := []struct {
 		pol    DagPoolPolicy
 		status bool
 	}{
-		{OnlyRead, true},
+		{ReadOnly, true},
 		{ReadWrite, false},
-		{OnlyWrite, false},
+		{WriteOnly, false},
 	}
 	for i, test := range testCases {
 		if a.Allow(test.pol) != test.status {
@@ -25,9 +25,9 @@ func TestDagPoolPolicy_Allow(t *testing.T) {
 		pol    DagPoolPolicy
 		status bool
 	}{
-		{OnlyRead, false},
+		{ReadOnly, false},
 		{ReadWrite, false},
-		{OnlyWrite, true},
+		{WriteOnly, true},
 	}
 	for i, test := range testCases {
 		if b.Allow(test.pol) != test.status {
@@ -38,9 +38,9 @@ func TestDagPoolPolicy_Allow(t *testing.T) {
 		pol    DagPoolPolicy
 		status bool
 	}{
-		{OnlyRead, true},
+		{ReadOnly, true},
 		{ReadWrite, true},
-		{OnlyWrite, true},
+		{WriteOnly, true},
 	}
 	for i, test := range testCases {
 		if c.Allow(test.pol) != test.status {

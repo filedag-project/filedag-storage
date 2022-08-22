@@ -2,7 +2,6 @@ package dnm
 
 import (
 	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
@@ -17,11 +16,11 @@ func TestHeart_beating(t *testing.T) {
 		log.Errorf("err %v", err)
 	}
 	r := NewRecordSys(db)
-	go datanode.MutDataNodeServer(":9010", datanode.KVBadge, t.TempDir())
+	go datanode.StartDataNodeServer(":9010", datanode.KVBadge, t.TempDir())
 	time.Sleep(time.Second)
-	var a []*dagnode.DataNodeClient
+	var a []*datanode.Client
 
-	datanodeClient, err := dagnode.NewDataNodeClient(config.DataNodeConfig{
+	datanodeClient, err := datanode.NewClient(config.DataNodeConfig{
 		Ip:   "",
 		Port: ":9010",
 	})

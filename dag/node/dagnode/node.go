@@ -3,8 +3,8 @@ package dagnode
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/kv"
@@ -13,8 +13,6 @@ import (
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/syndtr/goleveldb/leveldb"
-	"google.golang.org/grpc"
-	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"strings"
 	"sync"
 )
@@ -23,26 +21,17 @@ var _ blockstore.Blockstore = (*DagNode)(nil)
 
 //DagNode Implemented the Blockstore interface
 type DagNode struct {
-	Nodes        []*DataNodeClient
+	Nodes        []*datanode.Client
 	db           *uleveldb.ULevelDB
 	dataBlocks   int // Number of data shards
 	parityBlocks int //Number of parity shards
 }
 
-//DataNodeClient is a node that stores erasure-coded sharded data
-type DataNodeClient struct {
-	Client      proto.DataNodeClient
-	HeartClient healthpb.HealthClient
-	Ip          string
-	Port        string
-	Conn        *grpc.ClientConn
-}
-
 //NewDagNode creates a new DagNode
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
-	var s []*DataNodeClient
+	var s []*datanode.Client
 	for _, c := range cfg.Nodes {
-		dateNode, err := NewDataNodeClient(c)
+		dateNode, err := datanode.NewClient(c)
 		if err != nil {
 			return nil, err
 		}
@@ -50,23 +39,6 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	}
 	db, _ := uleveldb.OpenDb(cfg.LevelDbPath)
 	return &DagNode{s, db, cfg.DataBlocks, cfg.ParityBlocks}, nil
-}
-
-//NewDataNodeClient creates a grpc connection to a slice
-func NewDataNodeClient(cfg config.DataNodeConfig) (datanode *DataNodeClient, err error) {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", cfg.Ip, cfg.Port), grpc.WithInsecure())
-	if err != nil {
-		log.Errorf("did not connect: %v", err)
-		return nil, err
-	}
-	datanode = &DataNodeClient{
-		Client:      proto.NewDataNodeClient(conn),
-		HeartClient: healthpb.NewHealthClient(conn),
-		Ip:          cfg.Ip,
-		Port:        cfg.Port,
-		Conn:        conn,
-	}
-	return datanode, nil
 }
 
 //func (d DagNode) GetIP() []string {
@@ -84,7 +56,7 @@ func (d DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for _, node := range d.Nodes {
-		go func(node *DataNodeClient) {
+		go func(node *datanode.Client) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
@@ -131,7 +103,7 @@ func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for i, node := range d.Nodes {
-		go func(i int, node *DataNodeClient) {
+		go func(i int, node *datanode.Client) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s, keyCode:%s, kvdb get err :%v", node.Ip, node.Port, keyCode, err)
@@ -143,7 +115,7 @@ func (d DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 				log.Errorf("%s:%s, keyCode:%s,kvdb get :%v", node.Ip, node.Port, keyCode, err)
 				merged[i] = nil
 			} else {
-				merged[i] = res.DataBlock
+				merged[i] = res.Data
 			}
 		}(i, node)
 	}
@@ -220,14 +192,14 @@ func (d DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.Nodes))
 	for i, node := range d.Nodes {
-		go func(i int, node *DataNodeClient) {
+		go func(i int, node *datanode.Client) {
 			defer func() {
 				if err := recover(); err != nil {
 					log.Errorf("%s:%s,keyCode:%s,kvdb put :%v", node.Ip, node.Port, keyCode, err)
 				}
 				wg.Done()
 			}()
-			_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: shards[i]})
+			_, err = node.Client.Put(ctx, &proto.AddRequest{Key: keyCode, Data: shards[i]})
 			if err != nil {
 				log.Errorf("%s:%s,keyCode:%s,kvdb put :%v", node.Ip, node.Port, keyCode, err)
 			}

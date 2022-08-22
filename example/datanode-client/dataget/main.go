@@ -48,6 +48,6 @@ func get(addr string, key string) error {
 		log.Errorf("%s,keyCode:%s,kvdb get :%v", addr, key, err)
 		return err
 	}
-	fmt.Println(string(res.DataBlock))
+	fmt.Println(string(res.Data))
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -22,11 +23,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataNodeClient interface {
-	Put(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddResponse, error)
+	Put(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
-	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	GetMeta(ctx context.Context, in *GetMetaRequest, opts ...grpc.CallOption) (*GetMetaResponse, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Size(ctx context.Context, in *SizeRequest, opts ...grpc.CallOption) (*SizeResponse, error)
-	DeleteMany(ctx context.Context, in *DeleteManyRequest, opts ...grpc.CallOption) (*DeleteManyResponse, error)
+	DeleteMany(ctx context.Context, in *DeleteManyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type dataNodeClient struct {
@@ -37,8 +39,8 @@ func NewDataNodeClient(cc grpc.ClientConnInterface) DataNodeClient {
 	return &dataNodeClient{cc}
 }
 
-func (c *dataNodeClient) Put(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*AddResponse, error) {
-	out := new(AddResponse)
+func (c *dataNodeClient) Put(ctx context.Context, in *AddRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/proto.DataNode/Put", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -55,8 +57,17 @@ func (c *dataNodeClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.C
 	return out, nil
 }
 
-func (c *dataNodeClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
-	out := new(DeleteResponse)
+func (c *dataNodeClient) GetMeta(ctx context.Context, in *GetMetaRequest, opts ...grpc.CallOption) (*GetMetaResponse, error) {
+	out := new(GetMetaResponse)
+	err := c.cc.Invoke(ctx, "/proto.DataNode/GetMeta", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataNodeClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/proto.DataNode/Delete", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -73,8 +84,8 @@ func (c *dataNodeClient) Size(ctx context.Context, in *SizeRequest, opts ...grpc
 	return out, nil
 }
 
-func (c *dataNodeClient) DeleteMany(ctx context.Context, in *DeleteManyRequest, opts ...grpc.CallOption) (*DeleteManyResponse, error) {
-	out := new(DeleteManyResponse)
+func (c *dataNodeClient) DeleteMany(ctx context.Context, in *DeleteManyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/proto.DataNode/DeleteMany", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -86,11 +97,12 @@ func (c *dataNodeClient) DeleteMany(ctx context.Context, in *DeleteManyRequest, 
 // All implementations must embed UnimplementedDataNodeServer
 // for forward compatibility
 type DataNodeServer interface {
-	Put(context.Context, *AddRequest) (*AddResponse, error)
+	Put(context.Context, *AddRequest) (*emptypb.Empty, error)
 	Get(context.Context, *GetRequest) (*GetResponse, error)
-	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	GetMeta(context.Context, *GetMetaRequest) (*GetMetaResponse, error)
+	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
 	Size(context.Context, *SizeRequest) (*SizeResponse, error)
-	DeleteMany(context.Context, *DeleteManyRequest) (*DeleteManyResponse, error)
+	DeleteMany(context.Context, *DeleteManyRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedDataNodeServer()
 }
 
@@ -98,19 +110,22 @@ type DataNodeServer interface {
 type UnimplementedDataNodeServer struct {
 }
 
-func (UnimplementedDataNodeServer) Put(context.Context, *AddRequest) (*AddResponse, error) {
+func (UnimplementedDataNodeServer) Put(context.Context, *AddRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
 }
 func (UnimplementedDataNodeServer) Get(context.Context, *GetRequest) (*GetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedDataNodeServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
+func (UnimplementedDataNodeServer) GetMeta(context.Context, *GetMetaRequest) (*GetMetaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMeta not implemented")
+}
+func (UnimplementedDataNodeServer) Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedDataNodeServer) Size(context.Context, *SizeRequest) (*SizeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Size not implemented")
 }
-func (UnimplementedDataNodeServer) DeleteMany(context.Context, *DeleteManyRequest) (*DeleteManyResponse, error) {
+func (UnimplementedDataNodeServer) DeleteMany(context.Context, *DeleteManyRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMany not implemented")
 }
 func (UnimplementedDataNodeServer) mustEmbedUnimplementedDataNodeServer() {}
@@ -158,6 +173,24 @@ func _DataNode_Get_Handler(srv interface{}, ctx context.Context, dec func(interf
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DataNodeServer).Get(ctx, req.(*GetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataNode_GetMeta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMetaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataNodeServer).GetMeta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DataNode/GetMeta",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataNodeServer).GetMeta(ctx, req.(*GetMetaRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -230,6 +263,10 @@ var DataNode_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Get",
 			Handler:    _DataNode_Get_Handler,
+		},
+		{
+			MethodName: "GetMeta",
+			Handler:    _DataNode_GetMeta_Handler,
 		},
 		{
 			MethodName: "Delete",

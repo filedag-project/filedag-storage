@@ -1,15 +1,21 @@
 package datanode
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/kv"
 	"github.com/filedag-project/filedag-storage/kv/badger"
 	"github.com/filedag-project/filedag-storage/kv/mutcask"
+	"github.com/howeyc/crc16"
 	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
 	"os"
 	"os/signal"
@@ -26,7 +32,13 @@ const (
 	KVBadge KVType = "badger"
 	//KVMutcask is the kv type of mutcask
 	KVMutcask KVType = "mutcask"
+
+	// HeaderSize is size of entry header
+	HeaderSize = 12
 )
+
+// entry item
+// | crc (4 bytes) | meta size (4 bytes) | data size (4 bytes) | meta | data |
 
 type server struct {
 	proto.UnimplementedDataNodeServer
@@ -35,33 +47,89 @@ type server struct {
 
 const healthCheckService = "grpc.health.v1.Health"
 
+type Header struct {
+	Checksum uint32
+	MetaSize int32
+	DataSize int32
+}
+
 //Put puts the data by key
-func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*proto.AddResponse, error) {
-	err := s.kvdb.Put(in.Key, in.DataBlock)
-	if err != nil {
-		return &proto.AddResponse{Message: "failed"}, err
+func (s *server) Put(ctx context.Context, in *proto.AddRequest) (*emptypb.Empty, error) {
+	header := Header{
+		MetaSize: int32(len(in.Meta)),
+		DataSize: int32(len(in.Data)),
 	}
-	return &proto.AddResponse{Message: "success"}, nil
+	var buf bytes.Buffer
+	buf.Grow(binary.Size(header) + int(header.MetaSize+header.DataSize))
+	if err := binary.Write(&buf, binary.LittleEndian, header); err != nil {
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	buf.Write(in.Meta)
+	buf.Write(in.Data)
+	data := buf.Bytes()
+	header.Checksum = uint32(crc16.Checksum(data[binary.Size(header.Checksum):], crc16.IBMTable))
+	var bufCrc bytes.Buffer
+	if err := binary.Write(&bufCrc, binary.LittleEndian, header.Checksum); err != nil {
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	copy(data, bufCrc.Bytes())
+	if err := s.kvdb.Put(in.Key, data); err != nil {
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	return &emptypb.Empty{}, nil
 }
 
 //Get gets the data by key
 func (s *server) Get(ctx context.Context, in *proto.GetRequest) (*proto.GetResponse, error) {
-	bytes, err := s.kvdb.Get(in.Key)
+	data, err := s.kvdb.Get(in.Key)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
+	buf := bytes.NewBuffer(data)
+	header := Header{}
+	if err = binary.Read(buf, binary.LittleEndian, &header); err != nil {
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	// check crc
+	sum := crc16.Checksum(data[binary.Size(header.Checksum):], crc16.IBMTable)
+	if header.Checksum != uint32(sum) {
+		return nil, status.Error(codes.Unknown, "checking crc failed")
+	}
+	offset := binary.Size(header)
 	return &proto.GetResponse{
-		DataBlock: bytes,
+		Meta: data[offset : offset+int(header.MetaSize)],
+		Data: data[offset+int(header.MetaSize) : offset+int(header.MetaSize+header.DataSize)],
+	}, nil
+}
+
+func (s *server) GetMeta(ctx context.Context, in *proto.GetMetaRequest) (*proto.GetMetaResponse, error) {
+	data, err := s.kvdb.Get(in.Key)
+	if err != nil {
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	buf := bytes.NewBuffer(data)
+	header := Header{}
+	if err = binary.Read(buf, binary.LittleEndian, &header); err != nil {
+		return nil, status.Error(codes.Unknown, err.Error())
+	}
+	// check crc
+	sum := crc16.Checksum(data[binary.Size(header.Checksum):], crc16.IBMTable)
+	if header.Checksum != uint32(sum) {
+		return nil, status.Error(codes.Unknown, "checking crc failed")
+	}
+	headerSize := binary.Size(header)
+	return &proto.GetMetaResponse{
+		Meta: data[headerSize : headerSize+int(header.MetaSize)],
 	}, nil
 }
 
 //Delete deletes the data by key
-func (s *server) Delete(ctx context.Context, in *proto.DeleteRequest) (*proto.DeleteResponse, error) {
+func (s *server) Delete(ctx context.Context, in *proto.DeleteRequest) (*emptypb.Empty, error) {
 	err := s.kvdb.Delete(in.Key)
 	if err != nil {
-		return &proto.DeleteResponse{Message: "failed"}, err
+		return nil, status.Error(codes.Unknown, err.Error())
 	}
-	return &proto.DeleteResponse{Message: "success"}, nil
+	return &emptypb.Empty{}, nil
 }
 
 //Size  returns the size of data by key
@@ -75,14 +143,14 @@ func (s *server) Size(ctx context.Context, in *proto.SizeRequest) (*proto.SizeRe
 	}, nil
 }
 
-func (s *server) DeleteMany(ctx context.Context, in *proto.DeleteManyRequest) (*proto.DeleteManyResponse, error) {
+func (s *server) DeleteMany(ctx context.Context, in *proto.DeleteManyRequest) (*emptypb.Empty, error) {
 	for _, key := range in.Keys {
 		err := s.kvdb.Delete(key)
 		if err != nil {
-			return &proto.DeleteManyResponse{Message: "failed"}, err
+			return nil, status.Error(codes.Unknown, err.Error())
 		}
 	}
-	return &proto.DeleteManyResponse{Message: "success"}, nil
+	return &emptypb.Empty{}, nil
 }
 
 //func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
@@ -96,8 +164,8 @@ func (s *server) DeleteMany(ctx context.Context, in *proto.DeleteManyRequest) (*
 //	return nil
 //}
 
-//MutDataNodeServer is the gRPC server for the MutDataNode
-func MutDataNodeServer(listen string, kvType KVType, dataDir string) {
+//StartDataNodeServer is the gRPC server for the MutDataNode
+func StartDataNodeServer(listen string, kvType KVType, dataDir string) {
 	log.Infof("datanode start...")
 	log.Infof("listen %s", listen)
 	// listen port

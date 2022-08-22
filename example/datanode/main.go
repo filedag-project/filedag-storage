@@ -31,5 +31,5 @@ func main() {
 	}
 }
 func run(host, port, path string) {
-	datanode.MutDataNodeServer(fmt.Sprintf("%s:%s", host, port), datanode.KVBadge, path)
+	datanode.StartDataNodeServer(fmt.Sprintf("%s:%s", host, port), datanode.KVBadge, path)
 }

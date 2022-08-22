@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/node/mocks"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode/mocks"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/golang/mock/gomock"
@@ -13,10 +14,10 @@ import (
 )
 
 func TestDagNode(t *testing.T) {
-	q := &DataNodeClient{
+	q := &datanode.Client{
 		Client: newDatanode(t),
 	}
-	var s []*DataNodeClient
+	var s []*datanode.Client
 	s = append(s, q)
 	db, err := uleveldb.OpenDb(t.TempDir())
 	if err != nil {
@@ -67,7 +68,7 @@ func newDatanode(t *testing.T) *mocks.MockDataNodeClient {
 	m := mocks.NewMockDataNodeClient(ctrl)
 	m.EXPECT().Put(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.AddRequest{})).AnyTimes().Return(nil, nil)
 	m.EXPECT().Get(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.GetRequest{})).AnyTimes().
-		Return(&proto.GetResponse{DataBlock: []byte("123456")}, nil)
+		Return(&proto.GetResponse{Data: []byte("123456")}, nil)
 	m.EXPECT().Delete(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.DeleteRequest{})).AnyTimes().Return(nil, nil)
 	m.EXPECT().Size(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.SizeRequest{})).AnyTimes().
 		Return(&proto.SizeResponse{Size: 6}, nil)

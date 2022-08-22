@@ -1,24 +1,24 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package proto;
 option go_package = '../proto';
 option cc_generic_services = true;
 
 service DataNode {
-  rpc Put (AddRequest) returns (AddResponse) {}
+  rpc Put (AddRequest) returns (google.protobuf.Empty) {}
   rpc Get (GetRequest) returns (GetResponse) {}
-  rpc Delete (DeleteRequest) returns (DeleteResponse) {}
+  rpc GetMeta (GetMetaRequest) returns (GetMetaResponse) {}
+  rpc Delete (DeleteRequest) returns (google.protobuf.Empty) {}
   rpc Size (SizeRequest) returns (SizeResponse) {}
-  rpc DeleteMany (DeleteManyRequest) returns (DeleteManyResponse) {}
+  rpc DeleteMany (DeleteManyRequest) returns (google.protobuf.Empty) {}
 }
 
 message AddRequest {
   string key = 1;
-  bytes dataBlock = 2;
-}
-
-message AddResponse {
-  string message = 1;
+  bytes meta = 2;
+  bytes data = 3;
 }
 
 message GetRequest {
@@ -26,15 +26,20 @@ message GetRequest {
 }
 
 message GetResponse {
-  bytes dataBlock = 1;
+  bytes meta = 1;
+  bytes data = 2;
+}
+
+message GetMetaRequest {
+  string key = 1;
+}
+
+message GetMetaResponse {
+  bytes meta = 1;
 }
 
 message DeleteRequest {
   string key = 1;
-}
-
-message DeleteResponse {
-  string message = 1;
 }
 
 message SizeRequest {
@@ -47,8 +52,4 @@ message SizeResponse {
 
 message DeleteManyRequest {
   repeated string keys = 1;
-}
-
-message DeleteManyResponse {
-  string message = 1;
 }

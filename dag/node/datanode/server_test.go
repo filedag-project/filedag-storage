@@ -5,24 +5,27 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/kv/badger"
 	"github.com/filedag-project/filedag-storage/kv/mutcask"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"testing"
 )
 
 func TestServer_Put(t *testing.T) {
+	KeyError := status.Error(codes.Unknown, "Key cannot be empty")
 	testcases := []struct {
-		name           string
-		kvType         KVType
-		key            string
-		data           []byte
-		expectResponse string
+		name        string
+		kvType      KVType
+		key         string
+		data        []byte
+		expectError error
 	}{
-		{"badge", KVBadge, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), "success"},
-		{"mutcask", KVMutcask, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), "success"},
-		{"badge", KVBadge, "", []byte("\b\u0002\u0012\a1\u0018\a"), "failed"},
-		{"mutcask", KVMutcask, "", []byte("123"), "success"},
-		{"badge", KVBadge, "", []byte(""), "failed"},
-		{"mutcask", KVMutcask, "", []byte(""), "success"},
-		{"badge", KVBadge, "@#", []byte("@#$$&*^@*"), "success"},
+		{"badge", KVBadge, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), nil},
+		{"mutcask", KVMutcask, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), nil},
+		{"badge", KVBadge, "", []byte("\b\u0002\u0012\a1\u0018\a"), KeyError},
+		{"mutcask", KVMutcask, "", []byte("123"), nil},
+		{"badge", KVBadge, "", []byte(""), KeyError},
+		{"mutcask", KVMutcask, "", []byte(""), nil},
+		{"badge", KVBadge, "@#", []byte("@#$$&*^@*"), nil},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -42,9 +45,11 @@ func TestServer_Put(t *testing.T) {
 				ser = server{kvdb: newMutcask}
 			}
 
-			res, _ := ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, DataBlock: tc.data})
-			if res.Message != tc.expectResponse {
-				t.Errorf("expected response %s, got %s", tc.expectResponse, res.Message)
+			_, err := ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, Data: tc.data})
+			if err != nil {
+				if err.Error() != tc.expectError.Error() {
+					t.Errorf("expected response error %v, got %v", tc.expectError, err)
+				}
 			}
 		})
 	}
@@ -82,26 +87,26 @@ func TestServer_Get(t *testing.T) {
 				}
 				ser = server{kvdb: newMutcask}
 			}
-			ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, DataBlock: tc.expectResponse})
+			ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, Data: tc.expectResponse})
 			res, _ := ser.Get(context.Background(), &proto.GetRequest{Key: tc.key})
-			if string(res.DataBlock) != string(tc.expectResponse) {
-				t.Errorf("expected response %s, got %s", tc.expectResponse, res.DataBlock)
+			if string(res.Data) != string(tc.expectResponse) {
+				t.Errorf("expected response %s, got %s", tc.expectResponse, res.Data)
 			}
 		})
 	}
 }
 func TestServer_Delete(t *testing.T) {
 	testcases := []struct {
-		name           string
-		kvType         KVType
-		key            string
-		set            bool
-		expectResponse string
+		name        string
+		kvType      KVType
+		key         string
+		set         bool
+		expectError error
 	}{
-		{"badge", KVBadge, "1234567", true, "success"},
-		{"mutcask", KVMutcask, "1234567", true, "success"},
-		{"badge", KVBadge, "122", false, "success"},
-		{"mutcask", KVMutcask, "", false, "success"},
+		{"badge", KVBadge, "1234567", true, nil},
+		{"mutcask", KVMutcask, "1234567", true, nil},
+		{"badge", KVBadge, "122", false, nil},
+		{"mutcask", KVMutcask, "", false, nil},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -121,12 +126,12 @@ func TestServer_Delete(t *testing.T) {
 				ser = server{kvdb: newMutcask}
 			}
 			if tc.set {
-				ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, DataBlock: []byte("\b\u0002\u0012\a1234567\u0018\a")})
+				ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, Data: []byte("\b\u0002\u0012\a1234567\u0018\a")})
 
 			}
-			res, _ := ser.Delete(context.Background(), &proto.DeleteRequest{Key: tc.key})
-			if res.Message != tc.expectResponse {
-				t.Errorf("expected response %s, got %s", tc.expectResponse, res.Message)
+			_, err := ser.Delete(context.Background(), &proto.DeleteRequest{Key: tc.key})
+			if err != tc.expectError {
+				t.Errorf("expected response error %s, got %s", tc.expectError, err)
 			}
 		})
 	}
@@ -139,12 +144,12 @@ func TestServer_Size(t *testing.T) {
 		dataBlock      []byte
 		expectResponse int64
 	}{
-		{"badge", KVBadge, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), 13},
-		{"mutcask", KVMutcask, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), 13},
-		{"badge", KVBadge, "122", []byte("1"), 1},
-		{"mutcask", KVMutcask, "122", []byte("1"), 1},
-		{"badge", KVBadge, "122", []byte(""), 0},
-		{"mutcask", KVMutcask, "122", []byte(""), 0},
+		{"badge", KVBadge, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), HeaderSize + 13},
+		{"mutcask", KVMutcask, "1234567", []byte("\b\u0002\u0012\a1234567\u0018\a"), HeaderSize + 13},
+		{"badge", KVBadge, "122", []byte("1"), HeaderSize + 1},
+		{"mutcask", KVMutcask, "122", []byte("1"), HeaderSize + 1},
+		{"badge", KVBadge, "122", []byte(""), HeaderSize},
+		{"mutcask", KVMutcask, "122", []byte(""), HeaderSize},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -164,7 +169,7 @@ func TestServer_Size(t *testing.T) {
 				ser = server{kvdb: newMutcask}
 			}
 
-			ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, DataBlock: tc.dataBlock})
+			ser.Put(context.Background(), &proto.AddRequest{Key: tc.key, Data: tc.dataBlock})
 
 			res, _ := ser.Size(context.Background(), &proto.SizeRequest{Key: tc.key})
 			if res.Size != tc.expectResponse {

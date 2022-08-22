@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc"
@@ -21,7 +22,7 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 		return err
 	}
 	index := -1
-	dataNode := new(DataNodeClient)
+	dataNode := new(datanode.Client)
 	for i, node := range d.Nodes {
 		if node.Ip == ip && node.Port == port {
 			dataNode = d.Nodes[i]
@@ -53,12 +54,12 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 				log.Errorf("this node err : %s,: %s", node.Ip, node.Port)
 				return err
 			}
-			if len(res.DataBlock) == 0 {
+			if len(res.Data) == 0 {
 				log.Errorf("There is no data in this node")
 				merged = append(merged, nil)
 				continue
 			}
-			merged = append(merged, res.DataBlock)
+			merged = append(merged, res.Data)
 		}
 		i64, err := strconv.ParseInt(value, 10, 64)
 		if err == nil {
@@ -75,7 +76,7 @@ func (d *DagNode) RepairDisk(ip, port string) error {
 			return err
 		}
 		dataByte := merged[index]
-		_, err = dataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: dataByte})
+		_, err = dataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, Data: dataByte})
 		if err != nil {
 			log.Errorf("data node put fail :%v", err)
 			return err
@@ -110,12 +111,12 @@ func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 				log.Errorf("this node err : %s,: %s", node.Ip, node.Port)
 				return err
 			}
-			if len(res.DataBlock) == 0 {
+			if len(res.Data) == 0 {
 				log.Errorf("There is no data in this node")
 				merged[i] = nil
 				continue
 			}
-			merged[i] = res.DataBlock
+			merged[i] = res.Data
 		}
 		i64, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
@@ -132,7 +133,7 @@ func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
 			return err
 		}
 		dataByte := merged[index]
-		_, err = newDataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: dataByte})
+		_, err = newDataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, Data: dataByte})
 		if err != nil {
 			log.Errorf("data node put fail :%v", err)
 			return err
