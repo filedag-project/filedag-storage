@@ -18,7 +18,6 @@ type DagNodeConfig struct {
 	Nodes        []DataNodeConfig `json:"nodes"`
 	DataBlocks   int              `json:"data_blocks"`
 	ParityBlocks int              `json:"parity_blocks"`
-	LevelDbPath  string           `json:"level_db_path"`
 }
 
 //DataNodeConfig is the configuration for a datanode

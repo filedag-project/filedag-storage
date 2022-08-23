@@ -11,7 +11,7 @@ import (
 
 func TestRecovery_host(t *testing.T) {
 	var nc config.DagNodeConfig
-	file, err := ioutil.ReadFile("./node_config2.json")
+	file, err := ioutil.ReadFile("../../../conf/node_config.json")
 	if err != nil {
 
 	}

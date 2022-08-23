@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
@@ -60,6 +61,6 @@ func get(addr string, clientuser string, clientpass string, cidStr string) error
 	} else {
 		fmt.Println("check block failed")
 	}
-	fmt.Println("block data: ", string(nd.RawData()))
+	fmt.Println("block data: ", hex.EncodeToString(nd.RawData()))
 	return nil
 }

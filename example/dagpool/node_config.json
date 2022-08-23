@@ -14,6 +14,5 @@
     }
   ],
   "data_blocks":2,
-  "parity_blocks":1,
-  "level_db_path":"/tmp/leveldb2/node"
+  "parity_blocks":1
 }

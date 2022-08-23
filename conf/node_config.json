@@ -14,6 +14,5 @@
     }
   ],
   "data_blocks":2,
-  "parity_blocks":1,
-  "level_db_path":"./dp-data/node"
+  "parity_blocks":1
 }
