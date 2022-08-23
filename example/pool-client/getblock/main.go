@@ -50,6 +50,16 @@ func get(addr string, clientuser string, clientpass string, cidStr string) error
 		fmt.Printf("get block err:%v", err)
 		return err
 	}
-	fmt.Println("get block success cid: ", string(nd.RawData()))
+	cidSum, err := c.Prefix().Sum(nd.RawData())
+	if err != nil {
+		fmt.Printf("check block err:%v", err)
+		return err
+	}
+	if c == cidSum {
+		fmt.Println("check block success")
+	} else {
+		fmt.Println("check block failed")
+	}
+	fmt.Println("block data: ", string(nd.RawData()))
 	return nil
 }

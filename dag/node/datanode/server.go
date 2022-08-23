@@ -153,6 +153,21 @@ func (s *server) DeleteMany(ctx context.Context, in *proto.DeleteManyRequest) (*
 	return &emptypb.Empty{}, nil
 }
 
+func (s *server) AllKeysChan(_ *emptypb.Empty, server proto.DataNode_AllKeysChanServer) error {
+	ctx, cancel := context.WithCancel(server.Context())
+	defer cancel()
+	ch, err := s.kvdb.AllKeysChan(ctx)
+	if err != nil {
+		return status.Error(codes.Unknown, err.Error())
+	}
+	for key := range ch {
+		if err = server.Send(&proto.AllKeysChanResponse{Key: key}); err != nil {
+			return status.Error(codes.Unknown, err.Error())
+		}
+	}
+	return nil
+}
+
 //func (s *server) Check(ctx context.Context, in *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 //	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 //}

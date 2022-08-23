@@ -13,6 +13,7 @@ service DataNode {
   rpc Delete (DeleteRequest) returns (google.protobuf.Empty) {}
   rpc Size (SizeRequest) returns (SizeResponse) {}
   rpc DeleteMany (DeleteManyRequest) returns (google.protobuf.Empty) {}
+  rpc AllKeysChan (google.protobuf.Empty) returns (stream AllKeysChanResponse) {}
 }
 
 message AddRequest {
@@ -52,4 +53,8 @@ message SizeResponse {
 
 message DeleteManyRequest {
   repeated string keys = 1;
+}
+
+message AllKeysChanResponse {
+  string key = 1;
 }

@@ -15,8 +15,6 @@ type DagPool interface {
 	Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error)
 	GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error)
 	Remove(ctx context.Context, c cid.Cid, user string, password string) error
-	DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error
-	DataRepairDisk(ctx context.Context, ip, port string) error
 	AddUser(newUser dpuser.DagPoolUser, user string, password string) error
 	RemoveUser(rmUser string, user string, password string) error
 	QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error)

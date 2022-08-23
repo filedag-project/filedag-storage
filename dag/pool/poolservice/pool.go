@@ -110,7 +110,7 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if !d.refer.HasReference(c.String()) {
-		return nil, fmt.Errorf("block:%v does not exist", c.String())
+		return nil, format.ErrNotFound{Cid: c}
 	}
 	getNode, err := d.getDagNodeInfo(ctx, c)
 	if err != nil {
@@ -165,30 +165,6 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 		return 0, err
 	}
 	return getNode.GetSize(ctx, c)
-}
-
-// DataRepairHost Data repair host
-func (d *dagPoolService) DataRepairHost(ctx context.Context, oldIp, newIp, oldPort, newPort string) error {
-	if d == nil {
-		return fmt.Errorf("Pool is nil")
-	}
-	dagNode, err := d.getNodeUseIP(ctx, oldIp)
-	if err != nil {
-		return err
-	}
-	return dagNode.RepairHost(oldIp, newIp, oldPort, newPort)
-}
-
-// DataRepairDisk Data repair disk
-func (d *dagPoolService) DataRepairDisk(ctx context.Context, ip, port string) error {
-	if d == nil {
-		return fmt.Errorf("Pool is nil")
-	}
-	dagNode, err := d.getNodeUseIP(ctx, ip)
-	if err != nil {
-		return err
-	}
-	return dagNode.RepairDisk(ip, port)
 }
 
 //AddUser add a user
@@ -272,7 +248,7 @@ func (d *dagPoolService) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Li
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	if !d.refer.HasReference(ci.String()) {
-		return nil, fmt.Errorf("block : %v does not exist ", ci.String())
+		return nil, format.ErrNotFound{Cid: ci}
 	}
 	getNode, err := d.getDagNodeInfo(ctx, ci)
 	if err != nil {

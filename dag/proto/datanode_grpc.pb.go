@@ -29,6 +29,7 @@ type DataNodeClient interface {
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Size(ctx context.Context, in *SizeRequest, opts ...grpc.CallOption) (*SizeResponse, error)
 	DeleteMany(ctx context.Context, in *DeleteManyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	AllKeysChan(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (DataNode_AllKeysChanClient, error)
 }
 
 type dataNodeClient struct {
@@ -93,6 +94,38 @@ func (c *dataNodeClient) DeleteMany(ctx context.Context, in *DeleteManyRequest, 
 	return out, nil
 }
 
+func (c *dataNodeClient) AllKeysChan(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (DataNode_AllKeysChanClient, error) {
+	stream, err := c.cc.NewStream(ctx, &DataNode_ServiceDesc.Streams[0], "/proto.DataNode/AllKeysChan", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dataNodeAllKeysChanClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DataNode_AllKeysChanClient interface {
+	Recv() (*AllKeysChanResponse, error)
+	grpc.ClientStream
+}
+
+type dataNodeAllKeysChanClient struct {
+	grpc.ClientStream
+}
+
+func (x *dataNodeAllKeysChanClient) Recv() (*AllKeysChanResponse, error) {
+	m := new(AllKeysChanResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // DataNodeServer is the server API for DataNode service.
 // All implementations must embed UnimplementedDataNodeServer
 // for forward compatibility
@@ -103,6 +136,7 @@ type DataNodeServer interface {
 	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
 	Size(context.Context, *SizeRequest) (*SizeResponse, error)
 	DeleteMany(context.Context, *DeleteManyRequest) (*emptypb.Empty, error)
+	AllKeysChan(*emptypb.Empty, DataNode_AllKeysChanServer) error
 	mustEmbedUnimplementedDataNodeServer()
 }
 
@@ -127,6 +161,9 @@ func (UnimplementedDataNodeServer) Size(context.Context, *SizeRequest) (*SizeRes
 }
 func (UnimplementedDataNodeServer) DeleteMany(context.Context, *DeleteManyRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMany not implemented")
+}
+func (UnimplementedDataNodeServer) AllKeysChan(*emptypb.Empty, DataNode_AllKeysChanServer) error {
+	return status.Errorf(codes.Unimplemented, "method AllKeysChan not implemented")
 }
 func (UnimplementedDataNodeServer) mustEmbedUnimplementedDataNodeServer() {}
 
@@ -249,6 +286,27 @@ func _DataNode_DeleteMany_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataNode_AllKeysChan_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(emptypb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DataNodeServer).AllKeysChan(m, &dataNodeAllKeysChanServer{stream})
+}
+
+type DataNode_AllKeysChanServer interface {
+	Send(*AllKeysChanResponse) error
+	grpc.ServerStream
+}
+
+type dataNodeAllKeysChanServer struct {
+	grpc.ServerStream
+}
+
+func (x *dataNodeAllKeysChanServer) Send(m *AllKeysChanResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // DataNode_ServiceDesc is the grpc.ServiceDesc for DataNode service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -281,6 +339,12 @@ var DataNode_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DataNode_DeleteMany_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "AllKeysChan",
+			Handler:       _DataNode_AllKeysChan_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "datanode.proto",
 }
