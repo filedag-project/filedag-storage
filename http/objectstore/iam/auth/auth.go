@@ -39,8 +39,8 @@ var errInvalidDuration = errors.New("invalid token expiry")
 
 // Default access and secret keys.
 const (
-	DefaultAccessKey = "test"
-	DefaultSecretKey = "test"
+	DefaultAccessKey = "filedagadmin"
+	DefaultSecretKey = "filedagadmin"
 )
 const (
 	// Minimum length for  access key.
@@ -116,8 +116,8 @@ func generateCredentials() (accessKey, secretKey string, err error) {
 	return accessKey, secretKey, nil
 }
 
-// createCredentials Error is returned if given access key or secret key are invalid length.
-func createCredentials(accessKey, secretKey string) (cred Credentials, err error) {
+// CreateCredentials Error is returned if given access key or secret key are invalid length.
+func CreateCredentials(accessKey, secretKey string) (cred Credentials, err error) {
 	if !IsAccessKeyValid(accessKey) {
 		return cred, errInvalidAccessKeyLength
 	}

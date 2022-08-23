@@ -99,6 +99,7 @@ const (
 	ErrInvalidPart
 	ErrInvalidPartOrder
 	ErrAuthorizationHeaderMalformed
+	ErrMalformedDate
 	ErrMalformedPOSTRequest
 	ErrPOSTFileRequired
 	ErrSignatureVersionNotSupported
@@ -253,7 +254,6 @@ const (
 	ErrInvalidColumnIndex
 	ErrPostPolicyConditionInvalidFormat
 
-	// ErrMalformedJSON todo
 	ErrMalformedJSON
 )
 

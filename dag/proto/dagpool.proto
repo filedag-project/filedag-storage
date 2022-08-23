@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package proto;
+option go_package = '../proto';
+
+service DagPool {
+  rpc Add (AddReq) returns (AddReply) {}
+  rpc Get (GetReq) returns (GetReply) {}
+  rpc Remove (RemoveReq) returns (RemoveReply) {}
+  rpc GetSize (GetSizeReq) returns (GetSizeReply) {}
+
+  rpc AddUser (AddUserReq) returns (AddUserReply){}
+  rpc RemoveUser (RemoveUserReq) returns (RemoveUserReply){}
+  rpc QueryUser (QueryUserReq) returns (QueryUserReply){}
+  rpc UpdateUser (UpdateUserReq) returns (UpdateUserReply){}
+}
+
+message PoolUser {
+  string user = 1;
+  string password = 2;
+}
+
+message AddReq {
+  bytes block = 1;
+  PoolUser user = 2;
+}
+
+message AddReply {
+  string cid = 1;
+}
+
+message GetReq {
+  string cid = 1;
+  PoolUser user = 2;
+}
+
+message GetReply {
+  bytes block = 1;
+}
+
+message GetSizeReq {
+  string cid = 1;
+  PoolUser user = 2;
+}
+
+message GetSizeReply {
+  int32 size = 1;
+}
+
+message RemoveReq {
+  string cid = 1;
+  PoolUser user = 2;
+}
+
+message RemoveReply {
+  string message = 1;
+}
+
+message AddUserReq {
+  PoolUser user = 1;
+  string username = 3;
+  string password = 4;
+  string policy = 5;
+  uint64 capacity = 6;
+}
+
+message AddUserReply {
+  string message = 1;
+}
+
+message RemoveUserReq {
+  PoolUser user = 1;
+  string username = 2;
+}
+
+message RemoveUserReply {
+  string message = 1;
+}
+
+message QueryUserReq {
+  PoolUser user = 1;
+  string username = 2;
+}
+
+message QueryUserReply {
+  string username = 1;
+  string policy = 3;
+  uint64 capacity = 4;
+}
+
+message UpdateUserReq{
+  PoolUser user = 1;
+  string username = 3;
+  string newPassword = 4;
+  string newPolicy = 5;
+  uint64 newCapacity = 6;
+}
+
+message UpdateUserReply {
+  string message = 1;
+}

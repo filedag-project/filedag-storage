@@ -174,10 +174,10 @@ const (
 	// AWSPrincipalType - user principal type currently supported values are "User" and "Anonymous".
 	AWSPrincipalType KeyName = "aws:principaltype"
 
-	// AWSUserID - user unique ID, in MinIO this value is same as your user Access Key.
+	// AWSUserID - user unique ID,  this value is same as your user Access Key.
 	AWSUserID KeyName = "aws:userid"
 
-	// AWSUsername - user friendly name, in MinIO this value is same as your user Access Key.
+	// AWSUsername - user friendly name,   this value is same as your user Access Key.
 	AWSUsername KeyName = "aws:username"
 
 	// S3SignatureVersion - identifies the version of AWS Signature that you want to support for authenticated requests.

@@ -3,14 +3,17 @@ package s3api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils/testsign"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-blockservice"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	"github.com/ipfs/go-merkledag"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,26 +25,23 @@ var w *httptest.ResponseRecorder
 var router = mux.NewRouter()
 
 func TestMain(m *testing.M) {
-	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	db, err := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
 	if err != nil {
+		println(err)
 		return
 	}
-	defer uleveldb.DBClient.Close()
-	iamapi.NewIamApiServer(router)
-	var s3server s3ApiServer
-	s3server.authSys.Init()
-	s3server.store.Db = uleveldb.DBClient
-	s3server.store.DagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
-		StorePath: utils.TmpDirPath(&testing.T{}),
-		BatchNum:  4,
-		CaskNum:   2,
-	})
+	defer db.Close()
+	cred, err := auth.CreateCredentials(auth.DefaultAccessKey, auth.DefaultSecretKey)
 	if err != nil {
-		log.Errorf("s3 store init err%v", err)
+		println(err)
 		return
 	}
-	s3server.registerS3Router(router)
+	authSys := iam.NewAuthSys(db, cred)
+	iamapi.NewIamApiServer(router, authSys)
+	poolCli, done := utils.NewMockPoolClient(&testing.T{})
+	defer done()
+	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
+	NewS3Server(router, dagServ, authSys, db)
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
@@ -81,7 +81,7 @@ func TestS3ApiServer_PutBucketHandler(t *testing.T) {
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
 		// mock an HTTP request
-		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result := reqTest(reqPutBucket)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -127,13 +127,13 @@ func TestS3ApiServer_HeadBucketHandler(t *testing.T) {
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
 		// mock an HTTP request
-		reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result1 := reqTest(reqPutBucket)
 		if result1.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
 		}
 
-		reqHeadBucket := testsign.MustNewSignedV4Request(http.MethodHead, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqHeadBucket := utils.MustNewSignedV4Request(http.MethodHead, testCase.bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result2 := reqTest(reqHeadBucket)
 		if result2.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result2.Code)
@@ -181,13 +181,13 @@ func TestS3ApiServer_ListBucketHandler(t *testing.T) {
 	for i, testCase := range testCases {
 		// mock an HTTP request
 		if testCase.isPut {
-			reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+			reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 			result1 := reqTest(reqPutBucket)
 			if result1.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
 			}
 		}
-		reqListBucket := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqListBucket := utils.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result := reqTest(reqListBucket)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -250,20 +250,20 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 	for i, testCase := range testCases {
 		// mock an HTTP request
 		if testCase.isPut {
-			reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+			reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 			result1 := reqTest(reqPutBucket)
 			if result1.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
 			}
 		}
 
-		reqDeleteBucket := testsign.MustNewSignedV4Request(http.MethodDelete, "/testbucketdel", 0,
+		reqDeleteBucket := utils.MustNewSignedV4Request(http.MethodDelete, "/testbucketdel", 0,
 			nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result := reqTest(reqDeleteBucket)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
 		}
-		reqListBucket := testsign.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		reqListBucket := utils.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 
 		resp1 := response.ListAllMyBucketsResult{}
 		utils.XmlDecoder(reqTest(reqListBucket).Body, &resp1, reqListBucket.ContentLength)
@@ -274,21 +274,21 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 
 func TestS3ApiServer_BucketPolicyHandler(t *testing.T) {
 	u := "/testbucketpoliy"
-	reqPutBucket := testsign.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 
 	p := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucket/*"}]}`
-	reqPut := testsign.MustNewSignedV4Request(http.MethodPut, u+"?policy", int64(len(p)), strings.NewReader(p),
+	reqPut := utils.MustNewSignedV4Request(http.MethodPut, u+"?policy", int64(len(p)), strings.NewReader(p),
 		"s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("put:", reqTest(reqPut).Body.String())
 
-	reqGet := testsign.MustNewSignedV4Request(http.MethodGet, u+"?policy", 0, nil, "s3",
+	reqGet := utils.MustNewSignedV4Request(http.MethodGet, u+"?policy", 0, nil, "s3",
 		DefaultTestAccessKey, DefaultTestSecretKey, t)
 	resp1 := policy.Policy{}
 	json.Unmarshal([]byte(reqTest(reqGet).Body.String()), &resp1)
 	fmt.Println("get:", resp1)
 
-	reqDel := testsign.MustNewSignedV4Request(http.MethodDelete, u+"?policy", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqDel := utils.MustNewSignedV4Request(http.MethodDelete, u+"?policy", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("del:", reqTest(reqDel).Body.String())
 }
 

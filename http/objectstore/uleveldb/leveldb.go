@@ -13,9 +13,6 @@ import (
 
 var log = logging.Logger("leveldb")
 
-// DBClient start a levelDb
-var DBClient *ULevelDB
-
 //ULevelDB level db store key-struct
 type ULevelDB struct {
 	DB *leveldb.DB
@@ -37,8 +34,8 @@ func OpenDb(path string) (*ULevelDB, error) {
 }
 
 //Close db close
-func (l *ULevelDB) Close() {
-	l.DB.Close()
+func (l *ULevelDB) Close() error {
+	return l.DB.Close()
 }
 
 // Put

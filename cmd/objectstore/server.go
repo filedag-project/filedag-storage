@@ -1,115 +1,141 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
 	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
-	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/gorilla/mux"
+	"github.com/ipfs/go-blockservice"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/go-merkledag"
 	"github.com/urfave/cli/v2"
 	"net/http"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+)
+
+const (
+	EnvRootUser     = "FILEDAG_ROOT_USER"
+	EnvRootPassword = "FILEDAG_ROOT_PASSWORD"
 )
 
 var log = logging.Logger("sever")
 
-const (
-	deFaultDBFILE        = "/tmp/leveldb2/fds.db"
-	defaultPort          = ":9985"
-	fileDagStoragePort   = "FILE_DAG_STORAGE_PORT"
-	dbPath               = "DBPATH"
-	defaultPoolStorePath = "./"
-	defaultPoolBatchNum  = "4"
-	defaultPoolCaskNum   = "2"
-)
+func missingCredentialError(user, pwd string) error {
+	return errors.New(fmt.Sprintf("Missing credential environment variable, user is \"%s\" and password is\"%s\"."+
+		" Root user and password are expected to be specified via environment variables "+
+		"FILEDAG_ROOT_USER and FILEDAG_ROOT_PASSWORD respectively", user, pwd))
+}
 
 //startServer Start a IamServer
-func startServer() {
-	var err error
-	uleveldb.DBClient, err = uleveldb.OpenDb(os.Getenv(dbPath))
-	if err != nil {
-		return
-	}
-	defer uleveldb.DBClient.Close()
-	router := mux.NewRouter()
-	iamapi.NewIamApiServer(router)
-	s3api.NewS3Server(router)
+func startServer(cctx *cli.Context) {
+	listen := cctx.String("listen")
+	datadir := cctx.String("datadir")
+	poolAddr := cctx.String("pool-addr")
+	poolUser := cctx.String("pool-user")
+	poolPassword := cctx.String("pool-password")
 
-	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
-		log.Infof("start sever at http://%v%v", ip, os.Getenv(fileDagStoragePort))
+	user := cctx.String("root-user")
+	password := cctx.String("root-password")
+	if user == "" || password == "" {
+		log.Fatal(missingCredentialError(user, password))
 	}
-	err = http.ListenAndServe(os.Getenv(fileDagStoragePort), router)
+	cred, err := auth.CreateCredentials(user, password)
 	if err != nil {
-		log.Errorf("Listen And Serve err%v", err)
+		log.Fatal("Invalid credentials. Please provide correct credentials. " +
+			"Root user length should be at least 3, and password length at least 8 characters")
+	}
+
+	db, err := uleveldb.OpenDb(datadir)
+	if err != nil {
 		return
 	}
+	defer db.Close()
+	router := mux.NewRouter()
+	authSys := iam.NewAuthSys(db, cred)
+	iamapi.NewIamApiServer(router, authSys)
+	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPassword)
+	if err != nil {
+		log.Fatalf("connect dagpool server err: %v", err)
+	}
+	defer poolClient.Close(context.TODO())
+	dagServ := merkledag.NewDAGService(blockservice.New(poolClient, offline.Exchange(poolClient)))
+	s3api.NewS3Server(router, dagServ, authSys, db)
+	if strings.HasPrefix(listen, ":") {
+		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
+			log.Infof("start sever at http://%v%v", ip, listen)
+		}
+	} else {
+		log.Infof("start sever at http://%v", listen)
+	}
+	go func() {
+		if err = http.ListenAndServe(listen, router); err != nil {
+			log.Errorf("Listen And Serve err%v", err)
+		}
+	}()
+
+	// Wait for interrupt signal to gracefully shutdown the server.
+	quit := make(chan os.Signal, 1)
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Info("Shutdown Server ...")
+	log.Info("Server exit")
 }
 
 var startCmd = &cli.Command{
-	Name:  "run",
-	Usage: "Start a file dag storage process",
+	Name:  "daemon",
+	Usage: "Start a filedag storage process",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "db-path",
-			Usage: "set db path",
-			Value: deFaultDBFILE,
+			Name:  "listen",
+			Usage: "set server listen",
+			Value: ":9985",
 		},
 		&cli.StringFlag{
-			Name:  "port",
-			Usage: "set port eg.:9985",
-			Value: defaultPort,
+			Name:  "datadir",
+			Usage: "directory to store data in",
+			Value: "./store-data",
 		},
 		&cli.StringFlag{
-			Name:  "pool-path",
-			Usage: "set pool path  eg.`.`",
-			Value: defaultPoolStorePath,
+			Name:  "pool-addr",
+			Usage: "set the pool rpc address you want connect",
 		},
 		&cli.StringFlag{
-			Name:  "pool-batch-num",
-			Usage: "set pool batch num eg.10",
-			Value: defaultPoolBatchNum,
+			Name:  "pool-user",
+			Usage: "set pool user",
 		},
 		&cli.StringFlag{
-			Name:  "pool-cask-num",
-			Usage: "set pool cask num.:10",
-			Value: defaultPoolCaskNum,
+			Name:  "pool-password",
+			Usage: "set pool password",
+		},
+		&cli.StringFlag{
+			Name:    "root-user",
+			Usage:   "set root filedag root user",
+			EnvVars: []string{EnvRootUser},
+			Value:   auth.DefaultAccessKey,
+		},
+		&cli.StringFlag{
+			Name:    "root-password",
+			Usage:   "set root filedag root password",
+			EnvVars: []string{EnvRootPassword},
+			Value:   auth.DefaultSecretKey,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-
-		if cctx.String("db-path") != "" {
-			err := os.Setenv(dbPath, cctx.String("db-path"))
-			if err != nil {
-				return err
-			}
-		}
-		if cctx.String("port") != "" {
-			err := os.Setenv(fileDagStoragePort, cctx.String("port"))
-			if err != nil {
-				return err
-			}
-		}
-		if cctx.String("pool-path") != "" {
-			err := os.Setenv(store.PoolStorePath, cctx.String("pool-path"))
-			if err != nil {
-				return err
-			}
-		}
-		if cctx.String("pool-batch-num") != "" {
-			err := os.Setenv(store.PoolBatchNum, cctx.String("pool-batch-num"))
-			if err != nil {
-				return err
-			}
-		}
-		if cctx.String("pool-cask-num") != "" {
-			err := os.Setenv(store.PoolCaskNum, cctx.String("pool-cask-num"))
-			if err != nil {
-				return err
-			}
-		}
-		startServer()
+		startServer(cctx)
 		return nil
 	},
 }

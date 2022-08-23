@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/pool"
+	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/ipfs/go-merkledag"
+	ufsio "github.com/ipfs/go-unixfs/io"
 	"io"
-	"io/ioutil"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -19,40 +20,32 @@ var log = logging.Logger("store")
 
 //StorageSys store sys
 type StorageSys struct {
-	Db      *uleveldb.ULevelDB
-	DagPool pool.DAGPool
+	Db         *uleveldb.ULevelDB
+	DagPool    ipld.DAGService
+	CidBuilder cid.Builder
 }
 
-const (
-	PoolStorePath        = "POOL_STORE_PATH"
-	PoolBatchNum         = "POOL_BATCH_NUM"
-	PoolCaskNum          = "POOL_CASK_NUM"
-	defaultPoolStorePath = "./"
-	defaultPoolBatchNum  = 4
-	defaultPoolCaskNum   = 2
-)
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
 
 //StoreObject store object
-func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser) (ObjectInfo, error) {
+func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64) (ObjectInfo, error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	cid, err := s.DagPool.Add(ctx, reader)
+	node, err := dagpoolcli.BalanceNode(reader, s.DagPool, s.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
-	all, err := ioutil.ReadAll(reader)
 	meta := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
 		ModTime:          time.Now().UTC(),
-		Size:             int64(len(all)),
+		Size:             size,
 		IsDir:            false,
-		ETag:             cid,
+		ETag:             node.Cid().String(),
 		VersionID:        "",
-		IsLatest:         false,
+		IsLatest:         true,
 		DeleteMarker:     false,
 		ContentType:      "application/x-msdownload",
 		ContentEncoding:  "",
@@ -69,7 +62,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 }
 
 //GetObject Get object
-func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
+func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, ufsio.DagReader, error) {
 	meta := ObjectInfo{}
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
@@ -78,7 +71,18 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	reader, err := s.DagPool.Get(ctx, meta.ETag)
+	cid, err := cid.Decode(meta.ETag)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
+	dagNode, err := s.DagPool.Get(ctx, cid)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
+	reader, err := ufsio.NewDagReader(ctx, dagNode, s.DagPool)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
 	return meta, reader, nil
 }
 
@@ -96,9 +100,25 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 }
 
 //DeleteObject Get object
-func (s *StorageSys) DeleteObject(user, bucket, object string) error {
+func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object string) error {
 	//err := s.dagPool.DelFile(bucket, object)
-	err := s.Db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
+	meta := ObjectInfo{}
+	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	if err != nil {
+		return err
+	}
+	cid, err := cid.Decode(meta.ETag)
+	if err != nil {
+		return err
+	}
+	err = s.DagPool.Remove(ctx, cid)
+	if err != nil {
+		return err
+	}
+	err = s.Db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
 	if err != nil {
 		return err
 	}
@@ -151,7 +171,7 @@ type ListObjectsV2Info struct {
 
 // ListObjectsV2 list objects
 //todo use more param
-func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, prefix string, token string, delimiter string, keys int, owner bool, after string) (ListObjectsV2Info, error) {
+func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, prefix string, token string, delimiter string, keys int, owner bool, after string) (ListObjectsV2Info, error) {
 	objects, err := s.ListObject(user, bucket)
 	var o ListObjectsV2Info
 	if err != nil {
@@ -159,7 +179,9 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 	}
 	count := 0
 	for _, v := range objects {
-		if v.Name != after {
+		if after == "" {
+
+		} else if v.Name != after {
 			continue
 		}
 		if count > keys {
@@ -167,39 +189,17 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket, user string, pre
 		}
 		count++
 		o.ContinuationToken = token
-		o.IsTruncated = true
 		o.Objects = append(o.Objects, v)
 	}
 	return o, nil
 }
 
-//Init storage sys
-func (s *StorageSys) Init() error {
-	s.Db = uleveldb.DBClient
-	batchNum, err := strconv.Atoi(os.Getenv(PoolBatchNum))
-	if err != nil {
-		//log.Errorf("get PoolBatchNum err %v,use default",err)
-		batchNum = defaultPoolBatchNum
+//NewStorageSys new a storage sys
+func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
+	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
+	return &StorageSys{
+		Db:         db,
+		DagPool:    dagService,
+		CidBuilder: cidBuilder,
 	}
-	caskNum, err := strconv.Atoi(os.Getenv(PoolCaskNum))
-	if err != nil {
-		//log.Errorf("get PoolCaskNum err %v,use default",err)
-		caskNum = defaultPoolCaskNum
-	}
-	var path string
-	if os.Getenv(PoolStorePath) == "" {
-		//log.Errorf("get PoolStorePath err %v,use default",err)
-		path = defaultPoolStorePath
-	} else {
-		path = os.Getenv(PoolStorePath)
-	}
-	s.DagPool, err = pool.NewSimplePool(&pool.SimplePoolConfig{
-		StorePath: path,
-		BatchNum:  batchNum,
-		CaskNum:   caskNum,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }

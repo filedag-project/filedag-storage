@@ -9,9 +9,9 @@ import (
 )
 
 func TestLoadUsers(t *testing.T) {
-	uleveldb.DBClient, _ = uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
-	var iamSys IdentityAMSys
-	iamSys.Init()
+	db, _ := uleveldb.OpenDb(utils.TmpDirPath(&testing.T{}))
+	iamSys := NewIdentityAMSys(db)
+
 	//add user
 	//err := iamSys.AddUser(context.Background(), "test1", "test12345")
 	//if err != nil {

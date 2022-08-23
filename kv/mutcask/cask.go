@@ -319,7 +319,8 @@ func (c *Cask) dowrite(act *action) {
 				err = ErrReadHintBeyondRange
 				return
 			}
-			_, err = c.hintLog.WriteAt([]byte{HintDeletedFlag}, int64(hint.KOffset))
+			//_, err = c.hintLog.WriteAt([]byte{HintDeletedFlag}, int64(hint.KOffset))
+			_, err = c.hintLog.WriteAt([]byte{byte(0)}, int64(hint.KOffset))
 			if err != nil {
 				return
 			}
