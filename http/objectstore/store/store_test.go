@@ -45,7 +45,7 @@ func TestStorageSys_Object(t *testing.T) {
 
 func TestStorageSys_Pin(t *testing.T) {
 
-	poolCli, err := client.NewPoolClient("127.0.0.1:9985", "pool", "pool123")
+	poolCli, err := client.NewPoolClient("127.0.0.1:9985", "pool", "pool123", true)
 	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
 	db, _ := uleveldb.OpenDb(t.TempDir())
 	s := NewStorageSys(dagServ, poolCli, db)

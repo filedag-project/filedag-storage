@@ -33,11 +33,6 @@ type dagPoolService struct {
 	db       *uleveldb.ULevelDB
 }
 
-func (d *dagPoolService) NeedPin(username string) bool {
-	//todo more check
-	return d.iam.IsAdmin(username)
-}
-
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
 func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
@@ -80,7 +75,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 }
 
 // Add adds a node to the dagPoolService, storing the block in the BlockService
-func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user string, password string) error {
+func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user string, password string, pin bool) error {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
 	}
@@ -95,7 +90,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 			return err
 		}
 	}
-	err := d.refer.AddReference(block.Cid().String(), d.NeedPin(user))
+	err := d.refer.AddReference(block.Cid().String(), pin)
 	if err != nil {
 		return err
 	}
@@ -128,13 +123,13 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 }
 
 //Remove remove block from DAGPool
-func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string) error {
+func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string, unpin bool) error {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
 	}
 	d.gc.Stop()
 	if d.refer.HasReference(c.String()) {
-		err := d.refer.RemoveReference(c.String(), d.NeedPin(user))
+		err := d.refer.RemoveReference(c.String(), unpin)
 		if err != nil {
 			return err
 		}

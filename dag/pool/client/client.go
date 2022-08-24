@@ -36,13 +36,14 @@ type DataPin interface {
 }
 
 type dagPoolClient struct {
-	DPClient proto.DagPoolClient
-	Conn     *grpc.ClientConn
-	User     *proto.PoolUser
+	DPClient  proto.DagPoolClient
+	Conn      *grpc.ClientConn
+	User      *proto.PoolUser
+	enablePin bool
 }
 
 //NewPoolClient new a dagPoolClient
-func NewPoolClient(addr, user, password string) (*dagPoolClient, error) {
+func NewPoolClient(addr, user, password string, enablePin bool) (*dagPoolClient, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		log.Errorf("did not connect: %v", err)
@@ -56,6 +57,7 @@ func NewPoolClient(addr, user, password string) (*dagPoolClient, error) {
 			User:     user,
 			Password: password,
 		},
+		enablePin: enablePin,
 	}, nil
 }
 
@@ -67,8 +69,10 @@ func (p *dagPoolClient) Close(ctx context.Context) {
 //DeleteBlock delete a block
 func (p *dagPoolClient) DeleteBlock(ctx context.Context, cid cid.Cid) error {
 	reply, err := p.DPClient.Remove(ctx, &proto.RemoveReq{
-		Cid:  cid.String(),
-		User: p.User})
+		Cid:   cid.String(),
+		User:  p.User,
+		Unpin: p.enablePin,
+	})
 	if err != nil {
 		return err
 	}
@@ -92,7 +96,10 @@ func (p *dagPoolClient) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 //Get the block with the given key, or nil if not found
 func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	log.Debugf(cid.String())
-	get, err := p.DPClient.Get(ctx, &proto.GetReq{Cid: cid.String(), User: p.User})
+	get, err := p.DPClient.Get(ctx, &proto.GetReq{
+		Cid:  cid.String(),
+		User: p.User,
+	})
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil, format.ErrNotFound{Cid: cid}
@@ -104,7 +111,10 @@ func (p *dagPoolClient) Get(ctx context.Context, cid cid.Cid) (blocks.Block, err
 
 //GetSize get the size of the block with the given key
 func (p *dagPoolClient) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
-	reply, err := p.DPClient.GetSize(ctx, &proto.GetSizeReq{Cid: cid.String(), User: p.User})
+	reply, err := p.DPClient.GetSize(ctx, &proto.GetSizeReq{
+		Cid:  cid.String(),
+		User: p.User,
+	})
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return 0, format.ErrNotFound{Cid: cid}
@@ -116,7 +126,11 @@ func (p *dagPoolClient) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 
 //Put  a block
 func (p *dagPoolClient) Put(ctx context.Context, blk blocks.Block) error {
-	_, err := p.DPClient.Add(ctx, &proto.AddReq{Block: blk.RawData(), User: p.User})
+	_, err := p.DPClient.Add(ctx, &proto.AddReq{
+		Block: blk.RawData(),
+		User:  p.User,
+		Pin:   p.enablePin,
+	})
 	if err != nil {
 		return err
 	}

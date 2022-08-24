@@ -60,7 +60,7 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 	authSys := iam.NewAuthSys(db, cred)
 	router := mux.NewRouter()
 	iamapi.NewIamApiServer(router, authSys)
-	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass)
+	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass, true)
 	if err != nil {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}

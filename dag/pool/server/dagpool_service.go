@@ -26,7 +26,7 @@ type DagPoolServer struct {
 //Add is used to add a block to the dag pool server
 func (s *DagPoolServer) Add(ctx context.Context, in *proto.AddReq) (*proto.AddReply, error) {
 	data := blocks.NewBlock(in.GetBlock())
-	err := s.DagPool.Add(ctx, data, in.User.User, in.User.Password)
+	err := s.DagPool.Add(ctx, data, in.User.User, in.User.Password, in.Pin)
 	if err != nil {
 		return &proto.AddReply{Cid: cid.Undef.String()}, err
 	}
@@ -65,7 +65,7 @@ func (s *DagPoolServer) Remove(ctx context.Context, in *proto.RemoveReq) (*proto
 	if err != nil {
 		return &proto.RemoveReply{Message: ""}, err
 	}
-	err = s.DagPool.Remove(ctx, c, in.User.User, in.User.Password)
+	err = s.DagPool.Remove(ctx, c, in.User.User, in.User.Password, in.Unpin)
 	if err != nil {
 		return &proto.RemoveReply{Message: ""}, err
 	}

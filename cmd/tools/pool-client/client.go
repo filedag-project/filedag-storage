@@ -57,7 +57,7 @@ var addBlock = &cli.Command{
 			log.Errorf("you must give the filepath")
 			return xerrors.Errorf("you must give the filepath")
 		}
-		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, true)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -122,7 +122,7 @@ var getBlock = &cli.Command{
 			log.Errorf("you must give the cid")
 			return xerrors.Errorf("you must give the cid")
 		}
-		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, true)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -186,7 +186,7 @@ var removeBlock = &cli.Command{
 			log.Errorf("you must give the cid")
 			return xerrors.Errorf("you must give the cid")
 		}
-		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, true)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -282,7 +282,7 @@ var addUser = &cli.Command{
 			log.Errorf("you must give the policy")
 			return xerrors.Errorf("you must give the policy")
 		}
-		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -350,7 +350,7 @@ var removeUser = &cli.Command{
 			return xerrors.Errorf("you must give the username")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -415,7 +415,7 @@ var getUser = &cli.Command{
 			return xerrors.Errorf("you must give the username")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -510,7 +510,7 @@ var updateUser = &cli.Command{
 			log.Errorf("you must give the policy")
 			return xerrors.Errorf("you must give the policy")
 		}
-		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+		poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err

@@ -80,7 +80,7 @@ var createUser = &cli.Command{
 		if !upolicy.CheckValid(policy) {
 			return xerrors.Errorf("the policy is invalid")
 		}
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -132,7 +132,7 @@ var queryUser = &cli.Command{
 			return xerrors.Errorf("you must give the username")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -208,7 +208,7 @@ var updateUser = &cli.Command{
 			return xerrors.Errorf("the policy is invalid")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -260,7 +260,7 @@ var removeUser = &cli.Command{
 			return xerrors.Errorf("you must give the username")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err

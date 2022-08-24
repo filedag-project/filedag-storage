@@ -64,7 +64,7 @@ func startServer(cctx *cli.Context) {
 	router := mux.NewRouter()
 	authSys := iam.NewAuthSys(db, cred)
 	iamapi.NewIamApiServer(router, authSys)
-	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPassword)
+	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPassword, true)
 	if err != nil {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}

@@ -27,6 +27,7 @@ message PoolUser {
 message AddReq {
   bytes block = 1;
   PoolUser user = 2;
+  bool pin = 3;
 }
 
 message AddReply {
@@ -54,6 +55,7 @@ message GetSizeReply {
 message RemoveReq {
   string cid = 1;
   PoolUser user = 2;
+  bool unpin = 3;
 }
 
 message RemoveReply {
