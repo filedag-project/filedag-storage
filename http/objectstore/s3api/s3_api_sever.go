@@ -1,7 +1,6 @@
 package s3api
 
 import (
-	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
@@ -91,16 +90,13 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	}
 	// ListBuckets
 	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
-	apiRouter.Methods(http.MethodPost).Path("/pin").HandlerFunc(s3a.PinHandler).Queries("bucket", "{bucket:.*}", "object", "{object:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/unpin").HandlerFunc(s3a.UnPinHandler).Queries("bucket", "{bucket:.*}", "object", "{object:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/ispin").HandlerFunc(s3a.PinHandler).Queries("bucket", "{bucket:.*}", "object", "{object:.*}")
 }
 
 //NewS3Server Start a S3Server
-func NewS3Server(router *mux.Router, dagService ipld.DAGService, pin client.DataPin, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
+func NewS3Server(router *mux.Router, dagService ipld.DAGService, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
 	s3server := &s3ApiServer{
 		authSys: authSys,
-		store:   store.NewStorageSys(dagService, pin, db),
+		store:   store.NewStorageSys(dagService, db),
 		bmSys:   store.NewBucketMetadataSys(db),
 	}
 	s3server.registerS3Router(router)

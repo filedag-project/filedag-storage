@@ -1,7 +1,6 @@
 package s3api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
@@ -42,10 +41,8 @@ func TestMain(m *testing.M) {
 	iamapi.NewIamApiServer(router, authSys)
 	poolCli, done := client.NewMockPoolClient(&testing.T{})
 	defer done()
-	pinCli, done := client.NewMockPinClient(&testing.T{})
-	defer done()
 	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
-	NewS3Server(router, dagServ, pinCli, authSys, db)
+	NewS3Server(router, dagServ, authSys, db)
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {
@@ -54,47 +51,6 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	// Let the server process the mock request and record the returned response content
 	router.ServeHTTP(w, r)
 	return w
-}
-func TestS3ApiServer_PinHandler(t *testing.T) {
-	bucketName := "/testbucketputpin"
-	objectName := "/objecttestpin"
-	// test cases with inputs and expected result for Bucket.
-	testCases := []struct {
-		bucketName string
-		objectName string
-		accessKey  string
-		secretKey  string
-		// expected output.
-		expectedRespStatus int // expected response status body.
-	}{
-		// Test case - 1.
-		// Fetching the entire Bucket and validating its contents.
-		{
-			bucketName:         "testbucketputpin",
-			objectName:         "objecttestpin",
-			accessKey:          DefaultTestAccessKey,
-			secretKey:          DefaultTestSecretKey,
-			expectedRespStatus: http.StatusOK,
-		},
-	}
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	a := reqTest(reqPutBucket)
-	fmt.Println("putbucket:", a.Code)
-	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	// Add test case specific headers to the request.
-	reqTest(reqputObject)
-	// Iterating over the cases, fetching the object validating the response.
-	url := "/pin"
-	for i, testCase := range testCases {
-		// mock an HTTP request
-		reqPinBucket := utils.MustNewSignedV4Request(http.MethodPost, url+"?bucket="+testCase.bucketName+"&object="+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
-		pinresult := reqTest(reqPinBucket)
-		if pinresult.Code != testCase.expectedRespStatus {
-			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, pinresult.Code)
-		}
-	}
-
 }
 
 func TestS3ApiServer_PutBucketHandler(t *testing.T) {

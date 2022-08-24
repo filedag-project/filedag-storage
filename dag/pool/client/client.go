@@ -17,22 +17,14 @@ var log = logging.Logger("pool-client")
 
 var _ blockstore.Blockstore = (*dagPoolClient)(nil)
 var _ PoolClient = (*dagPoolClient)(nil)
-var _ DataPin = &dagPoolClient{}
 
-//go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient,DataPin
+//go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_poolclient.go -package=mocks . PoolClient
 
 //PoolClient is a DAGService interface
 type PoolClient interface {
 	blockstore.Blockstore
 
 	Close(ctx context.Context)
-}
-
-//DataPin is a pin interface
-type DataPin interface {
-	Pin(ctx context.Context, cid cid.Cid) error
-	UnPin(ctx context.Context, cid cid.Cid) error
-	IsPin(ctx context.Context, cid cid.Cid) (bool, error)
 }
 
 type dagPoolClient struct {
@@ -202,40 +194,4 @@ func (p *dagPoolClient) RemoveUser(ctx context.Context, username string) error {
 		User:     p.User,
 	})
 	return err
-}
-
-//Pin pin a node
-func (p dagPoolClient) Pin(ctx context.Context, cid cid.Cid) error {
-	reply, err := p.DPClient.Pin(ctx, &proto.PinReq{
-		Cid:  cid.String(),
-		User: p.User})
-	if err != nil {
-		return err
-	}
-	log.Debugf("pin sucess %v ", reply.Message)
-	return err
-}
-
-//UnPin unpin a node
-func (p dagPoolClient) UnPin(ctx context.Context, cid cid.Cid) error {
-	reply, err := p.DPClient.UnPin(ctx, &proto.UnPinReq{
-		Cid:  cid.String(),
-		User: p.User})
-	if err != nil {
-		return err
-	}
-	log.Debugf("unpin sucess %v ", reply.Message)
-	return err
-}
-
-//IsPin check if the cid is pinned
-func (p dagPoolClient) IsPin(ctx context.Context, cid cid.Cid) (bool, error) {
-	reply, err := p.DPClient.IsPin(ctx, &proto.IsPinReq{
-		Cid:  cid.String(),
-		User: p.User})
-	if err != nil {
-		return false, err
-	}
-	log.Debugf("ispin sucess %v ", reply.Is)
-	return reply.Is, err
 }

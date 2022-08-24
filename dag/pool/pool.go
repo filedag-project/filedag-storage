@@ -22,6 +22,4 @@ type DagPool interface {
 	QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error)
 	UpdateUser(uUser dpuser.DagPoolUser, user string, password string) error
 	Close() error
-	UnPin(ctx context.Context, c cid.Cid, user string, password string) error
-	Pin(ctx context.Context, c cid.Cid, user string, password string) error
 }

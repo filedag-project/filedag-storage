@@ -22,7 +22,6 @@ var log = logging.Logger("store")
 type StorageSys struct {
 	Db         *uleveldb.ULevelDB
 	DagPool    ipld.DAGService
-	Pin        dagpoolcli.DataPin
 	CidBuilder cid.Builder
 }
 
@@ -141,66 +140,6 @@ func (s *StorageSys) ListObject(user, bucket string) ([]ObjectInfo, error) {
 	return objs, nil
 }
 
-func (s *StorageSys) PinObject(ctx context.Context, user, bucket, object string) error {
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
-	meta := ObjectInfo{}
-	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
-	if err != nil {
-		return err
-	}
-	cid, err := cid.Decode(meta.ETag)
-	if err != nil {
-		return err
-	}
-	err = s.Pin.Pin(ctx, cid)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *StorageSys) UnPinObject(ctx context.Context, user, bucket, object string) error {
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
-	meta := ObjectInfo{}
-	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
-	if err != nil {
-		return err
-	}
-	cid, err := cid.Decode(meta.ETag)
-	if err != nil {
-		return err
-	}
-	err = s.Pin.UnPin(ctx, cid)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *StorageSys) IsPinObject(ctx context.Context, user, bucket, object string) (bool, error) {
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
-	meta := ObjectInfo{}
-	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
-	if err != nil {
-		return false, err
-	}
-	cid, err := cid.Decode(meta.ETag)
-	if err != nil {
-		return false, err
-	}
-	is, err := s.Pin.IsPin(ctx, cid)
-	if err != nil {
-		return false, err
-	}
-	return is, nil
-}
-
 //MkBucket store object
 func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
 	return nil
@@ -256,12 +195,11 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, pre
 }
 
 //NewStorageSys new a storage sys
-func NewStorageSys(dagService ipld.DAGService, pin dagpoolcli.DataPin, db *uleveldb.ULevelDB) *StorageSys {
+func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
 	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
 	return &StorageSys{
 		Db:         db,
 		DagPool:    dagService,
-		Pin:        pin,
 		CidBuilder: cidBuilder,
 	}
 }

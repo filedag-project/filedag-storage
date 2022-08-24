@@ -20,16 +20,3 @@ func NewMockPoolClient(t *testing.T) (PoolClient, func()) {
 	m.EXPECT().DeleteBlock(gomock.Any(), gomock.AssignableToTypeOf(cid)).Return(nil).AnyTimes()
 	return m, ctrl.Finish
 }
-
-//NewMockPinClient creates a mock of PinClient
-func NewMockPinClient(t *testing.T) (DataPin, func()) {
-	ctrl := gomock.NewController(t)
-	m := mocks.NewMockDataPin(ctrl)
-	node := merkledag.NodeWithData([]byte("\b\u0002\u0012\a1234567\u0018\a"))
-	cid := node.Cid()
-	var is bool
-	m.EXPECT().Pin(gomock.Any(), gomock.AssignableToTypeOf(cid)).Return(nil).AnyTimes()
-	m.EXPECT().UnPin(gomock.Any(), gomock.AssignableToTypeOf(cid)).Return(nil).AnyTimes()
-	m.EXPECT().IsPin(gomock.Any(), gomock.AssignableToTypeOf(cid)).Return(is, nil).AnyTimes()
-	return m, ctrl.Finish
-}
