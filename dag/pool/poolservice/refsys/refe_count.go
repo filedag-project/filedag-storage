@@ -1,4 +1,4 @@
-package refSys
+package refsys
 
 import (
 	"errors"
@@ -15,10 +15,10 @@ var log = logging.Logger("refer-count")
 
 //ReferSys reference sys
 type ReferSys struct {
-	cacheMu         sync.RWMutex
-	storeMu         sync.RWMutex
-	db              *uleveldb.ULevelDB
-	cacheExpireTime time.Duration
+	cacheMu      sync.RWMutex
+	storeMu      sync.RWMutex
+	db           *uleveldb.ULevelDB
+	cacheTimeout time.Duration
 }
 
 const dagPoolReferCache = "dagPoolReferCache/"
@@ -129,7 +129,7 @@ func (i *ReferSys) QueryAllCacheRef() ([]cid.Cid, error) {
 	for k, v := range all {
 		tmp, _ := strconv.ParseInt(v, 10, 64)
 
-		if time.Now().After(time.Unix(tmp, 0).Add(i.cacheExpireTime)) {
+		if time.Now().After(time.Unix(tmp, 0).Add(i.cacheTimeout)) {
 			c, _ := cid.Decode(strings.Split(k, "/")[1])
 			m = append(m, c)
 		}
@@ -174,6 +174,6 @@ func (i *ReferSys) RemoveRecord(c string, pin bool) error {
 }
 
 //NewReferSys new a reference sys
-func NewReferSys(db *uleveldb.ULevelDB, cacheExpireTime time.Duration) *ReferSys {
-	return &ReferSys{db: db, cacheExpireTime: cacheExpireTime}
+func NewReferSys(db *uleveldb.ULevelDB, cacheTimeout time.Duration) *ReferSys {
+	return &ReferSys{db: db, cacheTimeout: cacheTimeout}
 }

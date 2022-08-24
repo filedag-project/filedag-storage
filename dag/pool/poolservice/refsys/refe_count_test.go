@@ -1,4 +1,4 @@
-package refSys
+package refsys
 
 import (
 	"fmt"

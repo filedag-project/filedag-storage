@@ -82,6 +82,7 @@ func (l *ULevelDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.
 }
 
 //ReadAll read all key value
+// TODO: return channel to improve performance
 func (l *ULevelDB) ReadAll(prefix string) (map[string]string, error) {
 	iter := l.NewIterator(nil, nil)
 	m := make(map[string]string)

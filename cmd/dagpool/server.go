@@ -60,13 +60,13 @@ var startCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "gc-period",
-			Usage: "set gc period,such as 300ms, -1.5h or 2h45m",
+			Usage: "set gc period, such as 1.5h or 2h45m",
 			Value: "1h",
 		},
 		&cli.StringFlag{
-			Name:  "cache-expire-time",
-			Usage: "set cache expire time,such as 300ms, -1.5h or 2h45m",
-			Value: "1m",
+			Name:  "cache-timeout",
+			Usage: "set cache timeout, such as 1.5h or 2h45m",
+			Value: "15m",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -145,17 +145,17 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 	}
 	cfg.RootPassword = cctx.String("root-password")
 	gcPeriod := cctx.String("gc-period")
-	cacheExpireTime := cctx.String("cache-expire-time")
+	cacheTimeout := cctx.String("cache-timeout")
 	gcPer, err := time.ParseDuration(gcPeriod)
 	if err != nil {
 		return config.PoolConfig{}, err
 	}
-	cacheExp, err := time.ParseDuration(cacheExpireTime)
+	cacheExp, err := time.ParseDuration(cacheTimeout)
 	if err != nil {
 		return config.PoolConfig{}, err
 	}
 	cfg.GcPeriod = gcPer
-	cfg.CacheExpireTime = cacheExp
+	cfg.CacheTimeout = cacheExp
 	nodeConfigPath := cctx.String("config")
 
 	var nodeConfigs []config.DagNodeConfig

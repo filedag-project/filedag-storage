@@ -9,7 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dnm"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
-	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/refSys"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/refsys"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -27,7 +27,7 @@ var _ pool.DagPool = &dagPoolService{}
 type dagPoolService struct {
 	dagNodes map[string]*dagnode.DagNode
 	iam      *dpuser.IdentityUserSys
-	refer    *refSys.ReferSys
+	refer    *refsys.ReferSys
 	nrSys    *dnm.NodeRecordSys
 	gc       *gc
 	db       *uleveldb.ULevelDB
@@ -48,7 +48,7 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := refSys.NewReferSys(db, cfg.CacheExpireTime)
+	r := refsys.NewReferSys(db, cfg.CacheTimeout)
 	dn := make(map[string]*dagnode.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
