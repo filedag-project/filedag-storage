@@ -65,7 +65,7 @@ func (b *badgerDb) Size(key string) (int, error) {
 	return size, err
 }
 
-func (b *badgerDb) AllKeysChan(ctx context.Context) (chan string, error) {
+func (b *badgerDb) AllKeysChan(ctx context.Context) (<-chan string, error) {
 	kc := make(chan string)
 	go func(ctx context.Context, b *badgerDb) {
 		defer close(kc)

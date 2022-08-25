@@ -179,7 +179,7 @@ func (m *mutcask) Close() error {
 	m.close()
 	return nil
 }
-func (m *mutcask) AllKeysChan(ctx context.Context) (chan string, error) {
+func (m *mutcask) AllKeysChan(ctx context.Context) (<-chan string, error) {
 	kc := make(chan string)
 	go func(ctx context.Context, m *mutcask) {
 		defer close(kc)
