@@ -1,0 +1,63 @@
+package reference
+
+import (
+	"context"
+	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/syndtr/goleveldb/leveldb"
+	"strings"
+)
+
+const CachePrefix = "cache/"
+
+type CacheSet struct {
+	db *uleveldb.ULevelDB
+}
+
+func NewCacheSet(db *uleveldb.ULevelDB) *CacheSet {
+	return &CacheSet{db: db}
+}
+
+func (s *CacheSet) Add(key string) error {
+	exist := true
+	return s.db.Put(CachePrefix+key, &exist)
+}
+
+func (s *CacheSet) Has(key string) (bool, error) {
+	var exist bool
+	err := s.db.Get(CachePrefix+key, &exist)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (s *CacheSet) AllKeysChan(ctx context.Context) (<-chan string, error) {
+	all, err := s.db.ReadAll(CachePrefix)
+	if err != nil {
+		return nil, err
+	}
+	kc := make(chan string)
+	go func() {
+		defer close(kc)
+		for k, _ := range all {
+			strs := strings.Split(k, "/")
+			if len(strs) < 2 {
+				return
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case kc <- strs[1]:
+			}
+		}
+	}()
+
+	return kc, nil
+}
+
+func (s *CacheSet) Remove(key string) error {
+	return s.db.Delete(CachePrefix + key)
+}

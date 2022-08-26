@@ -60,13 +60,8 @@ var startCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "gc-period",
-			Usage: "set gc period, such as 1.5h or 2h45m",
+			Usage: "set GC period, such as 1.5h or 2h45m",
 			Value: "1h",
-		},
-		&cli.StringFlag{
-			Name:  "cache-timeout",
-			Usage: "set cache timeout, such as 1.5h or 2h45m",
-			Value: "15m",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -102,19 +97,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 			log.Fatalf("failed to serve: %v", err)
 		}
 	}()
-	ctx, cancel := context.WithCancel(ctx)
-	go func() {
-		err := service.Gc(ctx)
-		if err != nil {
-			return
-		}
-	}()
-	go func() {
-		err := service.StoreGc(ctx)
-		if err != nil {
-			return
-		}
-	}()
+	go service.GC(ctx)
 
 	// Wait for interrupt signal to gracefully shutdown the server.
 	quit := make(chan os.Signal, 1)
@@ -123,7 +106,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	cancel()
+
 	log.Info("Shutdown Server ...")
 
 	s.GracefulStop()
@@ -145,17 +128,11 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 	}
 	cfg.RootPassword = cctx.String("root-password")
 	gcPeriod := cctx.String("gc-period")
-	cacheTimeout := cctx.String("cache-timeout")
 	gcPer, err := time.ParseDuration(gcPeriod)
 	if err != nil {
 		return config.PoolConfig{}, err
 	}
-	cacheExp, err := time.ParseDuration(cacheTimeout)
-	if err != nil {
-		return config.PoolConfig{}, err
-	}
 	cfg.GcPeriod = gcPer
-	cfg.CacheTimeout = cacheExp
 	nodeConfigPath := cctx.String("config")
 
 	var nodeConfigs []config.DagNodeConfig

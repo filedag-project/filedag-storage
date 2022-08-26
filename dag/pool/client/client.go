@@ -4,8 +4,10 @@ import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	offline "github.com/ipfs/go-ipfs-exchange-offline"
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
@@ -32,6 +34,10 @@ type dagPoolClient struct {
 	Conn      *grpc.ClientConn
 	User      *proto.PoolUser
 	enablePin bool
+}
+
+func NewBlockService(blkstore blockstore.Blockstore) blockservice.BlockService {
+	return blockservice.NewWriteThrough(blkstore, offline.Exchange(blkstore))
 }
 
 //NewPoolClient new a dagPoolClient

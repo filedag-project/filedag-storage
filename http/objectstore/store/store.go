@@ -114,7 +114,8 @@ func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object stri
 	if err != nil {
 		return err
 	}
-	err = s.DagPool.Remove(ctx, cid)
+
+	err = dagpoolcli.RemoveDAG(ctx, s.DagPool, cid)
 	if err != nil {
 		return err
 	}

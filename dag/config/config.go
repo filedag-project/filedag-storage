@@ -10,7 +10,6 @@ type PoolConfig struct {
 	RootUser      string          `json:"root_user"`
 	RootPassword  string          `json:"root_password"`
 	GcPeriod      time.Duration   `json:"gc_period"`
-	CacheTimeout  time.Duration   `json:"cache_timeout"`
 }
 
 //DagNodeConfig is the configuration for a dag node

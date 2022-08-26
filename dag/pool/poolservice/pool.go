@@ -9,14 +9,14 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dnm"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
-	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/refsys"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/reference"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
-	ipldlegacy "github.com/ipfs/go-ipld-legacy"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
+	"time"
 )
 
 var log = logging.Logger("dag-pool")
@@ -27,10 +27,14 @@ var _ pool.DagPool = &dagPoolService{}
 type dagPoolService struct {
 	dagNodes map[string]*dagnode.DagNode
 	iam      *dpuser.IdentityUserSys
-	refer    *refsys.ReferSys
 	nrSys    *dnm.NodeRecordSys
-	gc       *gc
 	db       *uleveldb.ULevelDB
+
+	refCounter *reference.RefCounter
+	cacheSet   *reference.CacheSet
+
+	gcControl *GcControl
+	gcPeriod  time.Duration
 }
 
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
@@ -43,7 +47,8 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := refsys.NewReferSys(db, cfg.CacheTimeout)
+	cacheSet := reference.NewCacheSet(db)
+	refCounter := reference.NewRefCounter(db, cacheSet)
 	dn := make(map[string]*dagnode.DagNode)
 	var nrs = dnm.NewRecordSys(db)
 	for num, c := range cfg.DagNodeConfig {
@@ -60,17 +65,14 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 		dn[name] = bs
 	}
 	return &dagPoolService{
-		dagNodes: dn,
-		iam:      i,
-		refer:    r,
-		nrSys:    nrs,
-		gc: &gc{
-			stopCacheCh: make(chan struct{}),
-			stopStoreCh: make(chan struct{}),
-			normalCh:    make(chan struct{}),
-			gcPeriod:    cfg.GcPeriod,
-		},
-		db: db,
+		dagNodes:   dn,
+		iam:        i,
+		nrSys:      nrs,
+		db:         db,
+		refCounter: refCounter,
+		cacheSet:   cacheSet,
+		gcControl:  NewGcControl(),
+		gcPeriod:   cfg.GcPeriod,
 	}, nil
 }
 
@@ -79,20 +81,27 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
 	}
-	d.gc.Stop()
-	if !d.refer.HasReference(block.Cid().String()) {
-		useNode, err := d.choseDagNode(ctx, block.Cid())
+
+	key := block.Cid().String()
+	addBlock := func() error {
+		selNode, err := d.choseDagNode(ctx, block.Cid())
 		if err != nil {
 			return err
 		}
-		err = useNode.Put(ctx, block)
-		if err != nil {
-			return err
-		}
+		return selNode.Put(ctx, block)
 	}
-	err := d.refer.AddReference(block.Cid().String(), pin)
-	if err != nil {
-		return err
+
+	if pin {
+		d.InterruptGC()
+		return d.refCounter.IncrOrCreate(key, addBlock)
+	}
+
+	has, err := d.Has(key)
+	if !has {
+		if err = addBlock(); err != nil {
+			return err
+		}
+		return d.cacheSet.Add(key)
 	}
 	return nil
 }
@@ -102,11 +111,17 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return nil, upolicy.AccessDenied
 	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	if !d.refer.HasReference(c.String()) {
+
+	key := c.String()
+	if has, err := d.Has(key); err != nil {
+		return nil, err
+	} else if !has {
 		return nil, format.ErrNotFound{Cid: c}
 	}
+
 	getNode, err := d.getDagNodeInfo(ctx, c)
 	if err != nil {
 		return nil, err
@@ -127,20 +142,10 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
 	}
-	d.gc.Stop()
-	if d.refer.HasReference(c.String()) {
-		err := d.refer.RemoveReference(c.String(), unpin)
-		if err != nil {
-			return err
-		}
+
+	if unpin {
+		return d.refCounter.Decr(c.String())
 	}
-	//if reference == 0 {
-	//	getNode, err := d.GetNode(ctx, c)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	go getNode.DeleteBlock(ctx, c)
-	//}
 	return nil
 }
 
@@ -149,12 +154,16 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return 0, upolicy.AccessDenied
 	}
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	has := d.refer.HasReference(c.String())
-	if !has {
+
+	key := c.String()
+	if has, err := d.Has(key); err != nil {
+		return 0, err
+	} else if !has {
 		return 0, format.ErrNotFound{Cid: c}
 	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	getNode, err := d.getDagNodeInfo(ctx, c)
 	if err != nil {
 		return 0, err
@@ -235,30 +244,13 @@ func (d *dagPoolService) Close() error {
 	return d.db.Close()
 }
 
-//GetLinks get links from DAGPool
-func (d *dagPoolService) GetLinks(ctx context.Context, ci cid.Cid) ([]*format.Link, error) {
-	if d == nil {
-		return nil, fmt.Errorf("Pool is nil")
+func (d *dagPoolService) Has(key string) (bool, error) {
+	// is pinned?
+	if has, err := d.refCounter.Has(key); err != nil {
+		return false, err
+	} else if has {
+		return true, nil
 	}
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	if !d.refer.HasReference(ci.String()) {
-		return nil, format.ErrNotFound{Cid: ci}
-	}
-	getNode, err := d.getDagNodeInfo(ctx, ci)
-	if err != nil {
-		return nil, err
-	}
-	b, err := getNode.Get(ctx, ci)
-	if err != nil {
-		if format.IsNotFound(err) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("failed to get block for %s: %v", ci, err)
-	}
-	decodeNode, err := ipldlegacy.DecodeNode(ctx, b)
-	if err != nil {
-		return nil, err
-	}
-	return decodeNode.Links(), nil
+	// is cached?
+	return d.cacheSet.Has(key)
 }
