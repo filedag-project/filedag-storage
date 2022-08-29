@@ -27,8 +27,7 @@ func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode api_er
 
 	apiError := api_errors.GetAPIError(errorCode)
 	errorResponse := getRESTErrorResponse(apiError, r.URL.Path, bucket, object)
-	encodedErrorResponse := encodeXMLResponse(errorResponse)
-	writeResponse(w, r, apiError.HTTPStatusCode, encodedErrorResponse, mimeXML)
+	WriteXMLResponse(w, r, apiError.HTTPStatusCode, errorResponse)
 }
 func getRESTErrorResponse(err api_errors.APIError, resource string, bucket, object string) api_errors.RESTErrorResponse {
 	return api_errors.RESTErrorResponse{

@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
+	"github.com/filedag-project/filedag-storage/http/objectstore/datatypes"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
@@ -14,6 +15,7 @@ import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/etag"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils/hash"
 	"github.com/gorilla/mux"
+	"golang.org/x/xerrors"
 	"io"
 	"net/http"
 	"net/url"
@@ -164,7 +166,11 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	objInfo, reader, err := s3a.store.GetObject(r.Context(), userName, bucket, object)
 	if err != nil {
 		log.Errorf("GetObjectHandler GetObject err:%v", err)
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+		if xerrors.Is(err, store.ErrObjectNotFound) {
+			response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
+		} else {
+			response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+		}
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
@@ -245,6 +251,156 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 	}
 	setPutObjHeaders(w, objInfo, true)
 	response.WriteSuccessNoContent(w)
+}
+
+// DeleteMultipleObjectsHandler - Delete multiple objects
+func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	bucket, _ := getBucketAndObject(r)
+
+	// Content-Md5 is requied should be set
+	// http://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html
+	if _, ok := r.Header[consts.ContentMD5]; !ok {
+		response.WriteErrorResponse(w, r, api_errors.ErrMissingContentMD5)
+		return
+	}
+
+	// Content-Length is required and should be non-zero
+	// http://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html
+	if r.ContentLength <= 0 {
+		response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
+		return
+	}
+
+	// The max. XML contains 100000 object names (each at most 1024 bytes long) + XML overhead
+	const maxBodySize = 2 * 100000 * 1024
+
+	// Unmarshal list of keys to be deleted.
+	deleteObjectsReq := &datatypes.DeleteObjectsRequest{}
+	if err := utils.XmlDecoder(r.Body, deleteObjectsReq, maxBodySize); err != nil {
+		response.WriteErrorResponse(w, r, api_errors.ErrMalformedXML)
+		return
+	}
+
+	objects := make([]datatypes.ObjectV, len(deleteObjectsReq.Objects))
+	// Convert object name delete objects if it has `/` in the beginning.
+	for i := range deleteObjectsReq.Objects {
+		deleteObjectsReq.Objects[i].ObjectName = trimLeadingSlash(deleteObjectsReq.Objects[i].ObjectName)
+		objects[i] = deleteObjectsReq.Objects[i].ObjectV
+	}
+
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteObjectAction, bucket, "")
+	if s3Error != api_errors.ErrNone {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+
+	// Before proceeding validate if bucket exists.
+	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
+		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		return
+	}
+
+	// Return Malformed XML as S3 spec if the number of objects is empty
+	if len(deleteObjectsReq.Objects) == 0 || len(deleteObjectsReq.Objects) > response.MaxDeleteList {
+		response.WriteErrorResponse(w, r, api_errors.ErrMalformedXML)
+		return
+	}
+
+	objectsToDelete := map[datatypes.ObjectToDelete]int{}
+
+	type deleteResult struct {
+		delInfo datatypes.DeletedObject
+		errInfo response.DeleteError
+	}
+
+	deleteResults := make([]deleteResult, len(deleteObjectsReq.Objects))
+
+	for index, object := range deleteObjectsReq.Objects {
+		_, _, s3Error = s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteObjectAction, bucket, object.ObjectName)
+		if s3Error != api_errors.ErrNone {
+			if s3Error == api_errors.ErrSignatureDoesNotMatch || s3Error == api_errors.ErrInvalidAccessKeyID {
+				response.WriteErrorResponse(w, r, s3Error)
+				return
+			}
+			apiErr := api_errors.GetAPIError(s3Error)
+			deleteResults[index].errInfo = response.DeleteError{
+				Code:      apiErr.Code,
+				Message:   apiErr.Description,
+				Key:       object.ObjectName,
+				VersionID: object.VersionID,
+			}
+			continue
+		}
+
+		// Avoid duplicate objects, we use map to filter them out.
+		if _, ok := objectsToDelete[object]; !ok {
+			objectsToDelete[object] = index
+		}
+	}
+
+	toNames := func(input map[datatypes.ObjectToDelete]int) (output []datatypes.ObjectToDelete) {
+		output = make([]datatypes.ObjectToDelete, len(input))
+		idx := 0
+		for obj := range input {
+			output[idx] = obj
+			idx++
+		}
+		return
+	}
+
+	// Disable timeouts and cancellation
+	ctx = utils.BgContext(ctx)
+
+	deleteList := toNames(objectsToDelete)
+	dObjects := make([]datatypes.DeletedObject, len(deleteList))
+	errs := make([]error, len(deleteList))
+	for i, obj := range deleteList {
+		errs[i] = s3a.store.DeleteObject(ctx, cred.AccessKey, bucket, obj.ObjectName)
+		if errs[i] == nil || xerrors.Is(errs[i], store.ErrObjectNotFound) {
+			dObjects[i] = datatypes.DeletedObject{
+				ObjectName: obj.ObjectName,
+			}
+			errs[i] = nil
+		}
+	}
+
+	for i := range errs {
+		objToDel := datatypes.ObjectToDelete{
+			ObjectV: datatypes.ObjectV{
+				ObjectName: dObjects[i].ObjectName,
+				VersionID:  dObjects[i].VersionID,
+			},
+		}
+		dindex := objectsToDelete[objToDel]
+		if errs[i] == nil {
+			deleteResults[dindex].delInfo = dObjects[i]
+			continue
+		}
+		apiErr := api_errors.GetAPIError(api_errors.ErrInternalError)
+		deleteResults[dindex].errInfo = response.DeleteError{
+			Code:      apiErr.Code,
+			Message:   apiErr.Description,
+			Key:       deleteList[i].ObjectName,
+			VersionID: deleteList[i].VersionID,
+		}
+	}
+
+	// Generate response
+	deleteErrors := make([]response.DeleteError, 0, len(deleteObjectsReq.Objects))
+	deletedObjects := make([]datatypes.DeletedObject, 0, len(deleteObjectsReq.Objects))
+	for _, deleteResult := range deleteResults {
+		if deleteResult.errInfo.Code != "" {
+			deleteErrors = append(deleteErrors, deleteResult.errInfo)
+		} else {
+			deletedObjects = append(deletedObjects, deleteResult.delInfo)
+		}
+	}
+
+	resp := generateMultiDeleteResponse(deleteObjectsReq.Quiet, dObjects, deleteErrors)
+
+	// Write success response.
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 // CopyObjectHandler - Copy Object
@@ -656,4 +812,14 @@ func generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingTy
 	}
 	data.CommonPrefixes = prefixes
 	return data
+}
+
+// generate multi objects delete response.
+func generateMultiDeleteResponse(quiet bool, deletedObjects []datatypes.DeletedObject, errs []response.DeleteError) response.DeleteObjectsResponse {
+	deleteResp := response.DeleteObjectsResponse{}
+	if !quiet {
+		deleteResp.DeletedObjects = deletedObjects
+	}
+	deleteResp.Errors = errs
+	return deleteResp
 }

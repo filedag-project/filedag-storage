@@ -1,7 +1,6 @@
 package response
 
 import (
-	"bytes"
 	"context"
 	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
@@ -85,17 +84,8 @@ func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCode
 	if errCtxt != nil {
 		stsErrorResponse.Error.Message = errCtxt.Error()
 	}
-	encodedErrorResponse := EncodeResponse(stsErrorResponse)
+	encodedErrorResponse := encodeXMLResponse(stsErrorResponse)
 	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeXML)
-}
-
-// EncodeResponse Encodes the response headers into XML format.
-func EncodeResponse(response interface{}) []byte {
-	var bytesBuffer bytes.Buffer
-	bytesBuffer.WriteString(xml.Header)
-	e := xml.NewEncoder(&bytesBuffer)
-	e.Encode(response)
-	return bytesBuffer.Bytes()
 }
 
 // STSErrorResponse - error response format

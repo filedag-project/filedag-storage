@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -11,6 +12,8 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	ufsio "github.com/ipfs/go-unixfs/io"
+	"github.com/syndtr/goleveldb/leveldb"
+	"golang.org/x/xerrors"
 	"io"
 	"strings"
 	"time"
@@ -27,6 +30,8 @@ type StorageSys struct {
 
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
+
+var ErrObjectNotFound = errors.New("object not found")
 
 //StoreObject store object
 func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64) (ObjectInfo, error) {
@@ -69,6 +74,9 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	}
 	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
 	if err != nil {
+		if xerrors.Is(err, leveldb.ErrNotFound) {
+			return ObjectInfo{}, nil, ErrObjectNotFound
+		}
 		return ObjectInfo{}, nil, err
 	}
 	cid, err := cid.Decode(meta.ETag)
@@ -99,15 +107,17 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 	return meta, true
 }
 
-//DeleteObject Get object
+//DeleteObject delete object
 func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object string) error {
-	//err := s.dagPool.DelFile(bucket, object)
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
 	meta := ObjectInfo{}
 	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
 	if err != nil {
+		if xerrors.Is(err, leveldb.ErrNotFound) {
+			return ErrObjectNotFound
+		}
 		return err
 	}
 	cid, err := cid.Decode(meta.ETag)
@@ -115,12 +125,11 @@ func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object stri
 		return err
 	}
 
-	err = dagpoolcli.RemoveDAG(ctx, s.DagPool, cid)
-	if err != nil {
+	if err = s.Db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object)); err != nil {
 		return err
 	}
-	err = s.Db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object))
-	if err != nil {
+
+	if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, cid); err != nil {
 		return err
 	}
 	return nil

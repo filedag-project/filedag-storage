@@ -72,6 +72,7 @@ const (
 	ErrInvalidObjectState
 	ErrMalformedXML
 	ErrMissingContentLength
+	ErrMissingContentMD5
 	ErrMissingRequestBodyError
 	ErrMissingSecurityHeader
 	ErrNoSuchUser
@@ -379,6 +380,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 		Code:           "MissingContentLength",
 		Description:    "You must provide the Content-Length HTTP header.",
 		HTTPStatusCode: http.StatusLengthRequired,
+	},
+	ErrMissingContentMD5: {
+		Code:           "MissingContentMD5",
+		Description:    "Missing required header for this request: Content-Md5.",
+		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrMissingSecurityHeader: {
 		Code:           "MissingSecurityHeader",

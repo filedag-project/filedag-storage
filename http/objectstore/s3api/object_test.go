@@ -2,9 +2,14 @@ package s3api
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/http/objectstore/datatypes"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
@@ -277,6 +282,54 @@ func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 	}
 
 }
+func TestS3ApiServer_DeleteMultipleObjectsHandler(t *testing.T) {
+	bucketName := "/testbucketdelobjs"
+
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+
+	delObjReq := datatypes.DeleteObjectsRequest{
+		Quiet: false,
+	}
+	for i := 0; i < 3; i++ {
+		data := fmt.Sprintf("1234567%d", i)
+		objName := fmt.Sprintf("obj%d", i)
+		reqputObject := utils.MustNewSignedV4Request(http.MethodPut, fmt.Sprintf("%s/%s", bucketName, objName), int64(len(data)), bytes.NewReader([]byte(data)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		// Add test case specific headers to the request.
+		reqTest(reqputObject)
+
+		delObjReq.Objects = append(delObjReq.Objects, datatypes.ObjectToDelete{
+			ObjectV: datatypes.ObjectV{
+				ObjectName: objName,
+			},
+		})
+	}
+
+	// Marshal delete request.
+	deleteReqBytes, err := xml.Marshal(delObjReq)
+	require.NoError(t, err)
+	req := utils.MustNewSignedV4Request(http.MethodPost, bucketName+"?delete=", int64(len(deleteReqBytes)),
+		bytes.NewReader(deleteReqBytes), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	// Add test case specific headers to the request.
+	result := reqTest(req)
+	if result.Code != http.StatusOK {
+		t.Fatalf("Expected the response status to be `%d`, but instead found `%d`", http.StatusOK, result.Code)
+	}
+	deleteResp := response.DeleteObjectsResponse{}
+	delRespBytes, err := ioutil.ReadAll(result.Body)
+	require.NoError(t, err)
+	err = xml.Unmarshal(delRespBytes, &deleteResp)
+	require.NoError(t, err)
+	for i := 0; i < 3; i++ {
+		// All the objects should be under deleted list (including non-existent object)
+		require.Equal(t, deleteResp.DeletedObjects[i], datatypes.DeletedObject{
+			ObjectName: delObjReq.Objects[i].ObjectName,
+			VersionID:  delObjReq.Objects[i].VersionID,
+		})
+	}
+	require.Zero(t, len(deleteResp.Errors))
+}
+
 func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 	bucketName := "/testbucketcopy"
 	objectName := "/testobjectcopy"

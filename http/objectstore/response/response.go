@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
+	"github.com/filedag-project/filedag-storage/http/objectstore/datatypes"
 	"github.com/filedag-project/filedag-storage/http/objectstore/store"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
@@ -25,6 +26,13 @@ const (
 	mimeJSON mimeType = "application/json"
 	//mimeXML application/xml UTF-8
 	mimeXML mimeType = " application/xml"
+)
+
+const (
+	MaxObjectList  = 1000  // Limit number of objects in a listObjectsResponse/listObjectsVersionsResponse.
+	MaxDeleteList  = 1000  // Limit number of objects deleted in a delete call.
+	MaxUploadsList = 10000 // Limit number of uploads in a listUploadsResponse.
+	MaxPartsList   = 10000 // Limit number of parts in a listPartsResponse.
 )
 
 // APIErrorResponse - error response format
@@ -49,10 +57,10 @@ func WriteXMLResponse(w http.ResponseWriter, r *http.Request, statusCode int, re
 func writeResponse(w http.ResponseWriter, r *http.Request, statusCode int, response []byte, mType mimeType) {
 	setCommonHeaders(w, r)
 	if response != nil {
-		w.Header().Set("Content-Length", strconv.Itoa(len(response)))
+		w.Header().Set(consts.ContentLength, strconv.Itoa(len(response)))
 	}
 	if mType != mimeNone {
-		w.Header().Set("Content-Type", string(mType))
+		w.Header().Set(consts.ContentType, string(mType))
 	}
 	w.WriteHeader(statusCode)
 	if response != nil {
@@ -297,4 +305,23 @@ func (s StringMap) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 // CommonPrefix container for prefix response in ListObjectsResponse
 type CommonPrefix struct {
 	Prefix string
+}
+
+// DeleteError structure.
+type DeleteError struct {
+	Code      string
+	Message   string
+	Key       string
+	VersionID string `xml:"VersionId"`
+}
+
+// DeleteObjectsResponse container for multiple object deletes.
+type DeleteObjectsResponse struct {
+	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ DeleteResult" json:"-"`
+
+	// Collection of all deleted objects
+	DeletedObjects []datatypes.DeletedObject `xml:"Deleted,omitempty"`
+
+	// Collection of errors deleting certain objects.
+	Errors []DeleteError `xml:"Error,omitempty"`
 }

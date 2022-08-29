@@ -69,12 +69,11 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 
 	// Generate response.
 	encodedSuccessResponse := response.LocationResponse{
-		XMLName:  xml.Name{},
 		Location: bucketMetas.Region,
 	}
 
 	// Write success response.
-	response.WriteSuccessResponseXML(w, r, response.EncodeResponse(encodedSuccessResponse))
+	response.WriteSuccessResponseXML(w, r, encodedSuccessResponse)
 }
 
 //PutBucketHandler put a bucket

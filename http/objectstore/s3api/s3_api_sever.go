@@ -51,6 +51,8 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 
 		// DeleteObject
 		bucket.Methods(http.MethodDelete).Path("/{object:.+}").HandlerFunc(s3a.DeleteObjectHandler)
+		// DeleteMultipleObjects
+		bucket.Methods(http.MethodPost).HandlerFunc(s3a.DeleteMultipleObjectsHandler).Queries("delete", "")
 		// GetBucketLocation
 		router.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketLocationHandler).Queries("location", "")
 
