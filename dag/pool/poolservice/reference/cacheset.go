@@ -35,15 +35,15 @@ func (s *CacheSet) Has(key string) (bool, error) {
 }
 
 func (s *CacheSet) AllKeysChan(ctx context.Context) (<-chan string, error) {
-	all, err := s.db.ReadAll(CachePrefix)
+	all, err := s.db.ReadAllChan(ctx, CachePrefix, "")
 	if err != nil {
 		return nil, err
 	}
 	kc := make(chan string)
 	go func() {
 		defer close(kc)
-		for k, _ := range all {
-			strs := strings.Split(k, "/")
+		for entry := range all {
+			strs := strings.Split(entry.Key, "/")
 			if len(strs) < 2 {
 				return
 			}

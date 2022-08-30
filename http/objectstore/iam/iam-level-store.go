@@ -2,7 +2,7 @@ package iam
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
@@ -32,18 +32,21 @@ func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Cre
 func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Credentials, error) {
 	m := make(map[string]auth.Credentials)
 
-	mc, err := I.levelDB.ReadAll(userPrefix)
+	all, err := I.levelDB.ReadAllChan(ctx, userPrefix, "")
 	if err != nil {
 		return m, err
 	}
-	for key, value := range mc {
-		a := auth.Credentials{}
-		err := json.Unmarshal([]byte(value), &a)
-		if err != nil {
+	for entry := range all {
+		cred := auth.Credentials{}
+		if err = entry.UnmarshalValue(&cred); err != nil {
 			continue
 		}
-		key = strings.Split(key, "/")[1]
-		m[key] = a
+		strs := strings.Split(entry.Key, "/")
+		if len(strs) < 2 {
+			return nil, fmt.Errorf("invalid key[%s], missing user name", entry.Key)
+		}
+		key := strs[1]
+		m[key] = cred
 	}
 	return m, nil
 }
@@ -86,23 +89,25 @@ func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyNam
 }
 func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error) {
 	var ps []policy.Policy
-	var key []string
-	m, err := I.levelDB.ReadAll(userPolicyPrefix + userName)
+	var keys []string
+	all, err := I.levelDB.ReadAllChan(ctx, userPolicyPrefix+userName, "")
 	if err != nil {
 		return nil, nil, err
 	}
-	for k, v := range m {
+	for entry := range all {
 		var p policy.PolicyDocument
-		json.Unmarshal([]byte(v), &p)
+		if err = entry.UnmarshalValue(&p); err != nil {
+			return nil, nil, err
+		}
 		ps = append(ps, policy.Policy{
 			ID:         "",
 			Version:    p.Version,
 			Statements: p.Statement,
 		})
-		k = strings.Replace(k, userPolicyPrefix+userName+"-", "", 1)
-		key = append(key, k)
+		k := strings.TrimPrefix(entry.Key, userPolicyPrefix+userName+"-")
+		keys = append(keys, k)
 	}
-	return ps, key, nil
+	return ps, keys, nil
 }
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := I.levelDB.Delete(userPolicyPrefix + userName + "-" + policyName)

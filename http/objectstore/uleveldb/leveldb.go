@@ -1,6 +1,7 @@
 package uleveldb
 
 import (
+	"context"
 	"encoding/json"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -8,6 +9,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"go.uber.org/zap/buffer"
 	"strings"
 )
 
@@ -28,9 +30,9 @@ func OpenDb(path string) (*ULevelDB, error) {
 		log.Errorf("Open Db path: %v,err:%v,", path, err)
 		return nil, err
 	}
-	uLevelDB := ULevelDB{}
-	uLevelDB.DB = newDb
-	return &uLevelDB, nil
+	return &ULevelDB{
+		DB: newDb,
+	}, nil
 }
 
 //Close db close
@@ -39,60 +41,79 @@ func (l *ULevelDB) Close() error {
 }
 
 // Put
-// * @param {interface{}} key
+// * @param {string} key
 // * @param {interface{}} value
 func (l *ULevelDB) Put(key string, value interface{}) error {
-
 	result, err := json.Marshal(value)
 	if err != nil {
 		log.Errorf("marshal error%v", err)
 		return err
 	}
-	err = l.DB.Put([]byte(key), result, nil)
-	return err
+	return l.DB.Put([]byte(key), result, nil)
 }
 
 // Get
-// * @param {interface{}} key
+// * @param {string} key
 // * @param {interface{}} value
-func (l *ULevelDB) Get(key, value interface{}) error {
-	get, err := l.DB.Get([]byte(key.(string)), nil)
+func (l *ULevelDB) Get(key string, value interface{}) error {
+	get, err := l.DB.Get([]byte(key), nil)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(get, value)
-	if err != nil {
-		return err
-	}
-	return err
+	return json.Unmarshal(get, value)
 }
 
 // Delete
-// * @param {interface{}} key
+// * @param {string} key
 // * @param {interface{}} value
 func (l *ULevelDB) Delete(key string) error {
-
 	return l.DB.Delete([]byte(key), nil)
 }
 
 // NewIterator /**
 func (l *ULevelDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
-
 	return l.DB.NewIterator(slice, ro)
 }
 
-//ReadAll read all key value
-// TODO: return channel to improve performance
-func (l *ULevelDB) ReadAll(prefix string) (map[string]string, error) {
+type entry struct {
+	Key   string
+	Value []byte
+}
+
+func (e *entry) UnmarshalValue(value interface{}) error {
+	return json.Unmarshal(e.Value, value)
+}
+
+//ReadAllChan read all key value
+func (l *ULevelDB) ReadAllChan(ctx context.Context, prefix string, seekKey string) (<-chan *entry, error) {
+	ch := make(chan *entry)
 	iter := l.NewIterator(nil, nil)
-	m := make(map[string]string)
-	for iter.Next() {
-		key := string(iter.Key())
-		if strings.HasPrefix(key, prefix) {
-			value := string(iter.Value())
-			m[key] = value
-		}
+	if seekKey != "" {
+		iter.Seek([]byte(seekKey))
 	}
-	iter.Release()
-	return m, nil
+	go func() {
+		defer func() {
+			iter.Release()
+			close(ch)
+		}()
+		for iter.Next() {
+			key := string(iter.Key())
+			if prefix != "" {
+				if !strings.HasPrefix(key, prefix) {
+					continue
+				}
+			}
+			buf := buffer.Buffer{}
+			buf.Write(iter.Value())
+			select {
+			case <-ctx.Done():
+				return
+			case ch <- &entry{
+				Key:   key,
+				Value: buf.Bytes(),
+			}:
+			}
+		}
+	}()
+	return ch, nil
 }

@@ -1,7 +1,7 @@
 package store
 
 import (
-	"encoding/json"
+	"context"
 	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
@@ -49,10 +49,11 @@ type TagSet struct {
 
 // BucketMetadata contains bucket metadata.
 type BucketMetadata struct {
-	Name          string
-	Region        string
-	Owner         string
-	Created       time.Time
+	Name    string
+	Region  string
+	Owner   string
+	Created time.Time
+
 	PolicyConfig  *policy.Policy
 	TaggingConfig *Tags
 }
@@ -130,20 +131,19 @@ func (sys *BucketMetadataSys) UpdateBucket(username, bucket string, meta *Bucket
 // GetAllBucketOfUser metadata for all bucket.
 func (sys *BucketMetadataSys) GetAllBucketOfUser(username string) ([]BucketMetadata, error) {
 	var m []BucketMetadata
-	mb, err := sys.db.ReadAll(bucketPrefix + "-")
+	all, err := sys.db.ReadAllChan(context.TODO(), bucketPrefix+"-", "")
 	if err != nil {
 		return nil, err
 	}
-	for _, value := range mb {
-		a := BucketMetadata{}
-		err := json.Unmarshal([]byte(value), &a)
-		if err != nil {
+	for entry := range all {
+		data := BucketMetadata{}
+		if err = entry.UnmarshalValue(&data); err != nil {
 			continue
 		}
-		if a.Owner != username {
+		if data.Owner != username {
 			continue
 		}
-		m = append(m, a)
+		m = append(m, data)
 	}
 	return m, nil
 }

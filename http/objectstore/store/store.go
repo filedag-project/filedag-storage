@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
@@ -30,6 +29,7 @@ type StorageSys struct {
 
 const objectPrefixTemplate = "object-%s-%s-%s/"
 const allObjectPrefixTemplate = "object-%s-%s-"
+const allObjectSeekPrefixTemplate = "object-%s-%s-%s"
 
 var ErrObjectNotFound = errors.New("object not found")
 
@@ -107,6 +107,14 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 	return meta, true
 }
 
+func (s *StorageSys) GetObjectInfo(ctx context.Context, user, bucket, object string) (meta ObjectInfo, err error) {
+	if strings.HasPrefix(object, "/") {
+		object = object[1:]
+	}
+	err = s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	return
+}
+
 //DeleteObject delete object
 func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object string) error {
 	if strings.HasPrefix(object, "/") {
@@ -135,19 +143,71 @@ func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object stri
 	return nil
 }
 
-//ListObject list user object
-func (s *StorageSys) ListObject(user, bucket string) ([]ObjectInfo, error) {
-	var objs []ObjectInfo
-	objMap, err := s.Db.ReadAll(fmt.Sprintf(allObjectPrefixTemplate, user, bucket))
+// ListObjectsInfo - container for list objects.
+type ListObjectsInfo struct {
+	// Indicates whether the returned list objects response is truncated. A
+	// value of true indicates that the list was truncated. The list can be truncated
+	// if the number of objects exceeds the limit allowed or specified
+	// by max keys.
+	IsTruncated bool
+
+	// When response is truncated (the IsTruncated element value in the response is true),
+	// you can use the key name in this field as marker in the subsequent
+	// request to get next set of objects.
+	//
+	// NOTE: AWS S3 returns NextMarker only if you have delimiter request parameter specified,
+	NextMarker string
+
+	// List of objects info for this request.
+	Objects []ObjectInfo
+
+	// List of prefixes for this request.
+	Prefixes []string
+}
+
+//ListObjects list user object
+//TODO use more params
+func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
+	if maxKeys == 0 {
+		return loi, nil
+	}
+
+	if len(prefix) > 0 && maxKeys == 1 && delimiter == "" && marker == "" {
+		objInfo, err := s.GetObjectInfo(ctx, user, bucket, prefix)
+		if err == nil {
+			loi.Objects = append(loi.Objects, objInfo)
+			return loi, nil
+		}
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	seekKey := ""
+	if marker != "" {
+		seekKey = fmt.Sprintf(allObjectSeekPrefixTemplate, user, bucket, marker)
+	}
+	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allObjectPrefixTemplate, user, bucket), seekKey)
 	if err != nil {
-		return nil, err
+		return loi, err
 	}
-	for _, v := range objMap {
+	index := 0
+	for entry := range all {
+		if index == maxKeys {
+			loi.IsTruncated = true
+			break
+		}
+		index++
 		var o ObjectInfo
-		json.Unmarshal([]byte(v), &o)
-		objs = append(objs, o)
+		if err = entry.UnmarshalValue(&o); err != nil {
+			return loi, err
+		}
+		loi.Objects = append(loi.Objects, o)
 	}
-	return objs, nil
+	if loi.IsTruncated {
+		loi.NextMarker = loi.Objects[len(loi.Objects)-1].Name
+	}
+
+	return loi, nil
 }
 
 //MkBucket store object
@@ -180,28 +240,23 @@ type ListObjectsV2Info struct {
 }
 
 // ListObjectsV2 list objects
-//todo use more param
-func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, prefix string, token string, delimiter string, keys int, owner bool, after string) (ListObjectsV2Info, error) {
-	objects, err := s.ListObject(user, bucket)
-	var o ListObjectsV2Info
+func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error) {
+	marker := continuationToken
+	if marker == "" {
+		marker = startAfter
+	}
+	loi, err := s.ListObjects(ctx, user, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
-		return o, err
+		return ListObjectsV2Info{}, err
 	}
-	count := 0
-	for _, v := range objects {
-		if after == "" {
-
-		} else if v.Name != after {
-			continue
-		}
-		if count > keys {
-			break
-		}
-		count++
-		o.ContinuationToken = token
-		o.Objects = append(o.Objects, v)
+	listV2Info := ListObjectsV2Info{
+		IsTruncated:           loi.IsTruncated,
+		ContinuationToken:     continuationToken,
+		NextContinuationToken: loi.NextMarker,
+		Objects:               loi.Objects,
+		Prefixes:              loi.Prefixes,
 	}
-	return o, nil
+	return listV2Info, nil
 }
 
 //NewStorageSys new a storage sys

@@ -89,16 +89,20 @@ func (rc *RefCounter) Decr(key string) error {
 
 // AllKeysChan query keys which reference count value equals count param
 func (rc *RefCounter) AllKeysChan(ctx context.Context, count int64) (<-chan string, error) {
-	all, err := rc.db.ReadAll(RefPrefix)
+	all, err := rc.db.ReadAllChan(ctx, RefPrefix, "")
 	if err != nil {
 		return nil, err
 	}
 	kc := make(chan string)
 	go func() {
 		defer close(kc)
-		for k, v := range all {
-			if v == "0" {
-				strs := strings.Split(k, "/")
+		for entry := range all {
+			var val int64
+			if err = entry.UnmarshalValue(&val); err != nil {
+				return
+			}
+			if val == count {
+				strs := strings.Split(entry.Key, "/")
 				if len(strs) < 2 {
 					return
 				}
