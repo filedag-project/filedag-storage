@@ -18,16 +18,10 @@ type s3ApiServer struct {
 	bmSys   *store.BucketMetadataSys
 }
 
-//registerS3Router Register S3Router
+//registerS3Router Register APIs
 func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	// API Router
 	apiRouter := router.PathPrefix("/").Subrouter()
-	apiRouter.Methods(http.MethodPost).MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
-		ctypeOk := set.MatchSimple("application/x-www-form-urlencoded*", r.Header.Get(consts.ContentType))
-		authOk := set.MatchSimple(consts.SignV4Algorithm+"*", r.Header.Get(consts.Authorization))
-		noQueries := len(r.URL.RawQuery) == 0
-		return ctypeOk && authOk && noQueries
-	}).HandlerFunc(s3a.AssumeRole)
 	// Readiness Probe
 	apiRouter.Methods(http.MethodGet).Path("/status").HandlerFunc(s3a.StatusHandler)
 	// NotFound
@@ -94,6 +88,17 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	apiRouter.Methods(http.MethodGet).Path("/").HandlerFunc(s3a.ListBucketsHandler)
 }
 
+//registerSTSRouter Register AWS STS compatible APIs
+func (s3a *s3ApiServer) registerSTSRouter(router *mux.Router) {
+	apiRouter := router.PathPrefix("/").Subrouter()
+	apiRouter.Methods(http.MethodPost).MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+		ctypeOk := set.MatchSimple("application/x-www-form-urlencoded*", r.Header.Get(consts.ContentType))
+		authOk := set.MatchSimple(consts.SignV4Algorithm+"*", r.Header.Get(consts.Authorization))
+		noQueries := len(r.URL.RawQuery) == 0
+		return ctypeOk && authOk && noQueries
+	}).HandlerFunc(s3a.AssumeRole)
+}
+
 //NewS3Server Start a S3Server
 func NewS3Server(router *mux.Router, dagService ipld.DAGService, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
 	s3server := &s3ApiServer{
@@ -101,5 +106,8 @@ func NewS3Server(router *mux.Router, dagService ipld.DAGService, authSys *iam.Au
 		store:   store.NewStorageSys(dagService, db),
 		bmSys:   store.NewBucketMetadataSys(db),
 	}
+	s3server.registerSTSRouter(router)
 	s3server.registerS3Router(router)
+
+	router.Use(iam.SetAuthHandler)
 }
