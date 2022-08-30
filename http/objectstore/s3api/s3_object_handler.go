@@ -64,6 +64,10 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
 		return
 	}
+	if size == 0 {
+		response.WriteErrorResponse(w, r, api_errors.ErrPutBucketInBucket)
+		return
+	}
 	// maximum Upload size for objects in a single operation
 	if size > consts.MaxObjectSize {
 		response.WriteErrorResponse(w, r, api_errors.ErrEntityTooLarge)

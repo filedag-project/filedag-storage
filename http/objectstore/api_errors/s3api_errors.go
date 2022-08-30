@@ -54,6 +54,7 @@ const (
 	ErrInvalidAccessKeyID
 	ErrAccessKeyDisabled
 	ErrInvalidBucketName
+	ErrPutBucketInBucket
 	ErrInvalidDigest
 	ErrInvalidRange
 	ErrInvalidRangePartNumber
@@ -354,6 +355,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrInvalidBucketName: {
 		Code:           "InvalidBucketName",
 		Description:    "The specified bucket is not valid.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrPutBucketInBucket: {
+		Code:           "InvalidBucketName",
+		Description:    "making a bucket in a bucket is not allowed",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
 	ErrInvalidDigest: {
