@@ -1,5 +1,8 @@
 # FileDAG Storage
 
+[![LICENSE](https://img.shields.io/github/license/filedag-project/filedag-storage)](./LICENSE "LICENSE")
+[![Build Status](https://img.shields.io/github/workflow/status/filedag-project/filedag-storage/Go)]()
+
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 FileDAG Storage A distributed storage service built on the IPFS technology stack. Different from the official implementation of IPFS, we focus more on data management, data reliability, availability and fault tolerance, and clustering of storage nodes.
@@ -36,14 +39,14 @@ Build fundamental data structure, and the overall architecture of this project.
 #### Description:
 
 - Development of single DAG Node:
-    - supports API of the block store
-    - providers basic storage service for DAG Pool
+    - [x] supports API of the block store
+    - [x] providers basic storage service for DAG Pool
 - DAG Pool:
-    - multi-user access
-    - authentication mechanism
+    - [x] multi-user access
+    - [x] authentication mechanism
 - Object store:
-    - implements basic data structure, such as user, region, bucket, and object
-    - implements API of user authentication
+    - [x] implements basic data structure, such as user, region, bucket, and object
+    - [x] implements API of user authentication
 
 ### Millstone 2
 
