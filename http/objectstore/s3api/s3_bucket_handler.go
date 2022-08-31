@@ -157,7 +157,7 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
-	response.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessNoContent(w)
 }
 
 // GetBucketAclHandler Get Bucket ACL

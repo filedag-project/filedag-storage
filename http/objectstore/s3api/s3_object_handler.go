@@ -510,7 +510,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 	}
 	objs, err := s3a.store.ListObjects(r.Context(), cred.AccessKey, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
-		response.WriteErrorResponse(w, r, s3Error)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
 	resp := generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType, maxKeys, objs)
