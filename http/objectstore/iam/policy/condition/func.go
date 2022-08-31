@@ -3,6 +3,7 @@ package condition
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vmihailenco/msgpack/v5"
 	"sort"
 )
 
@@ -93,8 +94,7 @@ func (cs Conditions) Equals(funcs Conditions) bool {
 	return true
 }
 
-// MarshalJSON - encodes Conditions to JSON data.
-func (cs Conditions) MarshalJSON() ([]byte, error) {
+func conditionsEncode(cs Conditions) map[string]map[string]ValueSet {
 	nm := make(map[string]map[string]ValueSet)
 
 	for _, f := range cs {
@@ -106,7 +106,42 @@ func (cs Conditions) MarshalJSON() ([]byte, error) {
 			nm[fname][k.String()] = v
 		}
 	}
+	return nm
+}
 
+func conditionsDecode(nm map[string]map[string]ValueSet) ([]CondFunction, error) {
+	var funcs []CondFunction
+	for nameString, args := range nm {
+		n, err := parseName(nameString)
+		if err != nil {
+			return nil, err
+		}
+
+		for keyString, values := range args {
+			key, err := parseKey(keyString)
+			if err != nil {
+				return nil, err
+			}
+
+			fn, ok := conditionFuncMap[n.name]
+			if !ok {
+				return nil, fmt.Errorf("condition %v is not handled", n)
+			}
+
+			f, err := fn(key, values, "")
+			if err != nil {
+				return nil, err
+			}
+
+			funcs = append(funcs, f)
+		}
+	}
+	return funcs, nil
+}
+
+// MarshalJSON - encodes Conditions to JSON data.
+func (cs Conditions) MarshalJSON() ([]byte, error) {
+	nm := conditionsEncode(cs)
 	return json.Marshal(nm)
 }
 
@@ -145,33 +180,10 @@ func (cs *Conditions) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("condition must not be empty")
 	}
 
-	var funcs []CondFunction
-	for nameString, args := range nm {
-		n, err := parseName(nameString)
-		if err != nil {
-			return err
-		}
-
-		for keyString, values := range args {
-			key, err := parseKey(keyString)
-			if err != nil {
-				return err
-			}
-
-			fn, ok := conditionFuncMap[n.name]
-			if !ok {
-				return fmt.Errorf("condition %v is not handled", n)
-			}
-
-			f, err := fn(key, values, "")
-			if err != nil {
-				return err
-			}
-
-			funcs = append(funcs, f)
-		}
+	funcs, err := conditionsDecode(nm)
+	if err != nil {
+		return err
 	}
-
 	*cs = funcs
 
 	return nil
@@ -185,6 +197,30 @@ func (cs Conditions) GobEncode() ([]byte, error) {
 // GobDecode - decodes gob data to Conditions.
 func (cs *Conditions) GobDecode(data []byte) error {
 	return cs.UnmarshalJSON(data)
+}
+
+func (cs Conditions) MarshalMsgpack() ([]byte, error) {
+	nm := conditionsEncode(cs)
+	return msgpack.Marshal(nm)
+}
+
+func (cs *Conditions) UnmarshalMsgpack(data []byte) error {
+	nm := make(map[string]map[string]ValueSet)
+	if err := msgpack.Unmarshal(data, &nm); err != nil {
+		return err
+	}
+
+	if len(nm) == 0 {
+		return fmt.Errorf("condition must not be empty")
+	}
+
+	funcs, err := conditionsDecode(nm)
+	if err != nil {
+		return err
+	}
+	*cs = funcs
+
+	return nil
 }
 
 // NewConFunctions - returns new Conditions with given function list.

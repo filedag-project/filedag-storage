@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // Principal - policy principal.
@@ -48,6 +49,17 @@ func (p Principal) MarshalJSON() ([]byte, error) {
 	return json.Marshal(sp)
 }
 
+func (p Principal) MarshalMsgpack() ([]byte, error) {
+	if !p.IsValid() {
+		return nil, errors.New(fmt.Sprintf("invalid principal %v", p))
+	}
+
+	// subtype to avoid recursive call to MarshalJSON()
+	type subPrincipal Principal
+	sp := subPrincipal(p)
+	return msgpack.Marshal(sp)
+}
+
 // Match - matches given principal is wildcard matching with Principal.
 func (p Principal) Match(principal string) bool {
 	for _, pattern := range p.AWS.ToSlice() {
@@ -68,6 +80,29 @@ func (p *Principal) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &sp); err != nil {
 		var s string
 		if err = json.Unmarshal(data, &s); err != nil {
+			return err
+		}
+
+		if s != "*" {
+			return errors.New(fmt.Sprintf("invalid principal '%v'", s))
+		}
+
+		sp.AWS = set.CreateStringSet("*")
+	}
+
+	*p = Principal(sp)
+
+	return nil
+}
+
+func (p *Principal) UnmarshalMsgpack(data []byte) error {
+	// subtype to avoid recursive call to UnmarshalJSON()
+	type subPrincipal Principal
+	var sp subPrincipal
+
+	if err := msgpack.Unmarshal(data, &sp); err != nil {
+		var s string
+		if err = msgpack.Unmarshal(data, &s); err != nil {
 			return err
 		}
 

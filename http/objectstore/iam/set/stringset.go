@@ -2,6 +2,7 @@ package set
 
 import (
 	"fmt"
+	"github.com/vmihailenco/msgpack/v5"
 	"sort"
 
 	jsoniter "github.com/json-iterator/go"
@@ -146,6 +147,29 @@ func (set *StringSet) UnmarshalJSON(data []byte) error {
 	} else {
 		var s string
 		if err = json.Unmarshal(data, &s); err == nil {
+			*set = make(StringSet)
+			set.Add(s)
+		}
+	}
+
+	return err
+}
+
+func (set StringSet) MarshalMsgpack() ([]byte, error) {
+	return msgpack.Marshal(set.ToSlice())
+}
+
+func (set *StringSet) UnmarshalMsgpack(data []byte) error {
+	var sl []string
+	var err error
+	if err = msgpack.Unmarshal(data, &sl); err == nil {
+		*set = make(StringSet)
+		for _, s := range sl {
+			set.Add(s)
+		}
+	} else {
+		var s string
+		if err = msgpack.Unmarshal(data, &s); err == nil {
 			*set = make(StringSet)
 			set.Add(s)
 		}

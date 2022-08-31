@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy/condition"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
+	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/xerrors"
 	"path"
 	"strings"
@@ -50,6 +51,14 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.String())
 }
 
+func (r Resource) MarshalMsgpack() ([]byte, error) {
+	if !r.IsValid() {
+		return nil, xerrors.Errorf("invalid resource %v", r)
+	}
+
+	return msgpack.Marshal(r.String())
+}
+
 func (r Resource) String() string {
 	return resourceARNPrefix + r.Pattern
 }
@@ -58,6 +67,22 @@ func (r Resource) String() string {
 func (r *Resource) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	parsedResource, err := parseResource(s)
+	if err != nil {
+		return err
+	}
+
+	*r = parsedResource
+
+	return nil
+}
+
+func (r *Resource) UnmarshalMsgpack(data []byte) error {
+	var s string
+	if err := msgpack.Unmarshal(data, &s); err != nil {
 		return err
 	}
 

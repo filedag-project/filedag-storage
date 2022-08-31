@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
+	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/xerrors"
 	"sort"
 )
@@ -51,12 +52,15 @@ func (resourceSet ResourceSet) MarshalJSON() ([]byte, error) {
 		return nil, xerrors.Errorf("empty resources not allowed")
 	}
 
-	resources := []Resource{}
-	for resource := range resourceSet {
-		resources = append(resources, resource)
+	return json.Marshal(resourceSet.ToSlice())
+}
+
+func (resourceSet ResourceSet) MarshalMsgpack() ([]byte, error) {
+	if len(resourceSet) == 0 {
+		return nil, xerrors.Errorf("empty resources not allowed")
 	}
 
-	return json.Marshal(resources)
+	return msgpack.Marshal(resourceSet.ToSlice())
 }
 
 func (resourceSet ResourceSet) String() string {
@@ -73,6 +77,29 @@ func (resourceSet ResourceSet) String() string {
 func (resourceSet *ResourceSet) UnmarshalJSON(data []byte) error {
 	var sset set.StringSet
 	if err := json.Unmarshal(data, &sset); err != nil {
+		return err
+	}
+
+	*resourceSet = make(ResourceSet)
+	for _, s := range sset.ToSlice() {
+		resource, err := parseResource(s)
+		if err != nil {
+			return err
+		}
+
+		if _, found := (*resourceSet)[resource]; found {
+			return xerrors.Errorf("duplicate resource '%v' found", s)
+		}
+
+		resourceSet.Add(resource)
+	}
+
+	return nil
+}
+
+func (resourceSet *ResourceSet) UnmarshalMsgpack(data []byte) error {
+	var sset set.StringSet
+	if err := msgpack.Unmarshal(data, &sset); err != nil {
 		return err
 	}
 

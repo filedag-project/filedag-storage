@@ -3,6 +3,7 @@ package condition
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 // ValueSet - unique list of values.
@@ -22,13 +23,21 @@ func (set ValueSet) ToSlice() []Value {
 	return values
 }
 
+func valueArrayToValueSet(values []Value) (*ValueSet, error) {
+	vset := make(ValueSet)
+	for _, v := range values {
+		if _, found := vset[v]; found {
+			return nil, fmt.Errorf("duplicate value found '%v'", v)
+		}
+
+		vset.Add(v)
+	}
+	return &vset, nil
+}
+
 // MarshalJSON - encodes ValueSet to JSON data.
 func (set ValueSet) MarshalJSON() ([]byte, error) {
-	var values []Value
-	for k := range set {
-		values = append(values, k)
-	}
-
+	values := set.ToSlice()
 	if len(values) == 0 {
 		return nil, fmt.Errorf("invalid value set %v", set)
 	}
@@ -54,15 +63,45 @@ func (set *ValueSet) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("invalid value")
 	}
 
-	*set = make(ValueSet)
-	for _, v = range values {
-		if _, found := (*set)[v]; found {
-			return fmt.Errorf("duplicate value found '%v'", v)
-		}
+	vset, err := valueArrayToValueSet(values)
+	if err != nil {
+		return nil
+	}
+	*set = *vset
+	return nil
+}
 
-		set.Add(v)
+func (set ValueSet) MarshalMsgpack() ([]byte, error) {
+	values := set.ToSlice()
+	if len(values) == 0 {
+		return nil, fmt.Errorf("invalid value set %v", set)
 	}
 
+	return msgpack.Marshal(values)
+}
+
+func (set *ValueSet) UnmarshalMsgpack(data []byte) error {
+	var v Value
+	if err := msgpack.Unmarshal(data, &v); err == nil {
+		*set = make(ValueSet)
+		set.Add(v)
+		return nil
+	}
+
+	var values []Value
+	if err := msgpack.Unmarshal(data, &values); err != nil {
+		return err
+	}
+
+	if len(values) < 1 {
+		return fmt.Errorf("invalid value")
+	}
+
+	vset, err := valueArrayToValueSet(values)
+	if err != nil {
+		return nil
+	}
+	*set = *vset
 	return nil
 }
 

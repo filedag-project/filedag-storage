@@ -2,13 +2,13 @@ package uleveldb
 
 import (
 	"context"
-	"encoding/json"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap/buffer"
 	"strings"
 )
@@ -44,7 +44,7 @@ func (l *ULevelDB) Close() error {
 // * @param {string} key
 // * @param {interface{}} value
 func (l *ULevelDB) Put(key string, value interface{}) error {
-	result, err := json.Marshal(value)
+	result, err := msgpack.Marshal(value)
 	if err != nil {
 		log.Errorf("marshal error%v", err)
 		return err
@@ -60,7 +60,7 @@ func (l *ULevelDB) Get(key string, value interface{}) error {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(get, value)
+	return msgpack.Unmarshal(get, value)
 }
 
 // Delete
@@ -81,7 +81,7 @@ type entry struct {
 }
 
 func (e *entry) UnmarshalValue(value interface{}) error {
-	return json.Unmarshal(e.Value, value)
+	return msgpack.Unmarshal(e.Value, value)
 }
 
 //ReadAllChan read all key value
