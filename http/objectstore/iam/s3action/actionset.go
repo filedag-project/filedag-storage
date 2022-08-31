@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
+	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/xerrors"
 	"sort"
 )
@@ -90,6 +91,14 @@ func (as ActionSet) MarshalJSON() ([]byte, error) {
 	return json.Marshal(as.ToSlice())
 }
 
+func (as ActionSet) MarshalMsgpack() ([]byte, error) {
+	if len(as) == 0 {
+		return nil, errors.New("empty actions not allowed")
+	}
+
+	return msgpack.Marshal(as.ToSlice())
+}
+
 func (as ActionSet) String() string {
 	var actions []string
 	for action := range as {
@@ -104,6 +113,29 @@ func (as ActionSet) String() string {
 func (as *ActionSet) UnmarshalJSON(data []byte) error {
 	var sset set.StringSet
 	if err := json.Unmarshal(data, &sset); err != nil {
+		return err
+	}
+
+	if len(sset) == 0 {
+		return errors.New("empty actions not allowed")
+	}
+
+	*as = make(ActionSet)
+	for _, s := range sset.ToSlice() {
+		action := Action(s)
+		if action.IsValid() {
+			as.Add(action)
+		} else {
+			return xerrors.Errorf("unsupported action '%v'", s)
+		}
+	}
+
+	return nil
+}
+
+func (as *ActionSet) UnmarshalMsgpack(data []byte) error {
+	var sset set.StringSet
+	if err := msgpack.Unmarshal(data, &sset); err != nil {
 		return err
 	}
 

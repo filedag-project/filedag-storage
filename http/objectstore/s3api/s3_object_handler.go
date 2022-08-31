@@ -493,7 +493,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, "")
+	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ListBucketAction, bucket, "")
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -508,19 +508,12 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	objs, err := s3a.store.ListObject(cred.AccessKey, bucket)
+	objs, err := s3a.store.ListObjects(r.Context(), cred.AccessKey, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-
-	listObjectsInfo := response.ListObjectsInfo{
-		IsTruncated: false,
-		NextMarker:  "",
-		Objects:     objs,
-		Prefixes:    nil,
-	}
-	resp := generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType, maxKeys, listObjectsInfo)
+	resp := generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType, maxKeys, objs)
 	// Write success response.
 	response.WriteSuccessResponseXML(w, r, resp)
 }
@@ -529,16 +522,17 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cerd, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
+	cerd, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ListBucketAction, bucket, object)
 	if s3Error != api_errors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	urlValues := r.Form
 	if !s3a.bmSys.HasBucket(bucket, cerd.AccessKey) {
 		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
 		return
 	}
+
+	urlValues := r.Form
 	// Extract all the listObjectsV2 query params to their native values.
 	prefix, token, startAfter, delimiter, fetchOwner, maxKeys, encodingType, errCode := getListObjectsV2Args(urlValues)
 	if errCode != api_errors.ErrNone {
@@ -640,7 +634,7 @@ func getListObjectsV1Args(values url.Values) (prefix, marker, delimiter string, 
 			return
 		}
 	} else {
-		maxkeys = consts.MaxObjectList
+		maxkeys = response.MaxObjectList
 	}
 
 	prefix = trimLeadingSlash(values.Get("prefix"))
@@ -669,7 +663,7 @@ func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimit
 			return
 		}
 	} else {
-		maxkeys = consts.MaxObjectList
+		maxkeys = response.MaxObjectList
 	}
 
 	prefix = trimLeadingSlash(values.Get("prefix"))
@@ -772,7 +766,7 @@ func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter,
 }
 
 // generates an ListObjectsV1 response for the said bucket with other enumerated options.
-func generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, resp response.ListObjectsInfo) response.ListObjectsResponse {
+func generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, resp store.ListObjectsInfo) response.ListObjectsResponse {
 	contents := make([]response.Object, 0, len(resp.Objects))
 	id := consts.DefaultOwnerID
 	name := consts.DisplayName

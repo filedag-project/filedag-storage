@@ -137,5 +137,11 @@ const (
 	ContentEncoding    = "Content-Encoding"
 	ContentLanguage    = "Content-Language"
 	ContentDisposition = "Content-Disposition"
-	MaxObjectList      = 1000 // Limit number of objects in a listObjectsResponse/listObjectsVersionsResponse.
+)
+
+// limit
+const (
+	// The maximum allowed time difference between the incoming request
+	// date and server date during signature verification.
+	GlobalMaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
 )

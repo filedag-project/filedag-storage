@@ -3,6 +3,7 @@ package condition
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vmihailenco/msgpack/v5"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -76,6 +77,19 @@ func (v Value) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("unknown value kind %v", v.t)
 }
 
+func (v Value) MarshalMsgpack() ([]byte, error) {
+	switch v.t {
+	case reflect.String:
+		return msgpack.Marshal(v.s)
+	case reflect.Int:
+		return msgpack.Marshal(v.i)
+	case reflect.Bool:
+		return msgpack.Marshal(v.b)
+	}
+
+	return nil, fmt.Errorf("unknown value kind %v", v.t)
+}
+
 // StoreBool - stores bool value.
 func (v *Value) StoreBool(b bool) {
 	*v = Value{t: reflect.Bool, b: b}
@@ -126,6 +140,28 @@ func (v *Value) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("unknown json data '%v'", data)
+}
+
+func (v *Value) UnmarshalMsgpack(data []byte) error {
+	var b bool
+	if err := msgpack.Unmarshal(data, &b); err == nil {
+		v.StoreBool(b)
+		return nil
+	}
+
+	var i int
+	if err := msgpack.Unmarshal(data, &i); err == nil {
+		v.StoreInt(i)
+		return nil
+	}
+
+	var s string
+	if err := msgpack.Unmarshal(data, &s); err == nil {
+		v.StoreString(s)
+		return nil
+	}
+
+	return fmt.Errorf("unknown msgpack data '%v'", data)
 }
 
 // NewBoolValue - returns new bool value.

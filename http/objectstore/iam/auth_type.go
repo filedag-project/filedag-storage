@@ -3,6 +3,7 @@ package iam
 import (
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -60,10 +61,19 @@ const (
 	AuthTypeSigned
 	AuthTypeSignedV2
 	AuthTypeJWT
+	AuthTypeSTS
 )
 
 // GetRequestAuthType Get request authentication type.
 func GetRequestAuthType(r *http.Request) AuthType {
+	if r.URL != nil {
+		var err error
+		r.Form, err = url.ParseQuery(r.URL.RawQuery)
+		if err != nil {
+			log.Infof("parse query failed, query: %s, error: %v", r.URL.RawQuery, err)
+			return AuthTypeUnknown
+		}
+	}
 	if isRequestSignatureV2(r) {
 		return AuthTypeSignedV2
 	} else if isRequestPresignedSignatureV2(r) {
@@ -78,7 +88,9 @@ func GetRequestAuthType(r *http.Request) AuthType {
 		return AuthTypeJWT
 	} else if isRequestPostPolicySignatureV4(r) {
 		return AuthTypePostPolicy
-	} else if _, ok := r.Header["Authorization"]; !ok {
+	} else if _, ok := r.Form[consts.StsAction]; ok {
+		return AuthTypeSTS
+	} else if _, ok := r.Header[consts.Authorization]; !ok {
 		return AuthTypeAnonymous
 	}
 	return AuthTypeUnknown

@@ -52,7 +52,7 @@ func MustNewSignedV4Request(method string, urlStr string, contentLength int64, b
 func SignRequestV4(req *http.Request, accessKey, secretKey string, st ServiceType) error {
 	// Get hashed payload.
 	hashedPayload := getContentSha256Cksum(req)
-	currTime := time.Now()
+	currTime := time.Now().UTC()
 
 	// Set x-amz-date.
 	req.Header.Set("x-amz-date", currTime.Format(iso8601Format))
