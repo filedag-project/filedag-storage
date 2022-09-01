@@ -1,5 +1,8 @@
 # FileDAG Storage
 
+[![LICENSE](https://img.shields.io/github/license/filedag-project/filedag-storage)](./LICENSE "LICENSE")
+[![Build Status](https://img.shields.io/github/workflow/status/filedag-project/filedag-storage/Go)]()
+
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 FileDAG Storage 是基于 IPFS 技术栈来构建的分布式存储服务。区别于IPFS的官方实现，我们更关注于数据的管理，数据的可靠性、可用性和容错性，以及存储节点集群化。
@@ -36,14 +39,14 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 #### Description:
       
 - 单DAG Node模式的开发:
-    - 支持block store API
-    - 为DAG Pool提供基础存储服务
+    - [x] 支持block store API
+    - [x] 为DAG Pool提供基础存储服务
 - DAG Pool:
-    - 多用户访问
-    - 身份验证机制
+    - [x] 多用户访问
+    - [x] 身份验证机制
 - 对象存储:
-    - 实现用户、区域、桶、对象等基本数据结构
-    - 实现用户认证的API
+    - [x] 实现用户、区域、桶、对象等基本数据结构
+    - [x] 实现用户认证的API
 
 ### Millstone 2
 
