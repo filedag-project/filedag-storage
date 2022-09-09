@@ -10,7 +10,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap/buffer"
-	"strings"
 )
 
 var log = logging.Logger("leveldb")
@@ -87,7 +86,11 @@ func (e *entry) UnmarshalValue(value interface{}) error {
 //ReadAllChan read all key value
 func (l *ULevelDB) ReadAllChan(ctx context.Context, prefix string, seekKey string) (<-chan *entry, error) {
 	ch := make(chan *entry)
-	iter := l.NewIterator(nil, nil)
+	var slice *util.Range
+	if prefix != "" {
+		slice = util.BytesPrefix([]byte(prefix))
+	}
+	iter := l.NewIterator(slice, nil)
 	if seekKey != "" {
 		iter.Seek([]byte(seekKey))
 	}
@@ -98,11 +101,6 @@ func (l *ULevelDB) ReadAllChan(ctx context.Context, prefix string, seekKey strin
 		}()
 		for iter.Next() {
 			key := string(iter.Key())
-			if prefix != "" {
-				if !strings.HasPrefix(key, prefix) {
-					continue
-				}
-			}
 			buf := buffer.Buffer{}
 			buf.Write(iter.Value())
 			select {

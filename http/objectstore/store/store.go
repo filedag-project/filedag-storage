@@ -30,7 +30,7 @@ type StorageSys struct {
 }
 
 const objectPrefixTemplate = "object-%s-%s-%s/"
-const allObjectPrefixTemplate = "object-%s-%s-"
+const allObjectPrefixTemplate = "object-%s-%s-%s"
 const allObjectSeekPrefixTemplate = "object-%s-%s-%s"
 
 var ErrObjectNotFound = errors.New("object not found")
@@ -180,6 +180,13 @@ func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefi
 	}
 
 	if len(prefix) > 0 && maxKeys == 1 && delimiter == "" && marker == "" {
+		// Optimization for certain applications like
+		// - Cohesity
+		// - Actifio, Splunk etc.
+		// which send ListObjects requests where the actual object
+		// itself is the prefix and max-keys=1 in such scenarios
+		// we can simply verify locally if such an object exists
+		// to avoid the need for ListObjects().
 		objInfo, err := s.GetObjectInfo(ctx, user, bucket, prefix)
 		if err == nil {
 			loi.Objects = append(loi.Objects, objInfo)
@@ -193,7 +200,7 @@ func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefi
 	if marker != "" {
 		seekKey = fmt.Sprintf(allObjectSeekPrefixTemplate, user, bucket, marker)
 	}
-	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allObjectPrefixTemplate, user, bucket), seekKey)
+	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allObjectPrefixTemplate, user, bucket, prefix), seekKey)
 	if err != nil {
 		return loi, err
 	}
@@ -203,11 +210,11 @@ func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefi
 			loi.IsTruncated = true
 			break
 		}
-		index++
 		var o ObjectInfo
 		if err = entry.UnmarshalValue(&o); err != nil {
 			return loi, err
 		}
+		index++
 		loi.Objects = append(loi.Objects, o)
 	}
 	if loi.IsTruncated {

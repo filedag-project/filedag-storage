@@ -554,15 +554,12 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	var (
-		listObjectsV2Info store.ListObjectsV2Info
-		err               error
-	)
 
-	// Inititate a list objects operation based on the input params.
+	// Initiate a list objects operation based on the input params.
 	// On success would return back ListObjectsInfo object to be
 	// marshaled into S3 compatible XML header.
-	listObjectsV2Info, err = s3a.store.ListObjectsV2(r.Context(), cerd.AccessKey, bucket, prefix, token, delimiter, maxKeys, fetchOwner, startAfter)
+	listObjectsV2Info, err := s3a.store.ListObjectsV2(r.Context(), cerd.AccessKey, bucket, prefix, token, delimiter,
+		maxKeys, fetchOwner, startAfter)
 
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
@@ -670,6 +667,10 @@ func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimit
 		if maxkeys, err = strconv.Atoi(values.Get("max-keys")); err != nil {
 			errCode = api_errors.ErrInvalidMaxKeys
 			return
+		}
+		// Over flowing count - reset to maxObjectList.
+		if maxkeys > response.MaxObjectList {
+			maxkeys = response.MaxObjectList
 		}
 	} else {
 		maxkeys = response.MaxObjectList
