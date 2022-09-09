@@ -12,23 +12,19 @@ const (
 
 	StreamingContentSHA256 = "STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
 
-	Authorization = "Authorization"
-	ETag          = "ETag"
-	ContentType   = "Content-Type"
-
 	// MaxLocationConstraintSize Limit of location constraint XML for unauthenticated PUT bucket operations.
 	MaxLocationConstraintSize = 3 * humanize.MiByte
 	EmptySHA256               = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 	StsRequestBodyLimit       = 10 * (1 << 20) // 10 MiB
 	DefaultRegion             = "us-east-1"
-	Expires                   = "Expires"
-	ContentMD5                = "Content-Md5"
-	Date                      = "Date"
 	SlashSeparator            = "/"
 
 	MaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
 
-	ContentLength = "Content-Length"
+	Authorization = "Authorization"
+	ETag          = "ETag"
+	Expires       = "Expires"
+	Date          = "Date"
 
 	// STS API version.
 	StsAPIVersion   = "2011-06-15"
@@ -134,6 +130,10 @@ const (
 const (
 	MaxObjectSize      = 5 * humanize.TiByte
 	LastModified       = "Last-Modified"
+	ContentType        = "Content-Type"
+	ContentMD5         = "Content-Md5"
+	ContentLength      = "Content-Length"
+	CacheControl       = "Cache-Control"
 	ContentEncoding    = "Content-Encoding"
 	ContentLanguage    = "Content-Language"
 	ContentDisposition = "Content-Disposition"

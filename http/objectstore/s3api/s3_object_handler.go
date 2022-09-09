@@ -128,8 +128,14 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return
 	}
+	metadata, err := extractMetadata(r.Context(), r)
+	if err != nil {
+		log.Errorf("PutObjectHandler extractMetadata err:%v", err)
+		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		return
+	}
 	// TODO: if bucket is unique, there is no need to store user in Object
-	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader, size)
+	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader, size, metadata)
 	if err2 != nil {
 		log.Errorf("PutObjectHandler StoreObject err:%v", err2)
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
@@ -444,14 +450,17 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	log.Debugf("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
-	a, i, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
+	srcObjInfo, srcReader, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
 	if err != nil {
 		log.Errorf("CopyObjectHandler StoreObject err:%v", err)
 		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
 		return
 	}
+	metadata := make(map[string]string)
+	metadata[strings.ToLower(consts.ContentType)] = srcObjInfo.ContentType
+	metadata[strings.ToLower(consts.ContentEncoding)] = srcObjInfo.ContentEncoding
 	if (srcBucket == dstBucket && srcObject == dstObject || cpSrcPath == "") && isReplace(r) {
-		object, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i, a.Size)
+		object, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
 		if err != nil {
 			return
 		}
@@ -472,7 +481,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, api_errors.ErrInvalidCopyDest)
 		return
 	}
-	obj, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, i, a.Size)
+	obj, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
 	if err != nil {
 		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
 		return

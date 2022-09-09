@@ -21,7 +21,7 @@ func TestStorageSys_Object(t *testing.T) {
 	s := NewStorageSys(dagServ, db)
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	ctx := context.TODO()
-	object, err := s.StoreObject(ctx, "test", "testbucket", "testobject", r, 6)
+	object, err := s.StoreObject(ctx, "test", "testbucket", "testobject", r, 6, map[string]string{})
 	if err != nil {
 		fmt.Println(err)
 		return

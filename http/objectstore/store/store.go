@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
+	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -14,6 +15,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/xerrors"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -34,7 +36,7 @@ const allObjectSeekPrefixTemplate = "object-%s-%s-%s"
 var ErrObjectNotFound = errors.New("object not found")
 
 //StoreObject store object
-func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64) (ObjectInfo, error) {
+func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
@@ -42,7 +44,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 	if err != nil {
 		return ObjectInfo{}, err
 	}
-	meta := ObjectInfo{
+	objInfo := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
 		ModTime:          time.Now().UTC(),
@@ -52,18 +54,23 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		VersionID:        "",
 		IsLatest:         true,
 		DeleteMarker:     false,
-		ContentType:      "application/x-msdownload",
-		ContentEncoding:  "",
-		Expires:          time.Unix(0, 0).UTC(),
+		ContentType:      meta[strings.ToLower(consts.ContentType)],
+		ContentEncoding:  meta[strings.ToLower(consts.ContentEncoding)],
 		Parts:            nil,
-		AccTime:          time.Unix(0, 0).UTC(),
 		SuccessorModTime: time.Now().UTC(),
 	}
-	err = s.Db.Put(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), meta)
+	// Update expires
+	if exp, ok := meta[strings.ToLower(consts.Expires)]; ok {
+		if t, e := time.Parse(http.TimeFormat, exp); e == nil {
+			objInfo.Expires = t.UTC()
+		}
+	}
+
+	err = s.Db.Put(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), objInfo)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
-	return meta, nil
+	return objInfo, nil
 }
 
 //GetObject Get object

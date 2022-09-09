@@ -31,6 +31,7 @@ import (
 	"hash"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	humanize "github.com/dustin/go-humanize"
@@ -457,4 +458,21 @@ func parseHexUint(v []byte) (n uint64, err error) {
 		n |= uint64(b)
 	}
 	return
+}
+
+// Trims away `aws-chunked` from the content-encoding header if present.
+// Streaming signature clients can have custom content-encoding such as
+// `aws-chunked,gzip` here we need to only save `gzip`.
+// For more refer http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-streaming.html
+func TrimAwsChunkedContentEncoding(contentEnc string) (trimmedContentEnc string) {
+	if contentEnc == "" {
+		return contentEnc
+	}
+	var newEncs []string
+	for _, enc := range strings.Split(contentEnc, ",") {
+		if enc != streamingContentEncoding {
+			newEncs = append(newEncs, enc)
+		}
+	}
+	return strings.Join(newEncs, ",")
 }
