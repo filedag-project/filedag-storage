@@ -219,33 +219,37 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 		accessKey string
 		secretKey string
 		// expected output.
-		expectedRespStatus int // expected response status body.
+		expectedPutRespStatus int // expected response status body.
+		expectedDelRespStatus int
 	}{
 
 		// Test case - 1.
 		// wrong accessKey.
 		{
-			isPut:              false,
-			accessKey:          DefaultTestAccessKey,
-			secretKey:          DefaultTestSecretKey,
-			expectedRespStatus: http.StatusNotFound,
+			isPut:                 false,
+			accessKey:             DefaultTestAccessKey,
+			secretKey:             DefaultTestSecretKey,
+			expectedPutRespStatus: http.StatusNotFound,
+			expectedDelRespStatus: http.StatusNotFound,
 		},
 
 		// Test case - 2.
 		// wrong accessKey.
 		{
-			isPut:              true,
-			accessKey:          "1",
-			secretKey:          "1",
-			expectedRespStatus: http.StatusForbidden,
+			isPut:                 true,
+			accessKey:             "1",
+			secretKey:             "1",
+			expectedPutRespStatus: http.StatusForbidden,
+			expectedDelRespStatus: http.StatusForbidden,
 		},
 		// Test case - 3.
 		// Fetching the entire Bucket and validating its contents.
 		{
-			isPut:              true,
-			accessKey:          DefaultTestAccessKey,
-			secretKey:          DefaultTestSecretKey,
-			expectedRespStatus: http.StatusOK,
+			isPut:                 true,
+			accessKey:             DefaultTestAccessKey,
+			secretKey:             DefaultTestSecretKey,
+			expectedPutRespStatus: http.StatusOK,
+			expectedDelRespStatus: http.StatusNoContent,
 		},
 	}
 	// Iterating over the cases, fetching the object validating the response.
@@ -254,16 +258,16 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 		if testCase.isPut {
 			reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 			result1 := reqTest(reqPutBucket)
-			if result1.Code != testCase.expectedRespStatus {
-				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
+			if result1.Code != testCase.expectedPutRespStatus {
+				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedPutRespStatus, result1.Code)
 			}
 		}
 
 		reqDeleteBucket := utils.MustNewSignedV4Request(http.MethodDelete, "/testbucketdel", 0,
 			nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result := reqTest(reqDeleteBucket)
-		if result.Code != testCase.expectedRespStatus {
-			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+		if result.Code != testCase.expectedDelRespStatus {
+			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedDelRespStatus, result.Code)
 		}
 		reqListBucket := utils.MustNewSignedV4Request(http.MethodGet, "/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 

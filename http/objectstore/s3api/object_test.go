@@ -320,12 +320,19 @@ func TestS3ApiServer_DeleteMultipleObjectsHandler(t *testing.T) {
 	require.NoError(t, err)
 	err = xml.Unmarshal(delRespBytes, &deleteResp)
 	require.NoError(t, err)
+	t.Log(deleteResp.DeletedObjects)
+	delObjMap := make(map[string]datatypes.DeletedObject)
+	for _, obj := range delObjReq.Objects {
+		delObjMap[obj.ObjectName] = datatypes.DeletedObject{
+			ObjectName: obj.ObjectName,
+			VersionID:  obj.VersionID,
+		}
+	}
 	for i := 0; i < 3; i++ {
 		// All the objects should be under deleted list (including non-existent object)
-		require.Equal(t, deleteResp.DeletedObjects[i], datatypes.DeletedObject{
-			ObjectName: delObjReq.Objects[i].ObjectName,
-			VersionID:  delObjReq.Objects[i].VersionID,
-		})
+		obj, ok := delObjMap[deleteResp.DeletedObjects[i].ObjectName]
+		require.True(t, ok)
+		require.Equal(t, deleteResp.DeletedObjects[i], obj)
 	}
 	require.Zero(t, len(deleteResp.Errors))
 }
