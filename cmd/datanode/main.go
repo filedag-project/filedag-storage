@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/filedag-project/filedag-storage/http/objectservice/utils"
 	"github.com/urfave/cli/v2"
 	"os"
 )

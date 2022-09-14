@@ -3,7 +3,7 @@ package dpuser
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/http/objectservice/uleveldb"
 	"testing"
 )
 

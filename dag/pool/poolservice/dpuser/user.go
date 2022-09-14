@@ -2,7 +2,7 @@ package dpuser
 
 import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/http/objectservice/uleveldb"
 )
 
 //IdentityUserSys identity user sys

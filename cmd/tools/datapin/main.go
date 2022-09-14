@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/filedag-project/filedag-storage/http/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectservice/utils"
 	"github.com/google/martian/log"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"

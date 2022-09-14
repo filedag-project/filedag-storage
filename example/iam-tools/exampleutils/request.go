@@ -2,8 +2,8 @@ package exampleutils
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/filedag-project/filedag-storage/http/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectservice/utils"
 	"io"
 	"io/ioutil"
 	"net/http"
