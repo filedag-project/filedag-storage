@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 	"errors"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"golang.org/x/xerrors"
 )
@@ -50,7 +50,7 @@ func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, accessKey,
 func (sys *BucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*policy.Policy, error) {
 	meta, err := sys.GetBucketMeta(bucket, accessKey)
 	if err != nil {
-		if errors.Is(err, api_errors.ErrConfigNotFound) {
+		if errors.Is(err, apierrors.ErrConfigNotFound) {
 			return nil, bucketPolicyNotFound{Bucket: bucket}
 		}
 		return nil, err

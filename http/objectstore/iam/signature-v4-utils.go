@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"io"
@@ -139,7 +139,7 @@ func isValidRegion(reqRegion string, confRegion string) bool {
 
 // check if the access key is valid and recognized, additionally
 // also returns if the access key is owner/admin.
-func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, api_errors.ErrorCode) {
+func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credentials, bool, apierrors.ErrorCode) {
 
 	cred := s.AdminCred
 	if cred.AccessKey != accessKey {
@@ -149,14 +149,14 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 			// Credentials will be invalid but and disabled
 			// return a different error in such a scenario.
 			if ucred.Status == auth.AccountOff {
-				return cred, false, api_errors.ErrAccessKeyDisabled
+				return cred, false, apierrors.ErrAccessKeyDisabled
 			}
-			return cred, false, api_errors.ErrInvalidAccessKeyID
+			return cred, false, apierrors.ErrInvalidAccessKeyID
 		}
 		cred = ucred
 	}
 	owner := cred.AccessKey == s.AdminCred.AccessKey
-	return cred, owner, api_errors.ErrNone
+	return cred, owner, apierrors.ErrNone
 }
 
 func contains(slice interface{}, elem interface{}) bool {
@@ -172,13 +172,13 @@ func contains(slice interface{}, elem interface{}) bool {
 }
 
 // extractSignedHeaders extract signed headers from Authorization header
-func extractSignedHeaders(signedHeaders []string, r *http.Request) (http.Header, api_errors.ErrorCode) {
+func extractSignedHeaders(signedHeaders []string, r *http.Request) (http.Header, apierrors.ErrorCode) {
 	reqHeaders := r.Header
 	reqQueries := r.Form
 	// find whether "host" is part of list of signed headers.
 	// if not return ErrUnsignedHeaders. "host" is mandatory.
 	if !contains(signedHeaders, "host") {
-		return nil, api_errors.ErrUnsignedHeaders
+		return nil, apierrors.ErrUnsignedHeaders
 	}
 	extractedSignedHeaders := make(http.Header)
 	for _, header := range signedHeaders {
@@ -224,8 +224,8 @@ func extractSignedHeaders(signedHeaders []string, r *http.Request) (http.Header,
 			// calculation to be compatible with such clients.
 			extractedSignedHeaders.Set(header, strconv.FormatInt(r.ContentLength, 10))
 		default:
-			return nil, api_errors.ErrUnsignedHeaders
+			return nil, apierrors.ErrUnsignedHeaders
 		}
 	}
-	return extractedSignedHeaders, api_errors.ErrNone
+	return extractedSignedHeaders, apierrors.ErrNone
 }

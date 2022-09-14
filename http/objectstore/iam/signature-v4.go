@@ -19,7 +19,7 @@ package iam
 
 import (
 	"crypto/subtle"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/set"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
@@ -56,36 +56,36 @@ func compareSignatureV4(sig1, sig2 string) bool {
 
 // doesPresignedSignatureMatch - Verify query headers with presigned signature
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
-// returns api_errors.ErrNone if the signature matches.
-func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) api_errors.ErrorCode {
+// returns apierrors.ErrNone if the signature matches.
+func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) apierrors.ErrorCode {
 	// Copy request
 	req := *r
 
 	// Parse request query string.
 	pSignValues, err := parsePreSignV4(req.Form, region, stype)
-	if err != api_errors.ErrNone {
+	if err != apierrors.ErrNone {
 		return err
 	}
 
 	cred, _, s3Err := s.checkKeyValid(r, pSignValues.Credential.accessKey)
-	if s3Err != api_errors.ErrNone {
+	if s3Err != apierrors.ErrNone {
 		return s3Err
 	}
 
 	// Extract all the signed headers along with its values.
 	extractedSignedHeaders, errCode := extractSignedHeaders(pSignValues.SignedHeaders, r)
-	if errCode != api_errors.ErrNone {
+	if errCode != apierrors.ErrNone {
 		return errCode
 	}
 
 	// If the host which signed the request is slightly ahead in time (by less than MaxSkewTime) the
 	// request should still be allowed.
 	if pSignValues.Date.After(time.Now().UTC().Add(consts.MaxSkewTime)) {
-		return api_errors.ErrRequestNotReadyYet
+		return apierrors.ErrRequestNotReadyYet
 	}
 
 	if time.Now().UTC().Sub(pSignValues.Date) > pSignValues.Expires {
-		return api_errors.ErrExpiredPresignRequest
+		return apierrors.ErrExpiredPresignRequest
 	}
 
 	// Save the date and expires.
@@ -135,27 +135,27 @@ func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Requ
 
 	// Verify if date query is same.
 	if req.Form.Get(consts.AmzDate) != query.Get(consts.AmzDate) {
-		return api_errors.ErrSignatureDoesNotMatch
+		return apierrors.ErrSignatureDoesNotMatch
 	}
 	// Verify if expires query is same.
 	if req.Form.Get(consts.AmzExpires) != query.Get(consts.AmzExpires) {
-		return api_errors.ErrSignatureDoesNotMatch
+		return apierrors.ErrSignatureDoesNotMatch
 	}
 	// Verify if signed headers query is same.
 	if req.Form.Get(consts.AmzSignedHeaders) != query.Get(consts.AmzSignedHeaders) {
-		return api_errors.ErrSignatureDoesNotMatch
+		return apierrors.ErrSignatureDoesNotMatch
 	}
 	// Verify if credential query is same.
 	if req.Form.Get(consts.AmzCredential) != query.Get(consts.AmzCredential) {
-		return api_errors.ErrSignatureDoesNotMatch
+		return apierrors.ErrSignatureDoesNotMatch
 	}
 	// Verify if sha256 payload query is same.
 	if clntHashedPayload != "" && clntHashedPayload != query.Get(consts.AmzContentSha256) {
-		return api_errors.ErrContentSHA256Mismatch
+		return apierrors.ErrContentSHA256Mismatch
 	}
 	// Verify if security token is correct.
 	if token != "" && subtle.ConstantTimeCompare([]byte(token), []byte(cred.SessionToken)) != 1 {
-		return api_errors.ErrInvalidToken
+		return apierrors.ErrInvalidToken
 	}
 
 	// Verify finally if signature is same.
@@ -175,15 +175,15 @@ func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Requ
 
 	// Verify signature.
 	if !compareSignatureV4(req.Form.Get(consts.AmzSignature), newSignature) {
-		return api_errors.ErrSignatureDoesNotMatch
+		return apierrors.ErrSignatureDoesNotMatch
 	}
-	return api_errors.ErrNone
+	return apierrors.ErrNone
 }
 
 // doesSignatureMatch - Verify authorization header with calculated header in accordance with
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html
-// returns api_errors.ErrNone if signature matches.
-func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) api_errors.ErrorCode {
+// returns apierrors.ErrNone if signature matches.
+func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, region string, stype serviceType) apierrors.ErrorCode {
 	// Copy request.
 	req := *r
 
@@ -192,18 +192,18 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 
 	// Parse signature version '4' header.
 	signV4Values, err := parseSignV4(v4Auth, region, stype)
-	if err != api_errors.ErrNone {
+	if err != apierrors.ErrNone {
 		return err
 	}
 
 	// Extract all the signed headers along with its values.
 	extractedSignedHeaders, errCode := extractSignedHeaders(signV4Values.SignedHeaders, r)
-	if errCode != api_errors.ErrNone {
+	if errCode != apierrors.ErrNone {
 		return errCode
 	}
 
 	cred, _, s3Err := s.checkKeyValid(r, signV4Values.Credential.accessKey)
-	if s3Err != api_errors.ErrNone {
+	if s3Err != apierrors.ErrNone {
 		return s3Err
 	}
 
@@ -211,14 +211,14 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 	var date string
 	if date = req.Header.Get(consts.AmzDate); date == "" {
 		if date = r.Header.Get(consts.Date); date == "" {
-			return api_errors.ErrMissingDateHeader
+			return apierrors.ErrMissingDateHeader
 		}
 	}
 
 	// Parse date header.
 	t, e := time.Parse(iso8601Format, date)
 	if e != nil {
-		return api_errors.ErrAuthorizationHeaderMalformed
+		return apierrors.ErrAuthorizationHeaderMalformed
 	}
 
 	// Query string.
@@ -239,11 +239,11 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 
 	// Verify if signature match.
 	if !compareSignatureV4(newSignature, signV4Values.Signature) {
-		return api_errors.ErrSignatureDoesNotMatch
+		return apierrors.ErrSignatureDoesNotMatch
 	}
 
 	// Return error none.
-	return api_errors.ErrNone
+	return apierrors.ErrNone
 }
 
 // getScope generate a string of a specific date, an AWS region, and a service.

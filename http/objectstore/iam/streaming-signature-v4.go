@@ -26,7 +26,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"hash"
 	"io"
@@ -73,7 +73,7 @@ func getChunkSignature(cred auth.Credentials, seedSignature string, region strin
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-streaming.html
 // returns signature, error otherwise if the signature mismatches or any other
 // error while parsing and validating.
-func (s *AuthSys) CalculateSeedSignature(r *http.Request) (cred auth.Credentials, signature string, region string, date time.Time, errCode api_errors.ErrorCode) {
+func (s *AuthSys) CalculateSeedSignature(r *http.Request) (cred auth.Credentials, signature string, region string, date time.Time, errCode apierrors.ErrorCode) {
 	// Copy request.
 	req := *r
 
@@ -82,7 +82,7 @@ func (s *AuthSys) CalculateSeedSignature(r *http.Request) (cred auth.Credentials
 
 	// Parse signature version '4' header.
 	signV4Values, errCode := parseSignV4(v4Auth, "", ServiceS3)
-	if errCode != api_errors.ErrNone {
+	if errCode != apierrors.ErrNone {
 		return cred, "", "", time.Time{}, errCode
 	}
 
@@ -91,17 +91,17 @@ func (s *AuthSys) CalculateSeedSignature(r *http.Request) (cred auth.Credentials
 
 	// Payload for STREAMING signature should be 'STREAMING-AWS4-HMAC-SHA256-PAYLOAD'
 	if payload != req.Header.Get(consts.AmzContentSha256) {
-		return cred, "", "", time.Time{}, api_errors.ErrContentSHA256Mismatch
+		return cred, "", "", time.Time{}, apierrors.ErrContentSHA256Mismatch
 	}
 
 	// Extract all the signed headers along with its values.
 	extractedSignedHeaders, errCode := extractSignedHeaders(signV4Values.SignedHeaders, r)
-	if errCode != api_errors.ErrNone {
+	if errCode != apierrors.ErrNone {
 		return cred, "", "", time.Time{}, errCode
 	}
 
 	cred, _, errCode = s.checkKeyValid(r, signV4Values.Credential.accessKey)
-	if errCode != api_errors.ErrNone {
+	if errCode != apierrors.ErrNone {
 		return cred, "", "", time.Time{}, errCode
 	}
 
@@ -112,7 +112,7 @@ func (s *AuthSys) CalculateSeedSignature(r *http.Request) (cred auth.Credentials
 	var dateStr string
 	if dateStr = req.Header.Get("x-amz-date"); dateStr == "" {
 		if dateStr = r.Header.Get("Date"); dateStr == "" {
-			return cred, "", "", time.Time{}, api_errors.ErrMissingDateHeader
+			return cred, "", "", time.Time{}, apierrors.ErrMissingDateHeader
 		}
 	}
 
@@ -120,7 +120,7 @@ func (s *AuthSys) CalculateSeedSignature(r *http.Request) (cred auth.Credentials
 	var err error
 	date, err = time.Parse(iso8601Format, dateStr)
 	if err != nil {
-		return cred, "", "", time.Time{}, api_errors.ErrMalformedDate
+		return cred, "", "", time.Time{}, apierrors.ErrMalformedDate
 	}
 
 	// Query string.
@@ -140,11 +140,11 @@ func (s *AuthSys) CalculateSeedSignature(r *http.Request) (cred auth.Credentials
 
 	// Verify if signature match.
 	if !compareSignatureV4(newSignature, signV4Values.Signature) {
-		return cred, "", "", time.Time{}, api_errors.ErrSignatureDoesNotMatch
+		return cred, "", "", time.Time{}, apierrors.ErrSignatureDoesNotMatch
 	}
 
 	// Return caculated signature.
-	return cred, newSignature, region, date, api_errors.ErrNone
+	return cred, newSignature, region, date, apierrors.ErrNone
 }
 
 const maxLineLength = 4 * humanize.KiByte // assumed <= bufio.defaultBufSize 4KiB
@@ -164,9 +164,9 @@ var errChunkTooBig = errors.New("chunk too big: choose chunk size <= 16MiB")
 //
 // NewChunkedReader is not needed by normal applications. The http package
 // automatically decodes chunking when reading response bodies.
-func NewSignV4ChunkedReader(req *http.Request, s *AuthSys) (io.ReadCloser, api_errors.ErrorCode) {
+func NewSignV4ChunkedReader(req *http.Request, s *AuthSys) (io.ReadCloser, apierrors.ErrorCode) {
 	cred, seedSignature, region, seedDate, errCode := s.CalculateSeedSignature(req)
-	if errCode != api_errors.ErrNone {
+	if errCode != apierrors.ErrNone {
 		return nil, errCode
 	}
 
@@ -178,7 +178,7 @@ func NewSignV4ChunkedReader(req *http.Request, s *AuthSys) (io.ReadCloser, api_e
 		region:            region,
 		chunkSHA256Writer: sha256.New(),
 		buffer:            make([]byte, 64*1024),
-	}, api_errors.ErrNone
+	}, apierrors.ErrNone
 }
 
 // Represents the overall state that is required for decoding a

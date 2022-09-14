@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 	"encoding/xml"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"time"
@@ -14,7 +14,7 @@ const (
 )
 
 // bucketPolicyNotFound - no bucket policy found.
-type bucketPolicyNotFound api_errors.GenericBucketError
+type bucketPolicyNotFound apierrors.GenericBucketError
 
 func (e bucketPolicyNotFound) Error() string {
 	return "No bucket policy configuration found for bucket: " + e.Bucket

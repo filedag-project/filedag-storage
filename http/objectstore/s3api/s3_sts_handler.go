@@ -3,7 +3,7 @@ package s3api
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
@@ -28,12 +28,12 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	user, isErrCodeSTS, stsErr := s3a.checkAssumeRoleAuth(r.Context(), r)
 
 	if err := parseForm(r); err != nil {
-		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInvalidParameterValue, err)
+		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSInvalidParameterValue, err)
 		return
 	}
 
 	if r.Form.Get(consts.StsVersion) != consts.StsAPIVersion {
-		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSMissingParameter, fmt.Errorf("invalid STS API version %s3a, expecting %s3a", r.Form.Get(consts.StsAPIVersion), consts.StsAPIVersion))
+		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSMissingParameter, fmt.Errorf("invalid STS API version %s3a, expecting %s3a", r.Form.Get(consts.StsAPIVersion), consts.StsAPIVersion))
 		return
 	}
 
@@ -41,13 +41,13 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	switch action {
 	case consts.AssumeRole:
 	default:
-		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInvalidParameterValue, fmt.Errorf("unsupported action %s3a", action))
+		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSInvalidParameterValue, fmt.Errorf("unsupported action %s3a", action))
 		return
 	}
 
 	// Validate the authentication result here so that failures will be
 	// audit-logged.
-	if stsErr != api_errors.ErrSTSNone {
+	if stsErr != apierrors.ErrSTSNone {
 		response.WriteSTSErrorResponse(r.Context(), w, isErrCodeSTS, stsErr, nil)
 		return
 	}
@@ -61,7 +61,7 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	secret := s3a.authSys.AdminCred.SecretKey
 	cred, err := auth.GetNewCredentialsWithMetadata(m, secret)
 	if err != nil {
-		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInternalError, err)
+		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSInternalError, err)
 		return
 	}
 	// Set the parent of the temporary access key, so that it's access
@@ -69,7 +69,7 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	cred.ParentUser = user.AccessKey
 	// Set the newly generated credentials.
 	if err = s3a.authSys.Iam.SetTempUser(r.Context(), cred.AccessKey, cred, ""); err != nil {
-		response.WriteSTSErrorResponse(r.Context(), w, true, api_errors.ErrSTSInternalError, err)
+		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSInternalError, err)
 		return
 	}
 	assumeRoleResponse := &response.AssumeRoleResponse{
@@ -80,27 +80,27 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	assumeRoleResponse.ResponseMetadata.RequestID = w.Header().Get(consts.AmzRequestID)
 	response.WriteSuccessResponseXML(w, r, assumeRoleResponse)
 }
-func (s3a *s3ApiServer) checkAssumeRoleAuth(ctx context.Context, r *http.Request) (user auth.Credentials, isErrCodeSTS bool, stsErr api_errors.STSErrorCode) {
+func (s3a *s3ApiServer) checkAssumeRoleAuth(ctx context.Context, r *http.Request) (user auth.Credentials, isErrCodeSTS bool, stsErr apierrors.STSErrorCode) {
 	if !iam.IsRequestSignatureV4(r) {
-		return user, true, api_errors.ErrSTSAccessDenied
+		return user, true, apierrors.ErrSTSAccessDenied
 	}
 
 	s3Err := s3a.authSys.IsReqAuthenticated(ctx, r, consts.DefaultRegion, iam.ServiceSTS)
-	if s3Err != api_errors.ErrNone {
-		return user, false, api_errors.STSErrorCode(s3Err)
+	if s3Err != apierrors.ErrNone {
+		return user, false, apierrors.STSErrorCode(s3Err)
 	}
 
 	user, _, s3Err = s3a.authSys.GetReqAccessKeyV4(r, consts.DefaultRegion, iam.ServiceSTS)
-	if s3Err != api_errors.ErrNone {
-		return user, false, api_errors.STSErrorCode(s3Err)
+	if s3Err != apierrors.ErrNone {
+		return user, false, apierrors.STSErrorCode(s3Err)
 	}
 
 	// Session tokens are not allowed in STS AssumeRole requests.
 	if getSessionToken(r) != "" {
-		return user, true, api_errors.ErrSTSAccessDenied
+		return user, true, apierrors.ErrSTSAccessDenied
 	}
 
-	return user, true, api_errors.ErrSTSNone
+	return user, true, apierrors.ErrSTSNone
 }
 
 // Fetch the security token set by the client.

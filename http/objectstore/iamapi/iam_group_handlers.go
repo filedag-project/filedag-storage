@@ -6,8 +6,8 @@ package iamapi
 ////https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateGroup.html
 //func (iamApi *iamApiServer) CreatGroup(w http.ResponseWriter, r *http.Request) {
 //	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
-//	if s3err != api_errors.ErrNone {
-//		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+//	if s3err != apierrors.ErrNone {
+//		response.WriteErrorResponse(w, r, apierrors.ErrAccessDenied)
 //		return
 //	}
 //	groupName := r.FormValue("groupName")
@@ -15,7 +15,7 @@ package iamapi
 //	atoi, _ := strconv.Atoi(version)
 //	err := iamApi.authSys.Iam.CreateGroup(r.Context(), groupName, atoi)
 //	if err != nil {
-//		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+//		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 //		return
 //	}
 //	var resp CreateGroupResponse
@@ -27,14 +27,14 @@ package iamapi
 ////https://docs.aws.amazon.com/IAM/latest/APIReference/API_GetGroup.html
 //func (iamApi *iamApiServer) GetGroup(w http.ResponseWriter, r *http.Request) {
 //	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
-//	if s3err != api_errors.ErrNone {
-//		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+//	if s3err != apierrors.ErrNone {
+//		response.WriteErrorResponse(w, r, apierrors.ErrAccessDenied)
 //		return
 //	}
 //	groupName := r.FormValue("groupName")
 //	_, err := iamApi.authSys.Iam.GetGroup(r.Context(), groupName)
 //	if err != nil {
-//		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+//		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 //		return
 //	}
 //	var resp GetGroupResponse
@@ -55,14 +55,14 @@ package iamapi
 ////https://docs.aws.amazon.com/IAM/latest/APIReference/API_DeleteGroup.html
 //func (iamApi *iamApiServer) DeleteGroup(w http.ResponseWriter, r *http.Request) {
 //	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
-//	if s3err != api_errors.ErrNone {
-//		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+//	if s3err != apierrors.ErrNone {
+//		response.WriteErrorResponse(w, r, apierrors.ErrAccessDenied)
 //		return
 //	}
 //	groupName := r.FormValue("groupName")
 //	err := iamApi.authSys.Iam.DeleteGroup(r.Context(), groupName)
 //	if err != nil {
-//		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+//		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 //		return
 //	}
 //
@@ -75,14 +75,14 @@ package iamapi
 ////https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListGroups.html
 //func (iamApi *iamApiServer) ListGroups(w http.ResponseWriter, r *http.Request) {
 //	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
-//	if s3err != api_errors.ErrNone {
-//		response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+//	if s3err != apierrors.ErrNone {
+//		response.WriteErrorResponse(w, r, apierrors.ErrAccessDenied)
 //		return
 //	}
 //	p := r.FormValue("pathPrefix")
 //	gi, err := iamApi.authSys.Iam.ListGroups(r.Context(), p)
 //	if err != nil {
-//		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+//		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 //		return
 //	}
 //	var resp ListGroupsResponse

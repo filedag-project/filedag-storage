@@ -1,4 +1,4 @@
-package api_errors
+package apierrors
 
 // http://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
 var s3ErrorResponseMap = map[string]string{

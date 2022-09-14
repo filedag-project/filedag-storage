@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/datatypes"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
@@ -34,13 +34,13 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	bucket, object := getBucketAndObject(r)
 	// X-Amz-Copy-Source shouldn't be set for this call.
 	if _, ok := r.Header[consts.AmzCopySource]; ok {
-		response.WriteErrorResponse(w, r, api_errors.ErrInvalidCopySource)
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopySource)
 		return
 	}
 	log.Infof("PutObjectHandler %s %s", bucket, object)
 	clientETag, err := etag.FromContentMD5(r.Header)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInvalidDigest)
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidDigest)
 		return
 	}
 	// if Content-Length is unknown/missing, deny the request
@@ -49,45 +49,45 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	if iam.IsAuthTypeStreamingSigned(rAuthType) {
 		if sizeStr, ok := r.Header[consts.AmzDecodedContentLength]; ok {
 			if sizeStr[0] == "" {
-				response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
+				response.WriteErrorResponse(w, r, apierrors.ErrMissingContentLength)
 				return
 			}
 			size, err = strconv.ParseInt(sizeStr[0], 10, 64)
 			if err != nil {
 				log.Errorf("ParseInt err:%v", err)
-				response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+				response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 				return
 			}
 		}
 	}
 	if size == -1 {
-		response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
+		response.WriteErrorResponse(w, r, apierrors.ErrMissingContentLength)
 		return
 	}
 	if size == 0 {
-		response.WriteErrorResponse(w, r, api_errors.ErrPutBucketInBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrPutBucketInBucket)
 		return
 	}
 	// maximum Upload size for objects in a single operation
 	if size > consts.MaxObjectSize {
-		response.WriteErrorResponse(w, r, api_errors.ErrEntityTooLarge)
+		response.WriteErrorResponse(w, r, apierrors.ErrEntityTooLarge)
 		return
 	}
 
 	// Check if put is allowed
 	s3err := s3a.authSys.IsPutActionAllowed(r.Context(), r, s3action.PutObjectAction, bucket, object)
-	if s3err != api_errors.ErrNone {
+	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
 	cred, _, s3err := s3a.authSys.GetCredential(r)
-	if s3err != api_errors.ErrNone {
+	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 
@@ -101,19 +101,19 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	case iam.AuthTypeStreamingSigned:
 		// Initialize stream signature verifier.
 		reader, s3err = iam.NewSignV4ChunkedReader(r, s3a.authSys)
-		if s3err != api_errors.ErrNone {
+		if s3err != apierrors.ErrNone {
 			response.WriteErrorResponse(w, r, s3err)
 			return
 		}
 	case iam.AuthTypeSignedV2, iam.AuthTypePresignedV2:
 		s3err = s3a.authSys.IsReqAuthenticatedV2(r)
-		if s3err != api_errors.ErrNone {
+		if s3err != apierrors.ErrNone {
 			response.WriteErrorResponse(w, r, s3err)
 			return
 		}
 
 	case iam.AuthTypePresigned, iam.AuthTypeSigned:
-		if s3err = s3a.authSys.ReqSignatureV4Verify(r, "", iam.ServiceS3); s3err != api_errors.ErrNone {
+		if s3err = s3a.authSys.ReqSignatureV4Verify(r, "", iam.ServiceS3); s3err != apierrors.ErrNone {
 			response.WriteErrorResponse(w, r, s3err)
 			return
 		}
@@ -125,20 +125,20 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	hashReader, err := hash.NewReader(reader, size, md5hex, sha256hex, size)
 	if err != nil {
 		log.Errorf("PutObjectHandler NewReader err:%v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 	metadata, err := extractMetadata(r.Context(), r)
 	if err != nil {
 		log.Errorf("PutObjectHandler extractMetadata err:%v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 	// TODO: if bucket is unique, there is no need to store user in Object
 	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader, size, metadata)
 	if err2 != nil {
 		log.Errorf("PutObjectHandler StoreObject err:%v", err2)
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 	setPutObjHeaders(w, objInfo, false)
@@ -156,19 +156,19 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
 	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 	userName := cred.AccessKey
 	if cred.AccessKey == "" {
 		meta, err := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
 		if err != nil {
-			response.WriteErrorResponse(w, r, api_errors.ErrAccessDenied)
+			response.WriteErrorResponse(w, r, apierrors.ErrAccessDenied)
 			return
 		}
 		userName = meta.Owner
@@ -177,9 +177,9 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		log.Errorf("GetObjectHandler GetObject err:%v", err)
 		if xerrors.Is(err, store.ErrObjectNotFound) {
-			response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
+			response.WriteErrorResponseHeadersOnly(w, r, apierrors.ErrNoSuchKey)
 		} else {
-			response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrInternalError)
+			response.WriteErrorResponseHeadersOnly(w, r, apierrors.ErrInternalError)
 		}
 		return
 	}
@@ -192,7 +192,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	_, err = reader.WriteTo(w)
 	if err != nil {
 		log.Errorf("GetObjectHandler reader readAll err:%v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 }
@@ -206,17 +206,17 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
 	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 	objInfo, ok := s3a.store.HasObject(r.Context(), cred.AccessKey, bucket, object)
 	if !ok {
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
+		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ErrNoSuchKey)
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
@@ -240,23 +240,23 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
 	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, bucket, object)
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 	objInfo, ok := s3a.store.HasObject(r.Context(), cred.AccessKey, bucket, object)
 	if !ok {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchKey)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchKey)
 		return
 	}
 	err := s3a.store.DeleteObject(r.Context(), cred.AccessKey, bucket, object)
 	if err != nil {
 		log.Errorf("DeleteObjectHandler DeleteObject  err:%v", err)
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 	setPutObjHeaders(w, objInfo, true)
@@ -271,14 +271,14 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 	// Content-Md5 is requied should be set
 	// http://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html
 	if _, ok := r.Header[consts.ContentMD5]; !ok {
-		response.WriteErrorResponse(w, r, api_errors.ErrMissingContentMD5)
+		response.WriteErrorResponse(w, r, apierrors.ErrMissingContentMD5)
 		return
 	}
 
 	// Content-Length is required and should be non-zero
 	// http://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html
 	if r.ContentLength <= 0 {
-		response.WriteErrorResponse(w, r, api_errors.ErrMissingContentLength)
+		response.WriteErrorResponse(w, r, apierrors.ErrMissingContentLength)
 		return
 	}
 
@@ -288,7 +288,7 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 	// Unmarshal list of keys to be deleted.
 	deleteObjectsReq := &datatypes.DeleteObjectsRequest{}
 	if err := utils.XmlDecoder(r.Body, deleteObjectsReq, maxBodySize); err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrMalformedXML)
+		response.WriteErrorResponse(w, r, apierrors.ErrMalformedXML)
 		return
 	}
 
@@ -300,20 +300,20 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 	}
 
 	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteObjectAction, bucket, "")
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 
 	// Before proceeding validate if bucket exists.
 	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 
 	// Return Malformed XML as S3 spec if the number of objects is empty
 	if len(deleteObjectsReq.Objects) == 0 || len(deleteObjectsReq.Objects) > response.MaxDeleteList {
-		response.WriteErrorResponse(w, r, api_errors.ErrMalformedXML)
+		response.WriteErrorResponse(w, r, apierrors.ErrMalformedXML)
 		return
 	}
 
@@ -328,12 +328,12 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 
 	for index, object := range deleteObjectsReq.Objects {
 		_, _, s3Error = s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteObjectAction, bucket, object.ObjectName)
-		if s3Error != api_errors.ErrNone {
-			if s3Error == api_errors.ErrSignatureDoesNotMatch || s3Error == api_errors.ErrInvalidAccessKeyID {
+		if s3Error != apierrors.ErrNone {
+			if s3Error == apierrors.ErrSignatureDoesNotMatch || s3Error == apierrors.ErrInvalidAccessKeyID {
 				response.WriteErrorResponse(w, r, s3Error)
 				return
 			}
-			apiErr := api_errors.GetAPIError(s3Error)
+			apiErr := apierrors.GetAPIError(s3Error)
 			deleteResults[index].errInfo = response.DeleteError{
 				Code:      apiErr.Code,
 				Message:   apiErr.Description,
@@ -387,7 +387,7 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 			deleteResults[dindex].delInfo = dObjects[i]
 			continue
 		}
-		apiErr := api_errors.GetAPIError(api_errors.ErrInternalError)
+		apiErr := apierrors.GetAPIError(apierrors.ErrInternalError)
 		deleteResults[dindex].errInfo = response.DeleteError{
 			Code:      apiErr.Code,
 			Message:   apiErr.Description,
@@ -428,12 +428,12 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
 	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetObjectAction, dstBucket, dstObject)
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(dstBucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 
@@ -446,14 +446,14 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
 	if !s3a.bmSys.HasBucket(srcBucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 	log.Debugf("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
 	srcObjInfo, srcReader, err := s3a.store.GetObject(r.Context(), cred.AccessKey, srcBucket, srcObject)
 	if err != nil {
 		log.Errorf("CopyObjectHandler StoreObject err:%v", err)
-		response.WriteErrorResponseHeadersOnly(w, r, api_errors.ErrNoSuchKey)
+		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ErrNoSuchKey)
 		return
 	}
 	metadata := make(map[string]string)
@@ -473,17 +473,17 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 
 	// If source object is empty or bucket is empty, reply back invalid copy source.
 	if srcObject == "" || srcBucket == "" {
-		response.WriteErrorResponse(w, r, api_errors.ErrInvalidCopySource)
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopySource)
 		return
 	}
 
 	if srcBucket == dstBucket && srcObject == dstObject {
-		response.WriteErrorResponse(w, r, api_errors.ErrInvalidCopyDest)
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopyDest)
 		return
 	}
 	obj, err := s3a.store.StoreObject(r.Context(), cred.AccessKey, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 
@@ -503,23 +503,23 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
 	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ListBucketAction, bucket, "")
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 	// Extract all the litsObjectsV1 query params to their native values.
 	prefix, marker, delimiter, maxKeys, encodingType, s3Error := getListObjectsV1Args(r.Form)
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	objs, err := s3a.store.ListObjects(r.Context(), cred.AccessKey, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 	resp := generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType, maxKeys, objs)
@@ -532,25 +532,25 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
 	cerd, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ListBucketAction, bucket, object)
-	if s3Error != api_errors.ErrNone {
+	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(bucket, cerd.AccessKey) {
-		response.WriteErrorResponse(w, r, api_errors.ErrNoSuchBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 
 	urlValues := r.Form
 	// Extract all the listObjectsV2 query params to their native values.
 	prefix, token, startAfter, delimiter, fetchOwner, maxKeys, encodingType, errCode := getListObjectsV2Args(urlValues)
-	if errCode != api_errors.ErrNone {
+	if errCode != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, errCode)
 		return
 	}
 	// Validate the query params before beginning to serve the request.
 	// fetch-owner is not validated since it is a boolean
-	if s3Error := validateListObjectsArgs(token, delimiter, encodingType, maxKeys); s3Error != api_errors.ErrNone {
+	if s3Error := validateListObjectsArgs(token, delimiter, encodingType, maxKeys); s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
@@ -562,7 +562,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		maxKeys, fetchOwner, startAfter)
 
 	if err != nil {
-		response.WriteErrorResponse(w, r, api_errors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 
@@ -630,13 +630,13 @@ func isReplace(r *http.Request) bool {
 }
 
 // Parse bucket url queries
-func getListObjectsV1Args(values url.Values) (prefix, marker, delimiter string, maxkeys int, encodingType string, errCode api_errors.ErrorCode) {
-	errCode = api_errors.ErrNone
+func getListObjectsV1Args(values url.Values) (prefix, marker, delimiter string, maxkeys int, encodingType string, errCode apierrors.ErrorCode) {
+	errCode = apierrors.ErrNone
 
 	if values.Get("max-keys") != "" {
 		var err error
 		if maxkeys, err = strconv.Atoi(values.Get("max-keys")); err != nil {
-			errCode = api_errors.ErrInvalidMaxKeys
+			errCode = apierrors.ErrInvalidMaxKeys
 			return
 		}
 	} else {
@@ -651,13 +651,13 @@ func getListObjectsV1Args(values url.Values) (prefix, marker, delimiter string, 
 }
 
 // Parse bucket url queries for ListObjects V2.
-func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimiter string, fetchOwner bool, maxkeys int, encodingType string, errCode api_errors.ErrorCode) {
-	errCode = api_errors.ErrNone
+func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimiter string, fetchOwner bool, maxkeys int, encodingType string, errCode apierrors.ErrorCode) {
+	errCode = apierrors.ErrNone
 
 	// The continuation-token cannot be empty.
 	if val, ok := values["continuation-token"]; ok {
 		if len(val[0]) == 0 {
-			errCode = api_errors.ErrInvalidToken
+			errCode = apierrors.ErrInvalidToken
 			return
 		}
 	}
@@ -665,7 +665,7 @@ func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimit
 	if values.Get("max-keys") != "" {
 		var err error
 		if maxkeys, err = strconv.Atoi(values.Get("max-keys")); err != nil {
-			errCode = api_errors.ErrInvalidMaxKeys
+			errCode = apierrors.ErrInvalidMaxKeys
 			return
 		}
 		// Over flowing count - reset to maxObjectList.
@@ -685,7 +685,7 @@ func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimit
 	if token = values.Get("continuation-token"); token != "" {
 		decodedToken, err := base64.StdEncoding.DecodeString(token)
 		if err != nil {
-			errCode = api_errors.ErrIncorrectContinuationToken
+			errCode = apierrors.ErrIncorrectContinuationToken
 			return
 		}
 		token = string(decodedToken)
@@ -711,20 +711,20 @@ func trimLeadingSlash(ep string) string {
 // - delimiter if set should be equal to '/', otherwise the request is rejected.
 // - marker if set should have a common prefix with 'prefix' param, otherwise
 //   the request is rejected.
-func validateListObjectsArgs(marker, delimiter, encodingType string, maxKeys int) api_errors.ErrorCode {
+func validateListObjectsArgs(marker, delimiter, encodingType string, maxKeys int) apierrors.ErrorCode {
 	// Max keys cannot be negative.
 	if maxKeys < 0 {
-		return api_errors.ErrInvalidMaxKeys
+		return apierrors.ErrInvalidMaxKeys
 	}
 
 	if encodingType != "" {
 		// AWS S3 spec only supports 'url' encoding type
 		if !strings.EqualFold(encodingType, "url") {
-			return api_errors.ErrInvalidEncodingMethod
+			return apierrors.ErrInvalidEncodingMethod
 		}
 	}
 
-	return api_errors.ErrNone
+	return apierrors.ErrNone
 }
 
 // GenerateListObjectsV2Response Generates an ListObjectsV2 response for the said bucket with other enumerated options.

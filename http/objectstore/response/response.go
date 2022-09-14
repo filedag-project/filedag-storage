@@ -6,7 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/datatypes"
 	logging "github.com/ipfs/go-log/v2"
@@ -96,7 +96,7 @@ func WriteSuccessResponseEmpty(w http.ResponseWriter, r *http.Request) {
 
 // WriteErrorResponseJSON - writes error response in JSON format;
 // useful for admin APIs.
-func WriteErrorResponseJSON(w http.ResponseWriter, err api_errors.APIError, reqURL *url.URL, host string) {
+func WriteErrorResponseJSON(w http.ResponseWriter, err apierrors.APIError, reqURL *url.URL, host string) {
 	// Generate error response.
 	errorResponse := getAPIErrorResponse(err, reqURL.Path, w.Header().Get(consts.AmzRequestID), host)
 	encodedErrorResponse := encodeResponseJSON(errorResponse)
@@ -105,7 +105,7 @@ func WriteErrorResponseJSON(w http.ResponseWriter, err api_errors.APIError, reqU
 
 // getErrorResponse gets in standard error and resource value and
 // provides a encodable populated response values
-func getAPIErrorResponse(err api_errors.APIError, resource, requestID, hostID string) APIErrorResponse {
+func getAPIErrorResponse(err apierrors.APIError, resource, requestID, hostID string) APIErrorResponse {
 	return APIErrorResponse{
 		Code:      err.Code,
 		Message:   err.Description,

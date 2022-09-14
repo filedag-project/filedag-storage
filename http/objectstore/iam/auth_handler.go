@@ -1,7 +1,7 @@
 package iam
 
 import (
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/response"
 	"net/http"
@@ -16,7 +16,7 @@ func SetAuthHandler(h http.Handler) http.Handler {
 		if aType == AuthTypeSigned || aType == AuthTypeSignedV2 || aType == AuthTypeStreamingSigned {
 			// Verify if date headers are set, if not reject the request
 			amzDate, errCode := parseAmzDateHeader(r)
-			if errCode != api_errors.ErrNone {
+			if errCode != apierrors.ErrNone {
 				// All our internal APIs are sensitive towards Date
 				// header, for all requests where Date header is not
 				// present we will reject such clients.
@@ -27,7 +27,7 @@ func SetAuthHandler(h http.Handler) http.Handler {
 			// or in the future, reject request otherwise.
 			curTime := time.Now().UTC()
 			if curTime.Sub(amzDate) > consts.GlobalMaxSkewTime || amzDate.Sub(curTime) > consts.GlobalMaxSkewTime {
-				response.WriteErrorResponse(w, r, api_errors.ErrRequestTimeTooSkewed)
+				response.WriteErrorResponse(w, r, apierrors.ErrRequestTimeTooSkewed)
 				return
 			}
 		}
@@ -35,7 +35,7 @@ func SetAuthHandler(h http.Handler) http.Handler {
 			h.ServeHTTP(w, r)
 			return
 		}
-		response.WriteErrorResponse(w, r, api_errors.ErrSignatureVersionNotSupported)
+		response.WriteErrorResponse(w, r, apierrors.ErrSignatureVersionNotSupported)
 	})
 }
 
@@ -59,19 +59,19 @@ var amzDateHeaders = []string{
 }
 
 // parseAmzDate - parses date string into supported amz date formats.
-func parseAmzDate(amzDateStr string) (amzDate time.Time, apiErr api_errors.ErrorCode) {
+func parseAmzDate(amzDateStr string) (amzDate time.Time, apiErr apierrors.ErrorCode) {
 	for _, dateFormat := range amzDateFormats {
 		amzDate, err := time.Parse(dateFormat, amzDateStr)
 		if err == nil {
-			return amzDate, api_errors.ErrNone
+			return amzDate, apierrors.ErrNone
 		}
 	}
-	return time.Time{}, api_errors.ErrMalformedDate
+	return time.Time{}, apierrors.ErrMalformedDate
 }
 
 // parseAmzDateHeader - parses supported amz date headers, in
 // supported amz date formats.
-func parseAmzDateHeader(req *http.Request) (time.Time, api_errors.ErrorCode) {
+func parseAmzDateHeader(req *http.Request) (time.Time, apierrors.ErrorCode) {
 	for _, amzDateHeader := range amzDateHeaders {
 		amzDateStr := req.Header.Get(amzDateHeader)
 		if amzDateStr != "" {
@@ -79,7 +79,7 @@ func parseAmzDateHeader(req *http.Request) (time.Time, api_errors.ErrorCode) {
 		}
 	}
 	// Date header missing.
-	return time.Time{}, api_errors.ErrMissingDateHeader
+	return time.Time{}, apierrors.ErrMissingDateHeader
 }
 
 // List of all support S3 auth types.

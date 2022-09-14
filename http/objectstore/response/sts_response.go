@@ -3,7 +3,7 @@ package response
 import (
 	"context"
 	"encoding/xml"
-	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
+	"github.com/filedag-project/filedag-storage/http/objectstore/apierrors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/consts"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"net/http"
@@ -63,13 +63,13 @@ type AssumeRoleResponse struct {
 }
 
 // WriteSTSErrorResponse  writes error headers
-func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCodeSTS bool, errCode api_errors.STSErrorCode, errCtxt error) {
-	var err api_errors.STSError
+func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCodeSTS bool, errCode apierrors.STSErrorCode, errCtxt error) {
+	var err apierrors.STSError
 	if isErrCodeSTS {
-		err = api_errors.StsErrCodes.ToSTSErr(errCode)
+		err = apierrors.StsErrCodes.ToSTSErr(errCode)
 	}
 	if err.Code == "InternalError" || !isErrCodeSTS {
-		aerr := api_errors.GetAPIError(api_errors.ErrorCode(errCode))
+		aerr := apierrors.GetAPIError(apierrors.ErrorCode(errCode))
 		if aerr.Code != "InternalError" {
 			err.Code = aerr.Code
 			err.Description = aerr.Description
