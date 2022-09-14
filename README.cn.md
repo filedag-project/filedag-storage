@@ -27,6 +27,7 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 - Object Store - 基于 Dag Pool 组建的对象存储服务抽象层，负责提供部分兼容 s3 的 api 接口;
 - Control Pannel - 可视化管理界面
 
+👉🏻[详细架构](./docs/architecture-cn.md)
 
 ## Roadmap
 
