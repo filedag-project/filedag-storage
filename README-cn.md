@@ -3,6 +3,8 @@
 [![LICENSE](https://img.shields.io/github/license/filedag-project/filedag-storage)](./LICENSE "LICENSE")
 [![Build Status](https://img.shields.io/github/workflow/status/filedag-project/filedag-storage/Go)]()
 
+Language: [English](./README.md)
+
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 FileDAG Storage 是基于 IPFS 技术栈来构建的分布式存储服务。区别于IPFS的官方实现，我们更关注于数据的管理，数据的可靠性、可用性和容错性，以及存储节点集群化。
@@ -27,6 +29,7 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 - Object Store - 基于 Dag Pool 组建的对象存储服务抽象层，负责提供部分兼容 s3 的 api 接口;
 - Control Pannel - 可视化管理界面
 
+👉🏻[详细架构](./docs/architecture-cn.md)
 
 ## Roadmap
 
@@ -109,6 +112,25 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 - 实现与DAG Pool与外层IPFS网络连接的卫星节点
 - 提供可定制化的轻量级IPFS网关服务
 
+
+## Build and Run
+
+构建 filedag-storage:
+```shell
+make
+```
+启动三个datanode, 一个dagpool和一个objectstore:
+```shell
+./datanode daemon --listen=127.0.0.1:9011 --datadir=/tmp/dn-data1
+
+./datanode daemon --listen=127.0.0.1:9012 --datadir=/tmp/dn-data2
+
+./datanode daemon --listen=127.0.0.1:9013 --datadir=/tmp/dn-data3
+
+./dagpool daemon --datadir=/tmp/dagpool-db --config=conf/node_config.json
+
+./objectstore daemon --pool-addr=127.0.0.1:50001 --pool-user=dagpool --pool-password=dagpool
+```
 
 <!-- CONTRIBUTING -->
 ## Contributing

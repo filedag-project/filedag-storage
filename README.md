@@ -3,6 +3,8 @@
 [![LICENSE](https://img.shields.io/github/license/filedag-project/filedag-storage)](./LICENSE "LICENSE")
 [![Build Status](https://img.shields.io/github/workflow/status/filedag-project/filedag-storage/Go)]()
 
+Language: [Chinese](./README-cn.md)
+
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 FileDAG Storage A distributed storage service built on the IPFS technology stack. Different from the official implementation of IPFS, we focus more on data management, data reliability, availability and fault tolerance, and clustering of storage nodes.
