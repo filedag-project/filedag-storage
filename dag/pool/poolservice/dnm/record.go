@@ -3,7 +3,7 @@ package dnm
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
-	"github.com/filedag-project/filedag-storage/http/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"

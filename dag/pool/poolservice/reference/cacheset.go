@@ -2,7 +2,7 @@ package reference
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/http/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strings"
 )

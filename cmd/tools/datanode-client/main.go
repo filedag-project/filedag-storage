@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
-	"github.com/filedag-project/filedag-storage/http/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/urfave/cli/v2"

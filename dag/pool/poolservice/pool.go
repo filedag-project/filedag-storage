@@ -10,7 +10,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/reference"
-	"github.com/filedag-project/filedag-storage/http/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
