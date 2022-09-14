@@ -29,7 +29,7 @@ func TestStatement_IsAllowed(t *testing.T) {
 				SID:       ID("test1"),
 				Effect:    Allow,
 				Principal: NewPrincipal("*"),
-				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
+				Actions:   s3action.SupportedActions,
 				Resources: NewResourceSet(NewResource("mybucket", "*")),
 			},
 			args: args{
@@ -48,7 +48,7 @@ func TestStatement_IsAllowed(t *testing.T) {
 				SID:       ID("test2"),
 				Effect:    Allow,
 				Principal: NewPrincipal("test2"),
-				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
+				Actions:   s3action.SupportedActions,
 				Resources: NewResourceSet(NewResource("mybucket", "*")),
 			},
 			args: args{
@@ -67,7 +67,7 @@ func TestStatement_IsAllowed(t *testing.T) {
 				SID:       ID("test2"),
 				Effect:    Allow,
 				Principal: NewPrincipal("test1"),
-				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
+				Actions:   s3action.SupportedActions,
 				Resources: NewResourceSet(NewResource("mybucket", "*")),
 			},
 			args: args{
@@ -125,7 +125,7 @@ func TestStatement_IsAllowed(t *testing.T) {
 				SID:       ID("test4"),
 				Effect:    Allow,
 				Principal: NewPrincipal("test4"),
-				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
+				Actions:   s3action.SupportedActions,
 				Resources: NewResourceSet(NewResource("mybucket", "test4.txt")),
 			},
 			args: args{
@@ -144,7 +144,7 @@ func TestStatement_IsAllowed(t *testing.T) {
 				SID:       ID("test4"),
 				Effect:    Allow,
 				Principal: NewPrincipal("test4"),
-				Actions:   DefaultPolicies[0].Definition.Statements[0].Actions,
+				Actions:   s3action.SupportedActions,
 				Resources: NewResourceSet(NewResource("mybucket", "test2.txt")),
 			},
 			args: args{

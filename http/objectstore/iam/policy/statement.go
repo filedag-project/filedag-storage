@@ -84,17 +84,19 @@ func (statement Statement) Equals(st Statement) bool {
 // Clone clones Statement structure
 func (statement Statement) Clone() Statement {
 	return NewStatement(statement.SID, statement.Effect, statement.Principal.Clone(),
-		statement.Actions.Clone(), statement.Resources.Clone())
+		statement.Actions.Clone(), statement.Resources.Clone(), statement.Conditions.Clone())
 }
 
 // NewStatement - creates new statement.
-func NewStatement(sid ID, effect Effect, principal Principal, actionSet s3action.ActionSet, resourceSet ResourceSet) Statement {
+func NewStatement(sid ID, effect Effect, principal Principal, actionSet s3action.ActionSet, resourceSet ResourceSet,
+	conditions condition.Conditions) Statement {
 	return Statement{
-		SID:       sid,
-		Effect:    effect,
-		Principal: principal,
-		Actions:   actionSet,
-		Resources: resourceSet,
+		SID:        sid,
+		Effect:     effect,
+		Principal:  principal,
+		Actions:    actionSet,
+		Resources:  resourceSet,
+		Conditions: conditions,
 	}
 }
 

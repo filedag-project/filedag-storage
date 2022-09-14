@@ -50,9 +50,10 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 		return err
 	}
 	//todo policy name
-	err = store.createUserPolicy(ctx, accessKey, policy.DefaultPolicies[1].Name, policy.PolicyDocument{
-		Version:   policy.DefaultPolicies[1].Definition.Version,
-		Statement: policy.DefaultPolicies[1].Definition.Statements,
+	p := policy.CreateUserPolicy(accessKey)
+	err = store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
+		Version:   p.Version,
+		Statement: p.Statements,
 	})
 	if err != nil {
 		return err

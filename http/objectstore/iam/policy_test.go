@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy/condition"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"testing"
@@ -33,6 +34,6 @@ func initSys() {
 	ast := s3action.NewActionSet("list")
 	principal := policy.NewPrincipal(auth.DefaultAccessKey)
 	resource := policy.NewResourceSet()
-	states = append(states, policy.NewStatement("1", policy.Allow, principal, ast, resource))
+	states = append(states, policy.NewStatement("1", policy.Allow, principal, ast, resource, condition.NewConFunctions()))
 
 }

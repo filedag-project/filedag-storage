@@ -135,15 +135,11 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 		log.Errorf("save UserIdentity err:%v", err)
 		return err
 	}
-	err = sys.store.createUserPolicy(ctx, accessKey, policy.DefaultPolicies[1].Name, policy.PolicyDocument{
-		Version: policy.DefaultPolicies[1].Definition.Version,
-		Statement: []policy.Statement{{
-			SID:       policy.DefaultPolicies[1].Definition.Statements[0].SID,
-			Effect:    policy.DefaultPolicies[1].Definition.Statements[0].Effect,
-			Principal: policy.NewPrincipal(accessKey),
-			Actions:   policy.DefaultPolicies[1].Definition.Statements[0].Actions,
-			Resources: policy.DefaultPolicies[1].Definition.Statements[0].Resources},
-		},
+
+	p := policy.CreateUserPolicy(accessKey)
+	err = sys.store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
+		Version:   p.Version,
+		Statement: p.Statements,
 	})
 	if err != nil {
 		return err

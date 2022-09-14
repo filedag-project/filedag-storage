@@ -3,10 +3,14 @@ package policy
 import (
 	"encoding/json"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy/condition"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/s3action"
 	"golang.org/x/xerrors"
 	"io"
 )
+
+// DefaultVersion - default policy version as per AWS S3 specification.
+const DefaultVersion = "2012-10-17"
 
 // Policy - iam bucket iamp.
 type Policy struct {
@@ -169,68 +173,110 @@ func (p Policy) isValid() error {
 	return nil
 }
 
-// DefaultPolicies - list of canned policies available in FileDagStorage.
-var DefaultPolicies = []struct {
-	Name       string
-	Definition Policy
-}{
-	// ReadWrite - provides full access to all buckets and all objects.
-	{
-		Name: "readwrite",
-		Definition: Policy{
-			Statements: []Statement{
-				{
-					SID:       "",
-					Effect:    Allow,
-					Principal: NewPrincipal("*"),
-					Actions:   s3action.SupportedActions,
-					Resources: NewResourceSet(NewResource("*", "*")),
-				},
-			},
+func CreateAnonReadOnlyBucketPolicy(bucketName string) *Policy {
+	return &Policy{
+		Version: DefaultVersion,
+		Statements: []Statement{
+			NewStatement(
+				"",
+				Allow,
+				NewPrincipal("*"),
+				s3action.NewActionSet(s3action.GetBucketLocationAction, s3action.ListBucketAction),
+				NewResourceSet(NewResource(bucketName, "")),
+				condition.NewConFunctions(),
+			),
 		},
-	},
-	// ReadWrite - provides full access to all buckets and all objects.
-	{
-		Name: "default",
-		Definition: Policy{
-			Statements: []Statement{
-				{
-					SID:       "",
-					Effect:    Allow,
-					Principal: NewPrincipal("*"),
-					Actions:   s3action.SupportedActions,
-					Resources: NewResourceSet(NewResource("*", "")),
-				},
-			},
-		},
-	},
+	}
+}
 
-	// ReadOnly - read only.
-	{
-		Name: "readonly",
-		Definition: Policy{
-			Statements: []Statement{
-				{
-					SID:     "",
-					Effect:  Allow,
-					Actions: s3action.NewActionSet(s3action.GetBucketLocationAction, s3action.GetObjectAction),
-				},
-			},
+func CreateAnonWriteOnlyBucketPolicy(bucketName string) *Policy {
+	return &Policy{
+		Version: DefaultVersion,
+		Statements: []Statement{
+			NewStatement(
+				"",
+				Allow,
+				NewPrincipal("*"),
+				s3action.NewActionSet(
+					s3action.GetBucketLocationAction,
+					s3action.ListBucketMultipartUploadsAction,
+				),
+				NewResourceSet(NewResource(bucketName, "")),
+				condition.NewConFunctions(),
+			),
 		},
-	},
+	}
+}
 
-	// WriteOnly - provides write access.
-	{
-		Name: "writeonly",
-		Definition: Policy{
-
-			Statements: []Statement{
-				{
-					SID:     "",
-					Effect:  Allow,
-					Actions: s3action.NewActionSet(s3action.PutObjectAction),
-				},
-			},
+func CreateAnonReadOnlyObjectPolicy(bucketName, prefix string) *Policy {
+	return &Policy{
+		Version: DefaultVersion,
+		Statements: []Statement{
+			NewStatement(
+				"",
+				Allow,
+				NewPrincipal("*"),
+				s3action.NewActionSet(s3action.GetObjectAction),
+				NewResourceSet(NewResource(bucketName, prefix)),
+				condition.NewConFunctions(),
+			),
 		},
-	},
+	}
+}
+
+func CreateAnonWriteOnlyObjectPolicy(bucketName, prefix string) *Policy {
+	return &Policy{
+		Version: DefaultVersion,
+		Statements: []Statement{
+			NewStatement(
+				"",
+				Allow,
+				NewPrincipal("*"),
+				s3action.NewActionSet(
+					s3action.AbortMultipartUploadAction,
+					s3action.DeleteObjectAction,
+					s3action.ListMultipartUploadPartsAction,
+					s3action.PutObjectAction,
+				),
+				NewResourceSet(NewResource(bucketName, prefix)),
+				condition.NewConFunctions(),
+			),
+		},
+	}
+}
+
+func CreateUserPolicy(accessKey string) *Policy {
+	return &Policy{
+		Version: DefaultVersion,
+		Statements: []Statement{
+			NewStatement(
+				"",
+				Allow,
+				NewPrincipal(accessKey),
+				s3action.NewActionSet(
+					s3action.AllActions,
+				),
+				NewResourceSet(NewResource("*", "*")),
+				condition.NewConFunctions(),
+			),
+		},
+	}
+}
+
+func CreateUserBucketPolicy(bucketName, accessKey string) *Policy {
+	return &Policy{
+		Version: DefaultVersion,
+		Statements: []Statement{
+			NewStatement(
+				"",
+				Allow,
+				NewPrincipal(accessKey),
+				s3action.NewActionSet(
+					s3action.AllActions,
+				),
+				NewResourceSet(NewResource(bucketName, "*")),
+				condition.NewConFunctions(),
+			),
+		},
+	}
 }

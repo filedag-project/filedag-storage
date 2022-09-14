@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/http/objectstore/api_errors"
 	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/policy/condition"
 	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
 	"time"
 )
@@ -60,28 +59,13 @@ type BucketMetadata struct {
 
 // NewBucketMetadata creates BucketMetadata with the supplied name and Created to Now.
 func NewBucketMetadata(name, region, accessKey string) BucketMetadata {
-	equalsFunc, err := condition.NewStringEqualsFunc("", condition.S3Prefix.ToKey(), name)
-	if err != nil {
-		return BucketMetadata{}
-	}
-	var p = policy.Policy{
-		ID:      policy.DefaultPolicies[0].Definition.ID,
-		Version: policy.DefaultPolicies[0].Definition.Version,
-		Statements: []policy.Statement{{
-			SID:        policy.DefaultPolicies[0].Definition.Statements[0].SID,
-			Effect:     policy.DefaultPolicies[0].Definition.Statements[0].Effect,
-			Principal:  policy.NewPrincipal(accessKey),
-			Actions:    policy.DefaultPolicies[0].Definition.Statements[0].Actions,
-			Resources:  policy.NewResourceSet(policy.NewResource(name, "*")),
-			Conditions: condition.NewConFunctions(equalsFunc),
-		}},
-	}
+	p := policy.CreateUserBucketPolicy(name, accessKey)
 	return BucketMetadata{
 		Name:         name,
 		Region:       region,
 		Owner:        accessKey,
 		Created:      time.Now().UTC(),
-		PolicyConfig: &p,
+		PolicyConfig: p,
 	}
 }
 
