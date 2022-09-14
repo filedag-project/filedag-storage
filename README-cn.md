@@ -3,6 +3,8 @@
 [![LICENSE](https://img.shields.io/github/license/filedag-project/filedag-storage)](./LICENSE "LICENSE")
 [![Build Status](https://img.shields.io/github/workflow/status/filedag-project/filedag-storage/Go)]()
 
+Language: [English](./README.md)
+
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 FileDAG Storage 是基于 IPFS 技术栈来构建的分布式存储服务。区别于IPFS的官方实现，我们更关注于数据的管理，数据的可靠性、可用性和容错性，以及存储节点集群化。
