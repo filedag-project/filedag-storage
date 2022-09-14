@@ -26,5 +26,6 @@ func RemoveDAG(ctx context.Context, dagServ ipld.DAGService, root cid.Cid) error
 			log.Errorf("remove block failed, error: %v", err)
 		}
 	}
+	log.Infof("remove DAG success, root cid=%s", root)
 	return nil
 }

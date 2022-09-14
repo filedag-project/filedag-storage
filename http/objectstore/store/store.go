@@ -29,11 +29,15 @@ type StorageSys struct {
 	CidBuilder cid.Builder
 }
 
-const objectPrefixTemplate = "object-%s-%s-%s/"
-const allObjectPrefixTemplate = "object-%s-%s-%s"
-const allObjectSeekPrefixTemplate = "object-%s-%s-%s"
+const objectPrefixFormat = "obj-%s-%s-%s/"
+const allObjectPrefixFormat = "obj-%s-%s-%s"
+const allObjectSeekPrefixFormat = "obj-%s-%s-%s"
 
 var ErrObjectNotFound = errors.New("object not found")
+
+func getObjectKey(user, bucket, object string) string {
+	return fmt.Sprintf(objectPrefixFormat, user, bucket, object)
+}
 
 //StoreObject store object
 func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
@@ -65,8 +69,17 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 			objInfo.Expires = t.UTC()
 		}
 	}
+	// Has old file?
+	if oldObjInfo, exist := s.HasObject(ctx, user, bucket, object); exist {
+		c, err := cid.Decode(oldObjInfo.ETag)
+		if err != nil {
+			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
+		} else if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
+			log.Errorw("remove DAG error", "cid", oldObjInfo.ETag)
+		}
+	}
 
-	err = s.Db.Put(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), objInfo)
+	err = s.Db.Put(getObjectKey(user, bucket, object), objInfo)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -79,7 +92,7 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	err := s.Db.Get(getObjectKey(user, bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
 			return ObjectInfo{}, nil, ErrObjectNotFound
@@ -107,7 +120,7 @@ func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string)
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	err := s.Db.Get(getObjectKey(user, bucket, object), &meta)
 	if err != nil {
 		return ObjectInfo{}, false
 	}
@@ -118,7 +131,7 @@ func (s *StorageSys) GetObjectInfo(ctx context.Context, user, bucket, object str
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err = s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	err = s.Db.Get(getObjectKey(user, bucket, object), &meta)
 	return
 }
 
@@ -128,7 +141,7 @@ func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object stri
 		object = object[1:]
 	}
 	meta := ObjectInfo{}
-	err := s.Db.Get(fmt.Sprintf(objectPrefixTemplate, user, bucket, object), &meta)
+	err := s.Db.Get(getObjectKey(user, bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
 			return ErrObjectNotFound
@@ -140,7 +153,7 @@ func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object stri
 		return err
 	}
 
-	if err = s.Db.Delete(fmt.Sprintf(objectPrefixTemplate, user, bucket, object)); err != nil {
+	if err = s.Db.Delete(getObjectKey(user, bucket, object)); err != nil {
 		return err
 	}
 
@@ -198,9 +211,9 @@ func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefi
 	defer cancel()
 	seekKey := ""
 	if marker != "" {
-		seekKey = fmt.Sprintf(allObjectSeekPrefixTemplate, user, bucket, marker)
+		seekKey = fmt.Sprintf(allObjectSeekPrefixFormat, user, bucket, marker)
 	}
-	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allObjectPrefixTemplate, user, bucket, prefix), seekKey)
+	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allObjectPrefixFormat, user, bucket, prefix), seekKey)
 	if err != nil {
 		return loi, err
 	}
