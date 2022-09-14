@@ -113,6 +113,25 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 - 提供可定制化的轻量级IPFS网关服务
 
 
+## Build and Run
+
+构建 filedag-storage:
+```shell
+make
+```
+启动三个datanode, 一个dagpool和一个objectstore:
+```shell
+./datanode daemon --listen=127.0.0.1:9011 --datadir=/tmp/dn-data1
+
+./datanode daemon --listen=127.0.0.1:9012 --datadir=/tmp/dn-data2
+
+./datanode daemon --listen=127.0.0.1:9013 --datadir=/tmp/dn-data3
+
+./dagpool daemon --datadir=/tmp/dagpool-db --config=conf/node_config.json
+
+./objectstore daemon --pool-addr=127.0.0.1:50001 --pool-user=dagpool --pool-password=dagpool
+```
+
 <!-- CONTRIBUTING -->
 ## Contributing
 
