@@ -27,7 +27,7 @@ The development of FileDAG Storage will provide a solution to the above challeng
 - Object Store - Object storage service abstraction layer based on Dag Pool, responsible for partially providing s3-compatible api interfaces;
 - Control Pannel - Visual management ui
 
-
+👉🏻[Detailed Architecture](./docs/architecture.md)
 ## Roadmap
 
 ### Milestone 1
@@ -109,6 +109,25 @@ Connect with IPFS.
 - Implements Satellite Nodes connected to the IPFS network in the outer layer of the DAG Pool
 - Provides lightweight IPFS gateway services according to user customization
 
+
+## Build and Run
+
+Build filedag-storage:
+```shell
+make
+```
+Start 3 datanodes, dagpool and objectstore:
+```shell
+./datanode daemon --listen=127.0.0.1:9011 --datadir=/tmp/dn-data1
+
+./datanode daemon --listen=127.0.0.1:9012 --datadir=/tmp/dn-data2
+
+./datanode daemon --listen=127.0.0.1:9013 --datadir=/tmp/dn-data3
+
+./dagpool daemon --datadir=/tmp/dagpool-db --config=conf/node_config.json
+
+./objectstore daemon --pool-addr=127.0.0.1:50001 --pool-user=dagpool --pool-password=dagpool
+```
 
 <!-- CONTRIBUTING -->
 ## Contributing
