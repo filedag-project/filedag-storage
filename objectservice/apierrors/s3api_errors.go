@@ -165,6 +165,7 @@ const (
 
 	// Add new extended error codes here.
 
+	ErrClientDisconnected
 	ErrOperationTimedOut
 	ErrOperationMaxedOut
 	ErrInvalidRequest
@@ -772,7 +773,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	},
 
 	// S3 extensions.
-
+	ErrClientDisconnected: {
+		Code:           "ClientDisconnected",
+		Description:    "Client disconnected before response was ready",
+		HTTPStatusCode: 499, // No official code, use nginx value.
+	},
 	ErrOperationTimedOut: {
 		Code:           "RequestTimeout",
 		Description:    "A timeout occurred while trying to lock a resource, please reduce your request rate",

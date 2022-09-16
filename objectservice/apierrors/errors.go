@@ -1,6 +1,9 @@
 package apierrors
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 var (
 	//ErrConfigNotFound config file not found
@@ -16,4 +19,14 @@ type GenericBucketError struct {
 // NotImplemented If a feature is not implemented
 type NotImplemented struct {
 	Message string
+}
+
+// ContextCanceled returns whether a context is canceled.
+func ContextCanceled(ctx context.Context) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
 }

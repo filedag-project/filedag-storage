@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -55,7 +56,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 			size, err = strconv.ParseInt(sizeStr[0], 10, 64)
 			if err != nil {
 				log.Errorf("ParseInt err:%v", err)
-				response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+				response.WriteErrorResponse(w, r, apierrors.ErrBadRequest)
 				return
 			}
 		}
@@ -74,8 +75,9 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	ctx := r.Context()
 	// Check if put is allowed
-	s3err := s3a.authSys.IsPutActionAllowed(r.Context(), r, s3action.PutObjectAction, bucket, object)
+	s3err := s3a.authSys.IsPutActionAllowed(ctx, r, s3action.PutObjectAction, bucket, object)
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
@@ -124,20 +126,33 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 
 	hashReader, err := hash.NewReader(reader, size, md5hex, sha256hex, size)
 	if err != nil {
+		apiErr := apierrors.ErrInternalError
+		switch err.(type) {
+		case hash.SHA256Mismatch:
+			apiErr = apierrors.ErrContentSHA256Mismatch
+		case hash.BadDigest:
+			apiErr = apierrors.ErrBadDigest
+		}
 		log.Errorf("PutObjectHandler NewReader err:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apiErr)
 		return
 	}
-	metadata, err := extractMetadata(r.Context(), r)
+	metadata, err := extractMetadata(ctx, r)
 	if err != nil {
 		log.Errorf("PutObjectHandler extractMetadata err:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidRequest)
 		return
 	}
 	// TODO: if bucket is unique, there is no need to store user in Object
-	objInfo, err2 := s3a.store.StoreObject(r.Context(), cred.AccessKey, bucket, object, hashReader, size, metadata)
-	if err2 != nil {
-		log.Errorf("PutObjectHandler StoreObject err:%v", err2)
+	objInfo, err := s3a.store.StoreObject(ctx, cred.AccessKey, bucket, object, hashReader, size, metadata)
+	if err != nil {
+		if apierrors.ContextCanceled(ctx) {
+			if ctx.Err() == context.Canceled {
+				response.WriteErrorResponse(w, r, apierrors.ErrClientDisconnected)
+				return
+			}
+		}
+		log.Errorf("PutObjectHandler StoreObject err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}

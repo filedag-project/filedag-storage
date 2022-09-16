@@ -48,6 +48,12 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 	if err != nil {
 		return ObjectInfo{}, err
 	}
+	select {
+	case <-ctx.Done():
+		return ObjectInfo{}, ctx.Err()
+	default:
+	}
+
 	objInfo := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
