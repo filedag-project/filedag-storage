@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
@@ -12,6 +13,8 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	ufsio "github.com/ipfs/go-unixfs/io"
+	"github.com/klauspost/readahead"
+	pool "github.com/libp2p/go-buffer-pool"
 	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/xerrors"
 	"io"
@@ -22,18 +25,25 @@ import (
 
 var log = logging.Logger("store")
 
+const (
+	// bigFileThreshold is the point where we add readahead to put operations.
+	bigFileThreshold = 64 * humanize.MiByte
+	// equals unixfsChunkSize
+	chunkSize int = 1 << 20
+
+	objectPrefixFormat        = "obj-%s-%s-%s/"
+	allObjectPrefixFormat     = "obj-%s-%s-%s"
+	allObjectSeekPrefixFormat = "obj-%s-%s-%s"
+)
+
+var ErrObjectNotFound = errors.New("object not found")
+
 //StorageSys store sys
 type StorageSys struct {
 	Db         *uleveldb.ULevelDB
 	DagPool    ipld.DAGService
 	CidBuilder cid.Builder
 }
-
-const objectPrefixFormat = "obj-%s-%s-%s/"
-const allObjectPrefixFormat = "obj-%s-%s-%s"
-const allObjectSeekPrefixFormat = "obj-%s-%s-%s"
-
-var ErrObjectNotFound = errors.New("object not found")
 
 func getObjectKey(user, bucket, object string) string {
 	return fmt.Sprintf(objectPrefixFormat, user, bucket, object)
@@ -44,7 +54,22 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	node, err := dagpoolcli.BalanceNode(reader, s.DagPool, s.CidBuilder)
+	data := io.Reader(reader)
+	if size > bigFileThreshold {
+		// We use 2 buffers, so we always have a full buffer of input.
+		bufA := pool.Get(chunkSize)
+		bufB := pool.Get(chunkSize)
+		defer pool.Put(bufA)
+		defer pool.Put(bufB)
+		ra, err := readahead.NewReaderBuffer(data, [][]byte{bufA[:chunkSize], bufB[:chunkSize]})
+		if err == nil {
+			data = ra
+			defer ra.Close()
+		} else {
+			log.Infof("readahead.NewReaderBuffer failed, error: %v", err)
+		}
+	}
+	node, err := dagpoolcli.BalanceNode(data, s.DagPool, s.CidBuilder)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -93,7 +118,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 }
 
 //GetObject Get object
-func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, ufsio.DagReader, error) {
+func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
 	meta := ObjectInfo{}
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
