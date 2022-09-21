@@ -301,9 +301,12 @@ func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	return loi, nil
 }
 
-//MkBucket store object
-func (s *StorageSys) MkBucket(parentDirectoryPath string, bucket string) error {
-	return nil
+func (s *StorageSys) EmptyBucket(ctx context.Context, bucket string) (bool, error) {
+	loi, err := s.ListObjects(ctx, bucket, "", "", "", 1)
+	if err != nil {
+		return false, err
+	}
+	return len(loi.Objects) == 0, nil
 }
 
 // ListObjectsV2Info - container for list objects version 2.

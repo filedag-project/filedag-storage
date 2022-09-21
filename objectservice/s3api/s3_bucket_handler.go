@@ -141,6 +141,13 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
+	if empty, err := s3a.store.EmptyBucket(ctx, bucket); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	} else if !empty {
+		response.WriteErrorResponse(w, r, apierrors.ErrBucketNotEmpty)
+		return
+	}
 	errc := s3a.bmSys.DeleteBucket(ctx, bucket)
 	if errc != nil {
 		log.Errorf("DeleteBucketHandler delete bucket err: %v", err)
