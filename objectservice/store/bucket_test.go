@@ -16,7 +16,7 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 		return
 	}
 	s := NewBucketMetadataSys(db)
-	err = s.SetBucketMeta("bucket", "accessKey", BucketMetadata{
+	err = s.SetBucketMeta("bucket", BucketMetadata{
 		Name:          "bucket",
 		Region:        "region",
 		Created:       time.Now(),
@@ -26,16 +26,16 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 	if err != nil {
 		return
 	}
-	meta, err := s.GetBucketMeta("bucket", "accessKey")
+	meta, err := s.GetBucketMeta("bucket")
 	if err != nil {
 		return
 	}
 	fmt.Println(meta)
-	err = s.DeleteBucket("accessKey", "bucket")
+	err = s.DeleteBucket("bucket")
 	if err != nil {
 		return
 	}
-	ok := s.HasBucket("bucket", "accessKey")
+	ok := s.HasBucket("bucket")
 
 	fmt.Println(ok)
 }
@@ -46,7 +46,7 @@ func TestBucketMetadataSys_GetPolicyConfig(t *testing.T) {
 	}
 	s := NewBucketMetadataSys(db)
 	c, _ := condition.NewStringEqualsFunc("", condition.S3Prefix.ToKey(), "object.txt")
-	err = s.SetBucketMeta("bucket", "accessKey", BucketMetadata{
+	err = s.SetBucketMeta("bucket", BucketMetadata{
 		Name:    "bucket",
 		Region:  "region",
 		Created: time.Now(),
@@ -68,7 +68,7 @@ func TestBucketMetadataSys_GetPolicyConfig(t *testing.T) {
 	if err != nil {
 		return
 	}
-	p, err := s.GetPolicyConfig("bucket", "accessKey")
+	p, err := s.GetPolicyConfig("bucket")
 	if err != nil {
 		return
 	}

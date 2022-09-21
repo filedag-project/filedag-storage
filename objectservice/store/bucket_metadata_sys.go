@@ -10,8 +10,8 @@ import (
 
 // UpdateBucketPolicy Update bucket metadata .
 // The configData data should not be modified after being sent here.
-func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
-	meta, err := sys.GetBucketMeta(bucket, accessKey)
+func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, bucket string, p *policy.Policy) error {
+	meta, err := sys.GetBucketMeta(bucket)
 	if err != nil {
 		return err
 	}
@@ -19,7 +19,7 @@ func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, accessKey,
 	if p == nil {
 		return xerrors.Errorf("policy is nil")
 	}
-	err = sys.UpdateBucket(accessKey, bucket, &meta)
+	err = sys.UpdateBucket(bucket, &meta)
 	if err != nil {
 		return err
 	}
@@ -28,12 +28,12 @@ func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, accessKey,
 
 // DeleteBucketPolicy Delete bucket metadata .
 // The configData data should not be modified after being sent here.
-func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, accessKey, bucket string, p *policy.Policy) error {
-	meta, err := sys.GetBucketMeta(bucket, accessKey)
+func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, bucket string, p *policy.Policy) error {
+	meta, err := sys.GetBucketMeta(bucket)
 	if err != nil {
 		return err
 	}
-	err = sys.UpdateBucket(accessKey, bucket, &BucketMetadata{
+	err = sys.UpdateBucket(bucket, &BucketMetadata{
 		Name:          bucket,
 		Region:        meta.Region,
 		Created:       meta.Created,
@@ -47,8 +47,8 @@ func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, accessKey,
 }
 
 // GetPolicyConfig returns configured bucket policy
-func (sys *BucketMetadataSys) GetPolicyConfig(bucket, accessKey string) (*policy.Policy, error) {
-	meta, err := sys.GetBucketMeta(bucket, accessKey)
+func (sys *BucketMetadataSys) GetPolicyConfig(bucket string) (*policy.Policy, error) {
+	meta, err := sys.GetBucketMeta(bucket)
 	if err != nil {
 		if errors.Is(err, leveldb.ErrNotFound) {
 			return nil, bucketPolicyNotFound{Bucket: bucket}

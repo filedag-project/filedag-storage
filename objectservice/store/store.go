@@ -32,9 +32,9 @@ const (
 	// equals unixfsChunkSize
 	chunkSize int = 1 << 20
 
-	objectPrefixFormat        = "obj-%s-%s-%s/"
-	allObjectPrefixFormat     = "obj-%s-%s-%s"
-	allObjectSeekPrefixFormat = "obj-%s-%s-%s"
+	objectPrefixFormat        = "obj-%s-%s/"
+	allObjectPrefixFormat     = "obj-%s-%s"
+	allObjectSeekPrefixFormat = "obj-%s-%s"
 
 	globalOperationTimeout = 5 * time.Minute
 	deleteOperationTimeout = 1 * time.Minute
@@ -50,8 +50,8 @@ type StorageSys struct {
 	nsLock     *lock.NsLockMap
 }
 
-func getObjectKey(user, bucket, object string) string {
-	return fmt.Sprintf(objectPrefixFormat, user, bucket, object)
+func getObjectKey(bucket, object string) string {
+	return fmt.Sprintf(objectPrefixFormat, bucket, object)
 }
 
 // NewNSLock - initialize a new namespace RWLocker instance.
@@ -60,7 +60,7 @@ func (s *StorageSys) NewNSLock(bucket string, objects ...string) lock.RWLocker {
 }
 
 //StoreObject store object
-func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
+func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -119,7 +119,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		}
 	}
 	// Has old file?
-	if oldObjInfo, err := s.getObjectInfo(ctx, user, bucket, object); err == nil {
+	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
 		c, err := cid.Decode(oldObjInfo.ETag)
 		if err != nil {
 			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
@@ -128,7 +128,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		}
 	}
 
-	err = s.Db.Put(getObjectKey(user, bucket, object), objInfo)
+	err = s.Db.Put(getObjectKey(bucket, object), objInfo)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
@@ -136,7 +136,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 }
 
 //GetObject Get object
-func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
+func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -149,7 +149,7 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err = s.Db.Get(getObjectKey(user, bucket, object), &meta)
+	err = s.Db.Get(getObjectKey(bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
 			return ObjectInfo{}, nil, ErrObjectNotFound
@@ -171,15 +171,15 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	return meta, reader, nil
 }
 
-func (s *StorageSys) getObjectInfo(ctx context.Context, user, bucket, object string) (meta ObjectInfo, err error) {
+func (s *StorageSys) getObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err = s.Db.Get(getObjectKey(user, bucket, object), &meta)
+	err = s.Db.Get(getObjectKey(bucket, object), &meta)
 	return
 }
 
-func (s *StorageSys) GetObjectInfo(ctx context.Context, user, bucket, object string) (meta ObjectInfo, err error) {
+func (s *StorageSys) GetObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -188,11 +188,11 @@ func (s *StorageSys) GetObjectInfo(ctx context.Context, user, bucket, object str
 	ctx = lkctx.Context()
 	defer lk.RUnlock(lkctx.Cancel)
 
-	return s.getObjectInfo(ctx, user, bucket, object)
+	return s.getObjectInfo(ctx, bucket, object)
 }
 
 //DeleteObject delete object
-func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object string) error {
+func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) error {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
 	if err != nil {
@@ -205,7 +205,7 @@ func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object stri
 		object = object[1:]
 	}
 	meta := ObjectInfo{}
-	err = s.Db.Get(getObjectKey(user, bucket, object), &meta)
+	err = s.Db.Get(getObjectKey(bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
 			return ErrObjectNotFound
@@ -217,7 +217,7 @@ func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object stri
 		return err
 	}
 
-	if err = s.Db.Delete(getObjectKey(user, bucket, object)); err != nil {
+	if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
 		return err
 	}
 
@@ -251,7 +251,7 @@ type ListObjectsInfo struct {
 
 //ListObjects list user object
 //TODO use more params
-func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
+func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
 	if maxKeys == 0 {
 		return loi, nil
 	}
@@ -264,7 +264,7 @@ func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefi
 		// itself is the prefix and max-keys=1 in such scenarios
 		// we can simply verify locally if such an object exists
 		// to avoid the need for ListObjects().
-		objInfo, err := s.GetObjectInfo(ctx, user, bucket, prefix)
+		objInfo, err := s.GetObjectInfo(ctx, bucket, prefix)
 		if err == nil {
 			loi.Objects = append(loi.Objects, objInfo)
 			return loi, nil
@@ -275,9 +275,9 @@ func (s *StorageSys) ListObjects(ctx context.Context, user, bucket string, prefi
 	defer cancel()
 	seekKey := ""
 	if marker != "" {
-		seekKey = fmt.Sprintf(allObjectSeekPrefixFormat, user, bucket, marker)
+		seekKey = fmt.Sprintf(allObjectSeekPrefixFormat, bucket, marker)
 	}
-	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allObjectPrefixFormat, user, bucket, prefix), seekKey)
+	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allObjectPrefixFormat, bucket, prefix), seekKey)
 	if err != nil {
 		return loi, err
 	}
@@ -331,12 +331,12 @@ type ListObjectsV2Info struct {
 }
 
 // ListObjectsV2 list objects
-func (s *StorageSys) ListObjectsV2(ctx context.Context, user, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error) {
+func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error) {
 	marker := continuationToken
 	if marker == "" {
 		marker = startAfter
 	}
-	loi, err := s.ListObjects(ctx, user, bucket, prefix, marker, delimiter, maxKeys)
+	loi, err := s.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
 		return ListObjectsV2Info{}, err
 	}

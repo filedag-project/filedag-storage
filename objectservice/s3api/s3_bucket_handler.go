@@ -56,12 +56,12 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketLocation.html
 func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ListAllMyBucketsAction, bucket, "")
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ListAllMyBucketsAction, bucket, "")
 	if err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-	bucketMetas, erro := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
+	bucketMetas, erro := s3a.bmSys.GetBucketMeta(bucket)
 	if erro != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucketPolicy)
 		return
@@ -121,13 +121,13 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("HeadBucketHandler %s", bucket)
 	// avoid duplicated buckets
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.HeadBucketAction, bucket, "")
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.HeadBucketAction, bucket, "")
 	if err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
 
-	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket); !ok {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -141,17 +141,17 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
 	if err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
-	get := s3a.bmSys.HasBucket(bucket, cred.AccessKey)
+	get := s3a.bmSys.HasBucket(bucket)
 	if !get {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucketPolicy)
 		return
 	}
-	errc := s3a.bmSys.DeleteBucket(cred.AccessKey, bucket)
+	errc := s3a.bmSys.DeleteBucket(bucket)
 	if errc != nil {
 		log.Errorf("DeleteBucketHandler delete bucket err: %v", err)
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
@@ -255,14 +255,14 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
 	if err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket); !ok {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -272,13 +272,13 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
-	meta, err1 := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
+	meta, err1 := s3a.bmSys.GetBucketMeta(bucket)
 	if err1 != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 	meta.TaggingConfig = tags
-	if err1 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, &meta); err1 != nil {
+	if err1 = s3a.bmSys.UpdateBucket(bucket, &meta); err1 != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
@@ -292,18 +292,18 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
 	if err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket); !ok {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
-	meta, err2 := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
+	meta, err2 := s3a.bmSys.GetBucketMeta(bucket)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
@@ -327,24 +327,24 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
+	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
 	if err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, err)
 		return
 	}
 
 	// Check if bucket exists.
-	if ok := s3a.bmSys.HasBucket(bucket, cred.AccessKey); !ok {
+	if ok := s3a.bmSys.HasBucket(bucket); !ok {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
-	meta, err2 := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
+	meta, err2 := s3a.bmSys.GetBucketMeta(bucket)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
 	meta.TaggingConfig = nil
-	err2 = s3a.bmSys.UpdateBucket(cred.AccessKey, bucket, &meta)
+	err2 = s3a.bmSys.UpdateBucket(bucket, &meta)
 	if err2 != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return

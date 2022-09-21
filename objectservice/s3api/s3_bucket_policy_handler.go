@@ -21,7 +21,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	bucket, _ := getBucketAndObject(r)
 
 	log.Infof("PutBucketPolicyHandler %s", bucket)
-	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
+	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
 	if errc != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return
@@ -47,7 +47,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	//	return
 	//}
 
-	if err = s3a.bmSys.UpdateBucketPolicy(r.Context(), cred.AccessKey, bucket, bucketPolicy); err != nil {
+	if err = s3a.bmSys.UpdateBucketPolicy(r.Context(), bucket, bucketPolicy); err != nil {
 		log.Errorf("PutBucketPolicyHandler UpdateBucketPolicy err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
@@ -61,12 +61,12 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 	bucket, _ := getBucketAndObject(r)
 
 	log.Infof("DeleteBucketPolicyHandler %s", bucket)
-	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketPolicyAction, bucket, "")
+	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketPolicyAction, bucket, "")
 	if errc != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
-	if err := s3a.bmSys.DeleteBucketPolicy(r.Context(), cred.AccessKey, bucket, nil); err != nil {
+	if err := s3a.bmSys.DeleteBucketPolicy(r.Context(), bucket, nil); err != nil {
 		log.Errorf("DeleteBucketPolicyHandler DeleteBucketPolicy err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
@@ -80,14 +80,14 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("GetBucketPolicyHandler %s", bucket)
-	cred, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
+	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
 	if errc != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
 
 	// Read bucket access policy.
-	config, err := s3a.bmSys.GetPolicyConfig(bucket, cred.AccessKey)
+	config, err := s3a.bmSys.GetPolicyConfig(bucket)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucketPolicy)
 		return

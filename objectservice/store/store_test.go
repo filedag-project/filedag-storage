@@ -21,13 +21,13 @@ func TestStorageSys_Object(t *testing.T) {
 	s := NewStorageSys(dagServ, db)
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	ctx := context.TODO()
-	object, err := s.StoreObject(ctx, "test", "testbucket", "testobject", r, 6, map[string]string{})
+	object, err := s.StoreObject(ctx, "testbucket", "testobject", r, 6, map[string]string{})
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Printf("object:%v", object)
-	getObject, i, err := s.GetObject(ctx, "test", "testbucket", "testobject")
+	getObject, i, err := s.GetObject(ctx, "testbucket", "testobject")
 	if err != nil {
 		fmt.Println(err)
 		return

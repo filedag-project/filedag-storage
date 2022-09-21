@@ -82,12 +82,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	cred, _, s3err := s3a.authSys.GetCredential(r)
-	if s3err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, s3err)
-		return
-	}
-	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -135,8 +130,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidRequest)
 		return
 	}
-	// TODO: if bucket is unique, there is no need to store user in Object
-	objInfo, err := s3a.store.StoreObject(ctx, cred.AccessKey, bucket, object, hashReader, size, metadata)
+	objInfo, err := s3a.store.StoreObject(ctx, bucket, object, hashReader, size, metadata)
 	if err != nil {
 		log.Errorf("PutObjectHandler StoreObject err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
@@ -157,25 +151,17 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
-	userName := cred.AccessKey
-	if cred.AccessKey == "" {
-		meta, err := s3a.bmSys.GetBucketMeta(bucket, cred.AccessKey)
-		if err != nil {
-			response.WriteErrorResponse(w, r, apierrors.ErrAccessDenied)
-			return
-		}
-		userName = meta.Owner
-	}
-	objInfo, reader, err := s3a.store.GetObject(ctx, userName, bucket, object)
+
+	objInfo, reader, err := s3a.store.GetObject(ctx, bucket, object)
 	if err != nil {
 		log.Errorf("GetObjectHandler GetObject err:%v", err)
 		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
@@ -203,16 +189,16 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
-	objInfo, err := s3a.store.GetObjectInfo(ctx, cred.AccessKey, bucket, object)
+	objInfo, err := s3a.store.GetObjectInfo(ctx, bucket, object)
 	if err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -237,21 +223,21 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
-	objInfo, err := s3a.store.GetObjectInfo(ctx, cred.AccessKey, bucket, object)
+	objInfo, err := s3a.store.GetObjectInfo(ctx, bucket, object)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
-	err = s3a.store.DeleteObject(r.Context(), cred.AccessKey, bucket, object)
+	err = s3a.store.DeleteObject(ctx, bucket, object)
 	if err != nil {
 		log.Errorf("DeleteObjectHandler DeleteObject  err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
@@ -297,14 +283,14 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 		objects[i] = deleteObjectsReq.Objects[i].ObjectV
 	}
 
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteObjectAction, bucket, "")
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteObjectAction, bucket, "")
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 
 	// Before proceeding validate if bucket exists.
-	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -364,7 +350,7 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 	dObjects := make([]datatypes.DeletedObject, len(deleteList))
 	errs := make([]error, len(deleteList))
 	for i, obj := range deleteList {
-		errs[i] = s3a.store.DeleteObject(ctx, cred.AccessKey, bucket, obj.ObjectName)
+		errs[i] = s3a.store.DeleteObject(ctx, bucket, obj.ObjectName)
 		if errs[i] == nil || xerrors.Is(errs[i], store.ErrObjectNotFound) {
 			dObjects[i] = datatypes.DeletedObject{
 				ObjectName: obj.ObjectName,
@@ -427,12 +413,12 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, dstBucket, dstObject)
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, dstBucket, dstObject)
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(dstBucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(dstBucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -445,12 +431,12 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
-	if !s3a.bmSys.HasBucket(srcBucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(srcBucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 	log.Debugf("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
-	srcObjInfo, srcReader, err := s3a.store.GetObject(ctx, cred.AccessKey, srcBucket, srcObject)
+	srcObjInfo, srcReader, err := s3a.store.GetObject(ctx, srcBucket, srcObject)
 	if err != nil {
 		log.Errorf("CopyObjectHandler StoreObject err:%v", err)
 		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
@@ -460,7 +446,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	metadata[strings.ToLower(consts.ContentType)] = srcObjInfo.ContentType
 	metadata[strings.ToLower(consts.ContentEncoding)] = srcObjInfo.ContentEncoding
 	if (srcBucket == dstBucket && srcObject == dstObject || cpSrcPath == "") && isReplace(r) {
-		object, err := s3a.store.StoreObject(ctx, cred.AccessKey, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
+		object, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
 		if err != nil {
 			response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 			return
@@ -482,7 +468,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopyDest)
 		return
 	}
-	obj, err := s3a.store.StoreObject(ctx, cred.AccessKey, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
+	obj, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -504,12 +490,12 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cred, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListBucketAction, bucket, "")
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListBucketAction, bucket, "")
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket, cred.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -519,7 +505,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	objs, err := s3a.store.ListObjects(ctx, cred.AccessKey, bucket, prefix, marker, delimiter, maxKeys)
+	objs, err := s3a.store.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -535,12 +521,12 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
-	cerd, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListBucketAction, bucket, object)
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListBucketAction, bucket, object)
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket, cerd.AccessKey) {
+	if !s3a.bmSys.HasBucket(bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -562,7 +548,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 	// Initiate a list objects operation based on the input params.
 	// On success would return back ListObjectsInfo object to be
 	// marshaled into S3 compatible XML header.
-	listObjectsV2Info, err := s3a.store.ListObjectsV2(r.Context(), cerd.AccessKey, bucket, prefix, token, delimiter,
+	listObjectsV2Info, err := s3a.store.ListObjectsV2(ctx, bucket, prefix, token, delimiter,
 		maxKeys, fetchOwner, startAfter)
 
 	if err != nil {

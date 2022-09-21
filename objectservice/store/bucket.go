@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	bucketPrefix = "buckets/"
+	bucketPrefix = "bkt/"
 )
 
 // bucketPolicyNotFound - no bucket policy found.
@@ -72,8 +72,8 @@ func NewBucketMetadata(name, region, accessKey string) BucketMetadata {
 }
 
 // SetBucketMeta - sets a new metadata in-db
-func (sys *BucketMetadataSys) SetBucketMeta(bucket, username string, meta BucketMetadata) error {
-	err := sys.db.Put(bucketPrefix+"-"+bucket, meta)
+func (sys *BucketMetadataSys) SetBucketMeta(bucket string, meta BucketMetadata) error {
+	err := sys.db.Put(bucketPrefix+bucket, meta)
 	if err != nil {
 		return err
 	}
@@ -81,15 +81,15 @@ func (sys *BucketMetadataSys) SetBucketMeta(bucket, username string, meta Bucket
 }
 
 // GetBucketMeta metadata for a bucket.
-func (sys *BucketMetadataSys) GetBucketMeta(bucket, username string) (meta BucketMetadata, err error) {
-	err = sys.db.Get(bucketPrefix+"-"+bucket, &meta)
+func (sys *BucketMetadataSys) GetBucketMeta(bucket string) (meta BucketMetadata, err error) {
+	err = sys.db.Get(bucketPrefix+bucket, &meta)
 	return meta, err
 }
 
 // HasBucket  metadata for a bucket.
-func (sys *BucketMetadataSys) HasBucket(bucket, username string) bool {
+func (sys *BucketMetadataSys) HasBucket(bucket string) bool {
 	var meta BucketMetadata
-	err := sys.db.Get(bucketPrefix+"-"+bucket, &meta)
+	err := sys.db.Get(bucketPrefix+bucket, &meta)
 	if err != nil {
 		return false
 	}
@@ -97,8 +97,8 @@ func (sys *BucketMetadataSys) HasBucket(bucket, username string) bool {
 }
 
 // DeleteBucket bucket.
-func (sys *BucketMetadataSys) DeleteBucket(username, bucket string) error {
-	err := sys.db.Delete(bucketPrefix + "-" + bucket)
+func (sys *BucketMetadataSys) DeleteBucket(bucket string) error {
+	err := sys.db.Delete(bucketPrefix + bucket)
 	if err != nil {
 		return err
 	}
@@ -106,8 +106,8 @@ func (sys *BucketMetadataSys) DeleteBucket(username, bucket string) error {
 }
 
 // UpdateBucket  metadata for a bucket.
-func (sys *BucketMetadataSys) UpdateBucket(username, bucket string, meta *BucketMetadata) error {
-	err := sys.db.Put(bucketPrefix+"-"+bucket, meta)
+func (sys *BucketMetadataSys) UpdateBucket(bucket string, meta *BucketMetadata) error {
+	err := sys.db.Put(bucketPrefix+bucket, meta)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (sys *BucketMetadataSys) UpdateBucket(username, bucket string, meta *Bucket
 // GetAllBucketOfUser metadata for all bucket.
 func (sys *BucketMetadataSys) GetAllBucketOfUser(username string) ([]BucketMetadata, error) {
 	var m []BucketMetadata
-	all, err := sys.db.ReadAllChan(context.TODO(), bucketPrefix+"-", "")
+	all, err := sys.db.ReadAllChan(context.TODO(), bucketPrefix, "")
 	if err != nil {
 		return nil, err
 	}

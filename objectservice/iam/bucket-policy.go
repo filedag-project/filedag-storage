@@ -21,7 +21,7 @@ func newIPolicySys(db *uleveldb.ULevelDB) *iPolicySys {
 
 // isAllowed - checks given policy args is allowed to continue the Rest API.
 func (sys *iPolicySys) isAllowed(args auth.Args) bool {
-	p, err := sys.bmSys.GetPolicyConfig(args.BucketName, args.AccountName)
+	p, err := sys.bmSys.GetPolicyConfig(args.BucketName)
 	if err != nil {
 		return false
 	} else {
@@ -31,10 +31,10 @@ func (sys *iPolicySys) isAllowed(args auth.Args) bool {
 
 // SetPolicy sets bucket policy
 func (sys *iPolicySys) SetPolicy(bucket, accessKey, region string) error {
-	return sys.bmSys.SetBucketMeta(bucket, accessKey, store.NewBucketMetadata(bucket, region, accessKey))
+	return sys.bmSys.SetBucketMeta(bucket, store.NewBucketMetadata(bucket, region, accessKey))
 }
 
 // GetPolicy returns stored bucket policy
-func (sys *iPolicySys) GetPolicy(bucket, accessKey string) (*policy.Policy, error) {
-	return sys.bmSys.GetPolicyConfig(bucket, accessKey)
+func (sys *iPolicySys) GetPolicy(bucket string) (*policy.Policy, error) {
+	return sys.bmSys.GetPolicyConfig(bucket)
 }
