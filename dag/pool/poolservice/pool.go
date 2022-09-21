@@ -96,9 +96,8 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 		return d.refCounter.IncrOrCreate(key, addBlock)
 	}
 
-	has, err := d.Has(key)
-	if !has {
-		if err = addBlock(); err != nil {
+	if has, _ := d.Has(key); !has {
+		if err := addBlock(); err != nil {
 			return err
 		}
 		return d.cacheSet.Add(key)

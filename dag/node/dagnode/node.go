@@ -124,8 +124,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 		log.Errorf("decode date blocks fail :%v", err)
 		return nil, err
 	}
-	var data []byte
-	data = bytes.Join(merged, []byte(""))
+	data := bytes.Join(merged, []byte(""))
 	data = data[:size]
 	b, err := blocks.NewBlockWithCid(data, cid)
 	if err == blocks.ErrWrongHash {

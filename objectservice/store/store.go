@@ -7,6 +7,7 @@ import (
 	"github.com/dustin/go-humanize"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
+	"github.com/filedag-project/filedag-storage/objectservice/lock"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
@@ -34,6 +35,9 @@ const (
 	objectPrefixFormat        = "obj-%s-%s-%s/"
 	allObjectPrefixFormat     = "obj-%s-%s-%s"
 	allObjectSeekPrefixFormat = "obj-%s-%s-%s"
+
+	globalOperationTimeout = 5 * time.Minute
+	deleteOperationTimeout = 1 * time.Minute
 )
 
 var ErrObjectNotFound = errors.New("object not found")
@@ -43,14 +47,28 @@ type StorageSys struct {
 	Db         *uleveldb.ULevelDB
 	DagPool    ipld.DAGService
 	CidBuilder cid.Builder
+	nsLock     *lock.NsLockMap
 }
 
 func getObjectKey(user, bucket, object string) string {
 	return fmt.Sprintf(objectPrefixFormat, user, bucket, object)
 }
 
+// NewNSLock - initialize a new namespace RWLocker instance.
+func (s *StorageSys) NewNSLock(bucket string, objects ...string) lock.RWLocker {
+	return s.nsLock.NewNSLock(bucket, objects...)
+}
+
 //StoreObject store object
 func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
+	lk := s.NewNSLock(bucket, object)
+	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
@@ -101,7 +119,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 		}
 	}
 	// Has old file?
-	if oldObjInfo, exist := s.HasObject(ctx, user, bucket, object); exist {
+	if oldObjInfo, err := s.getObjectInfo(ctx, user, bucket, object); err == nil {
 		c, err := cid.Decode(oldObjInfo.ETag)
 		if err != nil {
 			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
@@ -119,11 +137,19 @@ func (s *StorageSys) StoreObject(ctx context.Context, user, bucket, object strin
 
 //GetObject Get object
 func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
+	lk := s.NewNSLock(bucket, object)
+	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return ObjectInfo{}, nil, err
+	}
+	ctx = lkctx.Context()
+	defer lk.RUnlock(lkctx.Cancel)
+
 	meta := ObjectInfo{}
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
-	err := s.Db.Get(getObjectKey(user, bucket, object), &meta)
+	err = s.Db.Get(getObjectKey(user, bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
 			return ObjectInfo{}, nil, ErrObjectNotFound
@@ -145,20 +171,7 @@ func (s *StorageSys) GetObject(ctx context.Context, user, bucket, object string)
 	return meta, reader, nil
 }
 
-// HasObject has Object ?
-func (s *StorageSys) HasObject(ctx context.Context, user, bucket, object string) (ObjectInfo, bool) {
-	meta := ObjectInfo{}
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
-	err := s.Db.Get(getObjectKey(user, bucket, object), &meta)
-	if err != nil {
-		return ObjectInfo{}, false
-	}
-	return meta, true
-}
-
-func (s *StorageSys) GetObjectInfo(ctx context.Context, user, bucket, object string) (meta ObjectInfo, err error) {
+func (s *StorageSys) getObjectInfo(ctx context.Context, user, bucket, object string) (meta ObjectInfo, err error) {
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
@@ -166,13 +179,33 @@ func (s *StorageSys) GetObjectInfo(ctx context.Context, user, bucket, object str
 	return
 }
 
+func (s *StorageSys) GetObjectInfo(ctx context.Context, user, bucket, object string) (meta ObjectInfo, err error) {
+	lk := s.NewNSLock(bucket, object)
+	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	ctx = lkctx.Context()
+	defer lk.RUnlock(lkctx.Cancel)
+
+	return s.getObjectInfo(ctx, user, bucket, object)
+}
+
 //DeleteObject delete object
 func (s *StorageSys) DeleteObject(ctx context.Context, user, bucket, object string) error {
+	lk := s.NewNSLock(bucket, object)
+	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
+	if err != nil {
+		return err
+	}
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
 	}
 	meta := ObjectInfo{}
-	err := s.Db.Get(getObjectKey(user, bucket, object), &meta)
+	err = s.Db.Get(getObjectKey(user, bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
 			return ErrObjectNotFound
@@ -324,5 +357,6 @@ func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSy
 		Db:         db,
 		DagPool:    dagService,
 		CidBuilder: cidBuilder,
+		nsLock:     lock.NewNSLock(),
 	}
 }
