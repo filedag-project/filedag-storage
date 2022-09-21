@@ -59,16 +59,17 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_DeleteBucketPolicy.html
 func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
+	ctx := r.Context()
 
 	log.Infof("DeleteBucketPolicyHandler %s", bucket)
-	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketPolicyAction, bucket, "")
+	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketPolicyAction, bucket, "")
 	if errc != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
-	if err := s3a.bmSys.DeleteBucketPolicy(r.Context(), bucket, nil); err != nil {
+	if err := s3a.bmSys.DeleteBucketPolicy(ctx, bucket); err != nil {
 		log.Errorf("DeleteBucketPolicyHandler DeleteBucketPolicy err:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	// Success.
@@ -79,17 +80,18 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html
 func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
+	ctx := r.Context()
 	log.Infof("GetBucketPolicyHandler %s", bucket)
-	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
+	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetBucketPolicyAction, bucket, "")
 	if errc != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, errc)
 		return
 	}
 
 	// Read bucket access policy.
-	config, err := s3a.bmSys.GetPolicyConfig(bucket)
+	config, err := s3a.bmSys.GetPolicyConfig(ctx, bucket)
 	if err != nil {
-		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucketPolicy)
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 

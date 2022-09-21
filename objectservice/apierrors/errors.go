@@ -37,6 +37,12 @@ func ToApiError(ctx context.Context, err error) ErrorCode {
 		errCode = ErrContentSHA256Mismatch
 	case hash.BadDigest:
 		errCode = ErrBadDigest
+	case store.BucketNotFound:
+		errCode = ErrNoSuchBucket
+	case store.BucketPolicyNotFound:
+		errCode = ErrNoSuchBucketPolicy
+	case store.BucketTaggingNotFound:
+		errCode = ErrBucketTaggingNotFound
 	default:
 		if xerrors.Is(err, store.ErrObjectNotFound) {
 			errCode = ErrNoSuchKey

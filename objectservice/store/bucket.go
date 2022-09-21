@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/lock"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/syndtr/goleveldb/leveldb"
 	"time"
 )
 
@@ -12,25 +14,46 @@ const (
 	bucketPrefix = "bkt/"
 )
 
-// bucketPolicyNotFound - no bucket policy found.
-type bucketPolicyNotFound struct {
+// BucketPolicyNotFound - no bucket policy found.
+type BucketPolicyNotFound struct {
 	Bucket string
 	Err    error
 }
 
-func (e bucketPolicyNotFound) Error() string {
+func (e BucketPolicyNotFound) Error() string {
 	return "No bucket policy configuration found for bucket: " + e.Bucket
+}
+
+// BucketNotFound - no bucket found.
+type BucketNotFound struct {
+	Bucket string
+	Err    error
+}
+
+func (e BucketNotFound) Error() string {
+	return "Not found for bucket: " + e.Bucket
+}
+
+type BucketTaggingNotFound struct {
+	Bucket string
+	Err    error
+}
+
+func (e BucketTaggingNotFound) Error() string {
+	return "No bucket tagging configuration found for bucket: " + e.Bucket
 }
 
 // BucketMetadataSys captures all bucket metadata for a given cluster.
 type BucketMetadataSys struct {
-	db *uleveldb.ULevelDB
+	db     *uleveldb.ULevelDB
+	nsLock *lock.NsLockMap
 }
 
 // NewBucketMetadataSys - creates new policy system.
 func NewBucketMetadataSys(db *uleveldb.ULevelDB) *BucketMetadataSys {
 	return &BucketMetadataSys{
-		db: db,
+		db:     db,
+		nsLock: lock.NewNSLock(),
 	}
 }
 
@@ -60,9 +83,9 @@ type BucketMetadata struct {
 }
 
 // NewBucketMetadata creates BucketMetadata with the supplied name and Created to Now.
-func NewBucketMetadata(name, region, accessKey string) BucketMetadata {
+func NewBucketMetadata(name, region, accessKey string) *BucketMetadata {
 	p := policy.CreateUserBucketPolicy(name, accessKey)
-	return BucketMetadata{
+	return &BucketMetadata{
 		Name:         name,
 		Region:       region,
 		Owner:        accessKey,
@@ -71,53 +94,93 @@ func NewBucketMetadata(name, region, accessKey string) BucketMetadata {
 	}
 }
 
-// SetBucketMeta - sets a new metadata in-db
-func (sys *BucketMetadataSys) SetBucketMeta(bucket string, meta BucketMetadata) error {
-	err := sys.db.Put(bucketPrefix+bucket, meta)
+// NewNSLock - initialize a new namespace RWLocker instance.
+func (sys *BucketMetadataSys) NewNSLock(bucket string) lock.RWLocker {
+	return sys.nsLock.NewNSLock("meta", bucket)
+}
+
+// setBucketMeta - sets a new metadata in-db
+func (sys *BucketMetadataSys) setBucketMeta(bucket string, meta *BucketMetadata) error {
+	return sys.db.Put(bucketPrefix+bucket, meta)
+}
+
+// CreateBucket - create a new Bucket
+func (sys *BucketMetadataSys) CreateBucket(ctx context.Context, bucket, region, accessKey string) error {
+	lk := sys.NewNSLock(bucket)
+	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return err
 	}
-	return nil
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
+	return sys.setBucketMeta(bucket, NewBucketMetadata(bucket, region, accessKey))
 }
 
-// GetBucketMeta metadata for a bucket.
-func (sys *BucketMetadataSys) GetBucketMeta(bucket string) (meta BucketMetadata, err error) {
+func (sys *BucketMetadataSys) getBucketMeta(bucket string) (meta BucketMetadata, err error) {
 	err = sys.db.Get(bucketPrefix+bucket, &meta)
+	if err == leveldb.ErrNotFound {
+		err = BucketNotFound{Bucket: bucket, Err: err}
+	}
 	return meta, err
 }
 
-// HasBucket  metadata for a bucket.
-func (sys *BucketMetadataSys) HasBucket(bucket string) bool {
-	var meta BucketMetadata
-	err := sys.db.Get(bucketPrefix+bucket, &meta)
+// GetBucketMeta metadata for a bucket.
+func (sys *BucketMetadataSys) GetBucketMeta(ctx context.Context, bucket string) (meta BucketMetadata, err error) {
+	lk := sys.NewNSLock(bucket)
+	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
-		return false
+		return BucketMetadata{}, err
 	}
-	return true
+	ctx = lkctx.Context()
+	defer lk.RUnlock(lkctx.Cancel)
+
+	return sys.getBucketMeta(bucket)
+}
+
+// HasBucket  metadata for a bucket.
+func (sys *BucketMetadataSys) HasBucket(ctx context.Context, bucket string) bool {
+	_, err := sys.GetBucketMeta(ctx, bucket)
+	return err == nil
 }
 
 // DeleteBucket bucket.
-func (sys *BucketMetadataSys) DeleteBucket(bucket string) error {
-	err := sys.db.Delete(bucketPrefix + bucket)
+func (sys *BucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) error {
+	lk := sys.NewNSLock(bucket)
+	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
 	if err != nil {
 		return err
 	}
-	return nil
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
+	if _, err = sys.getBucketMeta(bucket); err != nil {
+		return err
+	}
+	return sys.db.Delete(bucketPrefix + bucket)
 }
 
 // UpdateBucket  metadata for a bucket.
-func (sys *BucketMetadataSys) UpdateBucket(bucket string, meta *BucketMetadata) error {
-	err := sys.db.Put(bucketPrefix+bucket, meta)
+func (sys *BucketMetadataSys) UpdateBucket(ctx context.Context, bucket string, meta *BucketMetadata) error {
+	lk := sys.NewNSLock(bucket)
+	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return err
 	}
-	return nil
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
+	if _, err = sys.getBucketMeta(bucket); err != nil {
+		return err
+	}
+
+	return sys.setBucketMeta(bucket, meta)
 }
 
 // GetAllBucketOfUser metadata for all bucket.
-func (sys *BucketMetadataSys) GetAllBucketOfUser(username string) ([]BucketMetadata, error) {
+func (sys *BucketMetadataSys) GetAllBucketOfUser(ctx context.Context, username string) ([]BucketMetadata, error) {
 	var m []BucketMetadata
-	all, err := sys.db.ReadAllChan(context.TODO(), bucketPrefix, "")
+	all, err := sys.db.ReadAllChan(ctx, bucketPrefix, "")
 	if err != nil {
 		return nil, err
 	}

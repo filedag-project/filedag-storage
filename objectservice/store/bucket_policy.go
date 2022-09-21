@@ -2,61 +2,47 @@ package store
 
 import (
 	"context"
-	"errors"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/syndtr/goleveldb/leveldb"
-	"golang.org/x/xerrors"
 )
 
 // UpdateBucketPolicy Update bucket metadata .
 // The configData data should not be modified after being sent here.
 func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, bucket string, p *policy.Policy) error {
-	meta, err := sys.GetBucketMeta(bucket)
+	lk := sys.NewNSLock(bucket)
+	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return err
 	}
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
+	meta, err := sys.getBucketMeta(bucket)
+	if err != nil {
+		return err
+	}
+
 	meta.PolicyConfig = p
-	if p == nil {
-		return xerrors.Errorf("policy is nil")
-	}
-	err = sys.UpdateBucket(bucket, &meta)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sys.setBucketMeta(bucket, &meta)
 }
 
 // DeleteBucketPolicy Delete bucket metadata .
 // The configData data should not be modified after being sent here.
 func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, bucket string) error {
-	meta, err := sys.GetBucketMeta(bucket)
-	if err != nil {
-		return err
-	}
-	err = sys.UpdateBucket(bucket, &BucketMetadata{
-		Name:          bucket,
-		Region:        meta.Region,
-		Created:       meta.Created,
-		PolicyConfig:  nil,
-		TaggingConfig: meta.TaggingConfig,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return sys.UpdateBucketPolicy(ctx, bucket, nil)
 }
 
 // GetPolicyConfig returns configured bucket policy
-func (sys *BucketMetadataSys) GetPolicyConfig(bucket string) (*policy.Policy, error) {
-	meta, err := sys.GetBucketMeta(bucket)
+func (sys *BucketMetadataSys) GetPolicyConfig(ctx context.Context, bucket string) (*policy.Policy, error) {
+	meta, err := sys.GetBucketMeta(ctx, bucket)
 	if err != nil {
-		if errors.Is(err, leveldb.ErrNotFound) {
-			return nil, bucketPolicyNotFound{Bucket: bucket}
+		switch err.(type) {
+		case BucketNotFound:
+			return nil, BucketPolicyNotFound{Bucket: bucket}
 		}
 		return nil, err
 	}
 	if meta.PolicyConfig == nil {
-		return nil, bucketPolicyNotFound{Bucket: bucket}
+		return nil, BucketPolicyNotFound{Bucket: bucket}
 	}
 	return meta.PolicyConfig, nil
 }

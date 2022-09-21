@@ -77,14 +77,14 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 
 		// Populate payload to extract location constraint.
 		r.Body = ioutil.NopCloser(bytes.NewReader(payload))
-		if s.PolicySys.bmSys.HasBucket(bucketName) {
+		if s.PolicySys.bmSys.HasBucket(ctx, bucketName) {
 			return cred, owner, apierrors.ErrBucketAlreadyExists
 		}
 	}
 
 	if action != s3action.ListAllMyBucketsAction && cred.AccessKey == "" {
 		// Anonymous checks are not meant for ListBuckets action
-		if s.PolicySys.isAllowed(auth.Args{
+		if s.PolicySys.isAllowed(ctx, auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      action,
 			BucketName:  bucketName,
@@ -98,7 +98,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 		if action == s3action.ListBucketVersionsAction {
 			// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
 			// verify as a fallback.
-			if s.PolicySys.isAllowed(auth.Args{
+			if s.PolicySys.isAllowed(ctx, auth.Args{
 				AccountName: cred.AccessKey,
 				Action:      s3action.ListBucketAction,
 				BucketName:  bucketName,
@@ -318,7 +318,7 @@ func (s *AuthSys) IsPutActionAllowed(ctx context.Context, r *http.Request, actio
 	}
 
 	if cred.AccessKey == "" {
-		if s.PolicySys.isAllowed(auth.Args{
+		if s.PolicySys.isAllowed(ctx, auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      action,
 			BucketName:  bucketName,

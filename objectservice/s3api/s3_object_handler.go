@@ -82,7 +82,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if !s3a.bmSys.HasBucket(bucket) {
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -156,7 +156,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket) {
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -194,7 +194,7 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket) {
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -228,7 +228,7 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket) {
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -290,7 +290,7 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 	}
 
 	// Before proceeding validate if bucket exists.
-	if !s3a.bmSys.HasBucket(bucket) {
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -418,7 +418,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(dstBucket) {
+	if !s3a.bmSys.HasBucket(ctx, dstBucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -431,7 +431,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
-	if !s3a.bmSys.HasBucket(srcBucket) {
+	if !s3a.bmSys.HasBucket(ctx, srcBucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -495,7 +495,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket) {
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
@@ -526,7 +526,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
-	if !s3a.bmSys.HasBucket(bucket) {
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}

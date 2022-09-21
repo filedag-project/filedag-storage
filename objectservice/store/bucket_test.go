@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy/condition"
@@ -16,7 +17,7 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 		return
 	}
 	s := NewBucketMetadataSys(db)
-	err = s.SetBucketMeta("bucket", BucketMetadata{
+	err = s.setBucketMeta("bucket", &BucketMetadata{
 		Name:          "bucket",
 		Region:        "region",
 		Created:       time.Now(),
@@ -26,16 +27,16 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 	if err != nil {
 		return
 	}
-	meta, err := s.GetBucketMeta("bucket")
+	meta, err := s.GetBucketMeta(context.TODO(), "bucket")
 	if err != nil {
 		return
 	}
 	fmt.Println(meta)
-	err = s.DeleteBucket("bucket")
+	err = s.DeleteBucket(context.TODO(), "bucket")
 	if err != nil {
 		return
 	}
-	ok := s.HasBucket("bucket")
+	ok := s.HasBucket(context.TODO(), "bucket")
 
 	fmt.Println(ok)
 }
@@ -46,7 +47,7 @@ func TestBucketMetadataSys_GetPolicyConfig(t *testing.T) {
 	}
 	s := NewBucketMetadataSys(db)
 	c, _ := condition.NewStringEqualsFunc("", condition.S3Prefix.ToKey(), "object.txt")
-	err = s.SetBucketMeta("bucket", BucketMetadata{
+	err = s.setBucketMeta("bucket", &BucketMetadata{
 		Name:    "bucket",
 		Region:  "region",
 		Created: time.Now(),
@@ -68,7 +69,7 @@ func TestBucketMetadataSys_GetPolicyConfig(t *testing.T) {
 	if err != nil {
 		return
 	}
-	p, err := s.GetPolicyConfig("bucket")
+	p, err := s.GetPolicyConfig(context.TODO(), "bucket")
 	if err != nil {
 		return
 	}
