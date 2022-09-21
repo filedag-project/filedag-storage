@@ -29,8 +29,8 @@ func (sys *iPolicySys) isAllowed(args auth.Args) bool {
 	}
 }
 
-// SetPolicy sets bucket policy
-func (sys *iPolicySys) SetPolicy(bucket, accessKey, region string) error {
+// SetDefaultPolicy sets bucket policy
+func (sys *iPolicySys) SetDefaultPolicy(bucket, accessKey, region string) error {
 	return sys.bmSys.SetBucketMeta(bucket, store.NewBucketMetadata(bucket, region, accessKey))
 }
 

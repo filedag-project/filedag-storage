@@ -28,7 +28,7 @@ func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, bucket str
 
 // DeleteBucketPolicy Delete bucket metadata .
 // The configData data should not be modified after being sent here.
-func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, bucket string, p *policy.Policy) error {
+func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, bucket string) error {
 	meta, err := sys.GetBucketMeta(bucket)
 	if err != nil {
 		return err

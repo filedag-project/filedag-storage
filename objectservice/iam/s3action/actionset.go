@@ -21,13 +21,24 @@ func (as ActionSet) Add(action Action) {
 	as[action] = struct{}{}
 }
 
-// Contains - checks given action exists in the action set.
-func (as ActionSet) Contains(action Action) bool {
-	if action == "" {
-		return true
+// Match - matches object name with anyone of action pattern in action set.
+func (as ActionSet) Match(action Action) bool {
+	for r := range as {
+		if r.Match(action) {
+			return true
+		}
+
+		// This is a special case where GetObjectVersion
+		// means GetObject is enabled implicitly.
+		switch r {
+		case GetObjectVersionAction:
+			if action == GetObjectAction {
+				return true
+			}
+		}
 	}
-	_, found := as[action]
-	return found
+
+	return false
 }
 
 // NewActionSet - creates new action set.

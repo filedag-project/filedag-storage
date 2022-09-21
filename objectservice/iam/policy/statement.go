@@ -107,7 +107,7 @@ func (statement Statement) IsAllowed(args auth.Args) bool {
 			return false
 		}
 
-		if !statement.Actions.Contains(args.Action) {
+		if !statement.Actions.Match(args.Action) {
 			return false
 		}
 

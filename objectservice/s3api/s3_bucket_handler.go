@@ -78,7 +78,6 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 
 //PutBucketHandler put a bucket
 func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
-
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("PutBucketHandler %s", bucket)
 	region, _ := parseLocationConstraint(r)
@@ -94,8 +93,8 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
-	// todo check policy and bucket
-	erro := s3a.authSys.PolicySys.SetPolicy(bucket, cred.AccessKey, region)
+
+	erro := s3a.authSys.PolicySys.SetDefaultPolicy(bucket, cred.AccessKey, region)
 	if erro != nil {
 		log.Errorf("PutBucketHandler set default policy err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
@@ -117,7 +116,6 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 // return responses such as 404 Not Found and 403 Forbidden.
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadBucket.html
 func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request) {
-
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("HeadBucketHandler %s", bucket)
 	// avoid duplicated buckets
@@ -138,7 +136,6 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 // DeleteBucketHandler delete Bucket
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucket.html
 func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
-
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
 	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
@@ -252,7 +249,6 @@ func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Reque
 // PutBucketTaggingHandler
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketTagging.html
 func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
-
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("DeleteBucketHandler %s", bucket)
 	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.DeleteBucketAction, bucket, "")
@@ -388,6 +384,7 @@ func pathClean(p string) string {
 	}
 	return cp
 }
+
 func unmarshalXML(reader io.Reader, isObject bool) (*store.Tags, error) {
 	tagging := &store.Tags{
 		TagSet: &store.TagSet{
