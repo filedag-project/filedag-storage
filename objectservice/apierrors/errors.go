@@ -46,6 +46,8 @@ func ToApiError(ctx context.Context, err error) ErrorCode {
 	default:
 		if xerrors.Is(err, store.ErrObjectNotFound) {
 			errCode = ErrNoSuchKey
+		} else if xerrors.Is(err, store.ErrBucketNotEmpty) {
+			errCode = ErrBucketNotEmpty
 		}
 	}
 	return errCode

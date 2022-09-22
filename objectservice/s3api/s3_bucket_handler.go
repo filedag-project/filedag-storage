@@ -22,14 +22,14 @@ var log = logging.Logger("server")
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBuckets.html
 func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListAllMyBucketsAction, "", "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListAllMyBucketsAction, "", "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
-	bucketMetas, erro := s3a.bmSys.GetAllBucketOfUser(ctx, cred.AccessKey)
-	if erro != nil {
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, erro))
+	bucketMetas, err := s3a.bmSys.GetAllBucketOfUser(ctx, cred.AccessKey)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	var buckets []*s3.Bucket
@@ -58,14 +58,14 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.Request) {
 	bucket, _ := getBucketAndObject(r)
 	ctx := r.Context()
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListAllMyBucketsAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListAllMyBucketsAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
-	bucketMetas, erro := s3a.bmSys.GetBucketMeta(ctx, bucket)
-	if erro != nil {
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, erro))
+	bucketMetas, err := s3a.bmSys.GetBucketMeta(ctx, bucket)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 
@@ -85,16 +85,16 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 	log.Infof("PutBucketHandler %s", bucket)
 	region, _ := parseLocationConstraint(r)
 	// avoid duplicated buckets
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.CreateBucketAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.CreateBucketAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
-	erro := s3a.bmSys.CreateBucket(ctx, bucket, cred.AccessKey, region)
-	if erro != nil {
-		log.Errorf("PutBucketHandler create bucket error:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, erro))
+	err := s3a.bmSys.CreateBucket(ctx, bucket, cred.AccessKey, region)
+	if err != nil {
+		log.Errorf("PutBucketHandler create bucket error:%v", s3err)
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	// Make sure to add Location information here only for bucket
@@ -116,9 +116,9 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("HeadBucketHandler %s", bucket)
 	// avoid duplicated buckets
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.HeadBucketAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.HeadBucketAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
@@ -136,22 +136,15 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 	bucket, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
-	if empty, err := s3a.store.EmptyBucket(ctx, bucket); err != nil {
+
+	err := s3a.bmSys.DeleteBucket(ctx, bucket)
+	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
-		return
-	} else if !empty {
-		response.WriteErrorResponse(w, r, apierrors.ErrBucketNotEmpty)
-		return
-	}
-	errc := s3a.bmSys.DeleteBucket(ctx, bucket)
-	if errc != nil {
-		log.Errorf("DeleteBucketHandler delete bucket err: %v", err)
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, errc))
 		return
 	}
 	response.WriteSuccessNoContent(w)
@@ -163,9 +156,9 @@ func (s3a *s3ApiServer) GetBucketAclHandler(w http.ResponseWriter, r *http.Reque
 	// collect parameters
 	bucket, _ := getBucketAndObject(r)
 	log.Infof("GetBucketAclHandler %s", bucket)
-	cred, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 	resp := response.AccessControlPolicy{}
@@ -211,9 +204,9 @@ func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Reque
 
 	// Allow putBucketACL if policy action is set, since this is a dummy call
 	// we are simply re-purposing the bucketPolicyAction.
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
@@ -252,20 +245,20 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	bucket, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
-	tags, err1 := unmarshalXML(io.LimitReader(r.Body, r.ContentLength), false)
-	if err1 != nil {
+	tags, err := unmarshalXML(io.LimitReader(r.Body, r.ContentLength), false)
+	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrMalformedXML)
 		return
 	}
 
-	if err1 = s3a.bmSys.UpdateBucketTagging(ctx, bucket, tags); err1 != nil {
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err1))
+	if err = s3a.bmSys.UpdateBucketTagging(ctx, bucket, tags); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 
@@ -279,15 +272,15 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 	bucket, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
-	tags, err1 := s3a.bmSys.GetTaggingConfig(ctx, bucket)
-	if err1 != nil {
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err1))
+	tags, err := s3a.bmSys.GetTaggingConfig(ctx, bucket)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	configData, err2 := xml.Marshal(tags)
@@ -306,14 +299,14 @@ func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *htt
 	bucket, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
-	_, _, err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
-	if err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, err)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
-	if err1 := s3a.bmSys.DeleteBucketTagging(ctx, bucket); err1 != nil {
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err1))
+	if err := s3a.bmSys.DeleteBucketTagging(ctx, bucket); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 

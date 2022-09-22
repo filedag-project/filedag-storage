@@ -106,6 +106,9 @@ func NewS3Server(router *mux.Router, dagService ipld.DAGService, authSys *iam.Au
 		store:   store.NewStorageSys(dagService, db),
 		bmSys:   store.NewBucketMetadataSys(db),
 	}
+	s3server.store.SetNewBucketNSLock(s3server.bmSys.NewNSLock)
+	s3server.store.SetHasBucket(s3server.bmSys.HasBucket)
+	s3server.bmSys.SetEmptyBucket(s3server.store.EmptyBucket)
 	s3server.registerSTSRouter(router)
 	s3server.registerS3Router(router)
 

@@ -21,9 +21,9 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	bucket, _ := getBucketAndObject(r)
 
 	log.Infof("PutBucketPolicyHandler %s", bucket)
-	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
-	if errc != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, errc)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 	// Error out if Content-Length is beyond allowed size.
@@ -62,9 +62,9 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 	ctx := r.Context()
 
 	log.Infof("DeleteBucketPolicyHandler %s", bucket)
-	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketPolicyAction, bucket, "")
-	if errc != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, errc)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketPolicyAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 	if err := s3a.bmSys.DeleteBucketPolicy(ctx, bucket); err != nil {
@@ -82,9 +82,9 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	bucket, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("GetBucketPolicyHandler %s", bucket)
-	_, _, errc := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetBucketPolicyAction, bucket, "")
-	if errc != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, errc)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetBucketPolicyAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 

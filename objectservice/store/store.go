@@ -41,13 +41,16 @@ const (
 )
 
 var ErrObjectNotFound = errors.New("object not found")
+var ErrBucketNotEmpty = errors.New("bucket not empty")
 
 //StorageSys store sys
 type StorageSys struct {
-	Db         *uleveldb.ULevelDB
-	DagPool    ipld.DAGService
-	CidBuilder cid.Builder
-	nsLock     *lock.NsLockMap
+	Db              *uleveldb.ULevelDB
+	DagPool         ipld.DAGService
+	CidBuilder      cid.Builder
+	nsLock          *lock.NsLockMap
+	newBucketNSLock func(bucket string) lock.RWLocker
+	hasBucket       func(ctx context.Context, bucket string) bool
 }
 
 func getObjectKey(bucket, object string) string {
@@ -59,15 +62,27 @@ func (s *StorageSys) NewNSLock(bucket string, objects ...string) lock.RWLocker {
 	return s.nsLock.NewNSLock(bucket, objects...)
 }
 
+func (s *StorageSys) SetNewBucketNSLock(newBucketNSLock func(bucket string) lock.RWLocker) {
+	s.newBucketNSLock = newBucketNSLock
+}
+
+func (s *StorageSys) SetHasBucket(hasBucket func(ctx context.Context, bucket string) bool) {
+	s.hasBucket = hasBucket
+}
+
 //StoreObject store object
 func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
-	lk := s.NewNSLock(bucket, object)
-	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
-	ctx = lkctx.Context()
-	defer lk.Unlock(lkctx.Cancel)
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	if !s.hasBucket(ctx, bucket) {
+		return ObjectInfo{}, BucketNotFound{Bucket: bucket}
+	}
 
 	if strings.HasPrefix(object, "/") {
 		object = object[1:]
@@ -118,13 +133,26 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 			objInfo.Expires = t.UTC()
 		}
 	}
+
+	lk := s.NewNSLock(bucket, object)
+	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
 	// Has old file?
 	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
 		c, err := cid.Decode(oldObjInfo.ETag)
 		if err != nil {
 			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
-		} else if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
-			log.Errorw("remove DAG error", "cid", oldObjInfo.ETag)
+		} else {
+			go func() {
+				if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
+					log.Errorw("remove DAG error", "cid", oldObjInfo.ETag)
+				}
+			}()
 		}
 	}
 
@@ -221,9 +249,9 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 		return err
 	}
 
-	if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, cid); err != nil {
-		return err
-	}
+	go func() {
+		dagpoolcli.RemoveDAG(ctx, s.DagPool, cid)
+	}()
 	return nil
 }
 

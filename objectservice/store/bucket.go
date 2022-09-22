@@ -45,8 +45,9 @@ func (e BucketTaggingNotFound) Error() string {
 
 // BucketMetadataSys captures all bucket metadata for a given cluster.
 type BucketMetadataSys struct {
-	db     *uleveldb.ULevelDB
-	nsLock *lock.NsLockMap
+	db          *uleveldb.ULevelDB
+	nsLock      *lock.NsLockMap
+	emptyBucket func(ctx context.Context, bucket string) (bool, error)
 }
 
 // NewBucketMetadataSys - creates new policy system.
@@ -97,6 +98,10 @@ func NewBucketMetadata(name, region, accessKey string) *BucketMetadata {
 // NewNSLock - initialize a new namespace RWLocker instance.
 func (sys *BucketMetadataSys) NewNSLock(bucket string) lock.RWLocker {
 	return sys.nsLock.NewNSLock("meta", bucket)
+}
+
+func (sys *BucketMetadataSys) SetEmptyBucket(emptyBucket func(ctx context.Context, bucket string) (bool, error)) {
+	sys.emptyBucket = emptyBucket
 }
 
 // setBucketMeta - sets a new metadata in-db
@@ -157,24 +162,14 @@ func (sys *BucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) e
 	if _, err = sys.getBucketMeta(bucket); err != nil {
 		return err
 	}
+
+	if empty, err := sys.emptyBucket(ctx, bucket); err != nil {
+		return err
+	} else if !empty {
+		return ErrBucketNotEmpty
+	}
+
 	return sys.db.Delete(bucketPrefix + bucket)
-}
-
-// UpdateBucket  metadata for a bucket.
-func (sys *BucketMetadataSys) UpdateBucket(ctx context.Context, bucket string, meta *BucketMetadata) error {
-	lk := sys.NewNSLock(bucket)
-	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
-	if err != nil {
-		return err
-	}
-	ctx = lkctx.Context()
-	defer lk.Unlock(lkctx.Cancel)
-
-	if _, err = sys.getBucketMeta(bucket); err != nil {
-		return err
-	}
-
-	return sys.setBucketMeta(bucket, meta)
 }
 
 // GetAllBucketOfUser metadata for all bucket.

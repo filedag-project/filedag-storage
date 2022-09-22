@@ -17,6 +17,9 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 		return
 	}
 	s := NewBucketMetadataSys(db)
+	s.SetEmptyBucket(func(ctx context.Context, bucket string) (bool, error) {
+		return true, nil
+	})
 	err = s.setBucketMeta("bucket", &BucketMetadata{
 		Name:          "bucket",
 		Region:        "region",
