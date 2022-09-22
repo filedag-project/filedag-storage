@@ -5,7 +5,6 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -21,9 +20,6 @@ func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode apierr
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 	object := vars["object"]
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
 
 	apiError := apierrors.GetAPIError(errorCode)
 	errorResponse := getRESTErrorResponse(apiError, r.URL.Path, bucket, object)

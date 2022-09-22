@@ -18,7 +18,7 @@ const maxBucketPolicySize = 20 * humanize.KiByte
 //PutBucketPolicyHandler Put BucketPolicy
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketPolicy.html
 func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 
 	log.Infof("PutBucketPolicyHandler %s", bucket)
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
@@ -58,7 +58,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 //DeleteBucketPolicyHandler Delete BucketPolicy
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_DeleteBucketPolicy.html
 func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 
 	log.Infof("DeleteBucketPolicyHandler %s", bucket)
@@ -79,7 +79,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 //GetBucketPolicyHandler Get BucketPolicy
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketPolicy.html
 func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("GetBucketPolicyHandler %s", bucket)
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetBucketPolicyAction, bucket, "")

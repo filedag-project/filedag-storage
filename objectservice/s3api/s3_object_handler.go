@@ -14,6 +14,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/etag"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/hash"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
 	"github.com/gorilla/mux"
 	"golang.org/x/xerrors"
 	"io"
@@ -31,7 +32,11 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
 
-	bucket, object := getBucketAndObject(r)
+	bucket, object, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(r.Context(), err))
+		return
+	}
 	// X-Amz-Copy-Source shouldn't be set for this call.
 	if _, ok := r.Header[consts.AmzCopySource]; ok {
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopySource)
@@ -75,6 +80,11 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	ctx := r.Context()
+	if err := s3utils.CheckPutObjectArgs(ctx, bucket, object); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+
 	// Check if put is allowed
 	s3err := s3a.authSys.IsPutActionAllowed(ctx, r, s3action.PutObjectAction, bucket, object)
 	if s3err != apierrors.ErrNone {
@@ -146,8 +156,16 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 // you must have READ access to the object.
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html
 func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, object := getBucketAndObject(r)
 	ctx := r.Context()
+	bucket, object, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	if err = s3utils.CheckGetObjArgs(ctx, bucket, object); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
@@ -184,8 +202,16 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html
 // The HEAD operation retrieves metadata from an object without returning the object itself.
 func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, object := getBucketAndObject(r)
 	ctx := r.Context()
+	bucket, object, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	if err := s3utils.CheckGetObjArgs(ctx, bucket, object); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
@@ -218,8 +244,16 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 // Delete objectAPIHandlers
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html
 func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, object := getBucketAndObject(r)
 	ctx := r.Context()
+	bucket, object, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	if err := s3utils.CheckDelObjArgs(ctx, bucket, object); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
@@ -250,7 +284,7 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 // DeleteMultipleObjectsHandler - Delete multiple objects
 func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 
 	// Content-Md5 is requied should be set
 	// http://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html
@@ -350,6 +384,9 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 	dObjects := make([]datatypes.DeletedObject, len(deleteList))
 	errs := make([]error, len(deleteList))
 	for i, obj := range deleteList {
+		if errs[i] = s3utils.CheckDelObjArgs(ctx, bucket, obj.ObjectName); errs[i] != nil {
+			continue
+		}
 		errs[i] = s3a.store.DeleteObject(ctx, bucket, obj.ObjectName)
 		if errs[i] == nil || xerrors.Is(errs[i], store.ErrObjectNotFound) {
 			dObjects[i] = datatypes.DeletedObject{
@@ -408,8 +445,16 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 //   - X-Amz-Server-Side-Encryption-Customer-Key
 //   - X-Amz-Copy-Source-Server-Side-Encryption-Customer-Key
 func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request) {
-	dstBucket, dstObject := getBucketAndObject(r)
 	ctx := r.Context()
+	dstBucket, dstObject, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	if err := s3utils.CheckPutObjectArgs(ctx, dstBucket, dstObject); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
@@ -424,13 +469,17 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Copy source path.
-	cpSrcPath, err := url.QueryUnescape(r.Header.Get("X-Amz-Copy-Source"))
+	cpSrcPath, err := url.QueryUnescape(r.Header.Get(consts.AmzCopySource))
 	if err != nil {
 		// Save unescaped string as is.
 		cpSrcPath = r.Header.Get(consts.AmzCopySource)
 	}
 
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
+	if err = s3utils.CheckGetObjArgs(ctx, srcBucket, srcObject); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
 	if !s3a.bmSys.HasBucket(ctx, srcBucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
@@ -485,8 +534,8 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
 	ctx := r.Context()
+	bucket, _, _ := getBucketAndObject(r)
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
@@ -505,6 +554,12 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
+
+	if err := s3utils.CheckListObjsArgs(ctx, bucket, prefix, marker); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+
 	objs, err := s3a.store.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
@@ -516,8 +571,12 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 }
 
 func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Request) {
-	bucket, object := getBucketAndObject(r)
 	ctx := r.Context()
+	bucket, object, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
@@ -538,6 +597,16 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, errCode)
 		return
 	}
+
+	marker := token
+	if marker == "" {
+		marker = startAfter
+	}
+	if err := s3utils.CheckListObjsArgs(ctx, bucket, prefix, marker); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+
 	// Validate the query params before beginning to serve the request.
 	// fetch-owner is not validated since it is a boolean
 	if s3Error := validateListObjectsArgs(token, delimiter, encodingType, maxKeys); s3Error != apierrors.ErrNone {
@@ -564,13 +633,10 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 
-func getBucketAndObject(r *http.Request) (bucket, object string) {
+func getBucketAndObject(r *http.Request) (bucket, object string, err error) {
 	vars := mux.Vars(r)
 	bucket = vars["bucket"]
-	object = vars["object"]
-	if !strings.HasPrefix(object, "/") {
-		object = "/" + object
-	}
+	object, err = unescapePath(vars["object"])
 	return
 }
 
@@ -600,12 +666,12 @@ func setPutObjHeaders(w http.ResponseWriter, objInfo store.ObjectInfo, delete bo
 }
 
 func pathToBucketAndObject(path string) (bucket, object string) {
-	path = strings.TrimPrefix(path, "/")
-	parts := strings.SplitN(path, "/", 2)
-	if len(parts) == 2 {
-		return parts[0], "/" + parts[1]
+	path = strings.TrimPrefix(path, consts.SlashSeparator)
+	idx := strings.Index(path, consts.SlashSeparator)
+	if idx < 0 {
+		return path, ""
 	}
-	return parts[0], "/"
+	return path[:idx], path[idx+len(consts.SlashSeparator):]
 }
 
 func setEtag(w http.ResponseWriter, etag string) {
@@ -824,4 +890,16 @@ func generateMultiDeleteResponse(quiet bool, deletedObjects []datatypes.DeletedO
 	}
 	deleteResp.Errors = errs
 	return deleteResp
+}
+
+// unescapePath is similar to url.PathUnescape or url.QueryUnescape
+// depending on input, additionally also handles situations such as
+// `//` are normalized as `/`, also removes any `/` prefix before
+// returning.
+func unescapePath(p string) (string, error) {
+	ep, err := url.PathUnescape(p)
+	if err != nil {
+		return "", err
+	}
+	return trimLeadingSlash(ep), nil
 }

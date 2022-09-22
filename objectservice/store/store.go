@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
@@ -84,9 +85,6 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 		return ObjectInfo{}, BucketNotFound{Bucket: bucket}
 	}
 
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
 	data := io.Reader(reader)
 	if size > bigFileThreshold {
 		// We use 2 buffers, so we always have a full buffer of input.
@@ -148,9 +146,11 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 		if err != nil {
 			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
 		} else {
+			// Disable timeouts and cancellation
+			ctx = utils.BgContext(ctx)
 			go func() {
 				if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
-					log.Errorw("remove DAG error", "cid", oldObjInfo.ETag)
+					log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
 				}
 			}()
 		}
@@ -174,9 +174,6 @@ func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (Obje
 	defer lk.RUnlock(lkctx.Cancel)
 
 	meta := ObjectInfo{}
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
 	err = s.Db.Get(getObjectKey(bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
@@ -200,9 +197,6 @@ func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (Obje
 }
 
 func (s *StorageSys) getObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
 	err = s.Db.Get(getObjectKey(bucket, object), &meta)
 	return
 }
@@ -229,9 +223,6 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	ctx = lkctx.Context()
 	defer lk.Unlock(lkctx.Cancel)
 
-	if strings.HasPrefix(object, "/") {
-		object = object[1:]
-	}
 	meta := ObjectInfo{}
 	err = s.Db.Get(getObjectKey(bucket, object), &meta)
 	if err != nil {

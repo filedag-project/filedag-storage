@@ -21,8 +21,8 @@ const (
 )
 
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
-	bucketName := "/testbucketputo"
-	objectName := "/testobjectputo"
+	bucketName := "testbucketputo"
+	objectName := "testobjectputo"
 	r1 := "1234567"
 	copySourceHeader := http.Header{}
 	copySourceHeader.Set("X-Amz-Copy-Source", "somewhere")
@@ -60,7 +60,7 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 		{
-			bucketName:         "/11",
+			bucketName:         "111",
 			objectName:         objectName,
 			data:               []byte(r1),
 			accessKey:          DefaultTestAccessKey,
@@ -86,14 +86,14 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 			expectedRespStatus: http.StatusBadRequest,
 		},
 	}
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	result := reqTest(reqPutBucket)
 	if result.Code != http.StatusOK {
 		t.Fatalf("the response status of putbucket: %d", result.Code)
 	}
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
-		req := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName, int64(len(r1)), bytes.NewReader(testCase.data), "s3", testCase.accessKey, testCase.secretKey, t)
+		req := utils.MustNewSignedV4Request(http.MethodPut, "/"+testCase.bucketName+"/"+testCase.objectName, int64(len(r1)), bytes.NewReader(testCase.data), "s3", testCase.accessKey, testCase.secretKey, t)
 		// Add test case specific headers to the request.
 		addCustomHeaders(req, testCase.header)
 		result := reqTest(req)
@@ -105,8 +105,8 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_GetObjectHandler(t *testing.T) {
-	bucketName := "/testbucketfeto"
-	objectName := "/testobjectgeto"
+	bucketName := "testbucketfeto"
+	objectName := "testobjectgeto"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -138,23 +138,23 @@ func TestS3ApiServer_GetObjectHandler(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 		{
-			bucketName:         "/11",
+			bucketName:         "111",
 			objectName:         objectName,
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusNotFound,
 		},
 	}
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	a := reqTest(reqPutBucket)
 	fmt.Println("putbucket:", a.Body.String())
 	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName+"/"+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
-		req := utils.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		req := utils.MustNewSignedV4Request(http.MethodGet, "/"+testCase.bucketName+"/"+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		// Add test case specific headers to the request.
 		result := reqTest(req)
 		if result.Code != testCase.expectedRespStatus {
@@ -165,8 +165,8 @@ func TestS3ApiServer_GetObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_HeadObjectHandler(t *testing.T) {
-	bucketName := "/testbucketheado"
-	objectName := "/testobjectheado"
+	bucketName := "testbucketheado"
+	objectName := "testobjectheado"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -198,22 +198,22 @@ func TestS3ApiServer_HeadObjectHandler(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 		{
-			bucketName:         "/11",
+			bucketName:         "111",
 			objectName:         objectName,
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusNotFound,
 		},
 	}
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName+"/"+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
-		req := utils.MustNewSignedV4Request(http.MethodHead, testCase.bucketName+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		req := utils.MustNewSignedV4Request(http.MethodHead, "/"+testCase.bucketName+"/"+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		// Add test case specific headers to the request.
 		result := reqTest(req)
 		if result.Code != testCase.expectedRespStatus {
@@ -224,8 +224,8 @@ func TestS3ApiServer_HeadObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
-	bucketName := "/testbucketdelo"
-	objectName := "/testobjectdelo"
+	bucketName := "testbucketdelo"
+	objectName := "testobjectdelo"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -257,22 +257,22 @@ func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 		{
-			bucketName:         "/11",
+			bucketName:         "111",
 			objectName:         objectName,
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusNotFound,
 		},
 	}
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName+"/"+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
-		req := utils.MustNewSignedV4Request(http.MethodDelete, testCase.bucketName+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		req := utils.MustNewSignedV4Request(http.MethodDelete, "/"+testCase.bucketName+"/"+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		// Add test case specific headers to the request.
 		result := reqTest(req)
 		if result.Code != testCase.expectedRespStatus {
@@ -283,10 +283,10 @@ func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_DeleteMultipleObjectsHandler(t *testing.T) {
-	bucketName := "/testbucketdelobjs"
+	bucketName := "testbucketdelobjs"
 
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	fmt.Println("putbucket:", reqTest(reqPutBucket).Code)
 
 	delObjReq := datatypes.DeleteObjectsRequest{
 		Quiet: false,
@@ -294,9 +294,12 @@ func TestS3ApiServer_DeleteMultipleObjectsHandler(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		data := fmt.Sprintf("1234567%d", i)
 		objName := fmt.Sprintf("obj%d", i)
-		reqputObject := utils.MustNewSignedV4Request(http.MethodPut, fmt.Sprintf("%s/%s", bucketName, objName), int64(len(data)), bytes.NewReader([]byte(data)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+		reqputObject := utils.MustNewSignedV4Request(http.MethodPut, fmt.Sprintf("/%s/%s", bucketName, objName), int64(len(data)), bytes.NewReader([]byte(data)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 		// Add test case specific headers to the request.
-		reqTest(reqputObject)
+		result := reqTest(reqputObject)
+		if result.Code != http.StatusOK {
+			t.Fatalf("Expected the response status to be `%d`, but instead found `%d`", http.StatusOK, result.Code)
+		}
 
 		delObjReq.Objects = append(delObjReq.Objects, datatypes.ObjectToDelete{
 			ObjectV: datatypes.ObjectV{
@@ -308,7 +311,7 @@ func TestS3ApiServer_DeleteMultipleObjectsHandler(t *testing.T) {
 	// Marshal delete request.
 	deleteReqBytes, err := xml.Marshal(delObjReq)
 	require.NoError(t, err)
-	req := utils.MustNewSignedV4Request(http.MethodPost, bucketName+"?delete=", int64(len(deleteReqBytes)),
+	req := utils.MustNewSignedV4Request(http.MethodPost, "/"+bucketName+"?delete=", int64(len(deleteReqBytes)),
 		bytes.NewReader(deleteReqBytes), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
 	result := reqTest(req)
@@ -338,8 +341,8 @@ func TestS3ApiServer_DeleteMultipleObjectsHandler(t *testing.T) {
 }
 
 func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
-	bucketName := "/testbucketcopy"
-	objectName := "/testobjectcopy"
+	bucketName := "testbucketcopy"
+	objectName := "testobjectcopy"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -360,7 +363,7 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 			bucketName:         bucketName,
 			objectName:         objectName,
 			dstbucketName:      bucketName,
-			dstobjectName:      "/1.txt",
+			dstobjectName:      "1.txt",
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusOK,
@@ -371,16 +374,16 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 			bucketName:         bucketName,
 			objectName:         objectName,
 			dstbucketName:      bucketName,
-			dstobjectName:      "/1.txt",
+			dstobjectName:      "1.txt",
 			accessKey:          "1",
 			secretKey:          "1",
 			expectedRespStatus: http.StatusForbidden,
 		},
 		{
-			bucketName:         "/11",
+			bucketName:         "111",
 			objectName:         objectName,
 			dstbucketName:      bucketName,
-			dstobjectName:      "/1.txt",
+			dstobjectName:      "1.txt",
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusNotFound,
@@ -389,7 +392,7 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 			bucketName:         "",
 			objectName:         "",
 			dstbucketName:      bucketName,
-			dstobjectName:      "/1.txt",
+			dstobjectName:      "1.txt",
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusBadRequest,
@@ -404,16 +407,16 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 			expectedRespStatus: http.StatusBadRequest,
 		},
 	}
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName+"/"+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
-		req := utils.MustNewSignedV4Request(http.MethodPut, testCase.dstbucketName+testCase.dstobjectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
-		req.Header.Set("X-Amz-Copy-Source", url.QueryEscape(testCase.bucketName+testCase.objectName)) // Add test case specific headers to the request.
+		req := utils.MustNewSignedV4Request(http.MethodPut, "/"+testCase.dstbucketName+"/"+testCase.dstobjectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		req.Header.Set("X-Amz-Copy-Source", url.QueryEscape("/"+testCase.bucketName+"/"+testCase.objectName)) // Add test case specific headers to the request.
 		result := reqTest(req)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -423,8 +426,8 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 
 }
 func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
-	bucketName := "/testbucketlist"
-	objectName := "/testobjectlist"
+	bucketName := "testbucketlist"
+	objectName := "testobjectlist"
 
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -454,21 +457,21 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 		{
-			bucketName:         "/11",
+			bucketName:         "11",
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusNotFound,
 		},
 	}
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName+"/"+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
-		req := utils.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+"?list-type=2", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+		req := utils.MustNewSignedV4Request(http.MethodGet, "/"+testCase.bucketName+"?list-type=2", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 		result := reqTest(req)
 		if result.Code != testCase.expectedRespStatus {
 			t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
@@ -479,32 +482,32 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 }
 
 func TestWholeNoUserAPI(t *testing.T) {
-	bucketName := "/testbucketwhole"
-	objectName := "/testobjectwhole"
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	bucketName := "testbucketwhole"
+	objectName := "testobjectwhole"
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName+"/"+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
-	reqGetObject, _ := http.NewRequest(http.MethodGet, bucketName+objectName, nil)
+	reqGetObject, _ := http.NewRequest(http.MethodGet, "/"+bucketName+"/"+objectName, nil)
 	fmt.Println(reqTest(reqGetObject).Body.String())
 }
 
 func TestWholeProcess(t *testing.T) {
 	userName := "dean"
 	secret := "dean123456"
-	bucketName := "/testbucket"
-	objectName := "/testobject"
+	bucketName := "testbucket"
+	objectName := "testobject"
 	reqPutUser := utils.MustNewSignedV4Request(http.MethodPost, "/admin/v1/add-user"+"?accessKey="+userName+"&secretKey="+secret, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	fmt.Println(reqTest(reqPutUser).Body.String())
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", userName, secret, t)
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName, 0, nil, "s3", userName, secret, t)
 	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
 	r1 := "1234567"
-	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, bucketName+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", userName, secret, t)
+	reqputObject := utils.MustNewSignedV4Request(http.MethodPut, "/"+bucketName+"/"+objectName, int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", userName, secret, t)
 	// Add test case specific headers to the request.
 	reqTest(reqputObject)
-	req := utils.MustNewSignedV4Request(http.MethodGet, bucketName+objectName, 0, nil, "s3", userName, secret, t)
+	req := utils.MustNewSignedV4Request(http.MethodGet, "/"+bucketName+"/"+objectName, 0, nil, "s3", userName, secret, t)
 	fmt.Println("getobject", reqTest(req).Body.String())
 }
 func addCustomHeaders(req *http.Request, customHeaders http.Header) {

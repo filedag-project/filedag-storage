@@ -5,7 +5,9 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/hash"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
 	"golang.org/x/xerrors"
+	"net/url"
 )
 
 // NotImplemented If a feature is not implemented
@@ -43,6 +45,24 @@ func ToApiError(ctx context.Context, err error) ErrorCode {
 		errCode = ErrNoSuchBucketPolicy
 	case store.BucketTaggingNotFound:
 		errCode = ErrBucketTaggingNotFound
+	case s3utils.BucketNameInvalid:
+		errCode = ErrInvalidBucketName
+	case s3utils.ObjectNameInvalid:
+		errCode = ErrInvalidObjectName
+	case s3utils.ObjectNameTooLong:
+		errCode = ErrKeyTooLongError
+	case s3utils.ObjectNamePrefixAsSlash:
+		errCode = ErrInvalidObjectNamePrefixSlash
+	case s3utils.InvalidUploadIDKeyCombination:
+		errCode = ErrNotImplemented
+	case s3utils.InvalidMarkerPrefixCombination:
+		errCode = ErrNotImplemented
+	case s3utils.MalformedUploadID:
+		errCode = ErrNoSuchUpload
+	case s3utils.InvalidUploadID:
+		errCode = ErrNoSuchUpload
+	case url.EscapeError:
+		errCode = ErrInvalidObjectName
 	default:
 		if xerrors.Is(err, store.ErrObjectNotFound) {
 			errCode = ErrNoSuchKey

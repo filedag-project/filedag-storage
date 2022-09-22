@@ -165,6 +165,8 @@ const (
 
 	// Add new extended error codes here.
 
+	ErrInvalidObjectName
+	ErrInvalidObjectNamePrefixSlash
 	ErrClientDisconnected
 	ErrOperationTimedOut
 	ErrOperationMaxedOut
@@ -773,6 +775,16 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	},
 
 	// S3 extensions.
+	ErrInvalidObjectName: {
+		Code:           "InvalidObjectName",
+		Description:    "Object name contains unsupported characters.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrInvalidObjectNamePrefixSlash: {
+		Code:           "InvalidObjectName",
+		Description:    "Object name contains a leading slash.",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
 	ErrClientDisconnected: {
 		Code:           "ClientDisconnected",
 		Description:    "Client disconnected before response was ready",

@@ -10,6 +10,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
 	logging "github.com/ipfs/go-log/v2"
 	"io"
 	"net/http"
@@ -56,7 +57,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 // This operation returns bucket location.
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketLocation.html
 func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListAllMyBucketsAction, bucket, "")
 	if s3err != apierrors.ErrNone {
@@ -80,7 +81,7 @@ func (s3a *s3ApiServer) GetBucketLocationHandler(w http.ResponseWriter, r *http.
 
 //PutBucketHandler put a bucket
 func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("PutBucketHandler %s", bucket)
 	region, _ := parseLocationConstraint(r)
@@ -91,7 +92,12 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err := s3a.bmSys.CreateBucket(ctx, bucket, cred.AccessKey, region)
+	if err := s3utils.CheckValidBucketNameStrict(bucket); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidBucketName)
+		return
+	}
+
+	err := s3a.bmSys.CreateBucket(ctx, bucket, region, cred.AccessKey)
 	if err != nil {
 		log.Errorf("PutBucketHandler create bucket error:%v", s3err)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
@@ -113,7 +119,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 // return responses such as 404 Not Found and 403 Forbidden.
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadBucket.html
 func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	log.Infof("HeadBucketHandler %s", bucket)
 	// avoid duplicated buckets
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.HeadBucketAction, bucket, "")
@@ -133,7 +139,7 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 // DeleteBucketHandler delete Bucket
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucket.html
 func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
@@ -154,7 +160,7 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 // https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketAcl.html
 func (s3a *s3ApiServer) GetBucketAclHandler(w http.ResponseWriter, r *http.Request) {
 	// collect parameters
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	log.Infof("GetBucketAclHandler %s", bucket)
 	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetBucketPolicyAction, bucket, "")
 	if s3err != apierrors.ErrNone {
@@ -200,7 +206,7 @@ func (s3a *s3ApiServer) DeleteBucketCorsHandler(w http.ResponseWriter, r *http.R
 // PutBucketAclHandler Put bucket ACL
 // https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketAcl.html
 func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 
 	// Allow putBucketACL if policy action is set, since this is a dummy call
 	// we are simply re-purposing the bucketPolicyAction.
@@ -242,7 +248,7 @@ func (s3a *s3ApiServer) PutBucketAclHandler(w http.ResponseWriter, r *http.Reque
 // PutBucketTaggingHandler
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketTagging.html
 func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
@@ -269,7 +275,7 @@ func (s3a *s3ApiServer) PutBucketTaggingHandler(w http.ResponseWriter, r *http.R
 // GetBucketTaggingHandler
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketTagging.html
 func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
@@ -296,7 +302,7 @@ func (s3a *s3ApiServer) GetBucketTaggingHandler(w http.ResponseWriter, r *http.R
 // DeleteBucketTaggingHandler
 //https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketTagging.html
 func (s3a *s3ApiServer) DeleteBucketTaggingHandler(w http.ResponseWriter, r *http.Request) {
-	bucket, _ := getBucketAndObject(r)
+	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
