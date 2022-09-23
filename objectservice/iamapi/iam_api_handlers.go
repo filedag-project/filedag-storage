@@ -135,7 +135,7 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
-	response.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 // SetStatus set user status
@@ -165,7 +165,7 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
-	response.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {

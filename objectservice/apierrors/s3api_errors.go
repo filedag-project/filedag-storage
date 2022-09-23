@@ -22,9 +22,6 @@ type RESTErrorResponse struct {
 	RequestID  string   `xml:"RequestId" json:"RequestId"`
 	Key        string   `xml:"Key,omitempty" json:"Key,omitempty"`
 	BucketName string   `xml:"BucketName,omitempty" json:"BucketName,omitempty"`
-
-	// Underlying HTTP status code for the returned error
-	StatusCode int `xml:"-" json:"-"`
 }
 
 // Error - Returns S3 error string.

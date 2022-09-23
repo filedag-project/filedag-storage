@@ -52,7 +52,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
-	response.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 //DeleteBucketPolicyHandler Delete BucketPolicy
@@ -73,7 +73,7 @@ func (s3a *s3ApiServer) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http
 		return
 	}
 	// Success.
-	response.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 //GetBucketPolicyHandler Get BucketPolicy

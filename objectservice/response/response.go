@@ -53,6 +53,7 @@ func WriteSuccessResponseXML(w http.ResponseWriter, r *http.Request, response in
 func WriteXMLResponse(w http.ResponseWriter, r *http.Request, statusCode int, response interface{}) {
 	writeResponse(w, r, statusCode, encodeXMLResponse(response), mimeXML)
 }
+
 func writeResponse(w http.ResponseWriter, r *http.Request, statusCode int, response []byte, mType mimeType) {
 	setCommonHeaders(w, r)
 	if response != nil {
@@ -71,6 +72,7 @@ func writeResponse(w http.ResponseWriter, r *http.Request, statusCode int, respo
 		w.(http.Flusher).Flush()
 	}
 }
+
 func setCommonHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("x-amz-request-id", fmt.Sprintf("%d", time.Now().UnixNano()))
 	w.Header().Set("Accept-Ranges", "bytes")
@@ -87,11 +89,6 @@ func encodeXMLResponse(response interface{}) []byte {
 	e := xml.NewEncoder(&bytesBuffer)
 	e.Encode(response)
 	return bytesBuffer.Bytes()
-}
-
-//WriteSuccessResponseEmpty  Success Response Empty
-func WriteSuccessResponseEmpty(w http.ResponseWriter, r *http.Request) {
-	writeEmptyResponse(w, r, http.StatusOK)
 }
 
 // WriteErrorResponseJSON - writes error response in JSON format;
@@ -128,6 +125,7 @@ func encodeResponseJSON(response interface{}) []byte {
 func WriteSuccessResponseJSON(w http.ResponseWriter, response []byte) {
 	writeResponseSimple(w, http.StatusOK, response, mimeJSON)
 }
+
 func writeResponseSimple(w http.ResponseWriter, statusCode int, response []byte, mType mimeType) {
 	if mType != mimeNone {
 		w.Header().Set(consts.ContentType, string(mType))

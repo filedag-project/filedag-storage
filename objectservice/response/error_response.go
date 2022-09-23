@@ -8,9 +8,6 @@ import (
 	"time"
 )
 
-func writeEmptyResponse(w http.ResponseWriter, r *http.Request, statusCode int) {
-	writeResponse(w, r, statusCode, []byte{}, mimeNone)
-}
 func WriteErrorResponseHeadersOnly(w http.ResponseWriter, r *http.Request, err apierrors.ErrorCode) {
 	writeResponse(w, r, apierrors.GetAPIError(err).HTTPStatusCode, nil, mimeNone)
 }
@@ -25,6 +22,7 @@ func WriteErrorResponse(w http.ResponseWriter, r *http.Request, errorCode apierr
 	errorResponse := getRESTErrorResponse(apiError, r.URL.Path, bucket, object)
 	WriteXMLResponse(w, r, apiError.HTTPStatusCode, errorResponse)
 }
+
 func getRESTErrorResponse(err apierrors.APIError, resource string, bucket, object string) apierrors.RESTErrorResponse {
 	return apierrors.RESTErrorResponse{
 		Code:       err.Code,

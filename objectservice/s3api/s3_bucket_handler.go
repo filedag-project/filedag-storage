@@ -108,7 +108,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		w.Header().Set(consts.Location, cp) // Clean any trailing slashes.
 	}
 
-	response.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 // HeadBucketHandler - HEAD Bucket
@@ -124,16 +124,16 @@ func (s3a *s3ApiServer) HeadBucketHandler(w http.ResponseWriter, r *http.Request
 	// avoid duplicated buckets
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.HeadBucketAction, bucket, "")
 	if s3err != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, s3err)
+		response.WriteErrorResponseHeadersOnly(w, r, s3err)
 		return
 	}
 
 	if ok := s3a.bmSys.HasBucket(r.Context(), bucket); !ok {
-		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
+		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 
-	response.WriteSuccessResponseEmpty(w, r)
+	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
 // DeleteBucketHandler delete Bucket

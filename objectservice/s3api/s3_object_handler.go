@@ -182,7 +182,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	objInfo, reader, err := s3a.store.GetObject(ctx, bucket, object)
 	if err != nil {
 		log.Errorf("GetObjectHandler GetObject err:%v", err)
-		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
@@ -205,11 +205,11 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	bucket, object, err := getBucketAndObject(r)
 	if err != nil {
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	if err := s3utils.CheckGetObjArgs(ctx, bucket, object); err != nil {
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 
@@ -217,11 +217,11 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 	// type to return the correct error (NoSuchKey vs AccessDenied)
 	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, bucket, object)
 	if s3Error != apierrors.ErrNone {
-		response.WriteErrorResponse(w, r, s3Error)
+		response.WriteErrorResponseHeadersOnly(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(ctx, bucket) {
-		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
+		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
 	objInfo, err := s3a.store.GetObjectInfo(ctx, bucket, object)
@@ -488,7 +488,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 	srcObjInfo, srcReader, err := s3a.store.GetObject(ctx, srcBucket, srcObject)
 	if err != nil {
 		log.Errorf("CopyObjectHandler StoreObject err:%v", err)
-		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	metadata := make(map[string]string)
