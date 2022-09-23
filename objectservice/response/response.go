@@ -159,8 +159,8 @@ type CopyObjectResponse struct {
 }
 
 type CopyObjectResult struct {
-	LastModified time.Time `xml:"http://s3.amazonaws.com/doc/2006-03-01/ LastModified"`
-	ETag         string    `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ETag"`
+	LastModified string `xml:"http://s3.amazonaws.com/doc/2006-03-01/ LastModified"`
+	ETag         string `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ETag"`
 }
 
 // LocationResponse - format for location response.

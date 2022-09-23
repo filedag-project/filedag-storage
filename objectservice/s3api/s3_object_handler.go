@@ -2,7 +2,6 @@ package s3api
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
@@ -23,7 +22,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"time"
 )
 
 //PutObjectHandler Put ObjectHandler
@@ -455,10 +453,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
-
-	// Check for auth type to return S3 compatible error.
-	// type to return the correct error (NoSuchKey vs AccessDenied)
-	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, dstBucket, dstObject)
+	_, _, s3Error := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.PutObjectAction, dstBucket, dstObject)
 	if s3Error != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3Error)
 		return
@@ -474,48 +469,49 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		// Save unescaped string as is.
 		cpSrcPath = r.Header.Get(consts.AmzCopySource)
 	}
-
 	srcBucket, srcObject := pathToBucketAndObject(cpSrcPath)
+	// If source object is empty or bucket is empty, reply back invalid copy source.
+	if srcObject == "" || srcBucket == "" {
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopySource)
+		return
+	}
 	if err = s3utils.CheckGetObjArgs(ctx, srcBucket, srcObject); err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	if srcBucket == dstBucket && srcObject == dstObject {
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopyDest)
+		return
+	}
+	_, _, s3Error = s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.GetObjectAction, srcBucket, srcObject)
+	if s3Error != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
 	if !s3a.bmSys.HasBucket(ctx, srcBucket) {
 		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
 		return
 	}
+
 	log.Debugf("CopyObjectHandler %s %s => %s %s", srcBucket, srcObject, dstBucket, dstObject)
 	srcObjInfo, srcReader, err := s3a.store.GetObject(ctx, srcBucket, srcObject)
 	if err != nil {
-		log.Errorf("CopyObjectHandler StoreObject err:%v", err)
+		log.Errorf("CopyObjectHandler GetObject err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	metadata := make(map[string]string)
 	metadata[strings.ToLower(consts.ContentType)] = srcObjInfo.ContentType
 	metadata[strings.ToLower(consts.ContentEncoding)] = srcObjInfo.ContentEncoding
-	if (srcBucket == dstBucket && srcObject == dstObject || cpSrcPath == "") && isReplace(r) {
-		object, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
+	if isReplace(r) {
+		inputMeta, err := extractMetadata(ctx, r)
 		if err != nil {
 			response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 			return
 		}
-		response.WriteSuccessResponseXML(w, r, response.CopyObjectResult{
-			ETag:         fmt.Sprintf("%x", object.ETag),
-			LastModified: time.Now().UTC(),
-		})
-		return
-	}
-
-	// If source object is empty or bucket is empty, reply back invalid copy source.
-	if srcObject == "" || srcBucket == "" {
-		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopySource)
-		return
-	}
-
-	if srcBucket == dstBucket && srcObject == dstObject {
-		response.WriteErrorResponse(w, r, apierrors.ErrInvalidCopyDest)
-		return
+		for key, val := range inputMeta {
+			metadata[key] = val
+		}
 	}
 	obj, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
 	if err != nil {
@@ -523,14 +519,14 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	setEtag(w, obj.ETag)
-
-	resp2 := response.CopyObjectResult{
-		ETag:         obj.ETag,
-		LastModified: time.Now().UTC(),
+	resp := response.CopyObjectResult{
+		ETag:         "\"" + obj.ETag + "\"",
+		LastModified: obj.ModTime.UTC().Format(consts.Iso8601TimeFormat),
 	}
 
-	response.WriteSuccessResponseXML(w, r, resp2)
+	setPutObjHeaders(w, obj, false)
+
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Request) {
@@ -661,7 +657,7 @@ func setPutObjHeaders(w http.ResponseWriter, objInfo store.ObjectInfo, delete bo
 	}
 
 	if objInfo.Bucket != "" && objInfo.Name != "" {
-
+		// do something
 	}
 }
 
@@ -672,16 +668,6 @@ func pathToBucketAndObject(path string) (bucket, object string) {
 		return path, ""
 	}
 	return path[:idx], path[idx+len(consts.SlashSeparator):]
-}
-
-func setEtag(w http.ResponseWriter, etag string) {
-	if etag != "" {
-		if strings.HasPrefix(etag, "\"") {
-			w.Header().Set("ETag", etag)
-		} else {
-			w.Header().Set("ETag", "\""+etag+"\"")
-		}
-	}
 }
 
 func isReplace(r *http.Request) bool {
