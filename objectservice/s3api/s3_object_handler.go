@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"bytes"
 	"encoding/base64"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
@@ -126,6 +127,9 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	if r.Header.Get(consts.ContentType) == "" {
+		reader = mimeDetect(r, reader)
+	}
 	hashReader, err := hash.NewReader(reader, size, md5hex, sha256hex, size)
 	if err != nil {
 		log.Errorf("PutObjectHandler NewReader err:%v", err)
@@ -888,4 +892,14 @@ func unescapePath(p string) (string, error) {
 		return "", err
 	}
 	return trimLeadingSlash(ep), nil
+}
+
+func mimeDetect(r *http.Request, dataReader io.Reader) io.ReadCloser {
+	mimeBuffer := make([]byte, 512)
+	size, _ := dataReader.Read(mimeBuffer)
+	if size > 0 {
+		r.Header.Set("Content-Type", http.DetectContentType(mimeBuffer[:size]))
+		return io.NopCloser(io.MultiReader(bytes.NewReader(mimeBuffer[:size]), dataReader))
+	}
+	return io.NopCloser(dataReader)
 }
