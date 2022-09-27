@@ -60,6 +60,17 @@ type StorageSys struct {
 	hasBucket       func(ctx context.Context, bucket string) bool
 }
 
+//NewStorageSys new a storage sys
+func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
+	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
+	return &StorageSys{
+		Db:         db,
+		DagPool:    dagService,
+		CidBuilder: cidBuilder,
+		nsLock:     lock.NewNSLock(),
+	}
+}
+
 func getObjectKey(bucket, object string) string {
 	return fmt.Sprintf(objectKeyFormat, bucket, object)
 }
@@ -81,20 +92,7 @@ func (s *StorageSys) SetHasBucket(hasBucket func(ctx context.Context, bucket str
 	s.hasBucket = hasBucket
 }
 
-//StoreObject store object
-func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
-	bktlk := s.newBucketNSLock(bucket)
-	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
-	if err != nil {
-		return ObjectInfo{}, err
-	}
-	ctx = bktlkCtx.Context()
-	defer bktlk.RUnlock(bktlkCtx.Cancel)
-
-	if !s.hasBucket(ctx, bucket) {
-		return ObjectInfo{}, BucketNotFound{Bucket: bucket}
-	}
-
+func (s *StorageSys) store(ctx context.Context, reader io.ReadCloser, size int64) (cid.Cid, error) {
 	data := io.Reader(reader)
 	if size > bigFileThreshold {
 		// We use 2 buffers, so we always have a full buffer of input.
@@ -112,12 +110,50 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 	}
 	node, err := dagpoolcli.BalanceNode(data, s.DagPool, s.CidBuilder)
 	if err != nil {
-		return ObjectInfo{}, err
+		return cid.Undef, err
 	}
 	select {
 	case <-ctx.Done():
-		return ObjectInfo{}, ctx.Err()
+		return cid.Undef, ctx.Err()
 	default:
+	}
+	return node.Cid(), nil
+}
+
+func (s *StorageSys) checkAndDeleteObjectData(ctx context.Context, bucket, object string) {
+	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
+		c, err := cid.Decode(oldObjInfo.ETag)
+		if err != nil {
+			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
+		} else {
+			// Disable timeouts and cancellation
+			ctx = utils.BgContext(ctx)
+			go func() {
+				if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
+					log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
+				}
+			}()
+		}
+	}
+}
+
+//StoreObject store object
+func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	if !s.hasBucket(ctx, bucket) {
+		return ObjectInfo{}, BucketNotFound{Bucket: bucket}
+	}
+
+	root, err := s.store(ctx, reader, size)
+	if err != nil {
+		return ObjectInfo{}, err
 	}
 
 	objInfo := ObjectInfo{
@@ -126,7 +162,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 		ModTime:          time.Now().UTC(),
 		Size:             size,
 		IsDir:            false,
-		ETag:             node.Cid().String(),
+		ETag:             root.String(),
 		VersionID:        "",
 		IsLatest:         true,
 		DeleteMarker:     false,
@@ -150,20 +186,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 	defer lk.Unlock(lkctx.Cancel)
 
 	// Has old file?
-	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
-		c, err := cid.Decode(oldObjInfo.ETag)
-		if err != nil {
-			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
-		} else {
-			// Disable timeouts and cancellation
-			ctx = utils.BgContext(ctx)
-			go func() {
-				if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
-					log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
-				}
-			}()
-		}
-	}
+	s.checkAndDeleteObjectData(ctx, bucket, object)
 
 	err = s.Db.Put(getObjectKey(bucket, object), objInfo)
 	if err != nil {
@@ -459,34 +482,14 @@ func (s *StorageSys) PutObjectPart(ctx context.Context, bucket string, object st
 	ctx = bktlkCtx.Context()
 	defer bktlk.RUnlock(bktlkCtx.Cancel)
 
-	data := io.Reader(reader)
-	if size > bigFileThreshold {
-		// We use 2 buffers, so we always have a full buffer of input.
-		bufA := pool.Get(chunkSize)
-		bufB := pool.Get(chunkSize)
-		defer pool.Put(bufA)
-		defer pool.Put(bufB)
-		ra, err := readahead.NewReaderBuffer(data, [][]byte{bufA[:chunkSize], bufB[:chunkSize]})
-		if err == nil {
-			data = ra
-			defer ra.Close()
-		} else {
-			log.Infof("readahead.NewReaderBuffer failed, error: %v", err)
-		}
-	}
-	node, err := dagpoolcli.BalanceNode(data, s.DagPool, s.CidBuilder)
+	root, err := s.store(ctx, reader, size)
 	if err != nil {
 		return pi, err
-	}
-	select {
-	case <-ctx.Done():
-		return pi, ctx.Err()
-	default:
 	}
 
 	partInfo := objectPartInfo{
 		Number:  partID,
-		ETag:    node.Cid().String(),
+		ETag:    root.String(),
 		Size:    size,
 		ModTime: time.Now().UTC(),
 	}
@@ -640,20 +643,7 @@ func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 	defer lk.Unlock(lkctx.Cancel)
 
 	// Has old file?
-	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
-		c, err := cid.Decode(oldObjInfo.ETag)
-		if err != nil {
-			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
-		} else {
-			// Disable timeouts and cancellation
-			bgctx := utils.BgContext(ctx)
-			go func() {
-				if err = dagpoolcli.RemoveDAG(bgctx, s.DagPool, c); err != nil {
-					log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
-				}
-			}()
-		}
-	}
+	s.checkAndDeleteObjectData(ctx, bucket, object)
 
 	err = s.Db.Put(getObjectKey(bucket, object), objInfo)
 	if err != nil {
@@ -714,15 +704,4 @@ func (s *StorageSys) AbortMultipartUpload(ctx context.Context, bucket string, ob
 		log.Errorw("remove MultipartInfo error", "bucket", bucket, "object", object, "uploadID", uploadID, "error", err)
 	}
 	return nil
-}
-
-//NewStorageSys new a storage sys
-func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
-	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
-	return &StorageSys{
-		Db:         db,
-		DagPool:    dagService,
-		CidBuilder: cidBuilder,
-		nsLock:     lock.NewNSLock(),
-	}
 }
