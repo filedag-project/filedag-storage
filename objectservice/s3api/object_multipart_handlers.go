@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 // NewMultipartUploadHandler - New multipart upload.
@@ -29,7 +30,7 @@ func (s3a *s3ApiServer) NewMultipartUploadHandler(w http.ResponseWriter, r *http
 
 	log.Infof("NewMultipartUploadHandler %s %s", bucket, object)
 
-	if err := s3utils.CheckPutObjectArgs(ctx, bucket, object); err != nil {
+	if err := s3utils.CheckNewMultipartArgs(ctx, bucket, object); err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
@@ -125,7 +126,7 @@ func (s3a *s3ApiServer) PutObjectPartHandler(w http.ResponseWriter, r *http.Requ
 
 	log.Infow("PutObjectPartHandler", "bucket", bucket, "object", object, "partID", partID)
 
-	if err := s3utils.CheckPutObjectArgs(ctx, bucket, object); err != nil {
+	if err := s3utils.CheckPutObjectPartArgs(ctx, bucket, object); err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
@@ -214,7 +215,7 @@ func (s3a *s3ApiServer) CompleteMultipartUploadHandler(w http.ResponseWriter, r 
 
 	log.Infof("CompleteMultipartUploadHandler %s %s", bucket, object)
 
-	if err := s3utils.CheckPutObjectArgs(ctx, bucket, object); err != nil {
+	if err := s3utils.CheckCompleteMultipartArgs(ctx, bucket, object); err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
@@ -290,6 +291,11 @@ func (s3a *s3ApiServer) AbortMultipartUploadHandler(w http.ResponseWriter, r *ht
 
 	log.Infof("AbortMultipartUploadHandler %s %s", bucket, object)
 
+	if err := s3utils.CheckAbortMultipartArgs(ctx, bucket, object); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+
 	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.AbortMultipartUploadAction, bucket, object)
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
@@ -316,77 +322,117 @@ func (s3a *s3ApiServer) AbortMultipartUploadHandler(w http.ResponseWriter, r *ht
 	response.WriteSuccessNoContent(w)
 }
 
-// ListMultipartUploadsHandler - Lists multipart uploads.
+// ListMultipartUploadsHandler - GET Bucket (List Multipart uploads)
+// -------------------------
+// This operation lists in-progress multipart uploads. An in-progress
+// multipart upload is a multipart upload that has been initiated,
+// using the Initiate Multipart Upload request, but has not yet been
+// completed or aborted. This operation returns at most 1,000 multipart
+// uploads in the response.
 func (s3a *s3ApiServer) ListMultipartUploadsHandler(w http.ResponseWriter, r *http.Request) {
-	//bucket, _ := xhttp.GetBucketAndObject(r)
-	//
-	//prefix, keyMarker, uploadIDMarker, delimiter, maxUploads, encodingType := getBucketMultipartResources(r.URL.Query())
-	//if maxUploads < 0 {
-	//	s3err.WriteErrorResponse(w, r, s3err.ErrInvalidMaxUploads)
-	//	return
-	//}
-	//if keyMarker != "" {
-	//	// Marker not common with prefix is not implemented.
-	//	if !strings.HasPrefix(keyMarker, prefix) {
-	//		s3err.WriteErrorResponse(w, r, s3err.ErrNotImplemented)
-	//		return
-	//	}
-	//}
-	//
-	//response, errCode := s3a.listMultipartUploads(&s3.ListMultipartUploadsInput{
-	//	Bucket:         aws.String(bucket),
-	//	Delimiter:      aws.String(delimiter),
-	//	EncodingType:   aws.String(encodingType),
-	//	KeyMarker:      aws.String(keyMarker),
-	//	MaxUploads:     aws.Int64(int64(maxUploads)),
-	//	Prefix:         aws.String(prefix),
-	//	UploadIdMarker: aws.String(uploadIDMarker),
-	//})
-	//
-	//if errCode != s3err.ErrNone {
-	//	s3err.WriteErrorResponse(w, r, errCode)
-	//	return
-	//}
-	//
-	//// TODO handle encodingType
-	//
-	//writeSuccessResponseXML(w, r, response)
+	bucket, _, _ := getBucketAndObject(r)
+	ctx := r.Context()
+
+	log.Infof("ListMultipartUploadsHandler %s", bucket)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListBucketMultipartUploadsAction, bucket, "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
+		return
+	}
+
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
+		return
+	}
+
+	prefix, keyMarker, uploadIDMarker, delimiter, maxUploads, encodingType, errCode := getBucketMultipartResources(r.Form)
+	if errCode != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, errCode)
+		return
+	}
+
+	if maxUploads < 0 {
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidMaxUploads)
+		return
+	}
+
+	if keyMarker != "" {
+		// Marker not common with prefix is not implemented.
+		if !strings.HasPrefix(keyMarker, prefix) {
+			response.WriteErrorResponse(w, r, apierrors.ErrNotImplemented)
+			return
+		}
+	}
+
+	if err := s3utils.CheckListMultipartArgs(ctx, bucket, prefix, keyMarker, uploadIDMarker, delimiter); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+
+	listMultipartsInfo, err := s3a.store.ListMultipartUploads(ctx, bucket, prefix, keyMarker, uploadIDMarker, delimiter, maxUploads)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	// generate response
+	resp := response.GenerateListMultipartUploadsResponse(bucket, listMultipartsInfo, encodingType)
+	// write success response.
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 // ListObjectPartsHandler - Lists object parts in a multipart upload.
 func (s3a *s3ApiServer) ListObjectPartsHandler(w http.ResponseWriter, r *http.Request) {
-	//bucket, object := xhttp.GetBucketAndObject(r)
-	//
-	//uploadID, partNumberMarker, maxParts, _ := getObjectResources(r.URL.Query())
-	//if partNumberMarker < 0 {
-	//	s3err.WriteErrorResponse(w, r, s3err.ErrInvalidPartNumberMarker)
-	//	return
-	//}
-	//if maxParts < 0 {
-	//	s3err.WriteErrorResponse(w, r, s3err.ErrInvalidMaxParts)
-	//	return
-	//}
-	//
-	//response, errCode := s3a.listObjectParts(&s3.ListPartsInput{
-	//	Bucket:           aws.String(bucket),
-	//	Key:              objectKey(aws.String(object)),
-	//	MaxParts:         aws.Int64(int64(maxParts)),
-	//	PartNumberMarker: aws.Int64(int64(partNumberMarker)),
-	//	UploadId:         aws.String(uploadID),
-	//})
-	//
-	//if errCode != s3err.ErrNone {
-	//	s3err.WriteErrorResponse(w, r, errCode)
-	//	return
-	//}
-	//
-	//writeSuccessResponseXML(w, r, response)
+	bucket, object, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(r.Context(), err))
+		return
+	}
+	ctx := r.Context()
 
+	log.Infof("ListObjectPartsHandler %s %s", bucket, object)
+
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.ListMultipartUploadPartsAction, bucket, object)
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
+		return
+	}
+
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
+		return
+	}
+
+	uploadID, partNumberMarker, maxParts, encodingType, s3Error := getObjectResources(r.Form)
+	if s3Error != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+	if partNumberMarker < 0 {
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidPartNumberMarker)
+		return
+	}
+	if maxParts < 0 {
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidMaxParts)
+		return
+	}
+
+	if err := s3utils.CheckListPartsArgs(ctx, bucket, object); err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+
+	listPartsInfo, err := s3a.store.ListObjectParts(ctx, bucket, object, uploadID, partNumberMarker, maxParts)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	resp := response.GenerateListPartsResponse(listPartsInfo, encodingType)
+	response.WriteSuccessResponseXML(w, r, resp)
 }
 
 // CopyObjectPartHandler - uploads a part by copying data from an existing object as data source.
 func (s3a *s3ApiServer) CopyObjectPartHandler(w http.ResponseWriter, r *http.Request) {
-
+	response.WriteErrorResponse(w, r, apierrors.ErrNotImplemented)
 }
 
 // Parse bucket url queries for ?uploads
@@ -400,7 +446,7 @@ func getBucketMultipartResources(values url.Values) (prefix, keyMarker, uploadID
 			return
 		}
 	} else {
-		maxUploads = response.MaxUploadsList
+		maxUploads = consts.MaxUploadsList
 	}
 
 	prefix = trimLeadingSlash(values.Get("prefix"))
@@ -422,7 +468,7 @@ func getObjectResources(values url.Values) (uploadID string, partNumberMarker, m
 			return
 		}
 	} else {
-		maxParts = response.MaxPartsList
+		maxParts = consts.MaxPartsList
 	}
 
 	if values.Get("part-number-marker") != "" {

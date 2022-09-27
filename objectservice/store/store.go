@@ -41,7 +41,9 @@ const (
 	allObjectPrefixFormat     = "obj-%s-%s"
 	allObjectSeekPrefixFormat = "obj-%s-%s"
 
-	uploadKeyFormat = "uploadObj-%s-%s-%s"
+	uploadKeyFormat           = "uploadObj-%s-%s-%s"
+	allUploadPrefixFormat     = "uploadObj-%s-%s"
+	allUploadSeekPrefixFormat = "uploadObj-%s-%s"
 
 	globalOperationTimeout = 5 * time.Minute
 	deleteOperationTimeout = 1 * time.Minute
@@ -434,10 +436,11 @@ func (s *StorageSys) NewMultipartUpload(ctx context.Context, bucket string, obje
 	// uploadId is random, so don't to lock it
 	uploadId := mustGetUUID()
 	info := MultipartInfo{
-		Bucket:   bucket,
-		Object:   object,
-		UploadID: uploadId,
-		MetaData: meta,
+		Bucket:    bucket,
+		Object:    object,
+		UploadID:  uploadId,
+		MetaData:  meta,
+		Initiated: time.Now().UTC(),
 	}
 
 	err = s.Db.Put(getUploadKey(bucket, object, uploadId), info)
@@ -704,4 +707,228 @@ func (s *StorageSys) AbortMultipartUpload(ctx context.Context, bucket string, ob
 		log.Errorw("remove MultipartInfo error", "bucket", bucket, "object", object, "uploadID", uploadID, "error", err)
 	}
 	return nil
+}
+
+// ListPartsInfo - represents list of all parts.
+type ListPartsInfo struct {
+	// Name of the bucket.
+	Bucket string
+
+	// Name of the object.
+	Object string
+
+	// Upload ID identifying the multipart upload whose parts are being listed.
+	UploadID string
+
+	// Part number after which listing begins.
+	PartNumberMarker int
+
+	// When a list is truncated, this element specifies the last part in the list,
+	// as well as the value to use for the part-number-marker request parameter
+	// in a subsequent request.
+	NextPartNumberMarker int
+
+	// Maximum number of parts that were allowed in the response.
+	MaxParts int
+
+	// Indicates whether the returned list of parts is truncated.
+	IsTruncated bool
+
+	// List of all parts.
+	Parts []objectPartInfo
+
+	// Any metadata set during InitMultipartUpload, including encryption headers.
+	Metadata map[string]string
+
+	// ChecksumAlgorithm if set
+	ChecksumAlgorithm string
+}
+
+func (s *StorageSys) ListObjectParts(ctx context.Context, bucket, object, uploadID string, partNumberMarker, maxParts int) (result ListPartsInfo, err error) {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return result, err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	if !s.hasBucket(ctx, bucket) {
+		return result, BucketNotFound{Bucket: bucket}
+	}
+
+	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	ulkctx, err := uploadIDLock.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return result, err
+	}
+	ctx = ulkctx.Context()
+	defer uploadIDLock.RUnlock(ulkctx.Cancel)
+
+	mi, err := s.getMultipartInfo(ctx, bucket, object, uploadID)
+	if err != nil {
+		return result, err
+	}
+
+	if maxParts == 0 {
+		return result, nil
+	}
+
+	if partNumberMarker < 0 {
+		partNumberMarker = 0
+	}
+
+	// Limit output to maxPartsList.
+	if maxParts > consts.MaxPartsList-partNumberMarker {
+		maxParts = consts.MaxPartsList - partNumberMarker
+	}
+
+	result.Bucket = bucket
+	result.Object = object
+	result.UploadID = uploadID
+	result.MaxParts = maxParts
+	result.PartNumberMarker = partNumberMarker
+	result.Metadata = utils.CloneMapSS(mi.MetaData)
+
+	start := partNumberMarker + 1
+	end := start + maxParts
+	if len(mi.Parts) <= start {
+		return result, nil
+	}
+	if end > len(mi.Parts) {
+		end = len(mi.Parts)
+	}
+	parts := mi.Parts[start:end]
+
+	if len(parts) == 0 || maxParts == 0 {
+		return result, nil
+	}
+
+	result.Parts = parts
+
+	// If listed entries are more than maxParts, we set IsTruncated as true.
+	if len(mi.Parts)-1 > end {
+		result.IsTruncated = true
+		// Make sure to fill next part number marker if IsTruncated is
+		// true for subsequent listing.
+		result.NextPartNumberMarker = result.Parts[len(result.Parts)-1].Number
+	}
+	return
+}
+
+// Lookup - returns if uploadID is valid
+func (lm ListMultipartsInfo) Lookup(uploadID string) bool {
+	for _, upload := range lm.Uploads {
+		if upload.UploadID == uploadID {
+			return true
+		}
+	}
+	return false
+}
+
+// ListMultipartsInfo - represnets bucket resources for incomplete multipart uploads.
+type ListMultipartsInfo struct {
+	// Together with upload-id-marker, this parameter specifies the multipart upload
+	// after which listing should begin.
+	KeyMarker string
+
+	// Together with key-marker, specifies the multipart upload after which listing
+	// should begin. If key-marker is not specified, the upload-id-marker parameter
+	// is ignored.
+	UploadIDMarker string
+
+	// When a list is truncated, this element specifies the value that should be
+	// used for the key-marker request parameter in a subsequent request.
+	NextKeyMarker string
+
+	// When a list is truncated, this element specifies the value that should be
+	// used for the upload-id-marker request parameter in a subsequent request.
+	NextUploadIDMarker string
+
+	// Maximum number of multipart uploads that could have been included in the
+	// response.
+	MaxUploads int
+
+	// Indicates whether the returned list of multipart uploads is truncated. A
+	// value of true indicates that the list was truncated. The list can be truncated
+	// if the number of multipart uploads exceeds the limit allowed or specified
+	// by max uploads.
+	IsTruncated bool
+
+	// List of all pending uploads.
+	Uploads []MultipartInfo
+
+	// When a prefix is provided in the request, The result contains only keys
+	// starting with the specified prefix.
+	Prefix string
+
+	// A character used to truncate the object prefixes.
+	// NOTE: only supported delimiter is '/'.
+	Delimiter string
+
+	// CommonPrefixes contains all (if there are any) keys between Prefix and the
+	// next occurrence of the string specified by delimiter.
+	CommonPrefixes []string
+
+	EncodingType string // Not supported yet.
+}
+
+func (s *StorageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, keyMarker, uploadIDMarker, delimiter string, maxUploads int) (result ListMultipartsInfo, err error) {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return result, err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	if !s.hasBucket(ctx, bucket) {
+		return result, BucketNotFound{Bucket: bucket}
+	}
+
+	result.MaxUploads = maxUploads
+	result.KeyMarker = keyMarker
+	result.UploadIDMarker = uploadIDMarker
+	result.Prefix = prefix
+	result.Delimiter = delimiter
+
+	if maxUploads == 0 {
+		return result, nil
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	seekKey := ""
+	if keyMarker != "" {
+		seekKey = fmt.Sprintf(allUploadSeekPrefixFormat, bucket, keyMarker)
+	}
+	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allUploadPrefixFormat, bucket, prefix), seekKey)
+	if err != nil {
+		return result, err
+	}
+	index := 0
+	for entry := range all {
+		if index == maxUploads {
+			result.IsTruncated = true
+			break
+		}
+		var mi MultipartInfo
+		if err = entry.UnmarshalValue(&mi); err != nil {
+			return result, err
+		}
+		if uploadIDMarker != "" {
+			if mi.UploadID != uploadIDMarker {
+				continue
+			}
+		}
+		index++
+		result.Uploads = append(result.Uploads, mi)
+	}
+	if result.IsTruncated {
+		next := result.Uploads[len(result.Uploads)-1]
+		result.NextKeyMarker = next.Object
+		result.NextUploadIDMarker = next.UploadID
+	}
+
+	return result, nil
 }

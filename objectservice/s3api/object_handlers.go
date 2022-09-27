@@ -332,7 +332,7 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 	}
 
 	// Return Malformed XML as S3 spec if the number of objects is empty
-	if len(deleteObjectsReq.Objects) == 0 || len(deleteObjectsReq.Objects) > response.MaxDeleteList {
+	if len(deleteObjectsReq.Objects) == 0 || len(deleteObjectsReq.Objects) > consts.MaxDeleteList {
 		response.WriteErrorResponse(w, r, apierrors.ErrMalformedXML)
 		return
 	}
@@ -689,7 +689,7 @@ func getListObjectsV1Args(values url.Values) (prefix, marker, delimiter string, 
 			return
 		}
 	} else {
-		maxkeys = response.MaxObjectList
+		maxkeys = consts.MaxObjectList
 	}
 
 	prefix = trimLeadingSlash(values.Get("prefix"))
@@ -718,11 +718,11 @@ func getListObjectsV2Args(values url.Values) (prefix, token, startAfter, delimit
 			return
 		}
 		// Over flowing count - reset to maxObjectList.
-		if maxkeys > response.MaxObjectList {
-			maxkeys = response.MaxObjectList
+		if maxkeys > consts.MaxObjectList {
+			maxkeys = consts.MaxObjectList
 		}
 	} else {
-		maxkeys = response.MaxObjectList
+		maxkeys = consts.MaxObjectList
 	}
 
 	prefix = trimLeadingSlash(values.Get("prefix"))

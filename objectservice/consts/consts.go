@@ -33,9 +33,10 @@ const (
 	AssumeRole      = "AssumeRole"
 	SignV4Algorithm = "AWS4-HMAC-SHA256"
 
-	Location       = "Location"
-	DefaultOwnerID = "02d6176db174dc93cb1b899f7c6078f08654445fe8cf1b6ce98d8855f66bdbf4"
-	DisplayName    = "FileDagStorage"
+	Location            = "Location"
+	DefaultOwnerID      = "02d6176db174dc93cb1b899f7c6078f08654445fe8cf1b6ce98d8855f66bdbf4"
+	DisplayName         = "FileDagStorage"
+	DefaultStorageClass = "DAGSTORE"
 )
 
 // Standard S3 HTTP request constants
@@ -147,6 +148,11 @@ const (
 	// Maximum Part ID for multipart upload is 10000
 	// (Acceptable values range from 1 to 10000 inclusive)
 	MaxPartID = 10000
+
+	MaxObjectList  = 1000  // Limit number of objects in a listObjectsResponse/listObjectsVersionsResponse.
+	MaxDeleteList  = 1000  // Limit number of objects deleted in a delete call.
+	MaxUploadsList = 10000 // Limit number of uploads in a listUploadsResponse.
+	MaxPartsList   = 10000 // Limit number of parts in a listPartsResponse.
 )
 
 // Common http query params S3 API
