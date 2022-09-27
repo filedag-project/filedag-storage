@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
 	"net/url"
@@ -300,3 +301,191 @@ type DeleteObjectsResponse struct {
 	// Collection of errors deleting certain objects.
 	Errors []DeleteError `xml:"Error,omitempty"`
 }
+
+// InitiateMultipartUploadResponse container for InitiateMultiPartUpload response, provides uploadID to start MultiPart upload
+type InitiateMultipartUploadResponse struct {
+	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ InitiateMultipartUploadResult" json:"-"`
+
+	Bucket   string
+	Key      string
+	UploadID string `xml:"UploadId"`
+}
+
+// CompleteMultipartUploadResponse container for completed multipart upload response
+type CompleteMultipartUploadResponse struct {
+	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ CompleteMultipartUploadResult" json:"-"`
+
+	Location string
+	Bucket   string
+	Key      string
+	ETag     string
+
+	ChecksumCRC32  string
+	ChecksumCRC32C string
+	ChecksumSHA1   string
+	ChecksumSHA256 string
+}
+
+// Part container for part metadata.
+type Part struct {
+	PartNumber   int
+	LastModified string
+	ETag         string
+	Size         int64
+
+	// Checksum values
+	ChecksumCRC32  string
+	ChecksumCRC32C string
+	ChecksumSHA1   string
+	ChecksumSHA256 string
+}
+
+// Initiator inherit from Owner struct, fields are same
+type Initiator s3.Owner
+
+// ListPartsResponse - format for list parts response.
+type ListPartsResponse struct {
+	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListPartsResult" json:"-"`
+
+	Bucket   string
+	Key      string
+	UploadID string `xml:"UploadId"`
+
+	Initiator Initiator
+	Owner     s3.Owner
+
+	// The class of storage used to store the object.
+	StorageClass string
+
+	PartNumberMarker     int
+	NextPartNumberMarker int
+	MaxParts             int
+	IsTruncated          bool
+
+	ChecksumAlgorithm string
+	// List of parts.
+	Parts []Part `xml:"Part"`
+}
+
+// ListMultipartUploadsResponse - format for list multipart uploads response.
+type ListMultipartUploadsResponse struct {
+	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ ListMultipartUploadsResult" json:"-"`
+
+	Bucket             string
+	KeyMarker          string
+	UploadIDMarker     string `xml:"UploadIdMarker"`
+	NextKeyMarker      string
+	NextUploadIDMarker string `xml:"NextUploadIdMarker"`
+	Delimiter          string
+	Prefix             string
+	EncodingType       string `xml:"EncodingType,omitempty"`
+	MaxUploads         int
+	IsTruncated        bool
+
+	// List of pending uploads.
+	Uploads []Upload `xml:"Upload"`
+
+	// Delimed common prefixes.
+	CommonPrefixes []CommonPrefix
+}
+
+// Upload container for in progress multipart upload
+type Upload struct {
+	Key          string
+	UploadID     string `xml:"UploadId"`
+	Initiator    Initiator
+	Owner        s3.Owner
+	StorageClass string
+	Initiated    string
+}
+
+// generates InitiateMultipartUploadResponse for given bucket, key and uploadID.
+func GenerateInitiateMultipartUploadResponse(bucket, key, uploadID string) InitiateMultipartUploadResponse {
+	return InitiateMultipartUploadResponse{
+		Bucket:   bucket,
+		Key:      key,
+		UploadID: uploadID,
+	}
+}
+
+// generates CompleteMultipartUploadResponse for given bucket, key, location and ETag.
+func GenerateCompleteMultpartUploadResponse(bucket, key, location string, oi store.ObjectInfo) CompleteMultipartUploadResponse {
+	c := CompleteMultipartUploadResponse{
+		Location: location,
+		Bucket:   bucket,
+		Key:      key,
+		// AWS S3 quotes the ETag in XML, make sure we are compatible here.
+		ETag: "\"" + oi.ETag + "\"",
+	}
+	return c
+}
+
+//// generates ListPartsResponse from ListPartsInfo.
+//func generateListPartsResponse(partsInfo ListPartsInfo, encodingType string) ListPartsResponse {
+//	listPartsResponse := ListPartsResponse{}
+//	listPartsResponse.Bucket = partsInfo.Bucket
+//	listPartsResponse.Key = s3EncodeName(partsInfo.Object, encodingType)
+//	listPartsResponse.UploadID = partsInfo.UploadID
+//	listPartsResponse.StorageClass = globalMinioDefaultStorageClass
+//
+//	// Dumb values not meaningful
+//	listPartsResponse.Initiator = Initiator{
+//		ID:          globalMinioDefaultOwnerID,
+//		DisplayName: globalMinioDefaultOwnerID,
+//	}
+//	listPartsResponse.Owner = Owner{
+//		ID:          globalMinioDefaultOwnerID,
+//		DisplayName: globalMinioDefaultOwnerID,
+//	}
+//
+//	listPartsResponse.MaxParts = partsInfo.MaxParts
+//	listPartsResponse.PartNumberMarker = partsInfo.PartNumberMarker
+//	listPartsResponse.IsTruncated = partsInfo.IsTruncated
+//	listPartsResponse.NextPartNumberMarker = partsInfo.NextPartNumberMarker
+//	listPartsResponse.ChecksumAlgorithm = partsInfo.ChecksumAlgorithm
+//
+//	listPartsResponse.Parts = make([]Part, len(partsInfo.Parts))
+//	for index, part := range partsInfo.Parts {
+//		newPart := Part{}
+//		newPart.PartNumber = part.PartNumber
+//		newPart.ETag = "\"" + part.ETag + "\""
+//		newPart.Size = part.Size
+//		newPart.LastModified = part.LastModified.UTC().Format(iso8601TimeFormat)
+//		newPart.ChecksumCRC32 = part.ChecksumCRC32
+//		newPart.ChecksumCRC32C = part.ChecksumCRC32C
+//		newPart.ChecksumSHA1 = part.ChecksumSHA1
+//		newPart.ChecksumSHA256 = part.ChecksumSHA256
+//		listPartsResponse.Parts[index] = newPart
+//	}
+//	return listPartsResponse
+//}
+//
+//// generates ListMultipartUploadsResponse for given bucket and ListMultipartsInfo.
+//func generateListMultipartUploadsResponse(bucket string, multipartsInfo ListMultipartsInfo, encodingType string) ListMultipartUploadsResponse {
+//	listMultipartUploadsResponse := ListMultipartUploadsResponse{}
+//	listMultipartUploadsResponse.Bucket = bucket
+//	listMultipartUploadsResponse.Delimiter = s3EncodeName(multipartsInfo.Delimiter, encodingType)
+//	listMultipartUploadsResponse.IsTruncated = multipartsInfo.IsTruncated
+//	listMultipartUploadsResponse.EncodingType = encodingType
+//	listMultipartUploadsResponse.Prefix = s3EncodeName(multipartsInfo.Prefix, encodingType)
+//	listMultipartUploadsResponse.KeyMarker = s3EncodeName(multipartsInfo.KeyMarker, encodingType)
+//	listMultipartUploadsResponse.NextKeyMarker = s3EncodeName(multipartsInfo.NextKeyMarker, encodingType)
+//	listMultipartUploadsResponse.MaxUploads = multipartsInfo.MaxUploads
+//	listMultipartUploadsResponse.NextUploadIDMarker = multipartsInfo.NextUploadIDMarker
+//	listMultipartUploadsResponse.UploadIDMarker = multipartsInfo.UploadIDMarker
+//	listMultipartUploadsResponse.CommonPrefixes = make([]CommonPrefix, len(multipartsInfo.CommonPrefixes))
+//	for index, commonPrefix := range multipartsInfo.CommonPrefixes {
+//		listMultipartUploadsResponse.CommonPrefixes[index] = CommonPrefix{
+//			Prefix: s3EncodeName(commonPrefix, encodingType),
+//		}
+//	}
+//	listMultipartUploadsResponse.Uploads = make([]Upload, len(multipartsInfo.Uploads))
+//	for index, upload := range multipartsInfo.Uploads {
+//		newUpload := Upload{}
+//		newUpload.UploadID = upload.UploadID
+//		newUpload.Key = s3EncodeName(upload.Object, encodingType)
+//		newUpload.Initiated = upload.Initiated.UTC().Format(iso8601TimeFormat)
+//		listMultipartUploadsResponse.Uploads[index] = newUpload
+//	}
+//	return listMultipartUploadsResponse
+//}

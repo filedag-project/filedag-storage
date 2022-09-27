@@ -61,6 +61,12 @@ func ToApiError(ctx context.Context, err error) ErrorCode {
 		errCode = ErrNoSuchUpload
 	case s3utils.InvalidUploadID:
 		errCode = ErrNoSuchUpload
+	case s3utils.InvalidPart:
+		errCode = ErrInvalidPart
+	case s3utils.PartTooSmall:
+		errCode = ErrEntityTooSmall
+	case s3utils.PartTooBig:
+		errCode = ErrEntityTooLarge
 	case url.EscapeError:
 		errCode = ErrInvalidObjectName
 	default:

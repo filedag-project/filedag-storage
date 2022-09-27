@@ -137,6 +137,25 @@ const (
 	ContentEncoding    = "Content-Encoding"
 	ContentLanguage    = "Content-Language"
 	ContentDisposition = "Content-Disposition"
+
+	// Minimum Part size for multipart upload is 5MiB
+	MinPartSize = 5 * humanize.MiByte
+
+	// Maximum Part size for multipart upload is 5GiB
+	MaxPartSize = 5 * humanize.GiByte
+
+	// Maximum Part ID for multipart upload is 10000
+	// (Acceptable values range from 1 to 10000 inclusive)
+	MaxPartID = 10000
+)
+
+// Common http query params S3 API
+const (
+	VersionID = "versionId"
+
+	PartNumber = "partNumber"
+
+	UploadID = "uploadId"
 )
 
 // limit

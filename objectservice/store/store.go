@@ -7,9 +7,12 @@ import (
 	"github.com/dustin/go-humanize"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
+	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
+	"github.com/google/uuid"
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
@@ -21,6 +24,7 @@ import (
 	"golang.org/x/xerrors"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -33,9 +37,11 @@ const (
 	// equals unixfsChunkSize
 	chunkSize int = 1 << 20
 
-	objectPrefixFormat        = "obj-%s-%s/"
+	objectKeyFormat           = "obj-%s-%s/"
 	allObjectPrefixFormat     = "obj-%s-%s"
 	allObjectSeekPrefixFormat = "obj-%s-%s"
+
+	uploadKeyFormat = "uploadObj-%s-%s-%s"
 
 	globalOperationTimeout = 5 * time.Minute
 	deleteOperationTimeout = 1 * time.Minute
@@ -55,7 +61,11 @@ type StorageSys struct {
 }
 
 func getObjectKey(bucket, object string) string {
-	return fmt.Sprintf(objectPrefixFormat, bucket, object)
+	return fmt.Sprintf(objectKeyFormat, bucket, object)
+}
+
+func getUploadKey(bucket, object, uploadID string) string {
+	return fmt.Sprintf(uploadKeyFormat, bucket, object, uploadID)
 }
 
 // NewNSLock - initialize a new namespace RWLocker instance.
@@ -122,7 +132,6 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 		DeleteMarker:     false,
 		ContentType:      meta[strings.ToLower(consts.ContentType)],
 		ContentEncoding:  meta[strings.ToLower(consts.ContentEncoding)],
-		Parts:            nil,
 		SuccessorModTime: time.Now().UTC(),
 	}
 	// Update expires
@@ -370,6 +379,289 @@ func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket string, prefix st
 		Prefixes:              loi.Prefixes,
 	}
 	return listV2Info, nil
+}
+
+// mustGetUUID - get a random UUID.
+func mustGetUUID() string {
+	u, err := uuid.NewRandom()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return u.String()
+}
+
+func (s *StorageSys) NewMultipartUpload(ctx context.Context, bucket string, object string, meta map[string]string) (MultipartInfo, error) {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return MultipartInfo{}, err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	if !s.hasBucket(ctx, bucket) {
+		return MultipartInfo{}, BucketNotFound{Bucket: bucket}
+	}
+
+	// uploadId is rand, so don't to lock it
+	uploadId := mustGetUUID()
+	info := MultipartInfo{
+		Bucket:   bucket,
+		Object:   object,
+		UploadID: uploadId,
+		MetaData: meta,
+	}
+
+	err = s.Db.Put(getUploadKey(bucket, object, uploadId), info)
+	if err != nil {
+		return MultipartInfo{}, err
+	}
+	return info, nil
+}
+
+func (s *StorageSys) GetMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error) {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return MultipartInfo{}, err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	lkctx, err := uploadIDLock.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return MultipartInfo{}, err
+	}
+	ctx = lkctx.Context()
+	defer uploadIDLock.RUnlock(lkctx.Cancel)
+
+	return s.getMultipartInfo(ctx, bucket, object, uploadID)
+}
+
+func (s *StorageSys) getMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error) {
+	info := MultipartInfo{}
+	err := s.Db.Get(getUploadKey(bucket, object, uploadID), &info)
+	return info, err
+}
+
+func (s *StorageSys) PutObjectPart(ctx context.Context, bucket string, object string, uploadID string, partID int, reader io.ReadCloser, size int64, meta map[string]string) (pi objectPartInfo, err error) {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return pi, err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	data := io.Reader(reader)
+	if size > bigFileThreshold {
+		// We use 2 buffers, so we always have a full buffer of input.
+		bufA := pool.Get(chunkSize)
+		bufB := pool.Get(chunkSize)
+		defer pool.Put(bufA)
+		defer pool.Put(bufB)
+		ra, err := readahead.NewReaderBuffer(data, [][]byte{bufA[:chunkSize], bufB[:chunkSize]})
+		if err == nil {
+			data = ra
+			defer ra.Close()
+		} else {
+			log.Infof("readahead.NewReaderBuffer failed, error: %v", err)
+		}
+	}
+	node, err := dagpoolcli.BalanceNode(data, s.DagPool, s.CidBuilder)
+	if err != nil {
+		return pi, err
+	}
+	select {
+	case <-ctx.Done():
+		return pi, ctx.Err()
+	default:
+	}
+
+	partInfo := objectPartInfo{
+		Number:  partID,
+		ETag:    node.Cid().String(),
+		Size:    size,
+		ModTime: time.Now().UTC(),
+	}
+
+	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	ulkctx, err := uploadIDLock.GetLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return pi, err
+	}
+	ctx = ulkctx.Context()
+	defer uploadIDLock.Unlock(ulkctx.Cancel)
+
+	mi, err := s.getMultipartInfo(ctx, bucket, object, uploadID)
+	if err != nil {
+		return pi, err
+	}
+
+	mi.Parts = append(mi.Parts, partInfo)
+	err = s.Db.Put(getUploadKey(bucket, object, uploadID), mi)
+	if err != nil {
+		return pi, err
+	}
+	return partInfo, nil
+}
+
+func (s *StorageSys) removeMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) error {
+	return s.Db.Delete(getUploadKey(bucket, object, uploadID))
+}
+
+// objectPartIndex - returns the index of matching object part number.
+func objectPartIndex(parts []objectPartInfo, partNumber int) int {
+	for i, part := range parts {
+		if partNumber == part.Number {
+			return i
+		}
+	}
+	return -1
+}
+
+var etagRegex = regexp.MustCompile("\"*?([^\"]*?)\"*?$")
+
+// canonicalizeETag returns ETag with leading and trailing double-quotes removed,
+// if any present
+func canonicalizeETag(etag string) string {
+	return etagRegex.ReplaceAllString(etag, "$1")
+}
+
+func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string, object string, uploadID string, parts []datatypes.CompletePart) (oi ObjectInfo, err error) {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return oi, err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	if !s.hasBucket(ctx, bucket) {
+		return oi, BucketNotFound{Bucket: bucket}
+	}
+
+	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	ulkctx, err := uploadIDLock.GetLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return oi, err
+	}
+	ctx = ulkctx.Context()
+	defer uploadIDLock.Unlock(ulkctx.Cancel)
+
+	mi, err := s.getMultipartInfo(ctx, bucket, object, uploadID)
+	if err != nil {
+		return oi, err
+	}
+
+	var objectSize int64
+	var links []dagpoolcli.LinkInfo
+	for i, part := range parts {
+		partIndex := objectPartIndex(mi.Parts, part.PartNumber)
+		if partIndex < 0 {
+			invp := s3utils.InvalidPart{
+				PartNumber: part.PartNumber,
+				GotETag:    part.ETag,
+			}
+			return oi, invp
+		}
+		gotPart := mi.Parts[partIndex]
+
+		// ensure that part ETag is canonicalized to strip off extraneous quotes
+		part.ETag = canonicalizeETag(part.ETag)
+		if gotPart.ETag != part.ETag {
+			invp := s3utils.InvalidPart{
+				PartNumber: part.PartNumber,
+				ExpETag:    gotPart.ETag,
+				GotETag:    part.ETag,
+			}
+			return oi, invp
+		}
+
+		// All parts except the last part has to be at least 5MB.
+		if (i < len(parts)-1) && !(gotPart.Size >= consts.MinPartSize) {
+			return oi, s3utils.PartTooSmall{
+				PartNumber: part.PartNumber,
+				PartSize:   gotPart.Size,
+				PartETag:   part.ETag,
+			}
+		}
+
+		// Save for total object size.
+		objectSize += gotPart.Size
+
+		c, err := cid.Decode(gotPart.ETag)
+		if err != nil {
+			return oi, err
+		}
+		linkInfo, err := dagpoolcli.CreateLinkInfo(ctx, s.DagPool, c)
+		if err != nil {
+			return oi, err
+		}
+		links = append(links, linkInfo)
+	}
+	root, err := dagpoolcli.BuildDataCidByLinks(ctx, s.DagPool, s.CidBuilder, links)
+	if err != nil {
+		return oi, err
+	}
+	objInfo := ObjectInfo{
+		Bucket:           bucket,
+		Name:             object,
+		ModTime:          time.Now().UTC(),
+		Size:             objectSize,
+		IsDir:            false,
+		ETag:             root.String(),
+		VersionID:        "",
+		IsLatest:         true,
+		DeleteMarker:     false,
+		ContentType:      mi.MetaData[strings.ToLower(consts.ContentType)],
+		ContentEncoding:  mi.MetaData[strings.ToLower(consts.ContentEncoding)],
+		SuccessorModTime: time.Now().UTC(),
+	}
+	// Update expires
+	if exp, ok := mi.MetaData[strings.ToLower(consts.Expires)]; ok {
+		if t, e := time.Parse(http.TimeFormat, exp); e == nil {
+			objInfo.Expires = t.UTC()
+		}
+	}
+
+	lk := s.NewNSLock(bucket, object)
+	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+	ctx = lkctx.Context()
+	defer lk.Unlock(lkctx.Cancel)
+
+	// Has old file?
+	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
+		c, err := cid.Decode(oldObjInfo.ETag)
+		if err != nil {
+			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
+		} else {
+			// Disable timeouts and cancellation
+			ctx = utils.BgContext(ctx)
+			go func() {
+				if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
+					log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
+				}
+			}()
+		}
+	}
+
+	err = s.Db.Put(getObjectKey(bucket, object), objInfo)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
+
+	// remove MultipartInfo
+	err = s.removeMultipartInfo(ctx, bucket, object, uploadID)
+	if err != nil {
+		log.Errorw("remove MultipartInfo error", "bucket", bucket, "object", object, "uploadID", uploadID, "error", err)
+	}
+	return objInfo, nil
 }
 
 //NewStorageSys new a storage sys

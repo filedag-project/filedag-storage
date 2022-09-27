@@ -68,7 +68,7 @@ type NsLockMap struct {
 
 // Lock the namespace resource.
 func (n *NsLockMap) lock(ctx context.Context, volume string, path string, readLock bool, timeout time.Duration) (locked bool) {
-	resource := pathJoin(volume, path)
+	resource := PathJoin(volume, path)
 
 	n.lockMapMutex.Lock()
 	nsLk, found := n.lockMap[resource]
@@ -107,7 +107,7 @@ func (n *NsLockMap) lock(ctx context.Context, volume string, path string, readLo
 
 // Unlock the namespace resource.
 func (n *NsLockMap) unlock(volume string, path string, readLock bool) {
-	resource := pathJoin(volume, path)
+	resource := PathJoin(volume, path)
 
 	n.lockMapMutex.Lock()
 	defer n.lockMapMutex.Unlock()
@@ -205,8 +205,8 @@ func (li *localLockInstance) RUnlock(cancel context.CancelFunc) {
 // SlashSeparator - slash separator.
 const SlashSeparator = "/"
 
-// pathJoin - like path.Join() but retains trailing SlashSeparator of the last element
-func pathJoin(elem ...string) string {
+// PathJoin - like path.Join() but retains trailing SlashSeparator of the last element
+func PathJoin(elem ...string) string {
 	trailingSlash := ""
 	if len(elem) > 0 {
 		if strings.HasSuffix(elem[len(elem)-1], SlashSeparator) {

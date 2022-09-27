@@ -64,9 +64,6 @@ type ObjectInfo struct {
 	// Date and time at which the object is no longer able to be cached
 	Expires time.Time
 
-	// List of individual parts, maximum size of upto 10,000
-	Parts []objectPartInfo `json:"-"`
-
 	// Date and time when the object was last accessed.
 	AccTime time.Time
 
@@ -77,10 +74,20 @@ type ObjectInfo struct {
 // objectPartInfo Info of each part kept in the multipart metadata
 // file after CompleteMultipartUpload() is called.
 type objectPartInfo struct {
-	ETag       string `json:"etag,omitempty"`
-	Number     int    `json:"number"`
-	Size       int64  `json:"size"`
-	ActualSize int64  `json:"actualSize"`
+	ETag    string    `json:"etag,omitempty"`
+	Number  int       `json:"number"`
+	Size    int64     `json:"size"`
+	ModTime time.Time `json:"mod_time"`
+}
+
+type MultipartInfo struct {
+	Bucket    string
+	Object    string
+	UploadID  string
+	Initiated time.Time
+	MetaData  map[string]string
+	// List of individual parts, maximum size of upto 10,000
+	Parts []objectPartInfo
 }
 
 // putObjReader is a type that wraps sio.EncryptReader and

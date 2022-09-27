@@ -94,6 +94,36 @@ func (e InvalidUploadID) Error() string {
 	return "Invalid upload id " + e.UploadID
 }
 
+// InvalidPart One or more of the specified parts could not be found
+type InvalidPart struct {
+	PartNumber int
+	ExpETag    string
+	GotETag    string
+}
+
+func (e InvalidPart) Error() string {
+	return fmt.Sprintf("Specified part could not be found. PartNumber %d, Expected %s, got %s",
+		e.PartNumber, e.ExpETag, e.GotETag)
+}
+
+// PartTooSmall - error if part size is less than 5MB.
+type PartTooSmall struct {
+	PartSize   int64
+	PartNumber int
+	PartETag   string
+}
+
+func (e PartTooSmall) Error() string {
+	return fmt.Sprintf("Part size for %d should be at least 5MB", e.PartNumber)
+}
+
+// PartTooBig returned if size of part is bigger than the allowed limit.
+type PartTooBig struct{}
+
+func (e PartTooBig) Error() string {
+	return "Part size bigger than the allowed limit"
+}
+
 // We support '.' with bucket names but we fallback to using path
 // style requests instead for such buckets.
 var (

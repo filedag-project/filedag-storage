@@ -30,23 +30,39 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 	routers = append(routers, apiRouter.PathPrefix("/{bucket}").Subrouter())
 
 	for _, bucket := range routers {
+		// Object operations
+		//HeadObject
+		bucket.Methods(http.MethodHead).Path("/{object:.+}").HandlerFunc(s3a.HeadObjectHandler)
+
+		// NewMultipartUpload
+		bucket.Methods(http.MethodPost).Path("/{object:.+}").HandlerFunc(s3a.NewMultipartUploadHandler).Queries("uploads", "")
+		// CopyObjectPart
+		bucket.Methods(http.MethodPut).Path("/{object:.+}").HeadersRegexp("X-Amz-Copy-Source", ".*?(\\/|%2F).*?").HandlerFunc(s3a.CopyObjectPartHandler).Queries("partNumber", "{partNumber:[0-9]+}", "uploadId", "{uploadId:.*}")
+		// PutObjectPart
+		bucket.Methods(http.MethodPut).Path("/{object:.+}").HandlerFunc(s3a.PutObjectPartHandler).Queries("partNumber", "{partNumber:[0-9]+}", "uploadId", "{uploadId:.*}")
+		// ListObjectParts
+		bucket.Methods(http.MethodGet).Path("/{object:.+}").HandlerFunc(s3a.ListObjectPartsHandler).Queries("uploadId", "{uploadId:.*}")
+		// ListMultipartUploads
+		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListMultipartUploadsHandler).Queries("uploads", "")
+		// CompleteMultipartUpload
+		bucket.Methods(http.MethodPost).Path("/{object:.+}").HandlerFunc(s3a.CompleteMultipartUploadHandler).Queries("uploadId", "{uploadId:.*}")
+		// AbortMultipart
+		bucket.Methods(http.MethodDelete).Path("/{object:.+}").HandlerFunc(s3a.AbortMultipartUploadHandler).Queries("uploadId", "{uploadId:.*}")
+
 		// ListObjectsV2
 		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV2Handler).Queries("list-type", "2")
 		// CopyObject
 		bucket.Methods(http.MethodPut).Path("/{object:.+}").HeadersRegexp("X-Amz-Copy-Source", ".*?(\\/|%2F).*?").HandlerFunc(s3a.CopyObjectHandler)
-
 		// GetObject
 		bucket.Methods(http.MethodGet).Path("/{object:.+}").HandlerFunc(s3a.GetObjectHandler)
-
 		// PutObject
 		bucket.Methods(http.MethodPut).Path("/{object:.+}").HandlerFunc(s3a.PutObjectHandler)
-		//HeadObject
-		bucket.Methods(http.MethodHead).Path("/{object:.+}").HandlerFunc(s3a.HeadObjectHandler)
-
 		// DeleteObject
 		bucket.Methods(http.MethodDelete).Path("/{object:.+}").HandlerFunc(s3a.DeleteObjectHandler)
 		// DeleteMultipleObjects
 		bucket.Methods(http.MethodPost).HandlerFunc(s3a.DeleteMultipleObjectsHandler).Queries("delete", "")
+
+		// Bucket operations
 		// GetBucketLocation
 		router.Methods(http.MethodGet).HandlerFunc(s3a.GetBucketLocationHandler).Queries("location", "")
 
@@ -82,6 +98,8 @@ func (s3a *s3ApiServer) registerS3Router(router *mux.Router) {
 		bucket.Methods(http.MethodHead).HandlerFunc(s3a.HeadBucketHandler)
 		// DeleteBucket
 		bucket.Methods(http.MethodDelete).HandlerFunc(s3a.DeleteBucketHandler)
+
+		// ListObjectsV1
 		bucket.Methods(http.MethodGet).HandlerFunc(s3a.ListObjectsV1Handler)
 	}
 	// ListBuckets
