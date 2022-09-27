@@ -34,8 +34,7 @@ func (s3a *s3ApiServer) NewMultipartUploadHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Check if put is allowed
-	s3err := s3a.authSys.IsPutActionAllowed(ctx, r, s3action.PutObjectAction, bucket, object)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.PutObjectAction, bucket, object)
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
@@ -220,8 +219,7 @@ func (s3a *s3ApiServer) CompleteMultipartUploadHandler(w http.ResponseWriter, r 
 		return
 	}
 
-	// Check if put is allowed
-	s3err := s3a.authSys.IsPutActionAllowed(ctx, r, s3action.PutObjectAction, bucket, object)
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.PutObjectAction, bucket, object)
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
@@ -283,24 +281,39 @@ func (s3a *s3ApiServer) CompleteMultipartUploadHandler(w http.ResponseWriter, r 
 
 // AbortMultipartUploadHandler - Aborts multipart upload.
 func (s3a *s3ApiServer) AbortMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
-	//bucket, object := xhttp.GetBucketAndObject(r)
-	//
-	//// Get upload id.
-	//uploadID, _, _, _ := getObjectResources(r.URL.Query())
-	//
-	//response, errCode := s3a.abortMultipartUpload(&s3.AbortMultipartUploadInput{
-	//	Bucket:   aws.String(bucket),
-	//	Key:      objectKey(aws.String(object)),
-	//	UploadId: aws.String(uploadID),
-	//})
-	//
-	//if errCode != s3err.ErrNone {
-	//	s3err.WriteErrorResponse(w, r, errCode)
-	//	return
-	//}
-	//
-	//writeSuccessResponseXML(w, r, response)
+	bucket, object, err := getBucketAndObject(r)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(r.Context(), err))
+		return
+	}
+	ctx := r.Context()
 
+	log.Infof("AbortMultipartUploadHandler %s %s", bucket, object)
+
+	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.AbortMultipartUploadAction, bucket, object)
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3err)
+		return
+	}
+
+	if !s3a.bmSys.HasBucket(ctx, bucket) {
+		response.WriteErrorResponse(w, r, apierrors.ErrNoSuchBucket)
+		return
+	}
+
+	// Get upload id.
+	uploadID, _, _, _, s3Error := getObjectResources(r.Form)
+	if s3Error != apierrors.ErrNone {
+		response.WriteErrorResponse(w, r, s3Error)
+		return
+	}
+
+	err = s3a.store.AbortMultipartUpload(ctx, bucket, object, uploadID)
+	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	response.WriteSuccessNoContent(w)
 }
 
 // ListMultipartUploadsHandler - Lists multipart uploads.

@@ -249,8 +249,12 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 		return err
 	}
 
+	// Disable timeouts and cancellation
+	ctx = utils.BgContext(ctx)
 	go func() {
-		dagpoolcli.RemoveDAG(ctx, s.DagPool, cid)
+		if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, cid); err != nil {
+			log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", meta.ETag, "error", err)
+		}
 	}()
 	return nil
 }
@@ -404,7 +408,7 @@ func (s *StorageSys) NewMultipartUpload(ctx context.Context, bucket string, obje
 		return MultipartInfo{}, BucketNotFound{Bucket: bucket}
 	}
 
-	// uploadId is rand, so don't to lock it
+	// uploadId is random, so don't to lock it
 	uploadId := mustGetUUID()
 	info := MultipartInfo{
 		Bucket:   bucket,
@@ -642,9 +646,9 @@ func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
 		} else {
 			// Disable timeouts and cancellation
-			ctx = utils.BgContext(ctx)
+			bgctx := utils.BgContext(ctx)
 			go func() {
-				if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
+				if err = dagpoolcli.RemoveDAG(bgctx, s.DagPool, c); err != nil {
 					log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
 				}
 			}()
@@ -662,6 +666,54 @@ func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 		log.Errorw("remove MultipartInfo error", "bucket", bucket, "object", object, "uploadID", uploadID, "error", err)
 	}
 	return objInfo, nil
+}
+
+func (s *StorageSys) AbortMultipartUpload(ctx context.Context, bucket string, object string, uploadID string) error {
+	bktlk := s.newBucketNSLock(bucket)
+	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return err
+	}
+	ctx = bktlkCtx.Context()
+	defer bktlk.RUnlock(bktlkCtx.Cancel)
+
+	if !s.hasBucket(ctx, bucket) {
+		return BucketNotFound{Bucket: bucket}
+	}
+
+	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	ulkctx, err := uploadIDLock.GetLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return err
+	}
+	ctx = ulkctx.Context()
+	defer uploadIDLock.Unlock(ulkctx.Cancel)
+
+	mi, err := s.getMultipartInfo(ctx, bucket, object, uploadID)
+	if err != nil {
+		return err
+	}
+
+	for _, part := range mi.Parts {
+		c, err := cid.Decode(part.ETag)
+		if err != nil {
+			return err
+		}
+		// Disable timeouts and cancellation
+		bgctx := utils.BgContext(ctx)
+		go func() {
+			if err = dagpoolcli.RemoveDAG(bgctx, s.DagPool, c); err != nil {
+				log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", c.String(), "error", err)
+			}
+		}()
+	}
+
+	// remove MultipartInfo
+	err = s.removeMultipartInfo(ctx, bucket, object, uploadID)
+	if err != nil {
+		log.Errorw("remove MultipartInfo error", "bucket", bucket, "object", object, "uploadID", uploadID, "error", err)
+	}
+	return nil
 }
 
 //NewStorageSys new a storage sys
