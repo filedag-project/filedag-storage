@@ -21,11 +21,6 @@ const (
 
 	MaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
 
-	Authorization = "Authorization"
-	ETag          = "ETag"
-	Expires       = "Expires"
-	Date          = "Date"
-
 	// STS API version.
 	StsAPIVersion   = "2011-06-15"
 	StsVersion      = "Version"
@@ -33,7 +28,6 @@ const (
 	AssumeRole      = "AssumeRole"
 	SignV4Algorithm = "AWS4-HMAC-SHA256"
 
-	Location            = "Location"
 	DefaultOwnerID      = "02d6176db174dc93cb1b899f7c6078f08654445fe8cf1b6ce98d8855f66bdbf4"
 	DisplayName         = "FileDagStorage"
 	DefaultStorageClass = "DAGSTORE"
@@ -127,17 +121,34 @@ const (
 	AmzRequestID = "x-amz-request-id"
 )
 
-//object const
+// Standard S3 HTTP response constants
 const (
-	MaxObjectSize      = 5 * humanize.TiByte
 	LastModified       = "Last-Modified"
+	Date               = "Date"
+	ETag               = "ETag"
 	ContentType        = "Content-Type"
 	ContentMD5         = "Content-Md5"
-	ContentLength      = "Content-Length"
-	CacheControl       = "Cache-Control"
 	ContentEncoding    = "Content-Encoding"
+	Expires            = "Expires"
+	ContentLength      = "Content-Length"
 	ContentLanguage    = "Content-Language"
+	ContentRange       = "Content-Range"
+	Connection         = "Connection"
+	AcceptRanges       = "Accept-Ranges"
+	AmzBucketRegion    = "X-Amz-Bucket-Region"
+	ServerInfo         = "Server"
+	RetryAfter         = "Retry-After"
+	Location           = "Location"
+	CacheControl       = "Cache-Control"
 	ContentDisposition = "Content-Disposition"
+	Authorization      = "Authorization"
+	Action             = "Action"
+	Range              = "Range"
+)
+
+//object const
+const (
+	MaxObjectSize = 5 * humanize.TiByte
 
 	// Minimum Part size for multipart upload is 5MiB
 	MinPartSize = 5 * humanize.MiByte

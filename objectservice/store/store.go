@@ -43,7 +43,7 @@ const (
 
 	uploadKeyFormat           = "uploadObj-%s-%s-%s"
 	allUploadPrefixFormat     = "uploadObj-%s-%s"
-	allUploadSeekPrefixFormat = "uploadObj-%s-%s"
+	allUploadSeekPrefixFormat = "uploadObj-%s-%s-%s"
 
 	globalOperationTimeout = 5 * time.Minute
 	deleteOperationTimeout = 1 * time.Minute
@@ -897,7 +897,7 @@ func (s *StorageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, k
 	defer cancel()
 	seekKey := ""
 	if keyMarker != "" {
-		seekKey = fmt.Sprintf(allUploadSeekPrefixFormat, bucket, keyMarker)
+		seekKey = fmt.Sprintf(allUploadSeekPrefixFormat, bucket, keyMarker, uploadIDMarker)
 	}
 	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allUploadPrefixFormat, bucket, prefix), seekKey)
 	if err != nil {
@@ -912,11 +912,6 @@ func (s *StorageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, k
 		var mi MultipartInfo
 		if err = entry.UnmarshalValue(&mi); err != nil {
 			return result, err
-		}
-		if uploadIDMarker != "" {
-			if mi.UploadID != uploadIDMarker {
-				continue
-			}
 		}
 		index++
 		result.Uploads = append(result.Uploads, mi)
