@@ -289,8 +289,6 @@ func (s3a *s3ApiServer) AbortMultipartUploadHandler(w http.ResponseWriter, r *ht
 	}
 	ctx := r.Context()
 
-	log.Infof("AbortMultipartUploadHandler %s %s", bucket, object)
-
 	if err := s3utils.CheckAbortMultipartArgs(ctx, bucket, object); err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -313,6 +311,8 @@ func (s3a *s3ApiServer) AbortMultipartUploadHandler(w http.ResponseWriter, r *ht
 		response.WriteErrorResponse(w, r, s3Error)
 		return
 	}
+
+	log.Infow("AbortMultipartUploadHandler", "bucket", bucket, "object", object, "uploadID", uploadID)
 
 	err = s3a.store.AbortMultipartUpload(ctx, bucket, object, uploadID)
 	if err != nil {

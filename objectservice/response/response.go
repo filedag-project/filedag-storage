@@ -2,6 +2,7 @@ package response
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -70,8 +71,9 @@ func writeResponse(w http.ResponseWriter, r *http.Request, statusCode int, respo
 }
 
 func setCommonHeaders(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("x-amz-request-id", fmt.Sprintf("%d", time.Now().UnixNano()))
-	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set(consts.ServerInfo, "FDS")
+	w.Header().Set(consts.AmzRequestID, fmt.Sprintf("%d", time.Now().UnixNano()))
+	w.Header().Set(consts.AcceptRanges, "bytes")
 	if r.Header.Get("Origin") != "" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -297,6 +299,111 @@ type DeleteObjectsResponse struct {
 	Errors []DeleteError `xml:"Error,omitempty"`
 }
 
+// GenerateListObjectsV2Response Generates an ListObjectsV2 response for the said bucket with other enumerated options.
+func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter, delimiter, encodingType string, isTruncated bool, maxKeys int, objects []store.ObjectInfo, prefixes []string) ListObjectsV2Response {
+	contents := make([]Object, 0, len(objects))
+	id := consts.DefaultOwnerID
+	name := consts.DisplayName
+	owner := s3.Owner{
+		ID:          &id,
+		DisplayName: &name,
+	}
+	data := ListObjectsV2Response{}
+
+	for _, object := range objects {
+		content := Object{}
+		if object.Name == "" {
+			continue
+		}
+		content.Key = utils.S3EncodeName(object.Name, encodingType)
+		content.LastModified = object.ModTime.UTC().Format(consts.Iso8601TimeFormat)
+		if object.ETag != "" {
+			content.ETag = "\"" + object.ETag + "\""
+		}
+		content.Size = object.Size
+		content.Owner = owner
+		contents = append(contents, content)
+	}
+	data.Name = bucket
+	data.Contents = contents
+
+	data.EncodingType = encodingType
+	data.StartAfter = utils.S3EncodeName(startAfter, encodingType)
+	data.Delimiter = utils.S3EncodeName(delimiter, encodingType)
+	data.Prefix = utils.S3EncodeName(prefix, encodingType)
+	data.MaxKeys = maxKeys
+	data.ContinuationToken = base64.StdEncoding.EncodeToString([]byte(token))
+	data.NextContinuationToken = base64.StdEncoding.EncodeToString([]byte(nextToken))
+	data.IsTruncated = isTruncated
+
+	commonPrefixes := make([]CommonPrefix, 0, len(prefixes))
+	for _, prefix := range prefixes {
+		prefixItem := CommonPrefix{}
+		prefixItem.Prefix = utils.S3EncodeName(prefix, encodingType)
+		commonPrefixes = append(commonPrefixes, prefixItem)
+	}
+	data.CommonPrefixes = commonPrefixes
+	data.KeyCount = len(data.Contents) + len(data.CommonPrefixes)
+	return data
+}
+
+// generates an ListObjectsV1 response for the said bucket with other enumerated options.
+func GenerateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, resp store.ListObjectsInfo) ListObjectsResponse {
+	contents := make([]Object, 0, len(resp.Objects))
+	id := consts.DefaultOwnerID
+	name := consts.DisplayName
+	owner := s3.Owner{
+		ID:          &id,
+		DisplayName: &name,
+	}
+	data := ListObjectsResponse{}
+
+	for _, object := range resp.Objects {
+		content := Object{}
+		if object.Name == "" {
+			continue
+		}
+		content.Key = utils.S3EncodeName(object.Name, encodingType)
+		content.LastModified = object.ModTime.UTC().Format(consts.Iso8601TimeFormat)
+		if object.ETag != "" {
+			content.ETag = "\"" + object.ETag + "\""
+		}
+		content.Size = object.Size
+		content.StorageClass = ""
+		content.Owner = owner
+		contents = append(contents, content)
+	}
+	data.Name = bucket
+	data.Contents = contents
+
+	data.EncodingType = encodingType
+	data.Prefix = utils.S3EncodeName(prefix, encodingType)
+	data.Marker = utils.S3EncodeName(marker, encodingType)
+	data.Delimiter = utils.S3EncodeName(delimiter, encodingType)
+	data.MaxKeys = maxKeys
+	data.NextMarker = utils.S3EncodeName(resp.NextMarker, encodingType)
+	data.IsTruncated = resp.IsTruncated
+
+	prefixes := make([]CommonPrefix, 0, len(resp.Prefixes))
+	for _, prefix := range resp.Prefixes {
+		prefixItem := CommonPrefix{}
+		prefixItem.Prefix = utils.S3EncodeName(prefix, encodingType)
+		prefixes = append(prefixes, prefixItem)
+	}
+	data.CommonPrefixes = prefixes
+	return data
+}
+
+// generate multi objects delete response.
+func GenerateMultiDeleteResponse(quiet bool, deletedObjects []datatypes.DeletedObject, errs []DeleteError) DeleteObjectsResponse {
+	deleteResp := DeleteObjectsResponse{}
+	if !quiet {
+		deleteResp.DeletedObjects = deletedObjects
+	}
+	deleteResp.Errors = errs
+	return deleteResp
+}
+
 // InitiateMultipartUploadResponse container for InitiateMultiPartUpload response, provides uploadID to start MultiPart upload
 type InitiateMultipartUploadResponse struct {
 	XMLName xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ InitiateMultipartUploadResult" json:"-"`
@@ -417,66 +524,66 @@ func GenerateCompleteMultpartUploadResponse(bucket, key, location string, oi sto
 
 // generates ListPartsResponse from ListPartsInfo.
 func GenerateListPartsResponse(partsInfo store.ListPartsInfo, encodingType string) ListPartsResponse {
-	listPartsResponse := ListPartsResponse{}
-	listPartsResponse.Bucket = partsInfo.Bucket
-	listPartsResponse.Key = utils.S3EncodeName(partsInfo.Object, encodingType)
-	listPartsResponse.UploadID = partsInfo.UploadID
-	listPartsResponse.StorageClass = consts.DefaultStorageClass
+	resp := ListPartsResponse{}
+	resp.Bucket = partsInfo.Bucket
+	resp.Key = utils.S3EncodeName(partsInfo.Object, encodingType)
+	resp.UploadID = partsInfo.UploadID
+	resp.StorageClass = consts.DefaultStorageClass
 
 	// Dumb values not meaningful
-	listPartsResponse.Initiator = Initiator{
+	resp.Initiator = Initiator{
 		ID:          aws.String(consts.DefaultOwnerID),
 		DisplayName: aws.String(consts.DisplayName),
 	}
-	listPartsResponse.Owner = s3.Owner{
+	resp.Owner = s3.Owner{
 		ID:          aws.String(consts.DefaultOwnerID),
 		DisplayName: aws.String(consts.DisplayName),
 	}
 
-	listPartsResponse.MaxParts = partsInfo.MaxParts
-	listPartsResponse.PartNumberMarker = partsInfo.PartNumberMarker
-	listPartsResponse.IsTruncated = partsInfo.IsTruncated
-	listPartsResponse.NextPartNumberMarker = partsInfo.NextPartNumberMarker
-	listPartsResponse.ChecksumAlgorithm = partsInfo.ChecksumAlgorithm
+	resp.MaxParts = partsInfo.MaxParts
+	resp.PartNumberMarker = partsInfo.PartNumberMarker
+	resp.IsTruncated = partsInfo.IsTruncated
+	resp.NextPartNumberMarker = partsInfo.NextPartNumberMarker
+	resp.ChecksumAlgorithm = partsInfo.ChecksumAlgorithm
 
-	listPartsResponse.Parts = make([]Part, len(partsInfo.Parts))
+	resp.Parts = make([]Part, len(partsInfo.Parts))
 	for index, part := range partsInfo.Parts {
 		newPart := Part{}
 		newPart.PartNumber = part.Number
 		newPart.ETag = "\"" + part.ETag + "\""
 		newPart.Size = part.Size
 		newPart.LastModified = part.ModTime.UTC().Format(consts.Iso8601TimeFormat)
-		listPartsResponse.Parts[index] = newPart
+		resp.Parts[index] = newPart
 	}
-	return listPartsResponse
+	return resp
 }
 
 // generates ListMultipartUploadsResponse for given bucket and ListMultipartsInfo.
 func GenerateListMultipartUploadsResponse(bucket string, multipartsInfo store.ListMultipartsInfo, encodingType string) ListMultipartUploadsResponse {
-	listMultipartUploadsResponse := ListMultipartUploadsResponse{}
-	listMultipartUploadsResponse.Bucket = bucket
-	listMultipartUploadsResponse.Delimiter = utils.S3EncodeName(multipartsInfo.Delimiter, encodingType)
-	listMultipartUploadsResponse.IsTruncated = multipartsInfo.IsTruncated
-	listMultipartUploadsResponse.EncodingType = encodingType
-	listMultipartUploadsResponse.Prefix = utils.S3EncodeName(multipartsInfo.Prefix, encodingType)
-	listMultipartUploadsResponse.KeyMarker = utils.S3EncodeName(multipartsInfo.KeyMarker, encodingType)
-	listMultipartUploadsResponse.NextKeyMarker = utils.S3EncodeName(multipartsInfo.NextKeyMarker, encodingType)
-	listMultipartUploadsResponse.MaxUploads = multipartsInfo.MaxUploads
-	listMultipartUploadsResponse.NextUploadIDMarker = multipartsInfo.NextUploadIDMarker
-	listMultipartUploadsResponse.UploadIDMarker = multipartsInfo.UploadIDMarker
-	listMultipartUploadsResponse.CommonPrefixes = make([]CommonPrefix, len(multipartsInfo.CommonPrefixes))
+	resp := ListMultipartUploadsResponse{}
+	resp.Bucket = bucket
+	resp.Delimiter = utils.S3EncodeName(multipartsInfo.Delimiter, encodingType)
+	resp.IsTruncated = multipartsInfo.IsTruncated
+	resp.EncodingType = encodingType
+	resp.Prefix = utils.S3EncodeName(multipartsInfo.Prefix, encodingType)
+	resp.KeyMarker = utils.S3EncodeName(multipartsInfo.KeyMarker, encodingType)
+	resp.NextKeyMarker = utils.S3EncodeName(multipartsInfo.NextKeyMarker, encodingType)
+	resp.MaxUploads = multipartsInfo.MaxUploads
+	resp.NextUploadIDMarker = multipartsInfo.NextUploadIDMarker
+	resp.UploadIDMarker = multipartsInfo.UploadIDMarker
+	resp.CommonPrefixes = make([]CommonPrefix, len(multipartsInfo.CommonPrefixes))
 	for index, commonPrefix := range multipartsInfo.CommonPrefixes {
-		listMultipartUploadsResponse.CommonPrefixes[index] = CommonPrefix{
+		resp.CommonPrefixes[index] = CommonPrefix{
 			Prefix: utils.S3EncodeName(commonPrefix, encodingType),
 		}
 	}
-	listMultipartUploadsResponse.Uploads = make([]Upload, len(multipartsInfo.Uploads))
+	resp.Uploads = make([]Upload, len(multipartsInfo.Uploads))
 	for index, upload := range multipartsInfo.Uploads {
 		newUpload := Upload{}
 		newUpload.UploadID = upload.UploadID
 		newUpload.Key = utils.S3EncodeName(upload.Object, encodingType)
 		newUpload.Initiated = upload.Initiated.UTC().Format(consts.Iso8601TimeFormat)
-		listMultipartUploadsResponse.Uploads[index] = newUpload
+		resp.Uploads[index] = newUpload
 	}
-	return listMultipartUploadsResponse
+	return resp
 }

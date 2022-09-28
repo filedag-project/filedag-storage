@@ -3,7 +3,6 @@ package s3api
 import (
 	"bytes"
 	"encoding/base64"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
@@ -431,7 +430,7 @@ func (s3a *s3ApiServer) DeleteMultipleObjectsHandler(w http.ResponseWriter, r *h
 		}
 	}
 
-	resp := generateMultiDeleteResponse(deleteObjectsReq.Quiet, dObjects, deleteErrors)
+	resp := response.GenerateMultiDeleteResponse(deleteObjectsReq.Quiet, dObjects, deleteErrors)
 
 	// Write success response.
 	response.WriteSuccessResponseXML(w, r, resp)
@@ -565,7 +564,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
-	resp := generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType, maxKeys, objs)
+	resp := response.GenerateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType, maxKeys, objs)
 	// Write success response.
 	response.WriteSuccessResponseXML(w, r, resp)
 }
@@ -625,7 +624,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	resp := GenerateListObjectsV2Response(bucket, prefix, token, listObjectsV2Info.NextContinuationToken, startAfter,
+	resp := response.GenerateListObjectsV2Response(bucket, prefix, token, listObjectsV2Info.NextContinuationToken, startAfter,
 		delimiter, encodingType, listObjectsV2Info.IsTruncated,
 		maxKeys, listObjectsV2Info.Objects, listObjectsV2Info.Prefixes)
 
@@ -775,111 +774,6 @@ func validateListObjectsArgs(marker, delimiter, encodingType string, maxKeys int
 	}
 
 	return apierrors.ErrNone
-}
-
-// GenerateListObjectsV2Response Generates an ListObjectsV2 response for the said bucket with other enumerated options.
-func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter, delimiter, encodingType string, isTruncated bool, maxKeys int, objects []store.ObjectInfo, prefixes []string) response.ListObjectsV2Response {
-	contents := make([]response.Object, 0, len(objects))
-	id := consts.DefaultOwnerID
-	name := consts.DisplayName
-	owner := s3.Owner{
-		ID:          &id,
-		DisplayName: &name,
-	}
-	data := response.ListObjectsV2Response{}
-
-	for _, object := range objects {
-		content := response.Object{}
-		if object.Name == "" {
-			continue
-		}
-		content.Key = utils.S3EncodeName(object.Name, encodingType)
-		content.LastModified = object.ModTime.UTC().Format(consts.Iso8601TimeFormat)
-		if object.ETag != "" {
-			content.ETag = "\"" + object.ETag + "\""
-		}
-		content.Size = object.Size
-		content.Owner = owner
-		contents = append(contents, content)
-	}
-	data.Name = bucket
-	data.Contents = contents
-
-	data.EncodingType = encodingType
-	data.StartAfter = utils.S3EncodeName(startAfter, encodingType)
-	data.Delimiter = utils.S3EncodeName(delimiter, encodingType)
-	data.Prefix = utils.S3EncodeName(prefix, encodingType)
-	data.MaxKeys = maxKeys
-	data.ContinuationToken = base64.StdEncoding.EncodeToString([]byte(token))
-	data.NextContinuationToken = base64.StdEncoding.EncodeToString([]byte(nextToken))
-	data.IsTruncated = isTruncated
-
-	commonPrefixes := make([]response.CommonPrefix, 0, len(prefixes))
-	for _, prefix := range prefixes {
-		prefixItem := response.CommonPrefix{}
-		prefixItem.Prefix = utils.S3EncodeName(prefix, encodingType)
-		commonPrefixes = append(commonPrefixes, prefixItem)
-	}
-	data.CommonPrefixes = commonPrefixes
-	data.KeyCount = len(data.Contents) + len(data.CommonPrefixes)
-	return data
-}
-
-// generates an ListObjectsV1 response for the said bucket with other enumerated options.
-func generateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, resp store.ListObjectsInfo) response.ListObjectsResponse {
-	contents := make([]response.Object, 0, len(resp.Objects))
-	id := consts.DefaultOwnerID
-	name := consts.DisplayName
-	owner := s3.Owner{
-		ID:          &id,
-		DisplayName: &name,
-	}
-	data := response.ListObjectsResponse{}
-
-	for _, object := range resp.Objects {
-		content := response.Object{}
-		if object.Name == "" {
-			continue
-		}
-		content.Key = utils.S3EncodeName(object.Name, encodingType)
-		content.LastModified = object.ModTime.UTC().Format(consts.Iso8601TimeFormat)
-		if object.ETag != "" {
-			content.ETag = "\"" + object.ETag + "\""
-		}
-		content.Size = object.Size
-		content.StorageClass = ""
-		content.Owner = owner
-		contents = append(contents, content)
-	}
-	data.Name = bucket
-	data.Contents = contents
-
-	data.EncodingType = encodingType
-	data.Prefix = utils.S3EncodeName(prefix, encodingType)
-	data.Marker = utils.S3EncodeName(marker, encodingType)
-	data.Delimiter = utils.S3EncodeName(delimiter, encodingType)
-	data.MaxKeys = maxKeys
-	data.NextMarker = utils.S3EncodeName(resp.NextMarker, encodingType)
-	data.IsTruncated = resp.IsTruncated
-
-	prefixes := make([]response.CommonPrefix, 0, len(resp.Prefixes))
-	for _, prefix := range resp.Prefixes {
-		prefixItem := response.CommonPrefix{}
-		prefixItem.Prefix = utils.S3EncodeName(prefix, encodingType)
-		prefixes = append(prefixes, prefixItem)
-	}
-	data.CommonPrefixes = prefixes
-	return data
-}
-
-// generate multi objects delete response.
-func generateMultiDeleteResponse(quiet bool, deletedObjects []datatypes.DeletedObject, errs []response.DeleteError) response.DeleteObjectsResponse {
-	deleteResp := response.DeleteObjectsResponse{}
-	if !quiet {
-		deleteResp.DeletedObjects = deletedObjects
-	}
-	deleteResp.Errors = errs
-	return deleteResp
 }
 
 // unescapePath is similar to url.PathUnescape or url.QueryUnescape
