@@ -207,12 +207,8 @@ func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (Obje
 	ctx = lkctx.Context()
 	defer lk.RUnlock(lkctx.Cancel)
 
-	meta := ObjectInfo{}
-	err = s.Db.Get(getObjectKey(bucket, object), &meta)
+	meta, err := s.getObjectInfo(ctx, bucket, object)
 	if err != nil {
-		if xerrors.Is(err, leveldb.ErrNotFound) {
-			return ObjectInfo{}, nil, ErrObjectNotFound
-		}
 		return ObjectInfo{}, nil, err
 	}
 	cid, err := cid.Decode(meta.ETag)
@@ -232,6 +228,11 @@ func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (Obje
 
 func (s *StorageSys) getObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
 	err = s.Db.Get(getObjectKey(bucket, object), &meta)
+	if err != nil {
+		if xerrors.Is(err, leveldb.ErrNotFound) {
+			return meta, ErrObjectNotFound
+		}
+	}
 	return
 }
 
@@ -257,12 +258,8 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	ctx = lkctx.Context()
 	defer lk.Unlock(lkctx.Cancel)
 
-	meta := ObjectInfo{}
-	err = s.Db.Get(getObjectKey(bucket, object), &meta)
+	meta, err := s.getObjectInfo(ctx, bucket, object)
 	if err != nil {
-		if xerrors.Is(err, leveldb.ErrNotFound) {
-			return ErrObjectNotFound
-		}
 		return err
 	}
 	cid, err := cid.Decode(meta.ETag)
