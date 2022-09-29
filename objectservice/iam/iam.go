@@ -59,6 +59,10 @@ func (sys *IdentityAMSys) IsAllowed(ctx context.Context, args auth.Args) bool {
 	if err != nil {
 		return false
 	}
+	if len(ps) == 0 {
+		// No policy found.
+		return false
+	}
 	var pol, pmer policy.Policy
 	for _, p := range ps {
 		pmer = pol.Merge(p)
@@ -245,14 +249,9 @@ func (sys *IdentityAMSys) RemoveUserPolicy(ctx context.Context, userName, policy
 }
 
 // GetUserInfo  - get user info
-func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
-	m := auth.Credentials{}
-	err := sys.store.loadUser(ctx, accessKey, &m)
-	if err != nil {
-		return m, false
-	}
-
-	return m, m.IsValid()
+func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (cred auth.Credentials, err error) {
+	err = sys.store.loadUser(ctx, accessKey, &cred)
+	return
 }
 
 // SetTempUser - set temporary user credentials, these credentials have an

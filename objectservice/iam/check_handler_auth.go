@@ -64,9 +64,10 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 	if s3Err != apierrors.ErrNone {
 		return cred, owner, s3Err
 	}
-	if cred.IsTemp() {
-		cred, _ = s.Iam.GetUser(ctx, cred.ParentUser)
-	}
+	// TODO: Why should a temporary user be replaced with the parent user's account?
+	//if cred.IsTemp() {
+	//	cred, _ = s.Iam.GetUser(ctx, cred.ParentUser)
+	//}
 	if action == s3action.CreateBucketAction {
 		// To extract region from XML in request body, get copy of request body.
 		payload, err := ioutil.ReadAll(io.LimitReader(r.Body, consts.MaxLocationConstraintSize))
@@ -260,7 +261,7 @@ func getConditions(r *http.Request, username string) map[string][]string {
 		"userid":           {username},
 		"username":         {username},
 		"signatureversion": {signatureVersion},
-		"AuthType":         {authtype},
+		"authType":         {authtype},
 	}
 
 	cloneHeader := r.Header.Clone()

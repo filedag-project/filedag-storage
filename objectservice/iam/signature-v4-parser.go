@@ -63,10 +63,11 @@ func (s *AuthSys) GetReqAccessKeyV4(r *http.Request, region string, stype servic
 			return auth.Credentials{}, false, s3Err
 		}
 	}
-	cerd, _ := s.Iam.GetUser(r.Context(), ch.accessKey)
-	if cerd.IsTemp() {
-		ch.accessKey = cerd.ParentUser
-	}
+	// TODO: Why should a temporary user be replaced with the parent user's account name?
+	//cerd, _ := s.Iam.GetUser(r.Context(), ch.accessKey)
+	//if cerd.IsTemp() {
+	//	ch.accessKey = cerd.ParentUser
+	//}
 	return s.checkKeyValid(r, ch.accessKey)
 }
 

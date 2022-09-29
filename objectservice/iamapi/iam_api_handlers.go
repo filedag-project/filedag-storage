@@ -41,12 +41,12 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidQueryParams)
 	}
 	resp.CreateUserResult.User.UserName = &accessKey
-	_, ok = iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
-	if ok {
+	_, err := iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
+	if err == nil {
 		response.WriteErrorResponseJSON(w, apierrors.GetAPIError(apierrors.ErrUserAlreadyExists), r.URL, r.Host)
 		return
 	}
-	err := iamApi.authSys.Iam.AddUser(r.Context(), accessKey, secretKey)
+	err = iamApi.authSys.Iam.AddUser(r.Context(), accessKey, secretKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
@@ -63,12 +63,12 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var resp DeleteUserResponse
 	accessKey := r.FormValue(AccessKey)
-	_, ok := iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
-	if !ok {
+	_, err := iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
+	if err != nil {
 		response.WriteErrorResponseJSON(w, apierrors.GetAPIError(apierrors.ErrNoSuchUser), r.URL, r.Host)
 		return
 	}
-	err := iamApi.authSys.Iam.RemoveUser(r.Context(), accessKey)
+	err = iamApi.authSys.Iam.RemoveUser(r.Context(), accessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
@@ -85,8 +85,8 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 	}
 	userName := r.FormValue(AccessKey)
 
-	cred, ok := iamApi.authSys.Iam.GetUserInfo(r.Context(), userName)
-	if !ok {
+	cred, err := iamApi.authSys.Iam.GetUserInfo(r.Context(), userName)
+	if err != nil {
 		response.WriteErrorResponseJSON(w, apierrors.GetAPIError(apierrors.ErrNoSuchUser), r.URL, r.Host)
 		return
 	}
@@ -99,7 +99,12 @@ func (iamApi *iamApiServer) GetUserInfo(w http.ResponseWriter, r *http.Request) 
 	user := iam.UserInfo{
 		SecretKey:  cred.SecretKey,
 		PolicyName: polices,
-		Status:     iam.AccountStatus(cred.Status),
+		Status: func() iam.AccountStatus {
+			if cred.IsValid() {
+				return iam.AccountEnabled
+			}
+			return iam.AccountDisabled
+		}(),
 	}
 
 	data, err := json.Marshal(user)
@@ -220,9 +225,9 @@ func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	userName := r.FormValue("userName")
-	cred, ok := iamApi.authSys.Iam.GetUserInfo(r.Context(), userName)
-	if !ok {
-		response.WriteErrorResponseJSON(w, apierrors.GetAPIError(apierrors.ErrAccessKeyDisabled), r.URL, r.Host)
+	cred, err := iamApi.authSys.Iam.GetUserInfo(r.Context(), userName)
+	if err != nil {
+		response.WriteErrorResponseJSON(w, apierrors.GetAPIError(apierrors.ErrNoSuchUser), r.URL, r.Host)
 		return
 	}
 	if c.AccessKey != cred.ParentUser {
@@ -238,7 +243,12 @@ func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Reques
 	user := iam.UserInfo{
 		SecretKey:  cred.SecretKey,
 		PolicyName: polices,
-		Status:     iam.AccountStatus(cred.Status),
+		Status: func() iam.AccountStatus {
+			if cred.IsValid() {
+				return iam.AccountEnabled
+			}
+			return iam.AccountDisabled
+		}(),
 	}
 
 	data, err := json.Marshal(user)

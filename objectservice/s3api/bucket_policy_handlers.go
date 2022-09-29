@@ -26,6 +26,12 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
+
+	if r.ContentLength <= 0 {
+		response.WriteErrorResponse(w, r, apierrors.ErrMissingContentLength)
+		return
+	}
+
 	// Error out if Content-Length is beyond allowed size.
 	if r.ContentLength > maxBucketPolicySize {
 		response.WriteErrorResponse(w, r, apierrors.ErrIncompleteBody)
@@ -49,10 +55,10 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 
 	if err = s3a.bmSys.UpdateBucketPolicy(r.Context(), bucket, bucketPolicy); err != nil {
 		log.Errorf("PutBucketPolicyHandler UpdateBucketPolicy err:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(r.Context(), err))
 		return
 	}
-	response.WriteSuccessResponseHeadersOnly(w, r)
+	response.WriteSuccessNoContent(w)
 }
 
 //DeleteBucketPolicyHandler Delete BucketPolicy
