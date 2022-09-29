@@ -23,11 +23,13 @@ func newIPolicySys(db *uleveldb.ULevelDB) *iPolicySys {
 // isAllowed - checks given policy args is allowed to continue the Rest API.
 func (sys *iPolicySys) isAllowed(ctx context.Context, args auth.Args) bool {
 	p, err := sys.bmSys.GetPolicyConfig(ctx, args.BucketName)
-	if err != nil {
-		return false
-	} else {
+	if err == nil {
 		return p.IsAllowed(args)
 	}
+	if _, ok := err.(store.BucketPolicyNotFound); !ok {
+		log.Errorw("can't find bucket policy", "bucket", args.BucketName)
+	}
+	return false
 }
 
 // GetPolicy returns stored bucket policy

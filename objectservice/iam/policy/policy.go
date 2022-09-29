@@ -71,7 +71,8 @@ func (p Policy) IsAllowed(args auth.Args) bool {
 
 	// For owner, it allowed by default.
 	if args.IsOwner {
-		return true
+		// TODO: if it's admin, give it read-only permission?
+		// return true
 	}
 
 	// Check all allow statements. If anyone statement allows, return true.

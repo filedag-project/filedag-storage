@@ -83,56 +83,44 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 		}
 	}
 
-	if action != s3action.ListAllMyBucketsAction && cred.AccessKey == "" {
-		// Anonymous checks are not meant for ListBuckets action
+	// Anonymous user
+	if cred.AccessKey == "" {
+		owner = false
+	}
+
+	// check bucket policy
+	if s.PolicySys.isAllowed(ctx, auth.Args{
+		AccountName: cred.AccessKey,
+		Action:      action,
+		BucketName:  bucketName,
+		IsOwner:     owner,
+		ObjectName:  objectName,
+	}) {
+		// Request is allowed return the appropriate access key.
+		return cred, owner, apierrors.ErrNone
+	}
+	if action == s3action.ListBucketVersionsAction {
+		// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
+		// verify as a fallback.
 		if s.PolicySys.isAllowed(ctx, auth.Args{
 			AccountName: cred.AccessKey,
-			Action:      action,
+			Action:      s3action.ListBucketAction,
 			BucketName:  bucketName,
-			IsOwner:     false,
+			IsOwner:     owner,
 			ObjectName:  objectName,
 		}) {
 			// Request is allowed return the appropriate access key.
 			return cred, owner, apierrors.ErrNone
 		}
-
-		if action == s3action.ListBucketVersionsAction {
-			// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
-			// verify as a fallback.
-			if s.PolicySys.isAllowed(ctx, auth.Args{
-				AccountName: cred.AccessKey,
-				Action:      s3action.ListBucketAction,
-				BucketName:  bucketName,
-				IsOwner:     false,
-				ObjectName:  objectName,
-			}) {
-				// Request is allowed return the appropriate access key.
-				return cred, owner, apierrors.ErrNone
-			}
-		}
-
-		return cred, owner, apierrors.ErrAccessDenied
 	}
 
-	if s.Iam.IsAllowed(r.Context(), auth.Args{
-		AccountName: cred.AccessKey,
-		Action:      action,
-		BucketName:  bucketName,
-		Conditions:  getConditions(r, cred.AccessKey),
-		ObjectName:  objectName,
-		IsOwner:     owner,
-	}) {
-		// Request is allowed return the appropriate access key.
-		return cred, owner, apierrors.ErrNone
-	}
-
-	if action == s3action.ListBucketVersionsAction {
-		// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
-		// verify as a fallback.
+	// check user policy
+	if bucketName == "" {
 		if s.Iam.IsAllowed(r.Context(), auth.Args{
 			AccountName: cred.AccessKey,
-			Action:      s3action.ListBucketAction,
+			Action:      action,
 			BucketName:  bucketName,
+			Conditions:  getConditions(r, cred.AccessKey),
 			ObjectName:  objectName,
 			IsOwner:     owner,
 		}) {

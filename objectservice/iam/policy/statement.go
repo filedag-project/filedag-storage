@@ -103,6 +103,10 @@ func NewStatement(sid ID, effect Effect, principal Principal, actionSet s3action
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
 func (statement Statement) IsAllowed(args auth.Args) bool {
 	check := func() bool {
+		if !statement.Principal.Match(args.AccountName) {
+			return false
+		}
+
 		if !statement.Actions.Match(args.Action) {
 			return false
 		}
