@@ -23,7 +23,7 @@ func TestStringEqualsFuncEvaluate(t *testing.T) {
 		t.Fatalf("unexpected error. %v\n", err)
 	}
 
-	case4Function, err := newStringEqualsFunc(NewKey(ExistingObjectTag, "security"), NewValueSet(NewStringValue("public")), "")
+	case4Function, err := newStringEqualsFunc(NewKey(S3ExistingObjectTag, "security"), NewValueSet(NewStringValue("public")), "")
 	if err != nil {
 		t.Fatalf("unexpected error. %v\n", err)
 	}

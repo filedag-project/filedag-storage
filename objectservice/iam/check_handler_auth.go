@@ -115,7 +115,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 	}
 
 	// check user policy
-	if bucketName == "" {
+	if bucketName == "" || action == s3action.CreateBucketAction {
 		if s.Iam.IsAllowed(r.Context(), auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      action,
@@ -126,6 +126,10 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 		}) {
 			// Request is allowed return the appropriate access key.
 			return cred, owner, apierrors.ErrNone
+		}
+	} else {
+		if !s.PolicySys.bmSys.HasBucket(ctx, bucketName) {
+			return cred, owner, apierrors.ErrNoSuchBucket
 		}
 	}
 
