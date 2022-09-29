@@ -22,6 +22,14 @@ type Resource struct {
 	Pattern    string
 }
 
+func (r Resource) isBucketPattern() bool {
+	return !strings.Contains(r.Pattern, "/")
+}
+
+func (r Resource) isObjectPattern() bool {
+	return strings.Contains(r.Pattern, "/") || strings.Contains(r.BucketName, "*")
+}
+
 // IsValid - checks whether Resource is valid or not.
 func (r Resource) IsValid() bool {
 	return r.BucketName != "" && r.Pattern != ""

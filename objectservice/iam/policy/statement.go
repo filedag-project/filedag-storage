@@ -134,6 +134,10 @@ func (statement Statement) IsAllowed(args auth.Args) bool {
 
 // IsValid - checks whether statement is valid or not.
 func (statement Statement) IsValid() error {
+	if !statement.Effect.IsValid() {
+		return xerrors.Errorf("invalid Effect %v", statement.Effect)
+	}
+
 	if !statement.Principal.IsValid() {
 		return xerrors.Errorf("invalid Principal %v", statement.Principal)
 	}
@@ -146,6 +150,24 @@ func (statement Statement) IsValid() error {
 		return xerrors.Errorf("Resource must not be empty")
 	}
 
+	for action := range statement.Actions {
+		if action.IsObjectAction() {
+			if !statement.Resources.ObjectResourceExists() {
+				return xerrors.Errorf("unsupported Resource found %v for action %v", statement.Resources, action)
+			}
+		} else {
+			if !statement.Resources.BucketResourceExists() {
+				return xerrors.Errorf("unsupported Resource found %v for action %v", statement.Resources, action)
+			}
+		}
+
+		keys := statement.Conditions.Keys()
+		keyDiff := keys.Difference(s3action.ActionConditionKeyMap[action])
+		if !keyDiff.IsEmpty() {
+			return xerrors.Errorf("unsupported condition keys '%v' used for action '%v'", keyDiff, action)
+		}
+	}
+
 	return nil
 }
 
@@ -155,6 +177,16 @@ func (effect Effect) IsAllowed(b bool) bool {
 		return b
 	}
 	return !b
+}
+
+// IsValid - checks if Effect is valid or not
+func (effect Effect) IsValid() bool {
+	switch effect {
+	case Allow, Deny:
+		return true
+	}
+
+	return false
 }
 
 // Validate - validates Statement is for given bucket or not.

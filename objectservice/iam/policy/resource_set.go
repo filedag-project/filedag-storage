@@ -146,6 +146,28 @@ func (resourceSet ResourceSet) Clone() ResourceSet {
 	return NewResourceSet(resourceSet.ToSlice()...)
 }
 
+// BucketResourceExists - checks if at least one bucket resource exists in the set.
+func (resourceSet ResourceSet) BucketResourceExists() bool {
+	for resource := range resourceSet {
+		if resource.isBucketPattern() {
+			return true
+		}
+	}
+
+	return false
+}
+
+// ObjectResourceExists - checks if at least one object resource exists in the set.
+func (resourceSet ResourceSet) ObjectResourceExists() bool {
+	for resource := range resourceSet {
+		if resource.isObjectPattern() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // NewResourceSet - creates new resource set.
 func NewResourceSet(resources ...Resource) ResourceSet {
 	resourceSet := make(ResourceSet)

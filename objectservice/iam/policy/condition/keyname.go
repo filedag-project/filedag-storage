@@ -120,10 +120,12 @@ const (
 	S3AuthType KeyName = "s3:authType"
 
 	// Refer https://docs.aws.amazon.com/AmazonS3/latest/userguide/tagging-and-policies.html
-	ExistingObjectTag KeyName = "s3:ExistingObjectTag"
+	S3ExistingObjectTag    KeyName = "s3:ExistingObjectTag"
+	S3RequestObjectTagKeys KeyName = "s3:RequestObjectTagKeys"
+	S3RequestObjectTag     KeyName = "s3:RequestObjectTag"
 )
 
-// AllSupportedKeys - is list of all all supported keys.
+// AllSupportedKeys - is list of all supported keys.
 var AllSupportedKeys = append([]KeyName{
 	S3SignatureVersion,
 	S3AuthType,
@@ -169,4 +171,5 @@ var CommonKeys = append([]KeyName{
 	AWSPrincipalType,
 	AWSUserID,
 	AWSUsername,
+	S3ExistingObjectTag,
 })
