@@ -151,6 +151,9 @@ func (statement Statement) IsValid() error {
 	}
 
 	for action := range statement.Actions {
+		if action.Match(s3action.AllActions) {
+			continue
+		}
 		if action.IsObjectAction() {
 			if !statement.Resources.ObjectResourceExists() {
 				return xerrors.Errorf("unsupported Resource found %v for action %v", statement.Resources, action)
