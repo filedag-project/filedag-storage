@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"context"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
@@ -118,10 +119,10 @@ func (s3a *s3ApiServer) registerSTSRouter(router *mux.Router) {
 }
 
 //NewS3Server Start a S3Server
-func NewS3Server(router *mux.Router, dagService ipld.DAGService, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
+func NewS3Server(ctx context.Context, router *mux.Router, dagService ipld.DAGService, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
 	s3server := &s3ApiServer{
 		authSys: authSys,
-		store:   store.NewStorageSys(dagService, db),
+		store:   store.NewStorageSys(ctx, dagService, db),
 		bmSys:   store.NewBucketMetadataSys(db),
 	}
 	s3server.store.SetNewBucketNSLock(s3server.bmSys.NewNSLock)

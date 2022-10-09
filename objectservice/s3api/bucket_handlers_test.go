@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
@@ -42,7 +43,7 @@ func TestMain(m *testing.M) {
 	poolCli, done := client.NewMockPoolClient(&testing.T{})
 	defer done()
 	dagServ := merkledag.NewDAGService(blockservice.New(poolCli, offline.Exchange(poolCli)))
-	NewS3Server(router, dagServ, authSys, db)
+	NewS3Server(context.TODO(), router, dagServ, authSys, db)
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {

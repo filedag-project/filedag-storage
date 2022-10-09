@@ -66,7 +66,7 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 	}
 	defer poolClient.Close(context.TODO())
 	dagServ := merkledag.NewDAGService(blockservice.New(poolClient, offline.Exchange(poolClient)))
-	s3api.NewS3Server(router, dagServ, authSys, db)
+	s3api.NewS3Server(context.TODO(), router, dagServ, authSys, db)
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		fmt.Printf("start sever at http://%v%v", ip, port)

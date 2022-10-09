@@ -20,6 +20,8 @@ import (
 	ufsio "github.com/ipfs/go-unixfs/io"
 	"github.com/klauspost/readahead"
 	pool "github.com/libp2p/go-buffer-pool"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/xerrors"
 	"io"
@@ -45,8 +47,14 @@ const (
 	allUploadPrefixFormat     = "uploadObj-%s-%s"
 	allUploadSeekPrefixFormat = "uploadObj-%s-%s-%s"
 
+	deleteKeyFormat       = "delObj-%s"
+	allDeletePrefixFormat = "delObj-"
+
 	globalOperationTimeout = 5 * time.Minute
 	deleteOperationTimeout = 1 * time.Minute
+
+	maxCpuPercent        = 60
+	maxUsedMemoryPercent = 80
 )
 
 var ErrObjectNotFound = errors.New("object not found")
@@ -60,17 +68,26 @@ type StorageSys struct {
 	nsLock          *lock.NsLockMap
 	newBucketNSLock func(bucket string) lock.RWLocker
 	hasBucket       func(ctx context.Context, bucket string) bool
+
+	gcPeriod  time.Duration
+	gcTimeout time.Duration
 }
 
 //NewStorageSys new a storage sys
-func NewStorageSys(dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
+func NewStorageSys(ctx context.Context, dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
 	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
-	return &StorageSys{
+	s := &StorageSys{
 		Db:         db,
 		DagPool:    dagService,
 		CidBuilder: cidBuilder,
 		nsLock:     lock.NewNSLock(),
+		gcPeriod:   15 * time.Minute,
+		gcTimeout:  30 * time.Minute,
 	}
+	go func() {
+		s.processObjectGC(ctx)
+	}()
+	return s
 }
 
 func getObjectKey(bucket, object string) string {
@@ -79,6 +96,10 @@ func getObjectKey(bucket, object string) string {
 
 func getUploadKey(bucket, object, uploadID string) string {
 	return fmt.Sprintf(uploadKeyFormat, bucket, object, uploadID)
+}
+
+func newDelObjectKey() string {
+	return fmt.Sprintf(deleteKeyFormat, mustGetUUID())
 }
 
 // NewNSLock - initialize a new namespace RWLocker instance.
@@ -128,13 +149,9 @@ func (s *StorageSys) checkAndDeleteObjectData(ctx context.Context, bucket, objec
 		if err != nil {
 			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
 		} else {
-			// Disable timeouts and cancellation
-			ctx = utils.BgContext(ctx)
-			go func() {
-				if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
-					log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
-				}
-			}()
+			if err = s.markObjetToDelete(c); err != nil {
+				log.Errorw("mark Objet to delete error", "bucket", bucket, "object", object, "cid", oldObjInfo.ETag, "error", err)
+			}
 		}
 	}
 }
@@ -271,13 +288,9 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 		return err
 	}
 
-	// Disable timeouts and cancellation
-	ctx = utils.BgContext(ctx)
-	go func() {
-		if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, cid); err != nil {
-			log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", meta.ETag, "error", err)
-		}
-	}()
+	if err = s.markObjetToDelete(cid); err != nil {
+		log.Errorw("mark Objet to delete error", "bucket", bucket, "object", object, "cid", meta.ETag, "error", err)
+	}
 	return nil
 }
 
@@ -689,13 +702,10 @@ func (s *StorageSys) AbortMultipartUpload(ctx context.Context, bucket string, ob
 		if err != nil {
 			return err
 		}
-		// Disable timeouts and cancellation
-		bgctx := utils.BgContext(ctx)
-		go func() {
-			if err = dagpoolcli.RemoveDAG(bgctx, s.DagPool, c); err != nil {
-				log.Errorw("remove DAG error", "bucket", bucket, "object", object, "cid", c.String(), "error", err)
-			}
-		}()
+
+		if err = s.markObjetToDelete(c); err != nil {
+			log.Errorw("mark Objet to delete error", "bucket", bucket, "object", object, "cid", part.ETag, "error", err)
+		}
 	}
 
 	// remove MultipartInfo
@@ -923,4 +933,89 @@ func (s *StorageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, k
 	}
 
 	return result, nil
+}
+
+func (s *StorageSys) markObjetToDelete(c cid.Cid) error {
+	return s.Db.Put(newDelObjectKey(), c.String())
+}
+
+func (s *StorageSys) deleteObjets(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, s.gcTimeout)
+	defer cancel()
+
+	all, err := s.Db.ReadAllChan(ctx, allDeletePrefixFormat, "")
+	if err != nil {
+		return err
+	}
+	for entry := range all {
+		select {
+		case <-ctx.Done():
+			log.Info("delete objects timeout")
+			break
+		default:
+		}
+		var root string
+		if err = entry.UnmarshalValue(&root); err != nil {
+			return err
+		}
+		c, err := cid.Decode(root)
+		if err != nil {
+			log.Warnw("decode cid error", "cid", root)
+			if err = s.Db.Delete(entry.Key); err != nil {
+				return err
+			}
+			continue
+		}
+		if err = dagpoolcli.RemoveDAG(ctx, s.DagPool, c); err != nil {
+			log.Errorw("remove DAG error", "cid", c.String(), "error", err)
+			break
+		}
+		if err = s.Db.Delete(entry.Key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// processObjectGC is a goroutine to do object GC
+func (s *StorageSys) processObjectGC(ctx context.Context) {
+	timer := time.NewTimer(s.gcPeriod)
+	defer timer.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-timer.C:
+			if checkSystemIdle() {
+				log.Debug("starting object GC...")
+				if err := s.deleteObjets(ctx); err != nil {
+					log.Errorf("object GC err: %v", err)
+				}
+				log.Debug("object GC completed")
+			}
+			timer.Reset(s.gcPeriod)
+		}
+	}
+}
+
+func getCpuPercent() (float64, error) {
+	percent, err := cpu.Percent(time.Second, false)
+	if err != nil {
+		return 0, err
+	}
+	return percent[0], nil
+}
+
+func checkSystemIdle() bool {
+	if p, err := getCpuPercent(); err != nil {
+		log.Errorf("get cpu percent error: %v", err)
+	} else if p > maxCpuPercent {
+		return false
+	}
+	if v, err := mem.VirtualMemory(); err != nil {
+		log.Errorf("get memory used percent error: %v", err)
+	} else if v.UsedPercent > maxUsedMemoryPercent {
+		return false
+	}
+	return true
 }

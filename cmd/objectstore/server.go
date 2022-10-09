@@ -68,7 +68,7 @@ func startServer(cctx *cli.Context) {
 	}
 	defer poolClient.Close(context.TODO())
 	dagServ := merkledag.NewDAGService(dagpoolcli.NewBlockService(poolClient))
-	s3api.NewS3Server(router, dagServ, authSys, db)
+	s3api.NewS3Server(cctx.Context, router, dagServ, authSys, db)
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 			log.Infof("start sever at http://%v%v", ip, listen)
