@@ -28,6 +28,7 @@ func (s3a *s3ApiServer) ListBucketsHandler(w http.ResponseWriter, r *http.Reques
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
+	log.Info("ListBucketsHandler")
 	// Anonymous users, should be rejected.
 	if cred.AccessKey == "" {
 		response.WriteErrorResponse(w, r, apierrors.ErrAccessDenied)

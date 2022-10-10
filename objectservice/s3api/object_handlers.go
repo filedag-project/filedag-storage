@@ -68,7 +68,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if size == 0 {
-		response.WriteErrorResponse(w, r, apierrors.ErrPutBucketInBucket)
+		response.WriteErrorResponse(w, r, apierrors.ErrEntityTooSmall)
 		return
 	}
 	// maximum Upload size for objects in a single operation
@@ -163,6 +163,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
+	log.Infof("GetObjectHandler %s %s", bucket, object)
 	if err = s3utils.CheckGetObjArgs(ctx, bucket, object); err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -209,6 +210,7 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
+	log.Infof("HeadObjectHandler %s %s", bucket, object)
 	if err := s3utils.CheckGetObjArgs(ctx, bucket, object); err != nil {
 		response.WriteErrorResponseHeadersOnly(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -251,6 +253,7 @@ func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Reque
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
+	log.Infof("DeleteObjectHandler %s %s", bucket, object)
 	if err := s3utils.CheckDelObjArgs(ctx, bucket, object); err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -576,6 +579,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
+	log.Infof("ListObjectsV2Handler %s %s", bucket, object)
 
 	// Check for auth type to return S3 compatible error.
 	// type to return the correct error (NoSuchKey vs AccessDenied)
