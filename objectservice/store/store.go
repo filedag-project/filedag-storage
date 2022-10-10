@@ -39,13 +39,13 @@ const (
 	// equals unixfsChunkSize
 	chunkSize int = 1 << 20
 
-	objectKeyFormat           = "obj-%s-%s/"
-	allObjectPrefixFormat     = "obj-%s-%s"
-	allObjectSeekPrefixFormat = "obj-%s-%s"
+	objectKeyFormat        = "obj-%s-%s/"
+	allObjectPrefixFormat  = "obj-%s-%s"
+	allObjectSeekKeyFormat = "obj-%s-%s/"
 
-	uploadKeyFormat           = "uploadObj-%s-%s-%s"
-	allUploadPrefixFormat     = "uploadObj-%s-%s"
-	allUploadSeekPrefixFormat = "uploadObj-%s-%s-%s"
+	uploadKeyFormat        = "uploadObj-%s-%s-%s"
+	allUploadPrefixFormat  = "uploadObj-%s-%s"
+	allUploadSeekKeyFormat = "uploadObj-%s-%s-%s"
 
 	deleteKeyFormat       = "delObj-%s"
 	allDeletePrefixFormat = "delObj-"
@@ -342,7 +342,7 @@ func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	defer cancel()
 	seekKey := ""
 	if marker != "" {
-		seekKey = fmt.Sprintf(allObjectSeekPrefixFormat, bucket, marker)
+		seekKey = fmt.Sprintf(allObjectSeekKeyFormat, bucket, marker)
 	}
 	prefixKey := fmt.Sprintf(allObjectPrefixFormat, bucket, prefix)
 	log.Infow("ListObjects ReadAllChan", "prefixKey", prefixKey, "seekKey", seekKey)
@@ -911,7 +911,7 @@ func (s *StorageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, k
 	defer cancel()
 	seekKey := ""
 	if keyMarker != "" {
-		seekKey = fmt.Sprintf(allUploadSeekPrefixFormat, bucket, keyMarker, uploadIDMarker)
+		seekKey = fmt.Sprintf(allUploadSeekKeyFormat, bucket, keyMarker, uploadIDMarker)
 	}
 	all, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(allUploadPrefixFormat, bucket, prefix), seekKey)
 	if err != nil {
