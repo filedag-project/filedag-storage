@@ -23,6 +23,21 @@ type PolicyDocument struct {
 	Statement []Statement `json:"Statement"`
 }
 
+// UnmarshalJSON - decodes JSON data to Iamp.
+func (p *Policy) UnmarshalJSON(data []byte) error {
+	// subtype to avoid recursive call to UnmarshalJSON()
+	type subPolicy Policy
+	var sp subPolicy
+	if err := json.Unmarshal(data, &sp); err != nil {
+		return err
+	}
+
+	po := Policy(sp)
+	p.dropDuplicateStatements()
+	*p = po
+	return nil
+}
+
 // Merge merges two policies documents and drop
 // duplicate statements if any.
 func (p *PolicyDocument) Merge(input PolicyDocument) PolicyDocument {
@@ -246,7 +261,8 @@ func CreateAnonWriteOnlyObjectPolicy(bucketName, prefix string) *Policy {
 	}
 }
 
-func CreateUserPolicy(accessKey string) *Policy {
+//CreateUserPolicy create user policy according action and bucket
+func CreateUserPolicy(accessKey string, actions []s3action.Action, bucketName string) *Policy {
 	return &Policy{
 		Version: DefaultVersion,
 		Statements: []Statement{
@@ -255,9 +271,9 @@ func CreateUserPolicy(accessKey string) *Policy {
 				Allow,
 				NewPrincipal(accessKey),
 				s3action.NewActionSet(
-					s3action.CreateBucketAction,
+					actions...,
 				),
-				NewResourceSet(NewResource("*", "*")),
+				NewResourceSet(NewResource(bucketName, "*")),
 				condition.NewConFunctions(),
 			),
 		},
