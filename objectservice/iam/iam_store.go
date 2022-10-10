@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
 )
 
 // errInvalidArgument means that input argument is invalid.
@@ -23,7 +24,7 @@ type iamStoreAPI interface {
 	createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
 	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
 	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error
-	getUserPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error)
+	getUserPolices(ctx context.Context, userName string) ([]string, error)
 	removeUserPolicy(ctx context.Context, userName, policyName string) error
 }
 
@@ -50,7 +51,7 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 		return err
 	}
 	//todo policy name
-	p := policy.CreateUserPolicy(accessKey)
+	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.CreateBucketAction}, "*")
 	err = store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,

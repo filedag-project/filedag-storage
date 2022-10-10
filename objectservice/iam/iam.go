@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 )
@@ -55,20 +56,38 @@ func (sys *IdentityAMSys) IsAllowed(ctx context.Context, args auth.Args) bool {
 		return sys.IsAllowedSTS(args, parentUser)
 	}
 	// Continue with the assumption of a regular user
-	ps, _, err := sys.store.getUserPolices(ctx, args.AccountName)
+	keys, err := sys.store.getUserPolices(ctx, args.AccountName)
 	if err != nil {
 		return false
 	}
-	if len(ps) == 0 {
+	if len(keys) == 0 {
 		// No policy found.
 		return false
 	}
-	var pol, pmer policy.Policy
-	for _, p := range ps {
-		pmer = pol.Merge(p)
+	var pod policy.PolicyDocument
+	err = sys.GetUserPolicy(ctx, args.AccountName, "default", &pod)
+	if err != nil {
+		return false
+	}
+	for _, pn := range keys {
+		if pn == "default" {
+			continue
+		}
+		var po policy.PolicyDocument
+		err1 := sys.GetUserPolicy(ctx, args.AccountName, pn, &po)
+		if err1 != nil {
+			return false
+		}
+
+		pod = pod.Merge(po)
 	}
 	// Policies were found, evaluate all of them.
-	return pmer.IsAllowed(args)
+	perm := policy.Policy{
+
+		Version:    pod.Version,
+		Statements: pod.Statement,
+	}
+	return perm.IsAllowed(args)
 }
 
 // IsAllowedSTS is meant for STS based temporary credentials,
@@ -134,7 +153,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
 		return err
 	}
-	p := policy.CreateUserPolicy(accessKey)
+	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.CreateBucketAction}, "*")
 	err = sys.store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,
@@ -230,12 +249,21 @@ func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyNam
 
 // GetUserPolices Get User all Policy
 func (sys *IdentityAMSys) GetUserPolices(ctx context.Context, userName string) ([]string, error) {
-	_, keys, err := sys.store.getUserPolices(ctx, userName)
+	keys, err := sys.store.getUserPolices(ctx, userName)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)
 		return nil, err
 	}
 	return keys, nil
+}
+
+//UpdateUserPolicy update user policy
+func (sys *IdentityAMSys) UpdateUserPolicy(ctx context.Context, username string, pname string, p *policy.Policy) error {
+	return sys.PutUserPolicy(ctx, username, pname, policy.PolicyDocument{
+		Version:   p.Version,
+		Statement: p.Statements,
+	})
+
 }
 
 // RemoveUserPolicy remove User Policy
