@@ -61,7 +61,7 @@ func writeResponse(w http.ResponseWriter, r *http.Request, statusCode int, respo
 	}
 	w.WriteHeader(statusCode)
 	if response != nil {
-		log.Infof("status %d %s: %s", statusCode, mType, string(response))
+		log.Debugf("status %d %s: %s", statusCode, mType, string(response))
 		_, err := w.Write(response)
 		if err != nil {
 			log.Errorf("write err: %v", err)
