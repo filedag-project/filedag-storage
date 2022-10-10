@@ -255,7 +255,7 @@ func CreateUserPolicy(accessKey string) *Policy {
 				Allow,
 				NewPrincipal(accessKey),
 				s3action.NewActionSet(
-					s3action.AllActions,
+					s3action.CreateBucketAction,
 				),
 				NewResourceSet(NewResource("*", "*")),
 				condition.NewConFunctions(),

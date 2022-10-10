@@ -134,12 +134,6 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
 		return err
 	}
-	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
-	if err != nil {
-		log.Errorf("save UserIdentity err:%v", err)
-		return err
-	}
-
 	p := policy.CreateUserPolicy(accessKey)
 	err = sys.store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
@@ -148,6 +142,12 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 	if err != nil {
 		return err
 	}
+	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
+	if err != nil {
+		log.Errorf("save UserIdentity err:%v", err)
+		return err
+	}
+
 	return nil
 }
 
