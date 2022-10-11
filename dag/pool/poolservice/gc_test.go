@@ -57,8 +57,8 @@ func Test_Gc(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDagPoolService err:%v", err)
 	}
-	defer service.Close()
 	go service.GCTest(context.Background())
+	defer service.Close()
 	testCases := []struct {
 		name           string
 		bl1            blocks.Block
@@ -68,18 +68,16 @@ func Test_Gc(t *testing.T) {
 		nopinInterrupt bool
 	}{
 		{
-			name:           "pin-no-interrupt",
-			bl1:            blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
-			bl2:            blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
-			pin:            true,
-			pinInterrupt:   false,
-			nopinInterrupt: false,
+			name: "pin-no-interrupt",
+			bl1:  blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
+			bl2:  blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
+			pin:  true,
 		},
 		{
-			name:           "no-pin-no-interrupt",
-			bl1:            blocks.NewBlock(bytes.Repeat([]byte("123456"), 1)),
-			pinInterrupt:   false,
-			nopinInterrupt: false,
+			name: "no-pin-no-interrupt",
+			bl1:  blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
+			bl2:  blocks.NewBlock(bytes.Repeat([]byte("123456"), 1)),
+			pin:  false,
 		},
 		{
 			name:           "no-pin-no-pin-interrupt",
@@ -100,26 +98,28 @@ func Test_Gc(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-
-			err := service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
+			interruptGC = false
+			err = service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
 			if err != nil {
 				t.Fatalf("add block err:%v", err)
 			}
-			err = service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
+			err = service.Add(context.TODO(), tc.bl2, user, pass, tc.pin)
 			if err != nil {
 				t.Fatalf("add block err:%v", err)
 			}
 
 			if tc.pinInterrupt {
+				interruptGC = true
 				<-startgc
 				service.InterruptGC()
 			}
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 7)
 		})
 	}
 }
 
 var startgc = make(chan int)
+var interruptGC bool
 
 func (d dagPoolService) GCTest(ctx context.Context) {
 	timer := time.NewTimer(d.gcPeriod)
@@ -192,7 +192,9 @@ func (d *dagPoolService) runGCTest(ctx context.Context) error {
 			continue
 		}
 		//Increase delete time to test for GC interruptions
-		startgc <- 1
+		if interruptGC {
+			startgc <- 1
+		}
 		time.Sleep(time.Second)
 
 		log.Infow("delete block", "cid", key)
