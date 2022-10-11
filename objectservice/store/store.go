@@ -39,16 +39,16 @@ const (
 	// equals unixfsChunkSize
 	chunkSize int = 1 << 20
 
-	objectKeyFormat        = "obj-%s-%s/"
-	allObjectPrefixFormat  = "obj-%s-%s"
-	allObjectSeekKeyFormat = "obj-%s-%s/"
+	objectKeyFormat        = "obj/%s/%s"
+	allObjectPrefixFormat  = "obj/%s/%s"
+	allObjectSeekKeyFormat = "obj/%s/%s"
 
-	uploadKeyFormat        = "uploadObj-%s-%s-%s"
-	allUploadPrefixFormat  = "uploadObj-%s-%s"
-	allUploadSeekKeyFormat = "uploadObj-%s-%s-%s"
+	uploadKeyFormat        = "uploadObj/%s/%s/%s"
+	allUploadPrefixFormat  = "uploadObj/%s/%s"
+	allUploadSeekKeyFormat = "uploadObj/%s/%s/%s"
 
-	deleteKeyFormat       = "delObj-%s"
-	allDeletePrefixFormat = "delObj-"
+	deleteKeyFormat       = "delObj/%s"
+	allDeletePrefixFormat = "delObj/"
 
 	globalOperationTimeout = 5 * time.Minute
 	deleteOperationTimeout = 1 * time.Minute
@@ -345,7 +345,6 @@ func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		seekKey = fmt.Sprintf(allObjectSeekKeyFormat, bucket, marker)
 	}
 	prefixKey := fmt.Sprintf(allObjectPrefixFormat, bucket, prefix)
-	log.Infow("ListObjects ReadAllChan", "prefixKey", prefixKey, "seekKey", seekKey)
 	all, err := s.Db.ReadAllChan(ctx, prefixKey, seekKey)
 	if err != nil {
 		return loi, err
@@ -360,14 +359,11 @@ func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		if err = entry.UnmarshalValue(&o); err != nil {
 			return loi, err
 		}
-		log.Infow("ListObjects", "index", index, "key", entry.Key, "object name", o.Name)
 		index++
 		loi.Objects = append(loi.Objects, o)
 	}
 	if loi.IsTruncated {
 		loi.NextMarker = loi.Objects[len(loi.Objects)-1].Name
-		log.Infow("ListObjects", "last object name", loi.Objects[len(loi.Objects)-1].Name)
-		log.Infow("ListObjects", "first object name", loi.Objects[0].Name)
 	}
 
 	return loi, nil
