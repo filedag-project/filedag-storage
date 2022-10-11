@@ -87,17 +87,27 @@ func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyNam
 	}
 	return nil
 }
-func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) ([]string, error) {
+func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error) {
+	var ps []policy.Policy
 	var keys []string
 	all, err := I.levelDB.ReadAllChan(ctx, userPolicyPrefix+userName, "")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for entry := range all {
+		var p policy.PolicyDocument
+		if err = entry.UnmarshalValue(&p); err != nil {
+			return nil, nil, err
+		}
+		ps = append(ps, policy.Policy{
+			ID:         "",
+			Version:    p.Version,
+			Statements: p.Statement,
+		})
 		k := strings.TrimPrefix(entry.Key, userPolicyPrefix+userName+"-")
 		keys = append(keys, k)
 	}
-	return keys, nil
+	return ps, keys, nil
 }
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := I.levelDB.Delete(userPolicyPrefix + userName + "-" + policyName)
