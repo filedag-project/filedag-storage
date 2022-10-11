@@ -360,6 +360,7 @@ func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		if err = entry.UnmarshalValue(&o); err != nil {
 			return loi, err
 		}
+		log.Infow("ListObjects", "index", index, "key", entry.Key, "object name", o.Name)
 		index++
 		loi.Objects = append(loi.Objects, o)
 	}
