@@ -310,29 +310,19 @@ func (s *AuthSys) IsPutActionAllowed(ctx context.Context, r *http.Request, actio
 		return apierrors.ErrNone
 	}
 
-	if cred.AccessKey == "" {
-		if s.PolicySys.isAllowed(ctx, auth.Args{
-			AccountName: cred.AccessKey,
-			Action:      action,
-			BucketName:  bucketName,
-			Conditions:  getConditions(r, ""),
-			IsOwner:     false,
-			ObjectName:  objectName,
-		}) {
-			return apierrors.ErrNone
-		}
-		return apierrors.ErrAccessDenied
-	}
-
-	if s.Iam.IsAllowed(ctx, auth.Args{
+	// check bucket policy
+	if s.PolicySys.isAllowed(ctx, auth.Args{
 		AccountName: cred.AccessKey,
 		Action:      action,
 		BucketName:  bucketName,
-		Conditions:  getConditions(r, cred.AccessKey),
-		ObjectName:  objectName,
 		IsOwner:     owner,
+		ObjectName:  objectName,
 	}) {
 		return apierrors.ErrNone
+	}
+
+	if !s.PolicySys.bmSys.HasBucket(ctx, bucketName) {
+		return apierrors.ErrNoSuchBucket
 	}
 	return apierrors.ErrAccessDenied
 }

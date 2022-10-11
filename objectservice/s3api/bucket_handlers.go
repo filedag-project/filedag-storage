@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
@@ -110,13 +109,7 @@ func (s3a *s3ApiServer) PutBucketHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
-	err = s3a.authSys.Iam.UpdateUserPolicy(ctx, cred.AccessKey, bucket, policy.CreateUserPolicy(cred.AccessKey, []s3action.Action{s3action.AllActions}, bucket))
-	if err != nil {
-		s3a.bmSys.DeleteBucket(ctx, bucket)
-		log.Errorf("PutBucketHandler create bucket error:%v", s3err)
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
-		return
-	}
+
 	// Make sure to add Location information here only for bucket
 	if cp := pathClean(r.URL.Path); cp != "" {
 		w.Header().Set(consts.Location, cp) // Clean any trailing slashes.

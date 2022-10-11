@@ -56,38 +56,20 @@ func (sys *IdentityAMSys) IsAllowed(ctx context.Context, args auth.Args) bool {
 		return sys.IsAllowedSTS(args, parentUser)
 	}
 	// Continue with the assumption of a regular user
-	keys, err := sys.store.getUserPolices(ctx, args.AccountName)
+	ps, _, err := sys.store.getUserPolices(ctx, args.AccountName)
 	if err != nil {
 		return false
 	}
-	if len(keys) == 0 {
+	if len(ps) == 0 {
 		// No policy found.
 		return false
 	}
-	var pod policy.PolicyDocument
-	err = sys.GetUserPolicy(ctx, args.AccountName, "default", &pod)
-	if err != nil {
-		return false
-	}
-	for _, pn := range keys {
-		if pn == "default" {
-			continue
-		}
-		var po policy.PolicyDocument
-		err1 := sys.GetUserPolicy(ctx, args.AccountName, pn, &po)
-		if err1 != nil {
-			return false
-		}
-
-		pod = pod.Merge(po)
+	var pol, pmer policy.Policy
+	for _, p := range ps {
+		pmer = pol.Merge(p)
 	}
 	// Policies were found, evaluate all of them.
-	perm := policy.Policy{
-
-		Version:    pod.Version,
-		Statements: pod.Statement,
-	}
-	return perm.IsAllowed(args)
+	return pmer.IsAllowed(args)
 }
 
 // IsAllowedSTS is meant for STS based temporary credentials,
@@ -153,7 +135,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
 		return err
 	}
-	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.CreateBucketAction, s3action.ListBucketAction, s3action.ListAllMyBucketsAction}, "*")
+	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions}, "*")
 	err = sys.store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,
@@ -164,6 +146,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
+		sys.store.removeUserPolicy(ctx, accessKey, "default")
 		return err
 	}
 
@@ -249,7 +232,7 @@ func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyNam
 
 // GetUserPolices Get User all Policy
 func (sys *IdentityAMSys) GetUserPolices(ctx context.Context, userName string) ([]string, error) {
-	keys, err := sys.store.getUserPolices(ctx, userName)
+	_, keys, err := sys.store.getUserPolices(ctx, userName)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)
 		return nil, err

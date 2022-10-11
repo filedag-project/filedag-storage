@@ -23,21 +23,6 @@ type PolicyDocument struct {
 	Statement []Statement `json:"Statement"`
 }
 
-// UnmarshalJSON - decodes JSON data to Iamp.
-func (p *Policy) UnmarshalJSON(data []byte) error {
-	// subtype to avoid recursive call to UnmarshalJSON()
-	type subPolicy Policy
-	var sp subPolicy
-	if err := json.Unmarshal(data, &sp); err != nil {
-		return err
-	}
-
-	po := Policy(sp)
-	p.dropDuplicateStatements()
-	*p = po
-	return nil
-}
-
 // Merge merges two policies documents and drop
 // duplicate statements if any.
 func (p *PolicyDocument) Merge(input PolicyDocument) PolicyDocument {
@@ -62,10 +47,6 @@ redo:
 			goto redo
 		}
 	}
-}
-
-type Policies struct {
-	Policies map[string]PolicyDocument `json:"policies"`
 }
 
 func (p PolicyDocument) String() string {
@@ -186,6 +167,21 @@ func (p Policy) isValid() error {
 			return err
 		}
 	}
+	return nil
+}
+
+// UnmarshalJSON - decodes JSON data to Iamp.
+func (p *Policy) UnmarshalJSON(data []byte) error {
+	// subtype to avoid recursive call to UnmarshalJSON()
+	type subPolicy Policy
+	var sp subPolicy
+	if err := json.Unmarshal(data, &sp); err != nil {
+		return err
+	}
+
+	po := Policy(sp)
+	p.dropDuplicateStatements()
+	*p = po
 	return nil
 }
 
