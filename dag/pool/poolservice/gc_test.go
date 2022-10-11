@@ -1,144 +1,209 @@
 package poolservice
 
-//
-//import (
-//	"bytes"
-//	"context"
-//	"github.com/filedag-project/filedag-storage/dag/pool/client"
-//	"github.com/ipfs/go-blockservice"
-//	"github.com/ipfs/go-cid"
-//	offline "github.com/ipfs/go-ipfs-exchange-offline"
-//	logging "github.com/ipfs/go-log/v2"
-//	"github.com/ipfs/go-merkledag"
-//	"io/ioutil"
-//	"testing"
-//	"time"
-//)
-//
-////func TestDagPoolService_Gc(t *testing.T) {
-////	service, err := NewDagPoolService(config.PoolConfig{LeveldbPath: utils.TmpDirPath(t)})
-////	if err != nil {
-////		return
-////	}
-////	ctx := context.Background()
-////
-////	errc := make(chan error)
-////	go func() {
-////		errc <- service.Gc(ctx)
-////		close(errc)
-////	}()
-////
-////	go aaa(service)
-////	time.Sleep(time.Second * 30)
-////	//fmt.Println(<-errc)
-////
-////}
-////
-////func aaa(service *dagPoolService) {
-////	//cancelFunc()
-////	for {
-////		fmt.Println("aaa")
-////		service.gcl.Lock()
-////		time.Sleep(time.Second)
-////		service.gcl.Unlock()
-////		time.Sleep(time.Second)
-////	}
-////}
-////func BenchmarkXXX(b *testing.B) {
-////	b.StopTimer()
-////	logging.SetAllLoggers(logging.LevelInfo)
-////	poolClient, err := client.NewPoolClient("127.0.0.1:50001", "dagpool", "dagpool")
-////	if err != nil {
-////		log.Errorf("NewPoolClient err:%v", err)
-////		return
-////	}
-////	_, err = poolClient.DPClient.AddUser(context.TODO(), &proto.AddUserReq{
-////		Username: "aaa",
-////		Password: "aaa12345",
-////		Capacity: 1000,
-////		Policy:   "read-write",
-////		User:     poolClient.User,
-////	})
-////	poolClient2, err := client.NewPoolClient("127.0.0.1:50001", "aaa", "aaa12345")
-////	if err != nil {
-////		log.Errorf("NewPoolClient err:%v", err)
-////		return
-////	}
-////	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
-////	f, err := ioutil.ReadFile("gc.go")
-////	b.StartTimer()
-////	for i := 0; i < b.N; i++ {
-////		node, err := client.BalanceNode(bytes.NewReader(append(f, byte(i))), poolClient, cidBuilder)
-////		if err != nil {
-////			log.Errorf("add block err:%v", err)
-////			return
-////		}
-////		log.Infof("add block succes cid:%v", node.Cid())
-////		node2, err := client.BalanceNode(bytes.NewReader(append(f, byte(i))), poolClient2, cidBuilder)
-////		if err != nil {
-////			log.Errorf("add block err:%v", err)
-////			return
-////		}
-////		log.Infof("add block succes cid:%v", node2.Cid())
-////		//time.Sleep(time.Millisecond * 50)
-////	}
-////}
-//func Test_aa(t *testing.T) {
-//	logging.SetAllLoggers(logging.LevelDebug)
-//	//poolClient, err := client.NewPoolClient("192.168.1.159:50001", "dagpool", "dagpool")
-//	//if err != nil {
-//	//	log.Errorf("NewPoolClient err:%v", err)
-//	//	return
-//	//}
-//	//ad, err := poolClient.DPClient.AddUser(context.TODO(), &proto.AddUserReq{
-//	//	Username: "aaa",
-//	//	Password: "aaa12345",
-//	//	Capacity: 1000,
-//	//	Policy:   "read-write",
-//	//	User:     poolClient.User,
-//	//})
-//	//if err != nil {
-//	//	log.Errorf("add user err:%v", err)
-//	//	return
-//	//}
-//	//log.Infof("add user succes %v", ad.Message)
-//	//
-//	//go adder("192.168.1.159:50001", "dagpool", "dagpool")
-//	go adder("192.168.1.159:50001", "aaa", "aaa12345")
-//	//time.Sleep(time.Minute * 2)
-//	//c, _ := cid.Decode("Qmedhji2WQautBzWA6PyizUNQD35BxbPAowMpL2tqC3x3t")
-//	//for i := 0; i < 10; i++ {
-//	//	poolClient.Remove(context.TODO(), c)
-//	//}
-//	time.Sleep(time.Minute * 5)
-//	//poolClient.Get(context.TODO(), c)
-//}
-//func adder(addr, clientuser, clientpass string) {
-//	poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
-//	if err != nil {
-//		log.Errorf("NewPoolClient err:%v", err)
-//		return
-//	}
-//	dagServ := merkledag.NewDAGService(blockservice.New(poolClient, offline.Exchange(poolClient)))
-//
-//	f, err := ioutil.ReadFile("/Users/wpg/Downloads/IPFS-Desktop-0.21.0.dmg")
-//	c := cid.Cid{}
-//	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
-//	for i := 0; i < 1000; i++ {
-//		node, err := client.BalanceNode(bytes.NewReader(append(f, byte(i))), dagServ, cidBuilder)
-//		if err != nil {
-//			log.Errorf("add block err:%v", err)
-//			return
-//		}
-//		log.Infof("add block succes cid:%v", node.Cid())
-//		c = node.Cid()
-//		time.Sleep(time.Second * 50)
-//	}
-//	time.Sleep(time.Minute * 2)
-//	get, err := poolClient.Get(context.TODO(), c)
-//	if err != nil {
-//		log.Errorf("%v,err%v", clientuser, err)
-//		return
-//	}
-//	log.Infof(get.Cid().String())
-//}
+import (
+	"bytes"
+	"context"
+	"github.com/filedag-project/filedag-storage/dag/config"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode"
+	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
+	"testing"
+	"time"
+)
+
+func Test_Gc(t *testing.T) {
+	t.SkipNow() //delete this to test
+	utils.SetupLogLevels()
+	user, pass := "dagpool", "dagpool"
+	go datanode.StartDataNodeServer(":9021", datanode.KVBadge, t.TempDir())
+	time.Sleep(time.Second)
+	go datanode.StartDataNodeServer(":9022", datanode.KVBadge, t.TempDir())
+	time.Sleep(time.Second)
+	go datanode.StartDataNodeServer(":9023", datanode.KVBadge, t.TempDir())
+	time.Sleep(time.Second)
+	var (
+		dagdc = []config.DataNodeConfig{
+			{
+				Ip:   "127.0.0.1",
+				Port: "9021",
+			},
+			{
+				Ip:   "127.0.0.1",
+				Port: "9022",
+			},
+			{
+				Ip:   "127.0.0.1",
+				Port: "9023",
+			},
+		}
+		dagc = []config.DagNodeConfig{
+			{
+				Nodes:        dagdc,
+				DataBlocks:   2,
+				ParityBlocks: 1,
+			},
+		}
+		cfg = config.PoolConfig{
+			Listen:        "127.0.0.1:50002",
+			DagNodeConfig: dagc,
+			LeveldbPath:   t.TempDir(),
+			RootUser:      user,
+			RootPassword:  pass,
+			GcPeriod:      time.Second * 5,
+		}
+	)
+	service, err := NewDagPoolService(cfg)
+	if err != nil {
+		t.Fatalf("NewDagPoolService err:%v", err)
+	}
+	defer service.Close()
+	go service.GCTest(context.Background())
+	testCases := []struct {
+		name           string
+		bl1            blocks.Block
+		bl2            blocks.Block
+		pin            bool
+		pinInterrupt   bool
+		nopinInterrupt bool
+	}{
+		{
+			name:           "pin-no-interrupt",
+			bl1:            blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
+			bl2:            blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
+			pin:            true,
+			pinInterrupt:   false,
+			nopinInterrupt: false,
+		},
+		{
+			name:           "no-pin-no-interrupt",
+			bl1:            blocks.NewBlock(bytes.Repeat([]byte("123456"), 1)),
+			pinInterrupt:   false,
+			nopinInterrupt: false,
+		},
+		{
+			name:           "no-pin-no-pin-interrupt",
+			bl1:            blocks.NewBlock(bytes.Repeat([]byte("123457"), 1)),
+			bl2:            blocks.NewBlock(bytes.Repeat([]byte("1234578"), 1)),
+			pin:            false,
+			pinInterrupt:   false,
+			nopinInterrupt: true,
+		},
+		{
+			name:           "no-pin-pin-interrupt",
+			bl1:            blocks.NewBlock(bytes.Repeat([]byte("12345789"), 1)),
+			bl2:            blocks.NewBlock(bytes.Repeat([]byte("123457890"), 1)),
+			pin:            false,
+			pinInterrupt:   true,
+			nopinInterrupt: false,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			err := service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
+			if err != nil {
+				t.Fatalf("add block err:%v", err)
+			}
+			err = service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
+			if err != nil {
+				t.Fatalf("add block err:%v", err)
+			}
+
+			if tc.pinInterrupt {
+				<-startgc
+				service.InterruptGC()
+			}
+			time.Sleep(time.Second * 5)
+		})
+	}
+}
+
+var startgc = make(chan int)
+
+func (d dagPoolService) GCTest(ctx context.Context) {
+	timer := time.NewTimer(d.gcPeriod)
+	defer timer.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-timer.C:
+			log.Info("starting GC...")
+			func() {
+				var finish chan<- struct{}
+				taskCtx, cancel := context.WithCancel(ctx)
+				defer func() {
+					cancel()
+					select {
+					case finish <- struct{}{}:
+					default:
+						if finish != nil {
+							// never reach here
+							log.Fatal("GC error")
+						}
+					}
+				}()
+				go func() {
+					select {
+					case finish = <-d.gcControl.Interrupt():
+						cancel()
+					case <-taskCtx.Done():
+					}
+				}()
+				if err := d.runGCTest(taskCtx); err != nil {
+					log.Errorf("GC err: %v", err)
+				}
+			}()
+			log.Info("GC completed")
+			timer.Reset(d.gcPeriod)
+		case finish := <-d.gcControl.Interrupt():
+			finish <- struct{}{}
+		}
+	}
+}
+
+//IExactly the same logic as runGC, just increase the deletion time to test the GC interruption problem
+func (d *dagPoolService) runGCTest(ctx context.Context) error {
+	keys, err := d.cacheSet.AllKeysChan(ctx)
+	if err != nil {
+		return err
+	}
+
+	for key := range keys {
+		// is pinned?
+		if has, err := d.refCounter.Has(key); err != nil {
+			return err
+		} else if has {
+			continue
+		}
+
+		blkCid, err := cid.Decode(key)
+		if err != nil {
+			log.Warnw("decode cid error", "cid", key, "error", err)
+			continue
+		}
+		node, err := d.getDagNodeInfo(ctx, blkCid)
+		if err != nil {
+			return err
+		}
+		if err = d.cacheSet.Remove(key); err != nil {
+			log.Warnw("remove cache key error", "cid", key, "error", err)
+			continue
+		}
+		//Increase delete time to test for GC interruptions
+		startgc <- 1
+		time.Sleep(time.Second)
+
+		log.Infow("delete block", "cid", key)
+		if err = node.DeleteBlock(ctx, blkCid); err != nil {
+			if err := d.cacheSet.Add(key); err != nil {
+				log.Errorw("rollback cache key error", "cid", key, "error", err)
+			}
+
+			log.Warnw("delete block data error", "cid", key, "error", err)
+			continue
+		}
+	}
+	return nil
+}
