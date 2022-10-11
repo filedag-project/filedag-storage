@@ -51,7 +51,7 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 		return err
 	}
 	//todo policy name
-	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.CreateBucketAction}, "*")
+	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.CreateBucketAction, s3action.ListBucketAction, s3action.ListAllMyBucketsAction}, "*")
 	err = store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,
