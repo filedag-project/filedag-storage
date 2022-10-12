@@ -3,8 +3,6 @@ package poolservice
 import (
 	"bytes"
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/config"
-	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -16,47 +14,7 @@ func Test_Gc(t *testing.T) {
 	t.SkipNow() //delete this to test
 	utils.SetupLogLevels()
 	user, pass := "dagpool", "dagpool"
-	go datanode.StartDataNodeServer(":9021", datanode.KVBadge, t.TempDir())
-	time.Sleep(time.Second)
-	go datanode.StartDataNodeServer(":9022", datanode.KVBadge, t.TempDir())
-	time.Sleep(time.Second)
-	go datanode.StartDataNodeServer(":9023", datanode.KVBadge, t.TempDir())
-	time.Sleep(time.Second)
-	var (
-		dagdc = []config.DataNodeConfig{
-			{
-				Ip:   "127.0.0.1",
-				Port: "9021",
-			},
-			{
-				Ip:   "127.0.0.1",
-				Port: "9022",
-			},
-			{
-				Ip:   "127.0.0.1",
-				Port: "9023",
-			},
-		}
-		dagc = []config.DagNodeConfig{
-			{
-				Nodes:        dagdc,
-				DataBlocks:   2,
-				ParityBlocks: 1,
-			},
-		}
-		cfg = config.PoolConfig{
-			Listen:        "127.0.0.1:50002",
-			DagNodeConfig: dagc,
-			LeveldbPath:   t.TempDir(),
-			RootUser:      user,
-			RootPassword:  pass,
-			GcPeriod:      time.Second * 5,
-		}
-	)
-	service, err := NewDagPoolService(cfg)
-	if err != nil {
-		t.Fatalf("NewDagPoolService err:%v", err)
-	}
+	service := startTestDagPoolServer(t)
 	go service.GCTest(context.Background())
 	defer service.Close()
 	testCases := []struct {
@@ -99,7 +57,7 @@ func Test_Gc(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			interruptGC = false
-			err = service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
+			err := service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
 			if err != nil {
 				t.Fatalf("add block err:%v", err)
 			}
