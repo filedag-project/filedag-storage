@@ -56,7 +56,7 @@ func (sys *IdentityAMSys) IsAllowed(ctx context.Context, args auth.Args) bool {
 		return sys.IsAllowedSTS(args, parentUser)
 	}
 	// Continue with the assumption of a regular user
-	ps, _, err := sys.store.getUserPolices(ctx, args.AccountName)
+	ps, _, err := sys.store.loadUserAllPolices(ctx, args.AccountName)
 	if err != nil {
 		return false
 	}
@@ -136,14 +136,14 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 		return err
 	}
 	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions}, "*")
-	err = sys.store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
+	err = sys.store.saveUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,
 	})
 	if err != nil {
 		return err
 	}
-	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
+	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
 		sys.store.removeUserPolicy(ctx, accessKey, "default")
@@ -162,7 +162,7 @@ func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, 
 		return err
 	}
 	credentials.ParentUser = parentUser
-	err = sys.store.saveUserIdentity(ctx, accessKey, UserIdentity{credentials})
+	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
 		return err
@@ -172,7 +172,7 @@ func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, 
 
 //UpdateUser Update User
 func (sys *IdentityAMSys) UpdateUser(ctx context.Context, cred auth.Credentials) error {
-	err := sys.store.saveUserIdentity(ctx, cred.AccessKey, UserIdentity{Credentials: cred})
+	err := sys.store.saveUserIdentity(ctx, UserIdentity{Credentials: cred})
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (sys *IdentityAMSys) RemoveUser(ctx context.Context, accessKey string) erro
 
 // CreatePolicy Create Policy
 func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
-	err := sys.store.createPolicy(ctx, policyName, policyDocument)
+	err := sys.store.savePolicy(ctx, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create Policy err:%v", err)
 		return err
@@ -212,7 +212,7 @@ func (sys *IdentityAMSys) CreatePolicy(ctx context.Context, policyName string, p
 
 // PutUserPolicy Create Policy
 func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	err := sys.store.createUserPolicy(ctx, userName, policyName, policyDocument)
+	err := sys.store.saveUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("create UserPolicy err:%v", err)
 		return err
@@ -222,7 +222,7 @@ func (sys *IdentityAMSys) PutUserPolicy(ctx context.Context, userName, policyNam
 
 // GetUserPolicy Get User Policy
 func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error {
-	err := sys.store.getUserPolicy(ctx, userName, policyName, policyDocument)
+	err := sys.store.loadUserPolicy(ctx, userName, policyName, policyDocument)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)
 		return err
@@ -232,7 +232,7 @@ func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyNam
 
 // GetUserPolices Get User all Policy
 func (sys *IdentityAMSys) GetUserPolices(ctx context.Context, userName string) ([]string, error) {
-	_, keys, err := sys.store.getUserPolices(ctx, userName)
+	_, keys, err := sys.store.loadUserAllPolices(ctx, userName)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)
 		return nil, err
