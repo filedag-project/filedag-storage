@@ -13,19 +13,20 @@ var errInvalidArgument = errors.New("Invalid arguments specified")
 
 // iamStoreAPI defines an interface for the IAM persistence layer
 type iamStoreAPI interface {
-	saveUserIdentity(ctx context.Context, name string, u UserIdentity) error
-	removeUserIdentity(ctx context.Context, name string) error
-	loadUser(ctx context.Context, user string, m *auth.Credentials) error
+	saveUserIdentity(ctx context.Context, u UserIdentity) error
+	removeUserIdentity(ctx context.Context, userName string) error
+	loadUser(ctx context.Context, userName string, m *auth.Credentials) error
 	loadUsers(ctx context.Context) (map[string]auth.Credentials, error)
 	//loadGroup(ctx context.Context, group string, m *GroupInfo) error
 	//loadGroups(ctx context.Context) (map[string]GroupInfo, error)
 	//saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error
 	//removeGroupInfo(ctx context.Context, name string) error
-	createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
-	createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
-	getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error
-	getUserPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error)
+	savePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
+	saveUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
+	loadUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error
+	loadUserAllPolicies(ctx context.Context, userName string) ([]policy.Policy, []string, error)
 	removeUserPolicy(ctx context.Context, userName, policyName string) error
+	removeUserAllPolicies(ctx context.Context, userName string) error
 }
 
 // iamStoreSys contains IAMStorageAPI to add higher-level methods on the storage
@@ -46,13 +47,13 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 	}
 
 	u := newUserIdentity(cred)
-	err := store.saveUserIdentity(ctx, accessKey, u)
+	err := store.saveUserIdentity(ctx, u)
 	if err != nil {
 		return err
 	}
 	//todo policy name
 	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions}, "*")
-	err = store.createUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
+	err = store.saveUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,
 	})

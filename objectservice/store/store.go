@@ -294,6 +294,27 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	return nil
 }
 
+func (s *StorageSys) CleanObjectsInBucket(ctx context.Context, bucket string) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	prefixKey := fmt.Sprintf(allObjectPrefixFormat, bucket, "")
+	all, err := s.Db.ReadAllChan(ctx, prefixKey, "")
+	if err != nil {
+		return err
+	}
+	for entry := range all {
+		var o ObjectInfo
+		if err = entry.UnmarshalValue(&o); err != nil {
+			return err
+		}
+		if err = s.DeleteObject(ctx, bucket, o.Name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ListObjectsInfo - container for list objects.
 type ListObjectsInfo struct {
 	// Indicates whether the returned list objects response is truncated. A

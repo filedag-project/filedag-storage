@@ -4,18 +4,23 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/gorilla/mux"
+	logging "github.com/ipfs/go-log/v2"
 	"net/http"
 )
 
+var log = logging.Logger("iamsever")
+
 //iamApiServer the IamApi Server
 type iamApiServer struct {
-	authSys *iam.AuthSys
+	authSys   *iam.AuthSys
+	cleanData func(accessKey string)
 }
 
 //NewIamApiServer New iamApiServer
-func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys) {
+func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys, cleanData func(accessKey string)) {
 	iamApiSer := &iamApiServer{
-		authSys: authSys,
+		authSys:   authSys,
+		cleanData: cleanData,
 	}
 	iamApiSer.registerRouter(router)
 

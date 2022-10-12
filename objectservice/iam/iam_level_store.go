@@ -10,11 +10,23 @@ import (
 )
 
 const (
-	userPrefix       = "user/"
-	policyPrefix     = "policy/"
-	userPolicyPrefix = "user_policy/"
-	groupPrefix      = "group/"
+	userKeyFormat       = "user/%s"
+	policyKeyFormat     = "policy/%s"
+	userPolicyKeyFormat = "user_policy/%s/%s"
+	groupPrefix         = "group/"
 )
+
+func getUserKey(username string) string {
+	return fmt.Sprintf(userKeyFormat, username)
+}
+
+func getPolicyKey(policyName string) string {
+	return fmt.Sprintf(policyKeyFormat, policyName)
+}
+
+func getUserPolicyKey(username, policyName string) string {
+	return fmt.Sprintf(userPolicyKeyFormat, username, policyName)
+}
 
 // iamLevelDBStore implements IAMStorageAPI
 type iamLevelDBStore struct {
@@ -22,7 +34,7 @@ type iamLevelDBStore struct {
 }
 
 func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Credentials) error {
-	err := I.levelDB.Get(userPrefix+user, m)
+	err := I.levelDB.Get(getUserKey(user), m)
 	if err != nil {
 		return err
 	}
@@ -32,7 +44,7 @@ func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Cre
 func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Credentials, error) {
 	m := make(map[string]auth.Credentials)
 
-	all, err := I.levelDB.ReadAllChan(ctx, userPrefix, "")
+	all, err := I.levelDB.ReadAllChan(ctx, getUserKey(""), "")
 	if err != nil {
 		return m, err
 	}
@@ -41,17 +53,13 @@ func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Creden
 		if err = entry.UnmarshalValue(&cred); err != nil {
 			continue
 		}
-		strs := strings.Split(entry.Key, "/")
-		if len(strs) < 2 {
-			return nil, fmt.Errorf("invalid key[%s], missing user name", entry.Key)
-		}
-		key := strs[1]
-		m[key] = cred
+		m[cred.AccessKey] = cred
 	}
 	return m, nil
 }
-func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, name string, u UserIdentity) error {
-	err := I.levelDB.Put(userPrefix+name, u.Credentials)
+
+func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, u UserIdentity) error {
+	err := I.levelDB.Put(getUserKey(u.Credentials.AccessKey), u.Credentials)
 	if err != nil {
 		return err
 	}
@@ -59,38 +67,41 @@ func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, name string, u U
 }
 
 func (I *iamLevelDBStore) removeUserIdentity(ctx context.Context, name string) error {
-	err := I.levelDB.Delete(userPrefix + name)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (I *iamLevelDBStore) createPolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.levelDB.Put(policyPrefix+"-"+policyName, policyDocument)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (I *iamLevelDBStore) createUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
-	err := I.levelDB.Put(userPolicyPrefix+userName+"-"+policyName, policyDocument)
+	err := I.levelDB.Delete(getUserKey(name))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (I *iamLevelDBStore) getUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error {
-	err := I.levelDB.Get(userPolicyPrefix+userName+"-"+policyName, policyDocument)
+func (I *iamLevelDBStore) savePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
+	err := I.levelDB.Put(getPolicyKey(policyName), policyDocument)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error) {
+
+func (I *iamLevelDBStore) saveUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
+	err := I.levelDB.Put(getUserPolicyKey(userName, policyName), policyDocument)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (I *iamLevelDBStore) loadUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error {
+	err := I.levelDB.Get(getUserPolicyKey(userName, policyName), policyDocument)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (I *iamLevelDBStore) loadUserAllPolicies(ctx context.Context, userName string) ([]policy.Policy, []string, error) {
 	var ps []policy.Policy
 	var keys []string
-	all, err := I.levelDB.ReadAllChan(ctx, userPolicyPrefix+userName, "")
+	all, err := I.levelDB.ReadAllChan(ctx, getUserPolicyKey(userName, ""), "")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -104,15 +115,29 @@ func (I *iamLevelDBStore) getUserPolices(ctx context.Context, userName string) (
 			Version:    p.Version,
 			Statements: p.Statement,
 		})
-		k := strings.TrimPrefix(entry.Key, userPolicyPrefix+userName+"-")
+		k := strings.TrimPrefix(entry.Key, getUserPolicyKey(userName, ""))
 		keys = append(keys, k)
 	}
 	return ps, keys, nil
 }
+
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
-	err := I.levelDB.Delete(userPolicyPrefix + userName + "-" + policyName)
+	err := I.levelDB.Delete(getUserPolicyKey(userName, policyName))
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (I *iamLevelDBStore) removeUserAllPolicies(ctx context.Context, userName string) error {
+	all, err := I.levelDB.ReadAllChan(ctx, getUserPolicyKey(userName, ""), "")
+	if err != nil {
+		return err
+	}
+	for entry := range all {
+		if err = I.levelDB.Delete(entry.Key); err != nil {
+			return err
+		}
 	}
 	return nil
 }

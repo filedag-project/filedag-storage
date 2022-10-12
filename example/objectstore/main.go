@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
 	"github.com/filedag-project/filedag-storage/objectservice/s3api"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/gorilla/mux"
@@ -59,14 +60,35 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 	}
 	authSys := iam.NewAuthSys(db, cred)
 	router := mux.NewRouter()
-	iamapi.NewIamApiServer(router, authSys)
 	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass, true)
 	if err != nil {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
 	defer poolClient.Close(context.TODO())
 	dagServ := merkledag.NewDAGService(blockservice.New(poolClient, offline.Exchange(poolClient)))
-	s3api.NewS3Server(context.TODO(), router, dagServ, authSys, db)
+	storageSys := store.NewStorageSys(context.TODO(), dagServ, db)
+	bmSys := store.NewBucketMetadataSys(db)
+	storageSys.SetNewBucketNSLock(bmSys.NewNSLock)
+	storageSys.SetHasBucket(bmSys.HasBucket)
+	bmSys.SetEmptyBucket(storageSys.EmptyBucket)
+	cleanData := func(accessKey string) {
+		ctx := context.Background()
+		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		if err != nil {
+			log.Printf("GetAllBucketsOfUser error: %v", err)
+		}
+		for _, bkt := range bkts {
+			if err = storageSys.CleanObjectsInBucket(ctx, bkt.Name); err != nil {
+				log.Printf("CleanObjectsInBucket error: %v", err)
+				continue
+			}
+			if err = bmSys.DeleteBucket(ctx, bkt.Name); err != nil {
+				log.Printf("DeleteBucket error: %v", err)
+			}
+		}
+	}
+	iamapi.NewIamApiServer(router, authSys, cleanData)
+	s3api.NewS3Server(router, authSys, bmSys, storageSys)
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		fmt.Printf("start sever at http://%v%v", ip, port)

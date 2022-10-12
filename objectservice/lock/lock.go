@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var log = logging.Logger("server")
+var log = logging.Logger("nslocker")
 
 // OperationTimedOut - a timeout occurred.
 type OperationTimedOut struct{}

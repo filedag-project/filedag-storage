@@ -160,7 +160,6 @@ const (
 	ErrContentSHA256Mismatch
 
 	// Add new extended error codes here.
-
 	ErrInvalidObjectName
 	ErrInvalidObjectNamePrefixSlash
 	ErrClientDisconnected
@@ -168,6 +167,8 @@ const (
 	ErrOperationMaxedOut
 	ErrInvalidRequest
 	ErrIncorrectContinuationToken
+	ErrInvalidFormatAccessKey
+
 	// S3 Select Errors
 	ErrEmptyRequestBody
 	ErrUnsupportedFunction
@@ -807,6 +808,11 @@ var errorCodeResponse = map[ErrorCode]APIError{
 	ErrIncorrectContinuationToken: {
 		Code:           "InvalidArgument",
 		Description:    "The continuation token provided is incorrect",
+		HTTPStatusCode: http.StatusBadRequest,
+	},
+	ErrInvalidFormatAccessKey: {
+		Code:           "InvalidAccessKeyId",
+		Description:    "The Access Key Id you provided contains invalid characters.",
 		HTTPStatusCode: http.StatusBadRequest,
 	},
 	// S3 Select API Errors

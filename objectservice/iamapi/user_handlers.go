@@ -9,8 +9,8 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/gorilla/mux"
-	"github.com/opentracing/opentracing-go/log"
 	"net/http"
+	"regexp"
 )
 
 const (
@@ -22,6 +22,8 @@ const (
 	PolicyName            = "policyName"
 	AccountStatus         = "status"
 )
+
+var validAccessKey = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9\.\-]{1,18}[A-Za-z0-9]$`)
 
 // CreateUser  add user
 func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +37,12 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	accessKey := vars[AccessKey]
 	secretKey := vars[SecretKey]
 	if !auth.IsAccessKeyValid(accessKey) {
-		response.WriteErrorResponse(w, r, apierrors.ErrInvalidQueryParams)
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidFormatAccessKey)
+		return
+	}
+	if !validAccessKey.MatchString(accessKey) {
+		response.WriteErrorResponse(w, r, apierrors.ErrInvalidFormatAccessKey)
+		return
 	}
 	if !auth.IsSecretKeyValid(secretKey) {
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidQueryParams)
@@ -73,6 +80,12 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
+	// clean removed user's bucket
+	// TODO: If the deletion fails, try again
+	go func() {
+		iamApi.cleanData(accessKey)
+	}()
+
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
