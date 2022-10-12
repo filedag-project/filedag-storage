@@ -56,7 +56,7 @@ func (sys *IdentityAMSys) IsAllowed(ctx context.Context, args auth.Args) bool {
 		return sys.IsAllowedSTS(args, parentUser)
 	}
 	// Continue with the assumption of a regular user
-	ps, _, err := sys.store.loadUserAllPolices(ctx, args.AccountName)
+	ps, _, err := sys.store.loadUserAllPolicies(ctx, args.AccountName)
 	if err != nil {
 		return false
 	}
@@ -192,8 +192,12 @@ func (sys *IdentityAMSys) GetUser(ctx context.Context, accessKey string) (cred a
 
 // RemoveUser Remove User
 func (sys *IdentityAMSys) RemoveUser(ctx context.Context, accessKey string) error {
-	err := sys.store.removeUserIdentity(ctx, accessKey)
+	err := sys.store.removeUserAllPolicies(ctx, accessKey)
 	if err != nil {
+		log.Errorf("remove user all policies error: %v", err)
+		return err
+	}
+	if err = sys.store.removeUserIdentity(ctx, accessKey); err != nil {
 		log.Errorf("Remove UserIdentity err:%v", err)
 		return err
 	}
@@ -232,7 +236,7 @@ func (sys *IdentityAMSys) GetUserPolicy(ctx context.Context, userName, policyNam
 
 // GetUserPolices Get User all Policy
 func (sys *IdentityAMSys) GetUserPolices(ctx context.Context, userName string) ([]string, error) {
-	_, keys, err := sys.store.loadUserAllPolices(ctx, userName)
+	_, keys, err := sys.store.loadUserAllPolicies(ctx, userName)
 	if err != nil {
 		log.Errorf("get UserPolicy err:%v", err)
 		return nil, err

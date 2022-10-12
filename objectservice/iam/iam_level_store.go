@@ -57,6 +57,7 @@ func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Creden
 	}
 	return m, nil
 }
+
 func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, u UserIdentity) error {
 	err := I.levelDB.Put(getUserKey(u.Credentials.AccessKey), u.Credentials)
 	if err != nil {
@@ -72,6 +73,7 @@ func (I *iamLevelDBStore) removeUserIdentity(ctx context.Context, name string) e
 	}
 	return nil
 }
+
 func (I *iamLevelDBStore) savePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error {
 	err := I.levelDB.Put(getPolicyKey(policyName), policyDocument)
 	if err != nil {
@@ -79,6 +81,7 @@ func (I *iamLevelDBStore) savePolicy(ctx context.Context, policyName string, pol
 	}
 	return nil
 }
+
 func (I *iamLevelDBStore) saveUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error {
 	err := I.levelDB.Put(getUserPolicyKey(userName, policyName), policyDocument)
 	if err != nil {
@@ -94,7 +97,8 @@ func (I *iamLevelDBStore) loadUserPolicy(ctx context.Context, userName, policyNa
 	}
 	return nil
 }
-func (I *iamLevelDBStore) loadUserAllPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error) {
+
+func (I *iamLevelDBStore) loadUserAllPolicies(ctx context.Context, userName string) ([]policy.Policy, []string, error) {
 	var ps []policy.Policy
 	var keys []string
 	all, err := I.levelDB.ReadAllChan(ctx, getUserPolicyKey(userName, ""), "")
@@ -116,10 +120,24 @@ func (I *iamLevelDBStore) loadUserAllPolices(ctx context.Context, userName strin
 	}
 	return ps, keys, nil
 }
+
 func (I *iamLevelDBStore) removeUserPolicy(ctx context.Context, userName, policyName string) error {
 	err := I.levelDB.Delete(getUserPolicyKey(userName, policyName))
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (I *iamLevelDBStore) removeUserAllPolicies(ctx context.Context, userName string) error {
+	all, err := I.levelDB.ReadAllChan(ctx, getUserPolicyKey(userName, ""), "")
+	if err != nil {
+		return err
+	}
+	for entry := range all {
+		if err = I.levelDB.Delete(entry.Key); err != nil {
+			return err
+		}
 	}
 	return nil
 }

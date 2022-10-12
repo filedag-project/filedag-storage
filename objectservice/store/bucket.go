@@ -172,8 +172,8 @@ func (sys *BucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) e
 	return sys.db.Delete(bucketPrefix + bucket)
 }
 
-// GetAllBucketOfUser metadata for all bucket.
-func (sys *BucketMetadataSys) GetAllBucketOfUser(ctx context.Context, username string) ([]BucketMetadata, error) {
+// GetAllBucketsOfUser metadata for all bucket.
+func (sys *BucketMetadataSys) GetAllBucketsOfUser(ctx context.Context, username string) ([]BucketMetadata, error) {
 	var m []BucketMetadata
 	all, err := sys.db.ReadAllChan(ctx, bucketPrefix, "")
 	if err != nil {

@@ -24,8 +24,9 @@ type iamStoreAPI interface {
 	savePolicy(ctx context.Context, policyName string, policyDocument policy.PolicyDocument) error
 	saveUserPolicy(ctx context.Context, userName, policyName string, policyDocument policy.PolicyDocument) error
 	loadUserPolicy(ctx context.Context, userName, policyName string, policyDocument *policy.PolicyDocument) error
-	loadUserAllPolices(ctx context.Context, userName string) ([]policy.Policy, []string, error)
+	loadUserAllPolicies(ctx context.Context, userName string) ([]policy.Policy, []string, error)
 	removeUserPolicy(ctx context.Context, userName, policyName string) error
+	removeUserAllPolicies(ctx context.Context, userName string) error
 }
 
 // iamStoreSys contains IAMStorageAPI to add higher-level methods on the storage

@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
 	"github.com/filedag-project/filedag-storage/objectservice/s3api"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/gorilla/mux"
@@ -60,15 +61,39 @@ func startServer(cctx *cli.Context) {
 	}
 	defer db.Close()
 	router := mux.NewRouter()
-	authSys := iam.NewAuthSys(db, cred)
-	iamapi.NewIamApiServer(router, authSys)
 	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPassword, true)
 	if err != nil {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
 	defer poolClient.Close(context.TODO())
 	dagServ := merkledag.NewDAGService(dagpoolcli.NewBlockService(poolClient))
-	s3api.NewS3Server(cctx.Context, router, dagServ, authSys, db)
+	storageSys := store.NewStorageSys(cctx.Context, dagServ, db)
+	authSys := iam.NewAuthSys(db, cred)
+	bmSys := store.NewBucketMetadataSys(db)
+	storageSys.SetNewBucketNSLock(bmSys.NewNSLock)
+	storageSys.SetHasBucket(bmSys.HasBucket)
+	bmSys.SetEmptyBucket(storageSys.EmptyBucket)
+
+	cleanData := func(accessKey string) {
+		ctx := context.Background()
+		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		if err != nil {
+			log.Errorf("GetAllBucketsOfUser error: %v", err)
+		}
+		for _, bkt := range bkts {
+			if err = storageSys.CleanObjectsInBucket(ctx, bkt.Name); err != nil {
+				log.Errorf("CleanObjectsInBucket error: %v", err)
+				continue
+			}
+			if err = bmSys.DeleteBucket(ctx, bkt.Name); err != nil {
+				log.Errorf("DeleteBucket error: %v", err)
+			}
+		}
+	}
+
+	s3api.NewS3Server(router, authSys, bmSys, storageSys)
+	iamapi.NewIamApiServer(router, authSys, cleanData)
+
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 			log.Infof("start sever at http://%v%v", ip, listen)

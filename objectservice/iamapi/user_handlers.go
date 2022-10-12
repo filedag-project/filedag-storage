@@ -9,7 +9,6 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/gorilla/mux"
-	"github.com/opentracing/opentracing-go/log"
 	"net/http"
 	"regexp"
 )
@@ -81,6 +80,12 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
+	// clean removed user's bucket
+	// TODO: If the deletion fails, try again
+	go func() {
+		iamApi.cleanData(accessKey)
+	}()
+
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 

@@ -1,15 +1,12 @@
 package s3api
 
 import (
-	"context"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/gorilla/mux"
-	ipld "github.com/ipfs/go-ipld-format"
 	"net/http"
 )
 
@@ -119,15 +116,12 @@ func (s3a *s3ApiServer) registerSTSRouter(router *mux.Router) {
 }
 
 //NewS3Server Start a S3Server
-func NewS3Server(ctx context.Context, router *mux.Router, dagService ipld.DAGService, authSys *iam.AuthSys, db *uleveldb.ULevelDB) {
+func NewS3Server(router *mux.Router, authSys *iam.AuthSys, bmSys *store.BucketMetadataSys, storageSys *store.StorageSys) {
 	s3server := &s3ApiServer{
 		authSys: authSys,
-		store:   store.NewStorageSys(ctx, dagService, db),
-		bmSys:   store.NewBucketMetadataSys(db),
+		store:   storageSys,
+		bmSys:   bmSys,
 	}
-	s3server.store.SetNewBucketNSLock(s3server.bmSys.NewNSLock)
-	s3server.store.SetHasBucket(s3server.bmSys.HasBucket)
-	s3server.bmSys.SetEmptyBucket(s3server.store.EmptyBucket)
 	s3server.registerSTSRouter(router)
 	s3server.registerS3Router(router)
 

@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 	authSys := iam.NewAuthSys(db, cred)
-	NewIamApiServer(router, authSys)
+	NewIamApiServer(router, authSys, func(accessKey string) {})
 	//s3api.NewS3Server(router)
 	os.Exit(m.Run())
 }
