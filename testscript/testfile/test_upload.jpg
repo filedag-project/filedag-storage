@@ -1,0 +1,5 @@
+ test testA creat illegal bucket loc1creatbucketA ,expect 1 get 1,success
+ test testA creat illegal bucket te  ,expect 1 get 1,success
+ test testA creat illegal bucket loc1test- ,expect 1 get 1,success
+ test testA creat illegal bucket loc1test_ ,expect 1 get 1,success
+ test testA creat illegal bucket loc1test_1 ,expect 1 get 1,success
