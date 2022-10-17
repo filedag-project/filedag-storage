@@ -1,3 +1,5 @@
+#!/bin/bash
+
 . ./common.sh
 
 function test_policy_set() {

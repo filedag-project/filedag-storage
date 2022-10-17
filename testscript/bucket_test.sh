@@ -1,3 +1,5 @@
+#!/bin/bash
+
 . ./common.sh
 # diff user creat bucket
 function test_diff_user_creat_bucket() {
