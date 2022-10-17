@@ -7,7 +7,7 @@ function test_object_upload() {
     # creat bucket for test
     mc mb loc1/testaupload >/dev/null 2>&1
     mc mb loc1/testadminupload >/dev/null 2>&1
-    mc policy set upload loc1/testadminupload >/dev/null 2>&1
+    mc anonymous set upload loc1/testadminupload >/dev/null 2>&1
     echo " 1)user 'testA' upload file"
     mc cp test_cp.txt loc1/testaupload >/dev/null 2>&1 # text
     test_except "test upload txt" 0 $?
@@ -42,7 +42,7 @@ function test_object_download() {
   # creat bucket for test
   mc mb loc1/testadownload >/dev/null 2>&1
   mc mb loc1/testadmindownload >/dev/null 2>&1
-  mc policy set download loc1/testadmindownload >/dev/null 2>&1
+  mc anonymous set download loc1/testadmindownload >/dev/null 2>&1
   mc cp test_cp.txt loc1/testadownload >/dev/null 2>&1 # text
   mc cp test_upload.jpg loc1/testadownload  >/dev/null 2>&1 # image
   mc cp test_upload.mp4 loc1/testadownload >/dev/null 2>&1 # video
@@ -75,7 +75,7 @@ function test_object_delete() {
     # creat bucket for test
     mc mb loc1/testadel >/dev/null 2>&1
     mc mb loc1/testadmindel >/dev/null 2>&1
-    mc policy set public loc1/testadmindel >/dev/null 2>&1
+    mc anonymous set public loc1/testadmindel >/dev/null 2>&1
     mc cp test_cp.txt loc1/testadel >/dev/null 2>&1 # text
     mc cp test_cp.txt loc1/testadmindel >/dev/null 2>&1 # text
     echo " 1)user 'testA' delete file"
