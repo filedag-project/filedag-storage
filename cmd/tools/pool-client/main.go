@@ -12,11 +12,6 @@ func main() {
 		addBlock,
 		getBlock,
 		removeBlock,
-
-		addUser,
-		removeUser,
-		getUser,
-		updateUser,
 	}
 	app := &cli.App{
 		Name:                 "dagpool-client",

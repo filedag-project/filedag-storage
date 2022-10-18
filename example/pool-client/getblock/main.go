@@ -37,7 +37,7 @@ func main() {
 }
 
 func get(addr string, clientuser string, clientpass string, cidStr string) error {
-	poolClient, err := client.NewPoolClient(addr, clientuser, clientpass)
+	poolClient, err := client.NewPoolClient(addr, clientuser, clientpass, true)
 	if err != nil {
 		fmt.Printf("NewPoolClient err:%v", err)
 		return err

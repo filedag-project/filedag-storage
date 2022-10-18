@@ -21,25 +21,27 @@ import (
 	"os"
 )
 
-//go run -tags example main.go daemon --pool-user=pool --pool-user-pass=pool123
+//go run -tags example main.go daemon --datadir=/tmp/leveldb2/fds.db --listen=:9985 --pool-addr=127.0.0.1:50001 --pool-user=dagpool  --pool-password=dagpool --root-user=filedagadmin root-password=filedagadmin
 func main() {
-	var leveldbPath, port, poolAddr, poolUser, poolPass string
+	var datadir, listen, poolAddr, poolUser, poolPass, rootUser, rootPass string
 	f := flag.NewFlagSet("daemon", flag.ExitOnError)
-	f.StringVar(&leveldbPath, "db-path", "/tmp/leveldb2/fds.db", "set db path default:`/tmp/leveldb2/pool.db`")
-	f.StringVar(&port, "port", ":9985", "set listen addr default:`localhost:50001`")
-	f.StringVar(&poolAddr, "pool-addr", "localhost:50001", "set the pool addr you want connect")
+	f.StringVar(&datadir, "datadir", "/tmp/leveldb2/fds.db", "directory to store data in")
+	f.StringVar(&listen, "listen", ":9985", "set server listen")
+	f.StringVar(&poolAddr, "pool-addr", "localhost:50001", "set the pool rpc address you want connect")
 	f.StringVar(&poolUser, "pool-user", "", "set pool user ")
-	f.StringVar(&poolPass, "pool-user-pass", "", "set pool user pass")
+	f.StringVar(&poolPass, "pool-password", "", "set pool password")
+	f.StringVar(&rootUser, "root-user", "filedagadmin", "set root filedag root user")
+	f.StringVar(&rootPass, "root-password", "filedagadmin", "set root filedag root password")
 
 	switch os.Args[1] {
 	case "daemon":
 		f.Parse(os.Args[2:])
 		if poolUser == "" || poolPass == "" {
-			fmt.Printf("db-path:%v, port:%v, pool-addr:%v, pool-user:%v, pool-user-pass:%v", leveldbPath, port, poolAddr, poolUser, poolPass)
+			fmt.Printf("db-path:%v, port:%v, pool-addr:%v, pool-user:%v, pool-user-pass:%v", datadir, listen, poolAddr, poolUser, poolPass)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go daemon -tags example main.go run daemon --db-path= --port= --pool-addr= --pool-user= pool-user-pass=")
+				"USAGE ERROR: go daemon -tags example main.go run daemon --datadir=/tmp/leveldb2/fds.db --listen=:9985 --pool-addr=127.0.0.1:50001 --pool-user=dagpool  --pool-password=dagpool --root-user=filedagadmin root-password=filedagadmin")
 		} else {
-			run(leveldbPath, port, poolAddr, poolUser, poolPass)
+			run(datadir, listen, poolAddr, poolUser, poolPass)
 		}
 	default:
 		fmt.Println("expected 'daemon' subcommands")

@@ -244,7 +244,7 @@ var removeUser = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "set the username to query",
+			Usage: "set the username to remove",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
