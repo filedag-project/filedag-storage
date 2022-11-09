@@ -54,7 +54,7 @@ var createUser = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "policy",
-			Usage: "set the policy, enum: only-read, only-write, read-write",
+			Usage: "set the policy, enum: read-only, write-only, read-write",
 			Value: string(upolicy.ReadWrite),
 		},
 	},
@@ -80,7 +80,7 @@ var createUser = &cli.Command{
 		if !upolicy.CheckValid(policy) {
 			return xerrors.Errorf("the policy is invalid")
 		}
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -132,7 +132,7 @@ var queryUser = &cli.Command{
 			return xerrors.Errorf("you must give the username")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -208,7 +208,7 @@ var updateUser = &cli.Command{
 			return xerrors.Errorf("the policy is invalid")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err
@@ -244,7 +244,7 @@ var removeUser = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "username",
-			Usage: "set the username to query",
+			Usage: "set the username to remove",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -260,7 +260,7 @@ var removeUser = &cli.Command{
 			return xerrors.Errorf("you must give the username")
 		}
 
-		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword)
+		poolClient, err := client.NewPoolClient(addr, rootUser, rootPassword, false)
 		if err != nil {
 			log.Errorf("NewPoolClient err:%v", err)
 			return err

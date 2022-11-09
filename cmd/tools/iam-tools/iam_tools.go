@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
@@ -53,7 +53,7 @@ var addUserCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  ServerApi,
-			Usage: "the api of objectstore server",
+			Usage: "the api of objectservice server",
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
@@ -78,7 +78,7 @@ var addUserCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		apiAddr := cctx.String(ServerApi)
 		if !strings.HasPrefix(apiAddr, "http") {
-			return xerrors.Errorf("you should set the api of objectstore server")
+			return xerrors.Errorf("you should set the api of objectservice server")
 		}
 		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
@@ -126,7 +126,7 @@ var delUserCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  ServerApi,
-			Usage: "the api of objectstore server",
+			Usage: "the api of objectservice server",
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
@@ -147,7 +147,7 @@ var delUserCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		apiAddr := cctx.String(ServerApi)
 		if !strings.HasPrefix(apiAddr, "http") {
-			return xerrors.Errorf("you should set the api of objectstore server")
+			return xerrors.Errorf("you should set the api of objectservice server")
 		}
 		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
@@ -187,7 +187,7 @@ var getUserCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  ServerApi,
-			Usage: "the api of objectstore server",
+			Usage: "the api of objectservice server",
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
@@ -208,7 +208,7 @@ var getUserCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		apiAddr := cctx.String(ServerApi)
 		if !strings.HasPrefix(apiAddr, "http") {
-			return xerrors.Errorf("you should set the api of objectstore server")
+			return xerrors.Errorf("you should set the api of objectservice server")
 		}
 		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
@@ -248,7 +248,7 @@ var changePassCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  ServerApi,
-			Usage: "the api of objectstore server",
+			Usage: "the api of objectservice server",
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
@@ -273,7 +273,7 @@ var changePassCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		apiAddr := cctx.String(ServerApi)
 		if !strings.HasPrefix(apiAddr, "http") {
-			return xerrors.Errorf("you should set the api of objectstore server")
+			return xerrors.Errorf("you should set the api of objectservice server")
 		}
 		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {
@@ -320,7 +320,7 @@ var setStatusCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  ServerApi,
-			Usage: "the api of objectstore server",
+			Usage: "the api of objectservice server",
 			Value: "http://127.0.0.1:9985",
 		},
 		&cli.StringFlag{
@@ -345,7 +345,7 @@ var setStatusCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		apiAddr := cctx.String(ServerApi)
 		if !strings.HasPrefix(apiAddr, "http") {
-			return xerrors.Errorf("you should set the api of objectstore server")
+			return xerrors.Errorf("you should set the api of objectservice server")
 		}
 		accessKey := cctx.String(AdminAccessKey)
 		if accessKey == "" {

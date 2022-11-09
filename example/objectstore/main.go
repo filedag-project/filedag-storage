@@ -5,12 +5,13 @@ import (
 	"flag"
 	"fmt"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iam/auth"
-	"github.com/filedag-project/filedag-storage/http/objectstore/iamapi"
-	"github.com/filedag-project/filedag-storage/http/objectstore/s3api"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/iam"
+	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
+	"github.com/filedag-project/filedag-storage/objectservice/s3api"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
+	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-blockservice"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -20,25 +21,27 @@ import (
 	"os"
 )
 
-//go run -tags example main.go daemon --pool-user=pool --pool-user-pass=pool123
+//go run -tags example main.go daemon --datadir=/tmp/leveldb2/fds.db --listen=:9985 --pool-addr=127.0.0.1:50001 --pool-user=dagpool  --pool-password=dagpool --root-user=filedagadmin root-password=filedagadmin
 func main() {
-	var leveldbPath, port, poolAddr, poolUser, poolPass string
+	var datadir, listen, poolAddr, poolUser, poolPass, rootUser, rootPass string
 	f := flag.NewFlagSet("daemon", flag.ExitOnError)
-	f.StringVar(&leveldbPath, "db-path", "/tmp/leveldb2/fds.db", "set db path default:`/tmp/leveldb2/pool.db`")
-	f.StringVar(&port, "port", ":9985", "set listen addr default:`localhost:50001`")
-	f.StringVar(&poolAddr, "pool-addr", "localhost:50001", "set the pool addr you want connect")
+	f.StringVar(&datadir, "datadir", "/tmp/leveldb2/fds.db", "directory to store data in")
+	f.StringVar(&listen, "listen", ":9985", "set server listen")
+	f.StringVar(&poolAddr, "pool-addr", "localhost:50001", "set the pool rpc address you want connect")
 	f.StringVar(&poolUser, "pool-user", "", "set pool user ")
-	f.StringVar(&poolPass, "pool-user-pass", "", "set pool user pass")
+	f.StringVar(&poolPass, "pool-password", "", "set pool password")
+	f.StringVar(&rootUser, "root-user", "filedagadmin", "set root filedag root user")
+	f.StringVar(&rootPass, "root-password", "filedagadmin", "set root filedag root password")
 
 	switch os.Args[1] {
 	case "daemon":
 		f.Parse(os.Args[2:])
 		if poolUser == "" || poolPass == "" {
-			fmt.Printf("db-path:%v, port:%v, pool-addr:%v, pool-user:%v, pool-user-pass:%v", leveldbPath, port, poolAddr, poolUser, poolPass)
+			fmt.Printf("db-path:%v, port:%v, pool-addr:%v, pool-user:%v, pool-user-pass:%v", datadir, listen, poolAddr, poolUser, poolPass)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go daemon -tags example main.go run daemon --db-path= --port= --pool-addr= --pool-user= pool-user-pass=")
+				"USAGE ERROR: go daemon -tags example main.go run daemon --datadir=/tmp/leveldb2/fds.db --listen=:9985 --pool-addr=127.0.0.1:50001 --pool-user=dagpool  --pool-password=dagpool --root-user=filedagadmin root-password=filedagadmin")
 		} else {
-			run(leveldbPath, port, poolAddr, poolUser, poolPass)
+			run(datadir, listen, poolAddr, poolUser, poolPass)
 		}
 	default:
 		fmt.Println("expected 'daemon' subcommands")
@@ -59,14 +62,35 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 	}
 	authSys := iam.NewAuthSys(db, cred)
 	router := mux.NewRouter()
-	iamapi.NewIamApiServer(router, authSys)
-	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass)
+	poolClient, err := dagpoolcli.NewPoolClient(poolAddr, poolUser, poolPass, true)
 	if err != nil {
 		log.Fatalf("connect dagpool server err: %v", err)
 	}
 	defer poolClient.Close(context.TODO())
 	dagServ := merkledag.NewDAGService(blockservice.New(poolClient, offline.Exchange(poolClient)))
-	s3api.NewS3Server(router, dagServ, authSys, db)
+	storageSys := store.NewStorageSys(context.TODO(), dagServ, db)
+	bmSys := store.NewBucketMetadataSys(db)
+	storageSys.SetNewBucketNSLock(bmSys.NewNSLock)
+	storageSys.SetHasBucket(bmSys.HasBucket)
+	bmSys.SetEmptyBucket(storageSys.EmptyBucket)
+	cleanData := func(accessKey string) {
+		ctx := context.Background()
+		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		if err != nil {
+			log.Printf("GetAllBucketsOfUser error: %v", err)
+		}
+		for _, bkt := range bkts {
+			if err = storageSys.CleanObjectsInBucket(ctx, bkt.Name); err != nil {
+				log.Printf("CleanObjectsInBucket error: %v", err)
+				continue
+			}
+			if err = bmSys.DeleteBucket(ctx, bkt.Name); err != nil {
+				log.Printf("DeleteBucket error: %v", err)
+			}
+		}
+	}
+	iamapi.NewIamApiServer(router, authSys, cleanData)
+	s3api.NewS3Server(router, authSys, bmSys, storageSys)
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		fmt.Printf("start sever at http://%v%v", ip, port)

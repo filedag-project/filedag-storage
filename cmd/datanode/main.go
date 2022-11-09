@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
-	logging "github.com/ipfs/go-log/v2"
+	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/urfave/cli/v2"
 	"os"
 )
 
 func main() {
-	logging.SetLogLevel("*", "INFO")
+	utils.SetupLogLevels()
 	local := []*cli.Command{
 		startCmd,
 	}
@@ -55,7 +55,7 @@ var startCmd = &cli.Command{
 		default:
 			return errors.New(fmt.Sprintf("not support this kvdb %s", kvType))
 		}
-		datanode.MutDataNodeServer(c.String("listen"), kvType, c.String("datadir"))
+		datanode.StartDataNodeServer(c.String("listen"), kvType, c.String("datadir"))
 		return nil
 	},
 }

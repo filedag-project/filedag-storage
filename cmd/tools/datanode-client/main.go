@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/google/martian/log"
 	blocks "github.com/ipfs/go-block-format"
-	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	logging.SetLogLevel("*", "INFO")
+	utils.SetupLogLevels()
 	local := []*cli.Command{
 		dnPut,
 		dnGet,
@@ -67,7 +67,7 @@ var dnPut = &cli.Command{
 		block := blocks.NewBlock(file)
 		keyCode := block.Cid().String()
 		fmt.Println("keyCode:", keyCode)
-		_, err = client.Put(context.TODO(), &proto.AddRequest{Key: keyCode, DataBlock: block.RawData()})
+		_, err = client.Put(context.TODO(), &proto.AddRequest{Key: keyCode, Data: block.RawData()})
 		if err != nil {
 			log.Errorf("%s,keyCode:%s,kvdb put :%v", c.String("addr"), keyCode, err)
 		}
@@ -108,7 +108,7 @@ var dnGet = &cli.Command{
 			log.Errorf("%s,keyCode:%s,kvdb get :%v", c.String("addr"), c.String("key"), err)
 			return err
 		}
-		fmt.Println(string(res.DataBlock))
+		fmt.Println(string(res.Data))
 		return nil
 	},
 }
@@ -179,12 +179,11 @@ var dnDelete = &cli.Command{
 		}
 		defer conn.Close()
 		client := proto.NewDataNodeClient(conn)
-		res, err := client.Delete(context.TODO(), &proto.DeleteRequest{Key: c.String("key")})
+		_, err = client.Delete(context.TODO(), &proto.DeleteRequest{Key: c.String("key")})
 		if err != nil {
 			log.Errorf("%s,keyCode:%s,kvdb delete :%v", c.String("addr"), c.String("key"), err)
 			return err
 		}
-		fmt.Println(res.Message)
 		return nil
 	},
 }

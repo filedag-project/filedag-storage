@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
@@ -17,6 +18,7 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -56,18 +58,23 @@ var startCmd = &cli.Command{
 			EnvVars: []string{EnvRootPassword},
 			Value:   "dagpool",
 		},
+		&cli.StringFlag{
+			Name:  "gc-period",
+			Usage: "set GC period, such as 1.5h or 2h45m",
+			Value: "1h",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		cfg, err := loadPoolConfig(cctx)
 		if err != nil {
 			return err
 		}
-		startDagPoolServer(cfg)
+		startDagPoolServer(cctx.Context, cfg)
 		return nil
 	},
 }
 
-func startDagPoolServer(cfg config.PoolConfig) {
+func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	log.Infof("dagpool start...")
 	log.Infof("listen %s", cfg.Listen)
 	// listen port
@@ -90,6 +97,7 @@ func startDagPoolServer(cfg config.PoolConfig) {
 			log.Fatalf("failed to serve: %v", err)
 		}
 	}()
+	go service.GC(ctx)
 
 	// Wait for interrupt signal to gracefully shutdown the server.
 	quit := make(chan os.Signal, 1)
@@ -98,6 +106,7 @@ func startDagPoolServer(cfg config.PoolConfig) {
 	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+
 	log.Info("Shutdown Server ...")
 
 	s.GracefulStop()
@@ -118,6 +127,12 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 		return config.PoolConfig{}, errors.New("root param is invalid")
 	}
 	cfg.RootPassword = cctx.String("root-password")
+	gcPeriod := cctx.String("gc-period")
+	gcPer, err := time.ParseDuration(gcPeriod)
+	if err != nil {
+		return config.PoolConfig{}, err
+	}
+	cfg.GcPeriod = gcPer
 	nodeConfigPath := cctx.String("config")
 
 	var nodeConfigs []config.DagNodeConfig

@@ -44,11 +44,10 @@ func put(addr string, key, data string) error {
 	}
 	defer conn.Close()
 	client := proto.NewDataNodeClient(conn)
-	resp, err := client.Put(context.TODO(), &proto.AddRequest{Key: key, DataBlock: []byte(data)})
+	_, err = client.Put(context.TODO(), &proto.AddRequest{Key: key, Data: []byte(data)})
 	if err != nil {
 		log.Errorf("%s,keyCode:%s,kvdb put :%v", addr, key, err)
 		return err
 	}
-	fmt.Println(resp.Message)
 	return nil
 }

@@ -399,7 +399,7 @@ func (di *DisKV) Size(key string) (int, error) {
 	return ref.Size, nil
 }
 
-func (di *DisKV) AllKeysChan(ctx context.Context) (chan string, error) {
+func (di *DisKV) AllKeysChan(ctx context.Context) (<-chan string, error) {
 	return di.Ref.AllKeysChan(ctx)
 }
 

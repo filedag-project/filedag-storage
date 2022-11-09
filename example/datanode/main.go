@@ -7,23 +7,23 @@ import (
 	"os"
 )
 
-//go run -tags example main.go daemon --host=127.0.0.1 --port=9010 --path=/tmp/dag/data
+//go run -tags example main.go daemon --listen=127.0.0.1:9011 --datadir=/tmp/dn-data1 --kvdb=badger
 func main() {
-	var host, port, path string
+	var listen, kvdb, datadir string
 	f := flag.NewFlagSet("daemon", flag.ExitOnError)
-	f.StringVar(&host, "host", "127.0.0.1", "set host eg.:127.0.0.1")
-	f.StringVar(&port, "port", "9010", "set port eg.:9010")
-	f.StringVar(&path, "path", "/tmp/dag/data", "set data node path")
+	f.StringVar(&listen, "listen", "127.0.0.1:9010", "set server listen")
+	f.StringVar(&kvdb, "kvdb", "badger", "choose kvdb, badger or mutcask")
+	f.StringVar(&datadir, "datadir", "/tmp/dag/data", "directory to store data in")
 
 	switch os.Args[1] {
 	case "daemon":
 		f.Parse(os.Args[2:])
-		if host == "" || port == "" || path == "" {
-			fmt.Printf("host:%v, port:%v, path:%v", host, port, path)
+		if listen == "" || kvdb == "" || datadir == "" {
+			fmt.Printf("listen:%v, kvdb:%v, datadir:%v", listen, kvdb, datadir)
 			fmt.Println("please check your input\n " +
-				"USAGE ERROR: go run -tags example main.go daemon --host= --port= --path= ")
+				"USAGE ERROR: go run -tags example main.go daemon --listen=127.0.0.1:9011 --datadir=/tmp/dn-data1 --kvdb=badger")
 		} else {
-			run(host, port, path)
+			run(listen, kvdb, datadir)
 		}
 	default:
 		fmt.Println("expected 'daemon' subcommands")
@@ -31,5 +31,5 @@ func main() {
 	}
 }
 func run(host, port, path string) {
-	datanode.MutDataNodeServer(fmt.Sprintf("%s:%s", host, port), datanode.KVBadge, path)
+	datanode.StartDataNodeServer(fmt.Sprintf("%s:%s", host, port), datanode.KVBadge, path)
 }

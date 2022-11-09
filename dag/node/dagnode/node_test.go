@@ -3,36 +3,33 @@ package dagnode
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/node/mocks"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode/mocks"
 	"github.com/filedag-project/filedag-storage/dag/proto"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
-	"github.com/filedag-project/filedag-storage/http/objectstore/utils"
 	"github.com/golang/mock/gomock"
 	blocks "github.com/ipfs/go-block-format"
 	"testing"
 )
 
 func TestDagNode(t *testing.T) {
-	q := &DataNodeClient{
-		Client: newDatanode(t),
-	}
-	var s []*DataNodeClient
-	s = append(s, q)
-	db, err := uleveldb.OpenDb(utils.TmpDirPath(t))
-	if err != nil {
-		return
+	var clients []*datanode.Client
+	for i := 0; i < 3; i++ {
+		cli := &datanode.Client{
+			Client: newDatanode(t),
+		}
+		clients = append(clients, cli)
 	}
 	var d = DagNode{
-		Nodes:        s,
-		db:           db,
-		dataBlocks:   3,
+		Nodes:        clients,
+		dataBlocks:   2,
 		parityBlocks: 1,
 	}
 	content := "123456"
 	block := blocks.NewBlock([]byte(content))
 	ctx := context.TODO()
-	err = d.Put(ctx, block)
+	err := d.Put(ctx, block)
 	if err != nil {
 		fmt.Println("put err", err)
 		return
@@ -64,13 +61,24 @@ func TestDagNode(t *testing.T) {
 }
 
 func newDatanode(t *testing.T) *mocks.MockDataNodeClient {
+	content := "123456"
+	block := blocks.NewBlock([]byte(content))
+	meta := Meta{
+		BlockSize: int32(len(content)),
+	}
+	var metaBuf bytes.Buffer
+	if err := binary.Write(&metaBuf, binary.LittleEndian, meta); err != nil {
+		t.Fatalf("binary.Write failed: %v", err)
+	}
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockDataNodeClient(ctrl)
 	m.EXPECT().Put(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.AddRequest{})).AnyTimes().Return(nil, nil)
 	m.EXPECT().Get(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.GetRequest{})).AnyTimes().
-		Return(&proto.GetResponse{DataBlock: []byte("123456")}, nil)
+		Return(&proto.GetResponse{Data: block.RawData(), Meta: metaBuf.Bytes()}, nil)
+	m.EXPECT().GetMeta(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.GetMetaRequest{})).AnyTimes().
+		Return(&proto.GetMetaResponse{Meta: metaBuf.Bytes()}, nil)
 	m.EXPECT().Delete(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.DeleteRequest{})).AnyTimes().Return(nil, nil)
 	m.EXPECT().Size(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.SizeRequest{})).AnyTimes().
-		Return(&proto.SizeResponse{Size: 6}, nil)
+		Return(&proto.SizeResponse{Size: int64(datanode.HeaderSize + 4 + len(block.RawData()))}, nil)
 	return m
 }

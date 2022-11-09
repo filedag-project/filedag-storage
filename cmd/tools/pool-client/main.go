@@ -1,22 +1,17 @@
 package main
 
 import (
-	logging "github.com/ipfs/go-log/v2"
+	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/urfave/cli/v2"
 	"os"
 )
 
 func main() {
-	logging.SetLogLevel("*", "INFO")
+	utils.SetupLogLevels()
 	local := []*cli.Command{
 		addBlock,
 		getBlock,
 		removeBlock,
-
-		addUser,
-		removeUser,
-		getUser,
-		updateUser,
 	}
 	app := &cli.App{
 		Name:                 "dagpool-client",
