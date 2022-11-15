@@ -11,66 +11,68 @@ import (
 )
 
 func Test_Gc(t *testing.T) {
-	t.SkipNow() //delete this to test
+	//t.SkipNow() //delete this to test
 	utils.SetupLogLevels()
 	user, pass := "dagpool", "dagpool"
 	service := startTestDagPoolServer(t)
 	go service.GCTest(context.Background())
 	defer service.Close()
 	testCases := []struct {
-		name           string
-		bl1            blocks.Block
-		bl2            blocks.Block
-		pin            bool
-		pinInterrupt   bool
-		nopinInterrupt bool
+		name                           string
+		theBlockDataAdded              blocks.Block
+		theBlockDataAddedToInterruptGC blocks.Block
+		isPinWhenAddFile               bool
+		addFileByPinToInterruptGc      bool
+		addFileWithoutPinToInterruptGc bool
 	}{
 		{
-			name: "pin-no-interrupt",
-			bl1:  blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
-			bl2:  blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
-			pin:  true,
+			name:                           "add file by pin and don't interrupt gc",
+			theBlockDataAdded:              blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
+			theBlockDataAddedToInterruptGC: blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
+			isPinWhenAddFile:               true,
 		},
 		{
-			name: "no-pin-no-interrupt",
-			bl1:  blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
-			bl2:  blocks.NewBlock(bytes.Repeat([]byte("123456"), 1)),
-			pin:  false,
+			name:                           "add file without pin and don't interrupt gc",
+			theBlockDataAdded:              blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
+			theBlockDataAddedToInterruptGC: blocks.NewBlock(bytes.Repeat([]byte("123456"), 1)),
+			isPinWhenAddFile:               false,
 		},
 		{
-			name:           "no-pin-no-pin-interrupt",
-			bl1:            blocks.NewBlock(bytes.Repeat([]byte("123457"), 1)),
-			bl2:            blocks.NewBlock(bytes.Repeat([]byte("1234578"), 1)),
-			pin:            false,
-			pinInterrupt:   false,
-			nopinInterrupt: true,
+			name:                           "add file without pin and adding another file without pin to interrupt gc ",
+			theBlockDataAdded:              blocks.NewBlock(bytes.Repeat([]byte("123457"), 1)),
+			theBlockDataAddedToInterruptGC: blocks.NewBlock(bytes.Repeat([]byte("1234578"), 1)),
+			isPinWhenAddFile:               false,
+			addFileByPinToInterruptGc:      false,
+			addFileWithoutPinToInterruptGc: true,
 		},
 		{
-			name:           "no-pin-pin-interrupt",
-			bl1:            blocks.NewBlock(bytes.Repeat([]byte("12345789"), 1)),
-			bl2:            blocks.NewBlock(bytes.Repeat([]byte("123457890"), 1)),
-			pin:            false,
-			pinInterrupt:   true,
-			nopinInterrupt: false,
+			name:                           "add file without pin and adding another file by pin to interrupt gc ",
+			theBlockDataAdded:              blocks.NewBlock(bytes.Repeat([]byte("12345789"), 1)),
+			theBlockDataAddedToInterruptGC: blocks.NewBlock(bytes.Repeat([]byte("123457890"), 1)),
+			isPinWhenAddFile:               false,
+			addFileByPinToInterruptGc:      true,
+			addFileWithoutPinToInterruptGc: false,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			//these are operations
 			interruptGC = false
-			err := service.Add(context.TODO(), tc.bl1, user, pass, tc.pin)
+			err := service.Add(context.TODO(), tc.theBlockDataAdded, user, pass, tc.isPinWhenAddFile)
 			if err != nil {
 				t.Fatalf("add block err:%v", err)
 			}
-			err = service.Add(context.TODO(), tc.bl2, user, pass, tc.pin)
+			err = service.Add(context.TODO(), tc.theBlockDataAddedToInterruptGC, user, pass, tc.isPinWhenAddFile)
 			if err != nil {
 				t.Fatalf("add block err:%v", err)
 			}
 
-			if tc.pinInterrupt {
+			if tc.addFileByPinToInterruptGc {
 				interruptGC = true
 				<-startgc
 				service.InterruptGC()
 			}
+			// sleep to see gc status
 			time.Sleep(time.Second * 7)
 		})
 	}
