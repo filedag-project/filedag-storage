@@ -11,7 +11,7 @@ import (
 )
 
 func TestPinAndReference(t *testing.T) {
-	//t.SkipNow() //delete this to test
+	t.SkipNow() //delete this to test
 	//utils.SetupLogLevels()
 	user, pass := "dagpool", "dagpool"
 	service := startTestDagPoolServer(t)
