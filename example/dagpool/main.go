@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -65,13 +66,16 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 		}
 		nodeConfigs = append(nodeConfigs, nc)
 	}
+	clusterCfg := config.ClusterConfig{
+		Cluster: nodeConfigs,
+	}
 	cfg := config.PoolConfig{
-		DagNodeConfig: nodeConfigs,
+		ClusterConfig: clusterCfg,
 		LeveldbPath:   leveldbPath,
 		RootUser:      user,
 		RootPassword:  pass,
 	}
-	service, err := poolservice.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(context.TODO(), cfg)
 	if err != nil {
 		fmt.Printf("NewDagPoolService err:%v\n", err)
 		return

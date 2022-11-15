@@ -1,10 +1,10 @@
 package datanode
 
 import (
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
@@ -18,14 +18,13 @@ type DataNodeClient interface {
 type Client struct {
 	Client      proto.DataNodeClient
 	HeartClient healthpb.HealthClient
-	Ip          string
-	Port        string
+	RpcAddress  string
 	Conn        *grpc.ClientConn
 }
 
 //NewClient creates a grpc connection to a slice
 func NewClient(cfg config.DataNodeConfig) (datanode *Client, err error) {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%s", cfg.Ip, cfg.Port), grpc.WithInsecure())
+	conn, err := grpc.Dial(cfg.RpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Errorf("did not connect: %v", err)
 		return nil, err
@@ -33,8 +32,7 @@ func NewClient(cfg config.DataNodeConfig) (datanode *Client, err error) {
 	datanode = &Client{
 		Client:      proto.NewDataNodeClient(conn),
 		HeartClient: healthpb.NewHealthClient(conn),
-		Ip:          cfg.Ip,
-		Port:        cfg.Port,
+		RpcAddress:  cfg.RpcAddress,
 		Conn:        conn,
 	}
 	return datanode, nil

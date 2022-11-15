@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -84,7 +83,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	}
 	// new server
 	s := grpc.NewServer()
-	service, err := poolservice.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(ctx, cfg)
 	if err != nil {
 		log.Fatalf("NewDagPoolService err:%v", err)
 		return
@@ -133,23 +132,19 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 		return config.PoolConfig{}, err
 	}
 	cfg.GcPeriod = gcPer
-	nodeConfigPath := cctx.String("config")
+	configPath := cctx.String("config")
 
-	var nodeConfigs []config.DagNodeConfig
-	for _, path := range strings.Split(nodeConfigPath, ",") {
-		var nc config.DagNodeConfig
-		file, err := ioutil.ReadFile(path)
-		if err != nil {
-			log.Errorf("ReadFile err:%v", err)
-			return config.PoolConfig{}, err
-		}
-		err = json.Unmarshal(file, &nc)
-		if err != nil {
-			log.Errorf("Unmarshal err:%v", err)
-			return config.PoolConfig{}, err
-		}
-		nodeConfigs = append(nodeConfigs, nc)
+	var clusterConfig config.ClusterConfig
+	file, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Errorf("ReadFile err:%v", err)
+		return config.PoolConfig{}, err
 	}
-	cfg.DagNodeConfig = nodeConfigs
+	err = json.Unmarshal(file, &clusterConfig)
+	if err != nil {
+		log.Errorf("Unmarshal err:%v", err)
+		return config.PoolConfig{}, err
+	}
+	cfg.ClusterConfig = clusterConfig
 	return cfg, nil
 }

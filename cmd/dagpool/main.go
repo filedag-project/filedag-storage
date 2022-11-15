@@ -12,6 +12,7 @@ func main() {
 	local := []*cli.Command{
 		startCmd,
 		authCmd,
+		clusterCmd,
 	}
 	app := &cli.App{
 		Name:                 "dag-pool",

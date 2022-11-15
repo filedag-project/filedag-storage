@@ -156,35 +156,37 @@ func startTestDagPoolServer(t *testing.T) *dagPoolService {
 	var (
 		dagdc = []config.DataNodeConfig{
 			{
-				Ip:   "127.0.0.1",
-				Port: "9021",
+				SetIndex:   0,
+				RpcAddress: "127.0.0.1:9021",
 			},
 			{
-				Ip:   "127.0.0.1",
-				Port: "9022",
+				SetIndex:   1,
+				RpcAddress: "127.0.0.1:9022",
 			},
 			{
-				Ip:   "127.0.0.1",
-				Port: "9023",
+				SetIndex:   2,
+				RpcAddress: "127.0.0.1:9023",
 			},
 		}
-		dagc = []config.DagNodeConfig{
-			{
-				Nodes:        dagdc,
-				DataBlocks:   2,
-				ParityBlocks: 1,
+		dagc = config.ClusterConfig{
+			Cluster: []config.DagNodeConfig{
+				{
+					Nodes:        dagdc,
+					DataBlocks:   2,
+					ParityBlocks: 1,
+				},
 			},
 		}
 		cfg = config.PoolConfig{
 			Listen:        "127.0.0.1:50002",
-			DagNodeConfig: dagc,
+			ClusterConfig: dagc,
 			LeveldbPath:   t.TempDir(),
 			RootUser:      user,
 			RootPassword:  pass,
 			GcPeriod:      time.Second * 5,
 		}
 	)
-	service, err := NewDagPoolService(cfg)
+	service, err := NewDagPoolService(context.TODO(), cfg)
 	if err != nil {
 		t.Fatalf("NewDagPoolService err:%v", err)
 	}

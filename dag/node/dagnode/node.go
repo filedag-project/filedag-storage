@@ -11,21 +11,29 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"google.golang.org/grpc/codes"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 	"sync"
+	"time"
 )
 
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
+const healthCheckService = "grpc.health.v1.Health"
+
 //DagNode Implemented the Blockstore interface
 type DagNode struct {
 	Nodes        []*datanode.Client
-	dataBlocks   int // Number of data shards
-	parityBlocks int // Number of parity shards
+	dataBlocks   int    // Number of data shards
+	parityBlocks int    // Number of parity shards
+	statusNodes  []bool // true: means the data node is health
+	slots        *slotsmgr.SlotsManager
+	numSlots     int
 }
 
 type Meta struct {
@@ -34,7 +42,10 @@ type Meta struct {
 
 //NewDagNode creates a new DagNode
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
-	var clients []*datanode.Client
+	if len(cfg.Nodes) != cfg.DataBlocks+cfg.ParityBlocks {
+		return nil, errors.New("dag node config is incorrect")
+	}
+	clients := make([]*datanode.Client, 0, cfg.DataBlocks+cfg.ParityBlocks)
 	for _, c := range cfg.Nodes {
 		dateNode, err := datanode.NewClient(c)
 		if err != nil {
@@ -46,7 +57,82 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 		Nodes:        clients,
 		dataBlocks:   cfg.DataBlocks,
 		parityBlocks: cfg.ParityBlocks,
+		statusNodes:  make([]bool, cfg.DataBlocks+cfg.ParityBlocks),
+		slots:        slotsmgr.NewSlotsManager(),
 	}, nil
+}
+
+// AddSlot Set the slot bit and return the old value
+func (d *DagNode) AddSlot(slot uint64) bool {
+	old, err := d.slots.Set(slot, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !old {
+		d.numSlots++
+	}
+	return old
+}
+
+// ClearSlot Clear the slot bit and return the old value
+func (d *DagNode) ClearSlot(slot uint64) bool {
+	old, err := d.slots.Set(slot, false)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if old {
+		d.numSlots--
+	}
+	return old
+}
+
+// GetSlot Get the slot bit
+func (d *DagNode) GetSlot(slot uint64) bool {
+	val, err := d.slots.Get(slot)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return val
+}
+
+func (d *DagNode) GetSlotPairs() []slotsmgr.SlotPair {
+	return d.slots.ToSlotPair()
+}
+
+func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			wg := sync.WaitGroup{}
+			for i, node := range d.Nodes {
+				nd := node
+				wg.Add(1)
+				go func() {
+					d.statusNodes[i] = d.healthCheck(ctx, nd)
+				}()
+			}
+			wg.Wait()
+		}
+	}
+}
+
+func (d *DagNode) healthCheck(ctx context.Context, cli *datanode.Client) bool {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	check, err := cli.HeartClient.Check(ctx, &healthpb.HealthCheckRequest{Service: healthCheckService})
+	if err != nil {
+		log.Errorf("Check the rpc address:%v err:%v", cli.RpcAddress, err)
+		return false
+	}
+	if check.Status != healthpb.HealthCheckResponse_SERVING {
+		log.Errorf("the rpc server[%v] status: %v", cli.RpcAddress, check.Status)
+		return false
+	}
+	return true
 }
 
 //DeleteBlock deletes a block from the DagNode
@@ -59,13 +145,13 @@ func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 		go func(node *datanode.Client) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
+					log.Errorf("%s, keyCode:%s, delete block err :%v", node.RpcAddress, keyCode, err)
 				}
 				wg.Done()
 			}()
 			_, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
 			if err != nil {
-				log.Debugf("%s:%s, keyCode:%s, delete block err :%v", node.Ip, node.Port, keyCode, err)
+				log.Debugf("%s, keyCode:%s, delete block err :%v", node.RpcAddress, keyCode, err)
 			}
 		}(node)
 	}
@@ -98,13 +184,13 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 		go func(i int, node *datanode.Client) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("%s:%s, keyCode:%s, kvdb get err :%v", node.Ip, node.Port, keyCode, err)
+					log.Errorf("%s, keyCode:%s, kvdb get err :%v", node.RpcAddress, keyCode, err)
 				}
 				wg.Done()
 			}()
 			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
-				log.Errorf("%s:%s, keyCode:%s,kvdb get :%v", node.Ip, node.Port, keyCode, err)
+				log.Errorf("%s, keyCode:%s,kvdb get :%v", node.RpcAddress, keyCode, err)
 				merged[i] = nil
 			} else {
 				merged[i] = res.Data
@@ -192,7 +278,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 		go func(i int, node *datanode.Client) {
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("%s:%s,keyCode:%s,kvdb put :%v", node.Ip, node.Port, keyCode, err)
+					log.Errorf("%s,keyCode:%s,kvdb put :%v", node.RpcAddress, keyCode, err)
 				}
 				wg.Done()
 			}()
@@ -201,7 +287,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 				Meta: metaBuf.Bytes(),
 				Data: shards[i],
 			}); err != nil {
-				log.Errorf("%s:%s,keyCode:%s,kvdb put :%v", node.Ip, node.Port, keyCode, err)
+				log.Errorf("%s,keyCode:%s,kvdb put :%v", node.RpcAddress, keyCode, err)
 				// TODO: Put failure handling
 			}
 		}(i, node)

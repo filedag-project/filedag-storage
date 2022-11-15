@@ -62,7 +62,7 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 			}
 			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: key})
 			if err != nil {
-				log.Errorf("this node[%s:%s] err: %v", node.Ip, node.Port, err)
+				log.Errorf("this node[%s] err: %v", node.RpcAddress, err)
 				merged = append(merged, nil)
 				continue
 			}

@@ -2,14 +2,15 @@ package poolservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dnm"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/reference"
+	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -25,10 +26,11 @@ var _ pool.DagPool = &dagPoolService{}
 
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
-	dagNodes map[string]*dagnode.DagNode
-	iam      *dpuser.IdentityUserSys
-	nrSys    *dnm.NodeRecordSys
-	db       *uleveldb.ULevelDB
+	dagNodes   [slotsmgr.ClusterSlots]*dagnode.DagNode
+	slotConfig SlotConfig
+
+	iam *dpuser.IdentityUserSys
+	db  *uleveldb.ULevelDB
 
 	refCounter *reference.RefCounter
 	cacheSet   *reference.CacheSet
@@ -38,7 +40,7 @@ type dagPoolService struct {
 }
 
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
-func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
+func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolService, error) {
 	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
@@ -49,31 +51,22 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	}
 	cacheSet := reference.NewCacheSet(db)
 	refCounter := reference.NewRefCounter(db, cacheSet)
-	dn := make(map[string]*dagnode.DagNode)
-	var nrs = dnm.NewRecordSys(db)
-	for num, c := range cfg.DagNodeConfig {
-		bs, err := dagnode.NewDagNode(c)
-		if err != nil {
-			log.Errorf("new dagnode err:%v", err)
-			return nil, err
-		}
-		name := "the" + fmt.Sprintf("%v", num)
-		err = nrs.HandleDagNode(bs.Nodes, name)
-		if err != nil {
-			return nil, err
-		}
-		dn[name] = bs
-	}
-	return &dagPoolService{
-		dagNodes:   dn,
+
+	serv := &dagPoolService{
 		iam:        i,
-		nrSys:      nrs,
 		db:         db,
 		refCounter: refCounter,
 		cacheSet:   cacheSet,
 		gcControl:  NewGcControl(),
 		gcPeriod:   cfg.GcPeriod,
-	}, nil
+	}
+	if err = serv.clusterInit(ctx, cfg); err != nil {
+		return nil, err
+	}
+	if !serv.checkAllSlots() {
+		return nil, errors.New("please allocate all the slots before booting")
+	}
+	return serv, nil
 }
 
 // Add adds a node to the dagPoolService, storing the block in the BlockService
@@ -84,10 +77,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 
 	key := block.Cid().String()
 	addBlock := func() error {
-		selNode, err := d.choseDagNode(ctx, block.Cid())
-		if err != nil {
-			return err
-		}
+		selNode := d.dagNodes[keyHashSlot(block.Cid().String())]
 		return selNode.Put(ctx, block)
 	}
 
@@ -121,11 +111,8 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 		return nil, format.ErrNotFound{Cid: c}
 	}
 
-	getNode, err := d.getDagNodeInfo(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	b, err := getNode.Get(ctx, c)
+	selNode := d.dagNodes[keyHashSlot(c.String())]
+	b, err := selNode.Get(ctx, c)
 	if err != nil {
 		if format.IsNotFound(err) {
 			return nil, err
@@ -163,11 +150,8 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	getNode, err := d.getDagNodeInfo(ctx, c)
-	if err != nil {
-		return 0, err
-	}
-	return getNode.GetSize(ctx, c)
+	selNode := d.dagNodes[keyHashSlot(c.String())]
+	return selNode.GetSize(ctx, c)
 }
 
 //AddUser add a user

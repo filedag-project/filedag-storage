@@ -68,10 +68,7 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 			log.Warnw("decode cid error", "cid", key, "error", err)
 			continue
 		}
-		node, err := d.getDagNodeInfo(ctx, blkCid)
-		if err != nil {
-			return err
-		}
+		node := d.dagNodes[keyHashSlot(blkCid.String())]
 		if err = d.cacheSet.Remove(key); err != nil {
 			log.Warnw("remove cache key error", "cid", key, "error", err)
 			continue
