@@ -1,7 +1,6 @@
 package poolservice
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
@@ -15,6 +14,8 @@ import (
 const clusterSlotConfig = "cluster-slot-cfg"
 const SlotPrefix = "slot/"
 
+var ErrDagNodeAlreadyExist = errors.New("this dag node already exists")
+
 func keyHashSlot(key string) uint16 {
 	return crc16.Checksum([]byte(key), crc16.IBMTable) & 0x3FFF
 }
@@ -24,28 +25,23 @@ type SlotConfig struct {
 	SlotsMap map[string][]slotsmgr.SlotPair
 }
 
-func (d *dagPoolService) clusterInit(ctx context.Context, cfg config.PoolConfig) error {
+func (d *dagPoolService) clusterInit() error {
 	if err := d.loadHashSlotsConfig(); err != nil {
 		return err
 	}
 
-	dagNodes := make([]*dagnode.DagNode, len(cfg.ClusterConfig.Cluster))
-	for i, dagNodeConfig := range cfg.ClusterConfig.Cluster {
-		if _, ok := d.slotConfig.SlotsMap[dagNodeConfig.Name]; !ok {
-			return fmt.Errorf("the dagnode[%s] slot config cannot be found", dagNodeConfig.Name)
-		}
-		dagNode, err := dagnode.NewDagNode(dagNodeConfig)
-		if err != nil {
-			log.Errorf("new dagnode err:%v", err)
+	for _, dagNodeConfig := range d.config.Cluster {
+		if err := d.AddDagNode(&dagNodeConfig); err != nil {
 			return err
 		}
-		go dagNode.RunHeartbeatCheck(ctx)
-		dagNodes[i] = dagNode
 
-		for _, pair := range d.slotConfig.SlotsMap[dagNodeConfig.Name] {
-			for idx := pair.Start; idx <= pair.End; idx++ {
-				if err = d.addSlot(dagNode, idx); err != nil {
-					return err
+		if pairs, ok := d.slotConfig.SlotsMap[dagNodeConfig.Name]; ok {
+			dagNode := d.dagNodesMap[dagNodeConfig.Name]
+			for _, pair := range pairs {
+				for idx := pair.Start; idx <= pair.End; idx++ {
+					if err := d.addSlot(dagNode, idx); err != nil {
+						return err
+					}
 				}
 			}
 		}

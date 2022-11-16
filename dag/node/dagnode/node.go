@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+	"sort"
 	"sync"
 	"time"
 )
@@ -28,12 +29,12 @@ const healthCheckService = "grpc.health.v1.Health"
 
 //DagNode Implemented the Blockstore interface
 type DagNode struct {
-	Nodes        []*datanode.Client
-	dataBlocks   int    // Number of data shards
-	parityBlocks int    // Number of parity shards
-	statusNodes  []bool // true: means the data node is health
-	slots        *slotsmgr.SlotsManager
-	numSlots     int
+	Nodes       []*datanode.Client
+	statusNodes []bool // true: means the data node is health
+	slots       *slotsmgr.SlotsManager
+	numSlots    int
+	config      config.DagNodeConfig
+	stopCh      chan struct{}
 }
 
 type Meta struct {
@@ -42,7 +43,9 @@ type Meta struct {
 
 //NewDagNode creates a new DagNode
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
-	if len(cfg.Nodes) != cfg.DataBlocks+cfg.ParityBlocks {
+	sort.Sort(config.DataNodeConfigs(cfg.Nodes))
+	numNodes := len(cfg.Nodes)
+	if numNodes != cfg.DataBlocks+cfg.ParityBlocks || numNodes == 0 || numNodes != cfg.Nodes[numNodes-1].SetIndex+1 {
 		return nil, errors.New("dag node config is incorrect")
 	}
 	clients := make([]*datanode.Client, 0, cfg.DataBlocks+cfg.ParityBlocks)
@@ -54,12 +57,23 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 		clients = append(clients, dateNode)
 	}
 	return &DagNode{
-		Nodes:        clients,
-		dataBlocks:   cfg.DataBlocks,
-		parityBlocks: cfg.ParityBlocks,
-		statusNodes:  make([]bool, cfg.DataBlocks+cfg.ParityBlocks),
-		slots:        slotsmgr.NewSlotsManager(),
+		Nodes:       clients,
+		statusNodes: make([]bool, cfg.DataBlocks+cfg.ParityBlocks),
+		slots:       slotsmgr.NewSlotsManager(),
+		config:      cfg,
+		stopCh:      make(chan struct{}),
 	}, nil
+}
+
+func (d *DagNode) GetConfig() *config.DagNodeConfig {
+	return &d.config
+}
+
+func (d *DagNode) GetDataNodeStatus(setIndex int) bool {
+	if setIndex < 0 || setIndex >= len(d.statusNodes) {
+		log.Fatalf("input setIndex %v is illegal, size of set is %v", setIndex, len(d.statusNodes))
+	}
+	return d.statusNodes[setIndex]
 }
 
 // AddSlot Set the slot bit and return the old value
@@ -99,12 +113,18 @@ func (d *DagNode) GetSlotPairs() []slotsmgr.SlotPair {
 	return d.slots.ToSlotPair()
 }
 
+func (d *DagNode) GetNumSlots() int {
+	return d.numSlots
+}
+
 func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
+			return
+		case <-d.stopCh:
 			return
 		case <-ticker.C:
 			wg := sync.WaitGroup{}
@@ -200,7 +220,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	wg.Wait()
 	// TODO: After obtaining the shard data that meets the conditions, we can proceed
 
-	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(size))
+	enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(size))
 	if err != nil {
 		log.Errorf("new erasure fail :%v", err)
 		return nil, err
@@ -253,7 +273,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 		return err
 	}
 
-	enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(blockDataSize))
+	enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(blockDataSize))
 	if err != nil {
 		log.Errorf("newErasure fail :%v", err)
 		return err
@@ -320,18 +340,19 @@ func (d *DagNode) Close() {
 	for _, nd := range d.Nodes {
 		nd.Conn.Close()
 	}
+	close(d.stopCh)
 }
 
 // Returns per entry readQuorum and writeQuorum
 // readQuorum is the min required nodes to read data.
 // writeQuorum is the min required nodes to write data.
 func (d *DagNode) entryQuorum() (entryReadQuorum, entryWriteQuorum int) {
-	writeQuorum := d.dataBlocks
-	if d.dataBlocks == d.parityBlocks {
+	writeQuorum := d.config.DataBlocks
+	if d.config.DataBlocks == d.config.ParityBlocks {
 		writeQuorum++
 	}
 
-	return d.dataBlocks, writeQuorum
+	return d.config.DataBlocks, writeQuorum
 }
 
 // Reads all metadata as a Meta slice.

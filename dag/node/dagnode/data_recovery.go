@@ -73,7 +73,7 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 			}
 			merged = append(merged, res.Data)
 		}
-		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(size))
+		enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(size))
 		if err != nil {
 			log.Errorf("new erasure fail :%v", err)
 			return err

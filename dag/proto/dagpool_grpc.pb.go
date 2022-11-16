@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -350,6 +351,308 @@ var DagPool_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateUser",
 			Handler:    _DagPool_UpdateUser_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "dagpool.proto",
+}
+
+// DagPoolClusterClient is the client API for DagPoolCluster service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type DagPoolClusterClient interface {
+	InitSlots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	AddDagNode(ctx context.Context, in *DagNodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetDagNode(ctx context.Context, in *GetDagNodeReq, opts ...grpc.CallOption) (*DagNodeInfo, error)
+	RemoveDagNode(ctx context.Context, in *RemoveDagNodeReq, opts ...grpc.CallOption) (*DagNodeInfo, error)
+	MigrateSlots(ctx context.Context, in *MigrateSlotsReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	BalanceSlots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Status(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*StatusReply, error)
+}
+
+type dagPoolClusterClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewDagPoolClusterClient(cc grpc.ClientConnInterface) DagPoolClusterClient {
+	return &dagPoolClusterClient{cc}
+}
+
+func (c *dagPoolClusterClient) InitSlots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/InitSlots", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagPoolClusterClient) AddDagNode(ctx context.Context, in *DagNodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/AddDagNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagPoolClusterClient) GetDagNode(ctx context.Context, in *GetDagNodeReq, opts ...grpc.CallOption) (*DagNodeInfo, error) {
+	out := new(DagNodeInfo)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/GetDagNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagPoolClusterClient) RemoveDagNode(ctx context.Context, in *RemoveDagNodeReq, opts ...grpc.CallOption) (*DagNodeInfo, error) {
+	out := new(DagNodeInfo)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/RemoveDagNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagPoolClusterClient) MigrateSlots(ctx context.Context, in *MigrateSlotsReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/MigrateSlots", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagPoolClusterClient) BalanceSlots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/BalanceSlots", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagPoolClusterClient) Status(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*StatusReply, error) {
+	out := new(StatusReply)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/Status", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DagPoolClusterServer is the server API for DagPoolCluster service.
+// All implementations must embed UnimplementedDagPoolClusterServer
+// for forward compatibility
+type DagPoolClusterServer interface {
+	InitSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	AddDagNode(context.Context, *DagNodeInfo) (*emptypb.Empty, error)
+	GetDagNode(context.Context, *GetDagNodeReq) (*DagNodeInfo, error)
+	RemoveDagNode(context.Context, *RemoveDagNodeReq) (*DagNodeInfo, error)
+	MigrateSlots(context.Context, *MigrateSlotsReq) (*emptypb.Empty, error)
+	BalanceSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
+	Status(context.Context, *emptypb.Empty) (*StatusReply, error)
+	mustEmbedUnimplementedDagPoolClusterServer()
+}
+
+// UnimplementedDagPoolClusterServer must be embedded to have forward compatible implementations.
+type UnimplementedDagPoolClusterServer struct {
+}
+
+func (UnimplementedDagPoolClusterServer) InitSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitSlots not implemented")
+}
+func (UnimplementedDagPoolClusterServer) AddDagNode(context.Context, *DagNodeInfo) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddDagNode not implemented")
+}
+func (UnimplementedDagPoolClusterServer) GetDagNode(context.Context, *GetDagNodeReq) (*DagNodeInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDagNode not implemented")
+}
+func (UnimplementedDagPoolClusterServer) RemoveDagNode(context.Context, *RemoveDagNodeReq) (*DagNodeInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveDagNode not implemented")
+}
+func (UnimplementedDagPoolClusterServer) MigrateSlots(context.Context, *MigrateSlotsReq) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MigrateSlots not implemented")
+}
+func (UnimplementedDagPoolClusterServer) BalanceSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BalanceSlots not implemented")
+}
+func (UnimplementedDagPoolClusterServer) Status(context.Context, *emptypb.Empty) (*StatusReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
+}
+func (UnimplementedDagPoolClusterServer) mustEmbedUnimplementedDagPoolClusterServer() {}
+
+// UnsafeDagPoolClusterServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DagPoolClusterServer will
+// result in compilation errors.
+type UnsafeDagPoolClusterServer interface {
+	mustEmbedUnimplementedDagPoolClusterServer()
+}
+
+func RegisterDagPoolClusterServer(s grpc.ServiceRegistrar, srv DagPoolClusterServer) {
+	s.RegisterService(&DagPoolCluster_ServiceDesc, srv)
+}
+
+func _DagPoolCluster_InitSlots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).InitSlots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/InitSlots",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).InitSlots(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DagPoolCluster_AddDagNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DagNodeInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).AddDagNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/AddDagNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).AddDagNode(ctx, req.(*DagNodeInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DagPoolCluster_GetDagNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDagNodeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).GetDagNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/GetDagNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).GetDagNode(ctx, req.(*GetDagNodeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DagPoolCluster_RemoveDagNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveDagNodeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).RemoveDagNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/RemoveDagNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).RemoveDagNode(ctx, req.(*RemoveDagNodeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DagPoolCluster_MigrateSlots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MigrateSlotsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).MigrateSlots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/MigrateSlots",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).MigrateSlots(ctx, req.(*MigrateSlotsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DagPoolCluster_BalanceSlots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).BalanceSlots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/BalanceSlots",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).BalanceSlots(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DagPoolCluster_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).Status(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/Status",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).Status(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// DagPoolCluster_ServiceDesc is the grpc.ServiceDesc for DagPoolCluster service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var DagPoolCluster_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "proto.DagPoolCluster",
+	HandlerType: (*DagPoolClusterServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "InitSlots",
+			Handler:    _DagPoolCluster_InitSlots_Handler,
+		},
+		{
+			MethodName: "AddDagNode",
+			Handler:    _DagPoolCluster_AddDagNode_Handler,
+		},
+		{
+			MethodName: "GetDagNode",
+			Handler:    _DagPoolCluster_GetDagNode_Handler,
+		},
+		{
+			MethodName: "RemoveDagNode",
+			Handler:    _DagPoolCluster_RemoveDagNode_Handler,
+		},
+		{
+			MethodName: "MigrateSlots",
+			Handler:    _DagPoolCluster_MigrateSlots_Handler,
+		},
+		{
+			MethodName: "BalanceSlots",
+			Handler:    _DagPoolCluster_BalanceSlots_Handler,
+		},
+		{
+			MethodName: "Status",
+			Handler:    _DagPoolCluster_Status_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

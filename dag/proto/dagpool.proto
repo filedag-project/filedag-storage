@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package proto;
 option go_package = '../proto';
 
@@ -100,4 +102,56 @@ message UpdateUserReq{
 
 message UpdateUserReply {
   string message = 1;
+}
+
+
+service DagPoolCluster {
+  rpc InitSlots (google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  rpc AddDagNode (DagNodeInfo) returns (google.protobuf.Empty) {}
+  rpc GetDagNode (GetDagNodeReq) returns (DagNodeInfo) {}
+  rpc RemoveDagNode (RemoveDagNodeReq) returns (DagNodeInfo) {}
+  rpc MigrateSlots (MigrateSlotsReq) returns (google.protobuf.Empty) {}
+  rpc BalanceSlots (google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  rpc Status (google.protobuf.Empty) returns (StatusReply) {}
+}
+
+message DataNodeInfo {
+  int32 setIndex = 1;
+  string rpcAddress = 2;
+  optional bool status = 3;
+}
+
+message DagNodeInfo {
+  string name = 1;
+  repeated DataNodeInfo nodes = 2;
+  int32 dataBlocks = 3;
+  int32 parityBlocks = 4;
+}
+
+message GetDagNodeReq {
+  string name = 1;
+}
+
+message RemoveDagNodeReq {
+  string name = 1;
+}
+
+message SlotPair {
+  uint32 start = 1;
+  uint32 end = 2;
+}
+
+message MigrateSlotsReq {
+  string fromDagNodeName = 1;
+  string toDagNodeName = 2;
+  repeated SlotPair pairs = 3;
+}
+
+message DagNodeStatus {
+  DagNodeInfo node = 1;
+  repeated SlotPair pairs = 5;
+}
+
+message StatusReply {
+  repeated DagNodeStatus statuses = 2;
 }

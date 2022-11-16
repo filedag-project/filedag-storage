@@ -24,10 +24,22 @@ var log = logging.Logger("dag-pool")
 
 var _ pool.DagPool = &dagPoolService{}
 
+type ClusterStatus int
+
+const (
+	StatusOk ClusterStatus = iota
+	StatusUpdate
+	StatusFail
+)
+
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
-	dagNodes   [slotsmgr.ClusterSlots]*dagnode.DagNode
-	slotConfig SlotConfig
+	dagNodes    [slotsmgr.ClusterSlots]*dagnode.DagNode
+	dagNodesMap map[string]*dagnode.DagNode
+	slotConfig  SlotConfig
+	status      ClusterStatus
+	config      config.ClusterConfig
+	parentCtx   context.Context
 
 	iam *dpuser.IdentityUserSys
 	db  *uleveldb.ULevelDB
@@ -53,17 +65,21 @@ func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolServ
 	refCounter := reference.NewRefCounter(db, cacheSet)
 
 	serv := &dagPoolService{
-		iam:        i,
-		db:         db,
-		refCounter: refCounter,
-		cacheSet:   cacheSet,
-		gcControl:  NewGcControl(),
-		gcPeriod:   cfg.GcPeriod,
+		dagNodesMap: make(map[string]*dagnode.DagNode),
+		config:      cfg.ClusterConfig,
+		parentCtx:   ctx,
+		iam:         i,
+		db:          db,
+		refCounter:  refCounter,
+		cacheSet:    cacheSet,
+		gcControl:   NewGcControl(),
+		gcPeriod:    cfg.GcPeriod,
 	}
-	if err = serv.clusterInit(ctx, cfg); err != nil {
+	if err = serv.clusterInit(); err != nil {
 		return nil, err
 	}
 	if !serv.checkAllSlots() {
+		serv.status = StatusFail
 		return nil, errors.New("please allocate all the slots before booting")
 	}
 	return serv, nil
@@ -224,6 +240,9 @@ func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, passw
 
 //Close the dagPoolService
 func (d *dagPoolService) Close() error {
+	for _, node := range d.dagNodesMap {
+		node.Close()
+	}
 	return d.db.Close()
 }
 

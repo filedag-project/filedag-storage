@@ -2,7 +2,10 @@ package pool
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
+	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	// blank import is used to register the IPLD raw codec
@@ -22,4 +25,14 @@ type DagPool interface {
 	QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error)
 	UpdateUser(uUser dpuser.DagPoolUser, user string, password string) error
 	Close() error
+}
+
+type Cluster interface {
+	InitSlots() error
+	AddDagNode(nodeConfig *config.DagNodeConfig) error
+	GetDagNode(dagNodeName string) (*config.DagNodeConfig, error)
+	RemoveDagNode(dagNodeName string) (*config.DagNodeConfig, error)
+	MigrateSlots(fromDagNodeName, toDagNodeName string, pairs []slotsmgr.SlotPair) error
+	BalanceSlots() error
+	Status() ([]*proto.DagNodeStatus, error)
 }

@@ -21,12 +21,26 @@ type ClusterConfig struct {
 type DagNodeConfig struct {
 	Name         string           `json:"name"`
 	Nodes        []DataNodeConfig `json:"nodes"`
-	DataBlocks   int              `json:"data_blocks"`
-	ParityBlocks int              `json:"parity_blocks"`
+	DataBlocks   int              `json:"data_blocks"`   // Number of data shards
+	ParityBlocks int              `json:"parity_blocks"` // Number of parity shards
 }
 
 //DataNodeConfig is the configuration for a datanode
 type DataNodeConfig struct {
 	SetIndex   int    `json:"index"`
 	RpcAddress string `json:"rpc_address"`
+}
+
+type DataNodeConfigs []DataNodeConfig
+
+func (n DataNodeConfigs) Len() int {
+	return len(n)
+}
+
+func (n DataNodeConfigs) Less(i int, j int) bool {
+	return n[i].SetIndex < n[j].SetIndex
+}
+
+func (n DataNodeConfigs) Swap(i int, j int) {
+	n[i], n[j] = n[j], n[i]
 }

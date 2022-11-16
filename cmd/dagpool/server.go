@@ -91,6 +91,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	defer service.Close()
 
 	proto.RegisterDagPoolServer(s, &server.DagPoolServer{DagPool: service})
+	proto.RegisterDagPoolClusterServer(s, &server.DagPoolClusterServer{Cluster: service})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
