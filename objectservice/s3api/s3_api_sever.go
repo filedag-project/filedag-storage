@@ -6,7 +6,9 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
+
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"net/http"
 )
 
@@ -127,3 +129,74 @@ func NewS3Server(router *mux.Router, authSys *iam.AuthSys, bmSys *store.BucketMe
 
 	router.Use(iam.SetAuthHandler)
 }
+
+// CorsHandler handler for CORS (Cross Origin Resource Sharing)
+func CorsHandler(handler http.Handler) http.Handler {
+	commonS3Headers := []string{
+		Date,
+		ETag,
+		ServerInfo,
+		Connection,
+		AcceptRanges,
+		ContentRange,
+		ContentEncoding,
+		ContentLength,
+		ContentType,
+		ContentDisposition,
+		LastModified,
+		ContentLanguage,
+		CacheControl,
+		RetryAfter,
+		AmzBucketRegion,
+		Expires,
+		Authorization,
+		Action,
+		Range,
+		"X-Amz*",
+		"x-amz*",
+		"*",
+	}
+
+	return cors.New(cors.Options{
+		AllowOriginFunc: func(origin string) bool {
+
+			return true
+		},
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPut,
+			http.MethodHead,
+			http.MethodPost,
+			http.MethodDelete,
+			http.MethodOptions,
+			http.MethodPatch,
+		},
+		AllowedHeaders:   commonS3Headers,
+		ExposedHeaders:   commonS3Headers,
+		AllowCredentials: true,
+	}).Handler(handler)
+}
+
+const (
+	LastModified       = "Last-Modified"
+	Date               = "Date"
+	ETag               = "ETag"
+	ContentType        = "Content-Type"
+	ContentMD5         = "Content-Md5"
+	ContentEncoding    = "Content-Encoding"
+	Expires            = "Expires"
+	ContentLength      = "Content-Length"
+	ContentLanguage    = "Content-Language"
+	ContentRange       = "Content-Range"
+	Connection         = "Connection"
+	AcceptRanges       = "Accept-Ranges"
+	AmzBucketRegion    = "X-Amz-Bucket-Region"
+	ServerInfo         = "Server"
+	RetryAfter         = "Retry-After"
+	Location           = "Location"
+	CacheControl       = "Cache-Control"
+	ContentDisposition = "Content-Disposition"
+	Authorization      = "Authorization"
+	Action             = "Action"
+	Range              = "Range"
+)
