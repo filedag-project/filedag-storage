@@ -133,25 +133,25 @@ func NewS3Server(router *mux.Router, authSys *iam.AuthSys, bmSys *store.BucketMe
 // CorsHandler handler for CORS (Cross Origin Resource Sharing)
 func CorsHandler(handler http.Handler) http.Handler {
 	commonS3Headers := []string{
-		Date,
-		ETag,
-		ServerInfo,
-		Connection,
-		AcceptRanges,
-		ContentRange,
-		ContentEncoding,
-		ContentLength,
-		ContentType,
-		ContentDisposition,
-		LastModified,
-		ContentLanguage,
-		CacheControl,
-		RetryAfter,
-		AmzBucketRegion,
-		Expires,
-		Authorization,
-		Action,
-		Range,
+		consts.Date,
+		consts.ETag,
+		consts.ServerInfo,
+		consts.Connection,
+		consts.AcceptRanges,
+		consts.ContentRange,
+		consts.ContentEncoding,
+		consts.ContentLength,
+		consts.ContentType,
+		consts.ContentDisposition,
+		consts.LastModified,
+		consts.ContentLanguage,
+		consts.CacheControl,
+		consts.RetryAfter,
+		consts.AmzBucketRegion,
+		consts.Expires,
+		consts.Authorization,
+		consts.Action,
+		consts.Range,
 		"X-Amz*",
 		"x-amz*",
 		"*",
@@ -176,27 +176,3 @@ func CorsHandler(handler http.Handler) http.Handler {
 		AllowCredentials: true,
 	}).Handler(handler)
 }
-
-const (
-	LastModified       = "Last-Modified"
-	Date               = "Date"
-	ETag               = "ETag"
-	ContentType        = "Content-Type"
-	ContentMD5         = "Content-Md5"
-	ContentEncoding    = "Content-Encoding"
-	Expires            = "Expires"
-	ContentLength      = "Content-Length"
-	ContentLanguage    = "Content-Language"
-	ContentRange       = "Content-Range"
-	Connection         = "Connection"
-	AcceptRanges       = "Accept-Ranges"
-	AmzBucketRegion    = "X-Amz-Bucket-Region"
-	ServerInfo         = "Server"
-	RetryAfter         = "Retry-After"
-	Location           = "Location"
-	CacheControl       = "Cache-Control"
-	ContentDisposition = "Content-Disposition"
-	Authorization      = "Authorization"
-	Action             = "Action"
-	Range              = "Range"
-)
