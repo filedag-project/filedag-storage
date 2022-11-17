@@ -15,9 +15,9 @@ func main() {
 		clusterCmd,
 	}
 	app := &cli.App{
-		Name:                 "dag-pool",
-		Usage:                "dag pool daemon",
-		Version:              "0.0.1",
+		Name:                 "dagpool",
+		Usage:                "dag pool cluster",
+		Version:              "0.1.0",
 		EnableBashCompletion: true,
 		Commands:             local,
 	}

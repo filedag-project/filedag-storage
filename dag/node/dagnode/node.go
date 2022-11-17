@@ -29,12 +29,12 @@ const healthCheckService = "grpc.health.v1.Health"
 
 //DagNode Implemented the Blockstore interface
 type DagNode struct {
-	Nodes       []*datanode.Client
-	statusNodes []bool // true: means the data node is health
-	slots       *slotsmgr.SlotsManager
-	numSlots    int
-	config      config.DagNodeConfig
-	stopCh      chan struct{}
+	Nodes      []*datanode.Client
+	stateNodes []bool // true: means the data node is health
+	slots      *slotsmgr.SlotsManager
+	numSlots   int
+	config     config.DagNodeConfig
+	stopCh     chan struct{}
 }
 
 type Meta struct {
@@ -57,11 +57,11 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 		clients = append(clients, dateNode)
 	}
 	return &DagNode{
-		Nodes:       clients,
-		statusNodes: make([]bool, cfg.DataBlocks+cfg.ParityBlocks),
-		slots:       slotsmgr.NewSlotsManager(),
-		config:      cfg,
-		stopCh:      make(chan struct{}),
+		Nodes:      clients,
+		stateNodes: make([]bool, cfg.DataBlocks+cfg.ParityBlocks),
+		slots:      slotsmgr.NewSlotsManager(),
+		config:     cfg,
+		stopCh:     make(chan struct{}),
 	}, nil
 }
 
@@ -69,11 +69,11 @@ func (d *DagNode) GetConfig() *config.DagNodeConfig {
 	return &d.config
 }
 
-func (d *DagNode) GetDataNodeStatus(setIndex int) bool {
-	if setIndex < 0 || setIndex >= len(d.statusNodes) {
-		log.Fatalf("input setIndex %v is illegal, size of set is %v", setIndex, len(d.statusNodes))
+func (d *DagNode) GetDataNodeState(setIndex int) bool {
+	if setIndex < 0 || setIndex >= len(d.stateNodes) {
+		log.Fatalf("input setIndex %v is illegal, size of set is %v", setIndex, len(d.stateNodes))
 	}
-	return d.statusNodes[setIndex]
+	return d.stateNodes[setIndex]
 }
 
 // AddSlot Set the slot bit and return the old value
@@ -132,7 +132,7 @@ func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
 				nd := node
 				wg.Add(1)
 				go func() {
-					d.statusNodes[i] = d.healthCheck(ctx, nd)
+					d.stateNodes[i] = d.healthCheck(ctx, nd)
 				}()
 			}
 			wg.Wait()

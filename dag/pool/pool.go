@@ -14,7 +14,7 @@ import (
 
 //go:generate go run github.com/golang/mock/mockgen -destination=mocks/mock_dagpool.go -package=mocks . DagPool
 
-//DagPool is an interface that defines the basic operations of a dag pool
+// DagPool is an interface that defines the basic operations of a dag pool
 type DagPool interface {
 	Add(ctx context.Context, block blocks.Block, user string, password string, pin bool) error
 	Get(ctx context.Context, c cid.Cid, user string, password string) (blocks.Block, error)
@@ -27,12 +27,13 @@ type DagPool interface {
 	Close() error
 }
 
+// Cluster is an interface that defines the basic operations of a Cluster
 type Cluster interface {
-	InitSlots() error
 	AddDagNode(nodeConfig *config.DagNodeConfig) error
 	GetDagNode(dagNodeName string) (*config.DagNodeConfig, error)
 	RemoveDagNode(dagNodeName string) (*config.DagNodeConfig, error)
+	InitSlots() error
 	MigrateSlots(fromDagNodeName, toDagNodeName string, pairs []slotsmgr.SlotPair) error
 	BalanceSlots() error
-	Status() ([]*proto.DagNodeStatus, error)
+	Status() (*proto.StatusReply, error)
 }

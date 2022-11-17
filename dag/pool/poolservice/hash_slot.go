@@ -64,7 +64,7 @@ func (d *dagPoolService) saveHashSlotsConfig() error {
 }
 
 func (d *dagPoolService) checkAllSlots() bool {
-	for _, node := range d.dagNodes {
+	for _, node := range d.slots {
 		if node == nil {
 			return false
 		}
@@ -73,23 +73,23 @@ func (d *dagPoolService) checkAllSlots() bool {
 }
 
 func (d *dagPoolService) addSlot(node *dagnode.DagNode, slot uint64) error {
-	if d.dagNodes[slot] != nil {
+	if d.slots[slot] != nil {
 		return errors.New("slot already exists")
 	}
 	node.AddSlot(slot)
-	d.dagNodes[slot] = node
+	d.slots[slot] = node
 	return nil
 }
 
 func (d *dagPoolService) delSlot(slot uint64) error {
-	if d.dagNodes[slot] == nil {
+	if d.slots[slot] == nil {
 		return errors.New("slot does not exist")
 	}
 
-	if !d.dagNodes[slot].ClearSlot(slot) {
-		log.Fatal(errors.New("the slot status is inconsistent"))
+	if !d.slots[slot].ClearSlot(slot) {
+		log.Fatal(errors.New("the slot state is inconsistent"))
 	}
-	d.dagNodes[slot] = nil
+	d.slots[slot] = nil
 	return nil
 }
 

@@ -118,7 +118,7 @@ service DagPoolCluster {
 message DataNodeInfo {
   int32 setIndex = 1;
   string rpcAddress = 2;
-  optional bool status = 3;
+  optional bool state = 3;
 }
 
 message DagNodeInfo {
@@ -149,9 +149,10 @@ message MigrateSlotsReq {
 
 message DagNodeStatus {
   DagNodeInfo node = 1;
-  repeated SlotPair pairs = 5;
+  repeated SlotPair pairs = 2;
 }
 
 message StatusReply {
+  string state = 1;
   repeated DagNodeStatus statuses = 2;
 }

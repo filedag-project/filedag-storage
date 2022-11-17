@@ -71,7 +71,7 @@ func (d *dagPoolService) BalanceSlots() error {
 	return nil
 }
 
-func (d *dagPoolService) Status() ([]*proto.DagNodeStatus, error) {
+func (d *dagPoolService) Status() (*proto.StatusReply, error) {
 	list := make([]*proto.DagNodeStatus, 0, len(d.dagNodesMap))
 	for _, node := range d.dagNodesMap {
 		pairs := node.GetSlotPairs()
@@ -82,11 +82,11 @@ func (d *dagPoolService) Status() ([]*proto.DagNodeStatus, error) {
 		cfg := node.GetConfig()
 		dataNodes := make([]*proto.DataNodeInfo, 0, len(cfg.Nodes))
 		for _, nd := range cfg.Nodes {
-			status := node.GetDataNodeStatus(nd.SetIndex)
+			state := node.GetDataNodeState(nd.SetIndex)
 			dataNodes = append(dataNodes, &proto.DataNodeInfo{
 				SetIndex:   int32(nd.SetIndex),
 				RpcAddress: nd.RpcAddress,
-				Status:     &status,
+				State:      &state,
 			})
 		}
 		st := &proto.DagNodeStatus{
@@ -100,5 +100,8 @@ func (d *dagPoolService) Status() ([]*proto.DagNodeStatus, error) {
 		}
 		list = append(list, st)
 	}
-	return list, nil
+	return &proto.StatusReply{
+		State:    d.state.String(),
+		Statuses: list,
+	}, nil
 }

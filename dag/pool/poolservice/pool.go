@@ -24,20 +24,36 @@ var log = logging.Logger("dag-pool")
 
 var _ pool.DagPool = &dagPoolService{}
 
-type ClusterStatus int
+type ClusterState int
+
+func (cs ClusterState) String() string {
+	switch cs {
+	case StatusOk:
+		return "ok"
+	case StatusFail:
+		return "fail"
+	case StatusUpdate:
+		return "update"
+	default:
+		return "unknown"
+	}
+}
 
 const (
-	StatusOk ClusterStatus = iota
+	StatusOk ClusterState = iota
 	StatusUpdate
 	StatusFail
 )
 
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
-	dagNodes    [slotsmgr.ClusterSlots]*dagnode.DagNode
+	slots              [slotsmgr.ClusterSlots]*dagnode.DagNode
+	migratingSlotsTo   [slotsmgr.ClusterSlots]*dagnode.DagNode
+	importingSlotsFrom [slotsmgr.ClusterSlots]*dagnode.DagNode
+
 	dagNodesMap map[string]*dagnode.DagNode
 	slotConfig  SlotConfig
-	status      ClusterStatus
+	state       ClusterState
 	config      config.ClusterConfig
 	parentCtx   context.Context
 
@@ -79,7 +95,7 @@ func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolServ
 		return nil, err
 	}
 	if !serv.checkAllSlots() {
-		serv.status = StatusFail
+		serv.state = StatusFail
 		return nil, errors.New("please allocate all the slots before booting")
 	}
 	return serv, nil
@@ -93,7 +109,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 
 	key := block.Cid().String()
 	addBlock := func() error {
-		selNode := d.dagNodes[keyHashSlot(block.Cid().String())]
+		selNode := d.slots[keyHashSlot(block.Cid().String())]
 		return selNode.Put(ctx, block)
 	}
 
@@ -127,7 +143,7 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 		return nil, format.ErrNotFound{Cid: c}
 	}
 
-	selNode := d.dagNodes[keyHashSlot(c.String())]
+	selNode := d.slots[keyHashSlot(c.String())]
 	b, err := selNode.Get(ctx, c)
 	if err != nil {
 		if format.IsNotFound(err) {
@@ -166,7 +182,7 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	selNode := d.dagNodes[keyHashSlot(c.String())]
+	selNode := d.slots[keyHashSlot(c.String())]
 	return selNode.GetSize(ctx, c)
 }
 
