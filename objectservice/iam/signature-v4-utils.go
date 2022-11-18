@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // http Header "x-amz-content-sha256" == "UNSIGNED-PAYLOAD" indicates that the
@@ -214,7 +215,11 @@ func extractSignedHeaders(signedHeaders []string, r *http.Request) (http.Header,
 			extractedSignedHeaders.Set(header, "100-continue")
 		case "host":
 			// Go http server removes "host" from Request.Header
-			extractedSignedHeaders.Set(header, r.Host)
+
+			//extractedSignedHeaders.Set(header, r.Host)
+			// todo use r.Host, or filedag-web deal with
+			value := strings.Split(r.Host, ":")
+			extractedSignedHeaders.Set(header, value[0])
 		case "transfer-encoding":
 			// Go http server removes "host" from Request.Header
 			extractedSignedHeaders[http.CanonicalHeaderKey(header)] = r.TransferEncoding
