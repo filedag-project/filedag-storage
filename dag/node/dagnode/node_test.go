@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode/mocks"
 	"github.com/filedag-project/filedag-storage/dag/proto"
@@ -22,9 +23,11 @@ func TestDagNode(t *testing.T) {
 		clients = append(clients, cli)
 	}
 	var d = DagNode{
-		Nodes:        clients,
-		dataBlocks:   2,
-		parityBlocks: 1,
+		Nodes: clients,
+		config: config.DagNodeConfig{
+			DataBlocks:   2,
+			ParityBlocks: 1,
+		},
 	}
 	content := "123456"
 	block := blocks.NewBlock([]byte(content))

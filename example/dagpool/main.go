@@ -66,18 +66,25 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 		}
 		nodeConfigs = append(nodeConfigs, nc)
 	}
-	clusterCfg := config.ClusterConfig{
-		Cluster: nodeConfigs,
-	}
 	cfg := config.PoolConfig{
-		ClusterConfig: clusterCfg,
-		LeveldbPath:   leveldbPath,
-		RootUser:      user,
-		RootPassword:  pass,
+		LeveldbPath:  leveldbPath,
+		RootUser:     user,
+		RootPassword: pass,
 	}
 	service, err := poolservice.NewDagPoolService(context.TODO(), cfg)
 	if err != nil {
 		fmt.Printf("NewDagPoolService err:%v\n", err)
+		return
+	}
+	for _, nd := range nodeConfigs {
+		err = service.AddDagNode(&nd)
+		if err != nil {
+			fmt.Printf("AddDagNode err:%v\n", err)
+			return
+		}
+	}
+	if err = service.InitSlots(); err != nil {
+		fmt.Printf("InitSlots err:%v\n", err)
 		return
 	}
 	proto.RegisterDagPoolServer(s, &server.DagPoolServer{DagPool: service})
