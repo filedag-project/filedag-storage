@@ -2,21 +2,100 @@ package poolservice
 
 import (
 	"errors"
+	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
+	"github.com/syndtr/goleveldb/leveldb"
+	"sort"
 )
 
 var ErrDagNodeNotFound = errors.New("this dag node does not exist")
 var ErrDagNodeRemove = errors.New("this dag node still has slots and cannot be removed")
+var ErrClusterMigrating = errors.New("the cluster is migrating")
 
+type MigrateSlot struct {
+	From      string
+	To        string
+	SlotPairs []slotsmgr.SlotPair
+}
+
+// InitSlots Perform the slots allocation for the first time
 func (d *dagPoolService) InitSlots() error {
-	// TODO
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return err
+	}
+	if cfg.Version != 0 {
+		return errors.New("it's already initialized")
+	}
+	d.dagNodesLock.Lock()
+	defer d.dagNodesLock.Unlock()
+
+	// calculate number of slots each dagnode
+	nodesNum := len(d.dagNodesMap)
+	piece := slotsmgr.ClusterSlots / nodesNum
+	remind := slotsmgr.ClusterSlots - piece*nodesNum
+
+	var nameList []string
+	for name := range d.dagNodesMap {
+		nameList = append(nameList, name)
+	}
+	sort.Strings(nameList)
+	curIndex := 0
+	for i := 0; i < nodesNum; i++ {
+		curPiece := piece
+		if remind > 0 {
+			curPiece += 1
+			remind--
+		}
+
+		node := d.dagNodesMap[nameList[i]]
+		for start := curIndex; start <= curIndex+curPiece-1; start++ {
+			node.AddSlot(uint64(start))
+
+			if d.slots[start] != nil {
+				log.Fatal("the slot state is inconsistent")
+			}
+			d.slots[start] = node
+		}
+
+		dagNode := config.DagNodeInfo{}
+		dagNode.Config = *node.GetConfig()
+		dagNode.SlotPairs = node.GetSlotPairs()
+		cfg.Cluster = append(cfg.Cluster, dagNode)
+
+		curIndex += curPiece
+	}
+	// save config
+	cfg.Version = 1
+	if err = d.saveConfig(cfg); err != nil {
+		// rollback
+		for i := 0; i < nodesNum; i++ {
+			node := d.dagNodesMap[nameList[i]]
+			slotPairs := node.GetSlotPairs()
+			for _, pair := range slotPairs {
+				for slot := pair.Start; slot <= pair.End; slot++ {
+					node.ClearSlot(slot)
+				}
+			}
+			if node.GetNumSlots() != 0 {
+				log.Fatal("the slot state is inconsistent")
+			}
+		}
+		var empty [slotsmgr.ClusterSlots]*dagnode.DagNode
+		d.slots = empty
+		return err
+	}
+
 	return nil
 }
 
 func (d *dagPoolService) AddDagNode(nodeConfig *config.DagNodeConfig) error {
+	d.dagNodesLock.Lock()
+	defer d.dagNodesLock.Unlock()
+
 	if _, ok := d.dagNodesMap[nodeConfig.Name]; ok {
 		return ErrDagNodeAlreadyExist
 	}
@@ -28,10 +107,32 @@ func (d *dagPoolService) AddDagNode(nodeConfig *config.DagNodeConfig) error {
 	go dagNode.RunHeartbeatCheck(d.parentCtx)
 	d.dagNodesMap[nodeConfig.Name] = dagNode
 
+	// update local config
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return err
+	}
+	cfg.Version += 1
+	for _, node := range cfg.Cluster {
+		if node.Config.Name == nodeConfig.Name {
+			log.Fatal("local cluster config is illegal")
+		}
+	}
+	cfg.Cluster = append(cfg.Cluster, config.DagNodeInfo{Config: *nodeConfig})
+	if err = d.saveConfig(cfg); err != nil {
+		// rollback
+		delete(d.dagNodesMap, nodeConfig.Name)
+		dagNode.Close()
+		return err
+	}
+
 	return nil
 }
 
 func (d *dagPoolService) GetDagNode(dagNodeName string) (*config.DagNodeConfig, error) {
+	d.dagNodesLock.RLock()
+	defer d.dagNodesLock.RUnlock()
+
 	if nd, ok := d.dagNodesMap[dagNodeName]; ok {
 		return nd.GetConfig(), nil
 	}
@@ -39,35 +140,204 @@ func (d *dagPoolService) GetDagNode(dagNodeName string) (*config.DagNodeConfig, 
 }
 
 func (d *dagPoolService) RemoveDagNode(dagNodeName string) (*config.DagNodeConfig, error) {
+	d.dagNodesLock.Lock()
+	defer d.dagNodesLock.Unlock()
+
+	if d.state != StatusOk {
+		return nil, ErrDagNodeRemove
+	}
+
 	if nd, ok := d.dagNodesMap[dagNodeName]; ok {
 		// make sure the dagnode has no slot
 		if nd.GetNumSlots() != 0 {
 			return nil, ErrDagNodeRemove
 		}
-		cfg := nd.GetConfig()
-		// update config
-		delete(d.dagNodesMap, dagNodeName)
-		for i, node := range d.config.Cluster {
-			if node.Name == cfg.Name {
-				d.config.Cluster = append(d.config.Cluster[:i], d.config.Cluster[(i+1):]...)
+
+		// update local config
+		cfg, err := d.loadConfig()
+		if err != nil {
+			return nil, err
+		}
+		cfg.Version += 1
+		for i, node := range cfg.Cluster {
+			if node.Config.Name == dagNodeName {
+				cfg.Cluster = append(cfg.Cluster[:i], cfg.Cluster[(i+1):]...)
 				break
 			}
 		}
-		// TODO: save cluster config
+		if err = d.saveConfig(cfg); err != nil {
+			return nil, err
+		}
+
+		dagNodeCfg := nd.GetConfig()
+		delete(d.dagNodesMap, dagNodeName)
 		// close dagnode
 		nd.Close()
-		return cfg, nil
+		return dagNodeCfg, nil
 	}
 	return nil, ErrDagNodeNotFound
 }
 
 func (d *dagPoolService) MigrateSlots(fromDagNodeName, toDagNodeName string, pairs []slotsmgr.SlotPair) error {
-	// TODO
+	d.dagNodesLock.Lock()
+	defer d.dagNodesLock.Unlock()
+
+	if d.state == StatusMigrating {
+		return ErrClusterMigrating
+	}
+
+	return d.migrateSlotsByName(fromDagNodeName, toDagNodeName, pairs)
+}
+
+func (d *dagPoolService) migrateSlotsByName(fromDagNodeName, toDagNodeName string, pairs []slotsmgr.SlotPair) error {
+	fromNode, fromOk := d.dagNodesMap[fromDagNodeName]
+	toNode, toOk := d.dagNodesMap[toDagNodeName]
+	if !fromOk || !toOk {
+		return ErrDagNodeNotFound
+	}
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return err
+	}
+
+	d.state = StatusMigrating
+	d.migrateSlotsByNode(fromNode, toNode, pairs)
+
+	// update local config
+	cfg.Version += 1
+	cfg.Cluster = nil
+	for _, node := range d.dagNodesMap {
+		dagNode := config.DagNodeInfo{}
+		dagNode.Config = *node.GetConfig()
+		dagNode.SlotPairs = node.GetSlotPairs()
+		cfg.Cluster = append(cfg.Cluster, dagNode)
+	}
+	if err = d.saveConfig(cfg); err != nil {
+		// rollback
+		d.migrateSlotsByNode(toNode, fromNode, pairs)
+		return err
+	}
+
 	return nil
 }
 
+func (d *dagPoolService) migrateSlotsByNode(fromNode, toNode *dagnode.DagNode, pairs []slotsmgr.SlotPair) {
+	for _, pair := range pairs {
+		for slot := pair.Start; slot <= pair.End; slot++ {
+			fromNode.ClearSlot(slot)
+			toNode.AddSlot(slot)
+
+			d.slots[slot] = toNode
+			d.importingSlotsFrom[slot] = fromNode
+		}
+	}
+}
+
 func (d *dagPoolService) BalanceSlots() error {
-	// TODO
+	d.dagNodesLock.Lock()
+	defer d.dagNodesLock.Unlock()
+
+	if d.state == StatusMigrating {
+		return ErrClusterMigrating
+	}
+
+	// calculate number of slots each dagnode
+	nodesNum := len(d.dagNodesMap)
+	piece := slotsmgr.ClusterSlots / nodesNum
+	remind := slotsmgr.ClusterSlots - piece*nodesNum
+
+	var nameList []string
+	for name := range d.dagNodesMap {
+		nameList = append(nameList, name)
+	}
+	sort.Strings(nameList)
+	type MigrateInfo struct {
+		DagNodeName string
+		NumSlots    int
+	}
+
+	availableList := make([]MigrateInfo, 0)
+	requireList := make([]MigrateInfo, 0)
+	for i := 0; i < nodesNum; i++ {
+		curPiece := piece
+		if remind > 0 {
+			curPiece += 1
+			remind--
+		}
+		node := d.dagNodesMap[nameList[i]]
+		numSlots := node.GetNumSlots()
+		// Is it necessary to adjust?
+		if curPiece == numSlots {
+			continue
+		}
+		if curPiece > numSlots {
+			availableList = append(availableList, MigrateInfo{
+				DagNodeName: nameList[i],
+				NumSlots:    curPiece - numSlots,
+			})
+		} else {
+			requireList = append(requireList, MigrateInfo{
+				DagNodeName: nameList[i],
+				NumSlots:    numSlots - curPiece,
+			})
+		}
+	}
+
+	// calculate migrate slots
+	var migrateSlots []*MigrateSlot
+	var available MigrateInfo
+	for _, require := range requireList {
+		requireSlots := require.NumSlots
+		for {
+			if requireSlots == 0 {
+				break
+			}
+			if available.NumSlots == 0 {
+				if len(availableList) == 0 {
+					log.Fatal("the slot state is inconsistent")
+				}
+				available = availableList[0]
+				availableList = availableList[1:]
+			}
+
+			node := d.dagNodesMap[available.DagNodeName]
+			pairs := node.GetSlotPairs()
+			toMigrateSlots := available.NumSlots
+			if toMigrateSlots > requireSlots {
+				toMigrateSlots = requireSlots
+			}
+			remain := toMigrateSlots
+			var migrateSlotPairs []slotsmgr.SlotPair
+			for index := len(pairs) - 1; index >= 0; index++ {
+				if remain == 0 {
+					break
+				}
+				if remain >= int(pairs[index].Count()) {
+					migrateSlotPairs = append(migrateSlotPairs, pairs[index])
+					remain -= int(pairs[index].Count())
+				} else {
+					migrateSlotPairs = append(migrateSlotPairs, slotsmgr.SlotPair{
+						Start: pairs[index].End - uint64(remain) + 1,
+						End:   pairs[index].End,
+					})
+					remain = 0
+				}
+			}
+			migrateSlot := MigrateSlot{
+				From:      available.DagNodeName,
+				To:        require.DagNodeName,
+				SlotPairs: migrateSlotPairs,
+			}
+			migrateSlots = append(migrateSlots, &migrateSlot)
+			requireSlots -= toMigrateSlots
+		}
+	}
+
+	for _, migrate := range migrateSlots {
+		if err := d.migrateSlotsByName(migrate.From, migrate.To, migrate.SlotPairs); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -104,4 +374,18 @@ func (d *dagPoolService) Status() (*proto.StatusReply, error) {
 		State:    d.state.String(),
 		Statuses: list,
 	}, nil
+}
+
+func (d *dagPoolService) loadConfig() (*config.ClusterConfig, error) {
+	var cfg config.ClusterConfig
+	if err := d.db.Get(clusterConfig, &cfg); err != nil {
+		if err != leveldb.ErrNotFound {
+			return nil, fmt.Errorf("load cluster config failed, error: %v", err)
+		}
+	}
+	return &cfg, nil
+}
+
+func (d *dagPoolService) saveConfig(cfg *config.ClusterConfig) error {
+	return d.db.Put(clusterConfig, cfg)
 }

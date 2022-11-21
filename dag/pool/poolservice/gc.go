@@ -68,13 +68,12 @@ func (d *dagPoolService) runGC(ctx context.Context) error {
 			log.Warnw("decode cid error", "cid", key, "error", err)
 			continue
 		}
-		node := d.slots[keyHashSlot(blkCid.String())]
 		if err = d.cacheSet.Remove(key); err != nil {
 			log.Warnw("remove cache key error", "cid", key, "error", err)
 			continue
 		}
 		log.Infow("delete block", "cid", key)
-		if err = node.DeleteBlock(ctx, blkCid); err != nil {
+		if err = d.deleteBlock(ctx, blkCid); err != nil {
 			if err := d.cacheSet.Add(key); err != nil {
 				log.Errorw("rollback cache key error", "cid", key, "error", err)
 			}

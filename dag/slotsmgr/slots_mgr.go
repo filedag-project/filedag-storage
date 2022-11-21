@@ -22,6 +22,10 @@ func (sp SlotPair) String() string {
 	return fmt.Sprintf("%v-%v", sp.Start, sp.End)
 }
 
+func (sp SlotPair) Count() uint64 {
+	return sp.End - sp.Start + 1
+}
+
 type SlotsManager struct {
 	bitset *BitSet
 }

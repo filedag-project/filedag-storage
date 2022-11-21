@@ -58,7 +58,7 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	}
 	return &DagNode{
 		Nodes:      clients,
-		stateNodes: make([]bool, cfg.DataBlocks+cfg.ParityBlocks),
+		stateNodes: make([]bool, len(clients)),
 		slots:      slotsmgr.NewSlotsManager(),
 		config:     cfg,
 		stopCh:     make(chan struct{}),

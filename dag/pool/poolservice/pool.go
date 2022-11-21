@@ -3,13 +3,13 @@ package poolservice
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/pool"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/reference"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/slotkeyrepo"
 	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
@@ -17,6 +17,7 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
+	"sync"
 	"time"
 )
 
@@ -32,8 +33,8 @@ func (cs ClusterState) String() string {
 		return "ok"
 	case StatusFail:
 		return "fail"
-	case StatusUpdate:
-		return "update"
+	case StatusMigrating:
+		return "migrating"
 	default:
 		return "unknown"
 	}
@@ -41,27 +42,27 @@ func (cs ClusterState) String() string {
 
 const (
 	StatusOk ClusterState = iota
-	StatusUpdate
+	StatusMigrating
 	StatusFail
 )
 
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
 	slots              [slotsmgr.ClusterSlots]*dagnode.DagNode
-	migratingSlotsTo   [slotsmgr.ClusterSlots]*dagnode.DagNode
 	importingSlotsFrom [slotsmgr.ClusterSlots]*dagnode.DagNode
 
-	dagNodesMap map[string]*dagnode.DagNode
-	slotConfig  SlotConfig
-	state       ClusterState
-	config      config.ClusterConfig
-	parentCtx   context.Context
+	dagNodesMap  map[string]*dagnode.DagNode
+	dagNodesLock sync.RWMutex
+
+	state     ClusterState
+	parentCtx context.Context
 
 	iam *dpuser.IdentityUserSys
 	db  *uleveldb.ULevelDB
 
-	refCounter *reference.RefCounter
-	cacheSet   *reference.CacheSet
+	refCounter  *reference.RefCounter
+	cacheSet    *reference.CacheSet
+	slotKeyRepo *slotkeyrepo.SlotKeyRepo
 
 	gcControl *GcControl
 	gcPeriod  time.Duration
@@ -82,12 +83,12 @@ func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolServ
 
 	serv := &dagPoolService{
 		dagNodesMap: make(map[string]*dagnode.DagNode),
-		config:      cfg.ClusterConfig,
 		parentCtx:   ctx,
 		iam:         i,
 		db:          db,
 		refCounter:  refCounter,
 		cacheSet:    cacheSet,
+		slotKeyRepo: slotkeyrepo.NewSlotKeyRepo(db),
 		gcControl:   NewGcControl(),
 		gcPeriod:    cfg.GcPeriod,
 	}
@@ -109,8 +110,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 
 	key := block.Cid().String()
 	addBlock := func() error {
-		selNode := d.slots[keyHashSlot(block.Cid().String())]
-		return selNode.Put(ctx, block)
+		return d.putBlock(ctx, block)
 	}
 
 	if pin {
@@ -143,16 +143,7 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 		return nil, format.ErrNotFound{Cid: c}
 	}
 
-	selNode := d.slots[keyHashSlot(c.String())]
-	b, err := selNode.Get(ctx, c)
-	if err != nil {
-		if format.IsNotFound(err) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("failed to get block for %s: %v", c, err)
-	}
-
-	return b, nil
+	return d.readBlock(ctx, c)
 }
 
 //Remove remove block from DAGPool
@@ -182,8 +173,7 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	selNode := d.slots[keyHashSlot(c.String())]
-	return selNode.GetSize(ctx, c)
+	return d.readBlockSize(ctx, c)
 }
 
 //AddUser add a user
@@ -256,6 +246,9 @@ func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, passw
 
 //Close the dagPoolService
 func (d *dagPoolService) Close() error {
+	d.dagNodesLock.RLock()
+	defer d.dagNodesLock.RUnlock()
+
 	for _, node := range d.dagNodesMap {
 		node.Close()
 	}

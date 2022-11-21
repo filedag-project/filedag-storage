@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice"
@@ -11,7 +10,6 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -39,11 +37,6 @@ var startCmd = &cli.Command{
 			Name:  "datadir",
 			Usage: "directory to store data in",
 			Value: "./dp-data",
-		},
-		&cli.StringFlag{
-			Name:  "config",
-			Usage: "set config path",
-			Value: "./conf/node_config.json",
 		},
 		&cli.StringFlag{
 			Name:    "root-user",
@@ -133,19 +126,5 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 		return config.PoolConfig{}, err
 	}
 	cfg.GcPeriod = gcPer
-	configPath := cctx.String("config")
-
-	var clusterConfig config.ClusterConfig
-	file, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		log.Errorf("ReadFile err:%v", err)
-		return config.PoolConfig{}, err
-	}
-	err = json.Unmarshal(file, &clusterConfig)
-	if err != nil {
-		log.Errorf("Unmarshal err:%v", err)
-		return config.PoolConfig{}, err
-	}
-	cfg.ClusterConfig = clusterConfig
 	return cfg, nil
 }

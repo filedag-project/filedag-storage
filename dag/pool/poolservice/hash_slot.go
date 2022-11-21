@@ -1,18 +1,18 @@
 package poolservice
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/howeyc/crc16"
-	"github.com/syndtr/goleveldb/leveldb"
+	blocks "github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
+	format "github.com/ipfs/go-ipld-format"
 )
 
-const clusterSlotConfig = "cluster-slot-cfg"
-const SlotPrefix = "slot/"
+const clusterConfig = "cluster-cfg"
 
 var ErrDagNodeAlreadyExist = errors.New("this dag node already exists")
 
@@ -20,47 +20,27 @@ func keyHashSlot(key string) uint16 {
 	return crc16.Checksum([]byte(key), crc16.IBMTable) & 0x3FFF
 }
 
-type SlotConfig struct {
-	Version  int
-	SlotsMap map[string][]slotsmgr.SlotPair
-}
-
 func (d *dagPoolService) clusterInit() error {
-	if err := d.loadHashSlotsConfig(); err != nil {
+	cfg, err := d.loadConfig()
+	if err != nil {
 		return err
 	}
 
-	for _, dagNodeConfig := range d.config.Cluster {
-		if err := d.AddDagNode(&dagNodeConfig); err != nil {
+	for _, dagNodeConfig := range cfg.Cluster {
+		if err := d.AddDagNode(&dagNodeConfig.Config); err != nil {
 			return err
 		}
 
-		if pairs, ok := d.slotConfig.SlotsMap[dagNodeConfig.Name]; ok {
-			dagNode := d.dagNodesMap[dagNodeConfig.Name]
-			for _, pair := range pairs {
-				for idx := pair.Start; idx <= pair.End; idx++ {
-					if err := d.addSlot(dagNode, idx); err != nil {
-						return err
-					}
+		dagNode := d.dagNodesMap[dagNodeConfig.Config.Name]
+		for _, pair := range dagNodeConfig.SlotPairs {
+			for idx := pair.Start; idx <= pair.End; idx++ {
+				if err := d.addSlot(dagNode, idx); err != nil {
+					return err
 				}
 			}
 		}
 	}
 	return nil
-}
-
-func (d *dagPoolService) loadHashSlotsConfig() error {
-	if err := d.db.Get(clusterSlotConfig, &d.slotConfig); err != nil {
-		if err == leveldb.ErrNotFound {
-			return errors.New("the cluster slot config can not be found and needs to be initialized")
-		}
-		return fmt.Errorf("load cluster slot config failed, error: %v", err)
-	}
-	return nil
-}
-
-func (d *dagPoolService) saveHashSlotsConfig() error {
-	return d.db.Put(clusterSlotConfig, &d.slotConfig)
 }
 
 func (d *dagPoolService) checkAllSlots() bool {
@@ -87,7 +67,7 @@ func (d *dagPoolService) delSlot(slot uint64) error {
 	}
 
 	if !d.slots[slot].ClearSlot(slot) {
-		log.Fatal(errors.New("the slot state is inconsistent"))
+		log.Fatal("the slot state is inconsistent")
 	}
 	d.slots[slot] = nil
 	return nil
@@ -107,37 +87,72 @@ func (d *dagPoolService) delNodeSlots(node *dagnode.DagNode) int {
 	return deleted
 }
 
-// AllocateSlotsEvenly Perform the slots allocation before starting the cluster for the first time
-func AllocateSlotsEvenly(cfg config.PoolConfig) error {
-	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
+// readBlock read block from dagnode
+func (d *dagPoolService) readBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+	slot := keyHashSlot(c.String())
+	if node := d.importingSlotsFrom[slot]; node != nil {
+		b, err := node.Get(ctx, c)
+		if err == nil {
+			return b, nil
+		}
+	}
+	b, err := d.slots[slot].Get(ctx, c)
 	if err != nil {
+		if format.IsNotFound(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("failed to get block for %s: %v", c, err)
+	}
+	return b, nil
+}
+
+// readBlockSize read block size from dagnode
+func (d *dagPoolService) readBlockSize(ctx context.Context, c cid.Cid) (int, error) {
+	slot := keyHashSlot(c.String())
+	if node := d.importingSlotsFrom[slot]; node != nil {
+		size, err := node.GetSize(ctx, c)
+		if err == nil {
+			return size, nil
+		}
+	}
+	return d.slots[slot].GetSize(ctx, c)
+}
+
+// putBlock put block to dagnode
+func (d *dagPoolService) putBlock(ctx context.Context, block blocks.Block) error {
+	blkCid := block.Cid()
+	slot := keyHashSlot(blkCid.String())
+	selNode := d.slots[slot]
+	if err := selNode.Put(ctx, block); err != nil {
 		return err
 	}
-	slotConfig := SlotConfig{
-		SlotsMap: make(map[string][]slotsmgr.SlotPair),
-	}
-	nodesNum := len(cfg.ClusterConfig.Cluster)
-	piece := slotsmgr.ClusterSlots / nodesNum
-	remind := slotsmgr.ClusterSlots - piece*nodesNum
-	cluster := cfg.ClusterConfig.Cluster
-	curIndex := 0
-	for i := 0; i < nodesNum; i++ {
-		curPiece := piece
-		if remind > 0 {
-			curPiece += 1
-			remind--
+
+	if err := d.slotKeyRepo.Set(slot, blkCid.String(), selNode.GetConfig().Name); err != nil {
+		// rollback
+		if delerr := selNode.DeleteBlock(ctx, blkCid); delerr != nil {
+			log.Errorw("rollback block error", "slot", slot, "cid", blkCid, "error", delerr)
 		}
-		slotConfig.SlotsMap[cluster[i].Name] = []slotsmgr.SlotPair{
-			{
-				Start: uint64(curIndex),
-				End:   uint64(curIndex + curPiece - 1),
-			},
-		}
-		curIndex += curPiece
-	}
-	if err = db.Put(clusterSlotConfig, &slotConfig); err != nil {
+
 		return err
 	}
-	db.Close()
+	return nil
+}
+
+// deleteBlock delete block from dagnode
+func (d *dagPoolService) deleteBlock(ctx context.Context, c cid.Cid) error {
+	slot := keyHashSlot(c.String())
+	if err := d.slotKeyRepo.Remove(slot, c.String()); err != nil {
+		return err
+	}
+
+	selNode := d.slots[slot]
+	if err := selNode.DeleteBlock(ctx, c); err != nil {
+		// rollback
+		if dberr := d.slotKeyRepo.Set(slot, c.String(), selNode.GetConfig().Name); dberr != nil {
+			log.Errorw("rollback slot entry error", "slot", slot, "cid", c, "error", dberr)
+			return nil
+		}
+		return err
+	}
 	return nil
 }
