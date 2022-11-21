@@ -153,6 +153,60 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 			}
 			return cred, false, apierrors.ErrInvalidAccessKeyID
 		}
+		//check tempuser
+		if ucred.ParentUser != "" {
+			if ucred.ParentUser == s.AdminCred.AccessKey {
+				return cred, true, apierrors.ErrNone
+			}
+			ucred, ok = s.Iam.GetUser(r.Context(), ucred.ParentUser)
+			if !ok {
+				// Credentials will be invalid but and disabled
+				// return a different error in such a scenario.
+				if ucred.Status == auth.AccountOff {
+					return cred, false, apierrors.ErrAccessKeyDisabled
+				}
+				return cred, false, apierrors.ErrInvalidAccessKeyID
+			}
+		}
+
+		cred = ucred
+	}
+	owner := cred.AccessKey == s.AdminCred.AccessKey
+	return cred, owner, apierrors.ErrNone
+}
+
+// check if the access key is valid and recognized, additionally
+// also returns if the access key is owner/admin.
+func (s *AuthSys) checkKeyValidTemp(r *http.Request, accessKey string) (auth.Credentials, bool, apierrors.ErrorCode) {
+
+	cred := s.AdminCred
+	if cred.AccessKey != accessKey {
+		// Check if the access key is part of users credentials.
+		ucred, ok := s.Iam.GetUser(r.Context(), accessKey)
+		if !ok {
+			// Credentials will be invalid but and disabled
+			// return a different error in such a scenario.
+			if ucred.Status == auth.AccountOff {
+				return cred, false, apierrors.ErrAccessKeyDisabled
+			}
+			return cred, false, apierrors.ErrInvalidAccessKeyID
+		}
+		//check tempuser
+		if ucred.ParentUser != "" {
+			if ucred.ParentUser == s.AdminCred.AccessKey {
+				return ucred, true, apierrors.ErrNone
+			}
+			ucred, ok = s.Iam.GetUser(r.Context(), ucred.ParentUser)
+			if !ok {
+				// Credentials will be invalid but and disabled
+				// return a different error in such a scenario.
+				if ucred.Status == auth.AccountOff {
+					return cred, false, apierrors.ErrAccessKeyDisabled
+				}
+				return cred, false, apierrors.ErrInvalidAccessKeyID
+			}
+		}
+
 		cred = ucred
 	}
 	owner := cred.AccessKey == s.AdminCred.AccessKey

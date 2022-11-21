@@ -202,7 +202,7 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 		return errCode
 	}
 
-	cred, _, s3Err := s.checkKeyValid(r, signV4Values.Credential.accessKey)
+	cred, _, s3Err := s.checkKeyValidTemp(r, signV4Values.Credential.accessKey)
 	if s3Err != apierrors.ErrNone {
 		return s3Err
 	}
