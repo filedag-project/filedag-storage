@@ -2,6 +2,7 @@ package s3api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
@@ -9,6 +10,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -51,10 +53,9 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 		response.WriteSTSErrorResponse(r.Context(), w, isErrCodeSTS, stsErr, nil)
 		return
 	}
-	defaultExpiryDuration := time.Duration(60) * time.Minute // Defaults to 1hr.
 
 	m := map[string]interface{}{
-		expClaim:    time.Now().UTC().Add(defaultExpiryDuration).Unix(),
+		expClaim:    getDefaultExpiration(r.Form.Get(consts.StsDurationSeconds)),
 		parentClaim: user.AccessKey,
 	}
 
@@ -121,4 +122,25 @@ func parseForm(r *http.Request) error {
 		}
 	}
 	return nil
+}
+
+// getDefaultExpiration - returns the expiration seconds expected.
+func getDefaultExpiration(dsecs string) (time.Duration, error) {
+	defaultExpiryDuration := time.Duration(60) * time.Minute // Defaults to 1hr.
+	if dsecs != "" {
+		expirySecs, err := strconv.ParseInt(dsecs, 10, 64)
+		if err != nil {
+			return 0, errors.New("invalid token expiry")
+		}
+
+		// The duration, in seconds, of the role session.
+		// The value can range from 900 seconds (15 minutes)
+		// up to 365 days.
+		if expirySecs < 900 || expirySecs > 31536000 {
+			return 0, errors.New("invalid token expiry")
+		}
+
+		defaultExpiryDuration = time.Duration(expirySecs) * time.Second
+	}
+	return defaultExpiryDuration, nil
 }

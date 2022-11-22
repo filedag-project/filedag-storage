@@ -96,7 +96,7 @@ func startServer(cctx *cli.Context) {
 
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
-			log.Infof("start sever at http://%v%v", ip, listen)
+			log.Infof("start server at http://%v%v", ip, listen)
 		}
 	} else {
 		log.Infof("start sever at http://%v", listen)

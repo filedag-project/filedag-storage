@@ -18,8 +18,8 @@ const (
 	StsRequestBodyLimit       = 10 * (1 << 20) // 10 MiB
 	DefaultRegion             = ""
 	SlashSeparator            = "/"
-
-	MaxSkewTime = 15 * time.Minute // 15 minutes skew allowed.
+	StsDurationSeconds        = "DurationSeconds"
+	MaxSkewTime               = 15 * time.Minute // 15 minutes skew allowed.
 
 	// STS API version.
 	StsAPIVersion   = "2011-06-15"
