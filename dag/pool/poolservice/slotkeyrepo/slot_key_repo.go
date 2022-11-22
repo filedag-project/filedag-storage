@@ -10,6 +10,7 @@ import (
 
 const SlotPrefix = "slot/"
 
+// SlotKeyRepo saves information about the slot and cid key mapping.
 type SlotKeyRepo struct {
 	db *uleveldb.ULevelDB
 }
@@ -28,8 +29,8 @@ func (s *SlotKeyRepo) Get(slot uint16, key string) (value string, err error) {
 }
 
 func (s *SlotKeyRepo) Has(slot uint16, key string) (bool, error) {
-	var exist bool
-	err := s.db.Get(fmt.Sprintf("%s%v/%s", SlotPrefix, slot, key), &exist)
+	var val string
+	err := s.db.Get(fmt.Sprintf("%s%v/%s", SlotPrefix, slot, key), &val)
 	if err != nil {
 		if err == leveldb.ErrNotFound {
 			return false, nil
@@ -37,6 +38,10 @@ func (s *SlotKeyRepo) Has(slot uint16, key string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (s *SlotKeyRepo) Remove(slot uint16, key string) error {
+	return s.db.Delete(fmt.Sprintf("%s%v/%s", SlotPrefix, slot, key))
 }
 
 type SlotKeyEntry struct {
@@ -79,8 +84,4 @@ func (s *SlotKeyRepo) AllKeysChan(ctx context.Context, slot uint16, seekSlotKey 
 	}()
 
 	return kc, nil
-}
-
-func (s *SlotKeyRepo) Remove(slot uint16, key string) error {
-	return s.db.Delete(fmt.Sprintf("%s%v/%s", SlotPrefix, slot, key))
 }

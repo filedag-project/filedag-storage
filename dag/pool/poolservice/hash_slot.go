@@ -40,6 +40,26 @@ func (d *dagPoolService) clusterInit() error {
 			}
 		}
 	}
+
+	// load migrating slot
+	ch, err := d.slotMigrateRepo.AllKeysChan(d.parentCtx)
+	if err != nil {
+		return err
+	}
+	for entry := range ch {
+		if dagNode, ok := d.dagNodesMap[entry.Value]; ok {
+			d.importingSlotsFrom[entry.Slot] = dagNode
+			d.state = StateMigrating
+		} else {
+			return fmt.Errorf("not exist the dag node, slot:%v dagNodeName:%v", entry.Slot, entry.Value)
+		}
+	}
+
+	if !d.checkAllSlots() {
+		d.state = StateFail
+		log.Warn("please allocate all the slots")
+	}
+
 	return nil
 }
 

@@ -2,7 +2,6 @@ package poolservice
 
 import (
 	"context"
-	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/pool"
@@ -10,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/reference"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/slotkeyrepo"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/slotmigraterepo"
 	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	blocks "github.com/ipfs/go-block-format"
@@ -29,11 +29,11 @@ type ClusterState int
 
 func (cs ClusterState) String() string {
 	switch cs {
-	case StatusOk:
+	case StateOk:
 		return "ok"
-	case StatusFail:
+	case StateFail:
 		return "fail"
-	case StatusMigrating:
+	case StateMigrating:
 		return "migrating"
 	default:
 		return "unknown"
@@ -41,9 +41,9 @@ func (cs ClusterState) String() string {
 }
 
 const (
-	StatusOk ClusterState = iota
-	StatusMigrating
-	StatusFail
+	StateOk ClusterState = iota
+	StateMigrating
+	StateFail
 )
 
 // dagPoolService is an IPFS Merkle DAG service.
@@ -54,15 +54,17 @@ type dagPoolService struct {
 	dagNodesMap  map[string]*dagnode.DagNode
 	dagNodesLock sync.RWMutex
 
-	state     ClusterState
-	parentCtx context.Context
+	state       ClusterState
+	parentCtx   context.Context
+	migratingCh chan struct{}
 
 	iam *dpuser.IdentityUserSys
 	db  *uleveldb.ULevelDB
 
-	refCounter  *reference.RefCounter
-	cacheSet    *reference.CacheSet
-	slotKeyRepo *slotkeyrepo.SlotKeyRepo
+	refCounter      *reference.RefCounter
+	cacheSet        *reference.CacheSet
+	slotKeyRepo     *slotkeyrepo.SlotKeyRepo
+	slotMigrateRepo *slotmigraterepo.SlotMigrateRepo
 
 	gcControl *GcControl
 	gcPeriod  time.Duration
@@ -82,23 +84,25 @@ func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolServ
 	refCounter := reference.NewRefCounter(db, cacheSet)
 
 	serv := &dagPoolService{
-		dagNodesMap: make(map[string]*dagnode.DagNode),
-		parentCtx:   ctx,
-		iam:         i,
-		db:          db,
-		refCounter:  refCounter,
-		cacheSet:    cacheSet,
-		slotKeyRepo: slotkeyrepo.NewSlotKeyRepo(db),
-		gcControl:   NewGcControl(),
-		gcPeriod:    cfg.GcPeriod,
+		dagNodesMap:     make(map[string]*dagnode.DagNode),
+		parentCtx:       ctx,
+		migratingCh:     make(chan struct{}),
+		iam:             i,
+		db:              db,
+		refCounter:      refCounter,
+		cacheSet:        cacheSet,
+		slotKeyRepo:     slotkeyrepo.NewSlotKeyRepo(db),
+		slotMigrateRepo: slotmigraterepo.NewSlotMigrateRepo(db),
+		gcControl:       NewGcControl(),
+		gcPeriod:        cfg.GcPeriod,
 	}
 	if err = serv.clusterInit(); err != nil {
 		return nil, err
 	}
-	if !serv.checkAllSlots() {
-		serv.state = StatusFail
-		return nil, errors.New("please allocate all the slots before booting")
-	}
+
+	// process migrating task
+	go serv.migrateSlotsDataTask(ctx)
+
 	return serv, nil
 }
 
@@ -246,12 +250,15 @@ func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, passw
 
 //Close the dagPoolService
 func (d *dagPoolService) Close() error {
-	d.dagNodesLock.RLock()
-	defer d.dagNodesLock.RUnlock()
+	func() {
+		d.dagNodesLock.RLock()
+		defer d.dagNodesLock.RUnlock()
 
-	for _, node := range d.dagNodesMap {
-		node.Close()
-	}
+		for _, node := range d.dagNodesMap {
+			node.Close()
+		}
+	}()
+	close(d.migratingCh)
 	return d.db.Close()
 }
 

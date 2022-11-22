@@ -1,14 +1,18 @@
 package poolservice
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
+	"github.com/ipfs/go-cid"
+	format "github.com/ipfs/go-ipld-format"
 	"github.com/syndtr/goleveldb/leveldb"
 	"sort"
+	"time"
 )
 
 var ErrDagNodeNotFound = errors.New("this dag node does not exist")
@@ -143,7 +147,7 @@ func (d *dagPoolService) RemoveDagNode(dagNodeName string) (*config.DagNodeConfi
 	d.dagNodesLock.Lock()
 	defer d.dagNodesLock.Unlock()
 
-	if d.state != StatusOk {
+	if d.state != StateOk {
 		return nil, ErrDagNodeRemove
 	}
 
@@ -182,11 +186,19 @@ func (d *dagPoolService) MigrateSlots(fromDagNodeName, toDagNodeName string, pai
 	d.dagNodesLock.Lock()
 	defer d.dagNodesLock.Unlock()
 
-	if d.state == StatusMigrating {
+	if d.state == StateMigrating {
 		return ErrClusterMigrating
 	}
 
-	return d.migrateSlotsByName(fromDagNodeName, toDagNodeName, pairs)
+	err := d.migrateSlotsByName(fromDagNodeName, toDagNodeName, pairs)
+	if err == nil {
+		// start to migrate data
+		select {
+		case d.migratingCh <- struct{}{}:
+		default:
+		}
+	}
+	return err
 }
 
 func (d *dagPoolService) migrateSlotsByName(fromDagNodeName, toDagNodeName string, pairs []slotsmgr.SlotPair) error {
@@ -200,8 +212,24 @@ func (d *dagPoolService) migrateSlotsByName(fromDagNodeName, toDagNodeName strin
 		return err
 	}
 
-	d.state = StatusMigrating
 	d.migrateSlotsByNode(fromNode, toNode, pairs)
+
+	var updateSlots []uint16
+	for _, pair := range pairs {
+		for slot := pair.Start; slot <= pair.End; slot++ {
+			if err = d.slotMigrateRepo.Set(uint16(slot), fromDagNodeName); err != nil {
+				// rollback
+				d.migrateSlotsByNode(toNode, fromNode, pairs)
+				for _, idx := range updateSlots {
+					if errR := d.slotMigrateRepo.Remove(idx); errR != nil {
+						log.Warnw("slotMigrateRepo.Remove error", "slot", idx)
+					}
+				}
+				return err
+			}
+			updateSlots = append(updateSlots, uint16(slot))
+		}
+	}
 
 	// update local config
 	cfg.Version += 1
@@ -217,6 +245,7 @@ func (d *dagPoolService) migrateSlotsByName(fromDagNodeName, toDagNodeName strin
 		d.migrateSlotsByNode(toNode, fromNode, pairs)
 		return err
 	}
+	d.state = StateMigrating
 
 	return nil
 }
@@ -233,11 +262,95 @@ func (d *dagPoolService) migrateSlotsByNode(fromNode, toNode *dagnode.DagNode, p
 	}
 }
 
+func (d *dagPoolService) migrateSlotsDataTask(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	case _, ok := <-d.migratingCh:
+		if !ok {
+			return
+		}
+
+		numSlotOk := 0
+		for slot, from := range d.importingSlotsFrom {
+			if from == nil {
+				numSlotOk++
+				continue
+			}
+			to := d.slots[slot]
+			toName := to.GetConfig().Name
+
+			// slot data migrate from 'from' to 'to'
+			ch, err := d.slotKeyRepo.AllKeysChan(ctx, uint16(slot), "")
+			if err != nil {
+				log.Fatal(err)
+			}
+			toMigrateSlots := 0
+			successMigrateSlots := 0
+			for entry := range ch {
+				if entry.Value == toName {
+					continue
+				}
+				toMigrateSlots++
+				blkCid, err := cid.Parse(entry.Key)
+				if err != nil {
+					log.Errorf("slotKeyRepo parse cid error, slot: %v cid: %v, error: %v", slot, entry.Key, err)
+					continue
+				}
+				bk, err := from.Get(ctx, blkCid)
+				if err != nil {
+					if format.IsNotFound(err) {
+						successMigrateSlots++
+						continue
+					}
+					log.Errorw("migrating get block error", "from_node", from.GetConfig().Name, "slot", slot, "cid", blkCid, "err", err)
+					continue
+				}
+				if err = to.Put(ctx, bk); err != nil {
+					log.Errorw("migrating put block error", "to_node", toName, "slot", slot, "cid", entry.Key, "err", err)
+					continue
+				}
+
+				if err = d.slotKeyRepo.Set(uint16(slot), entry.Key, toName); err != nil {
+					log.Errorw("slotKeyRepo set key error", "to_node", toName, "slot", slot, "cid", entry.Key, "err", err)
+					continue
+				}
+				if err = from.DeleteBlock(ctx, blkCid); err != nil {
+					log.Warnw("migrating delete block error", "from_node", from.GetConfig().Name, "slot", slot, "cid", blkCid, "err", err)
+				}
+				successMigrateSlots++
+			}
+			if toMigrateSlots == successMigrateSlots {
+				// all migrated
+				if err = d.slotMigrateRepo.Remove(uint16(slot)); err == nil {
+					d.importingSlotsFrom[slot] = nil
+					numSlotOk++
+				} else {
+					log.Errorw("slotMigrateRepo.Remove failed", "slot", slot)
+				}
+			}
+		}
+		// is migration done?
+		if numSlotOk == slotsmgr.ClusterSlots {
+			if d.checkAllSlots() {
+				d.state = StateOk
+			} else {
+				d.state = StateFail
+			}
+		} else {
+			// try again
+			time.AfterFunc(time.Minute, func() {
+				d.migratingCh <- struct{}{}
+			})
+		}
+	}
+}
+
 func (d *dagPoolService) BalanceSlots() error {
 	d.dagNodesLock.Lock()
 	defer d.dagNodesLock.Unlock()
 
-	if d.state == StatusMigrating {
+	if d.state == StateMigrating {
 		return ErrClusterMigrating
 	}
 
@@ -338,6 +451,13 @@ func (d *dagPoolService) BalanceSlots() error {
 			return err
 		}
 	}
+
+	// start to migrate data
+	select {
+	case d.migratingCh <- struct{}{}:
+	default:
+	}
+
 	return nil
 }
 
