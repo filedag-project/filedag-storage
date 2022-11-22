@@ -53,9 +53,13 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 		response.WriteSTSErrorResponse(r.Context(), w, isErrCodeSTS, stsErr, nil)
 		return
 	}
-
+	expiration, err := getDefaultExpiration(r.Form.Get(consts.StsDurationSeconds))
+	if err != nil {
+		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSInvalidParameterValue, err)
+		return
+	}
 	m := map[string]interface{}{
-		expClaim:    getDefaultExpiration(r.Form.Get(consts.StsDurationSeconds)),
+		expClaim:    expiration,
 		parentClaim: user.AccessKey,
 	}
 
