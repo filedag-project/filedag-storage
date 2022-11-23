@@ -116,24 +116,30 @@ func (d *DagNode) GetNumSlots() int {
 }
 
 func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
+	healthCheckAll := func() {
+		wg := sync.WaitGroup{}
+		for i, node := range d.Nodes {
+			wg.Add(1)
+			go func(index int, cli *datanode.Client) {
+				d.stateNodes[index] = d.healthCheck(ctx, cli)
+			}(i, node)
+		}
+		wg.Wait()
+	}
+	healthCheckAll()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-d.stopCh:
+			cancel()
 			return
 		case <-ticker.C:
-			wg := sync.WaitGroup{}
-			for i, node := range d.Nodes {
-				nd := node
-				wg.Add(1)
-				go func() {
-					d.stateNodes[i] = d.healthCheck(ctx, nd)
-				}()
-			}
-			wg.Wait()
+			healthCheckAll()
 		}
 	}
 }
