@@ -89,7 +89,23 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 			}
 		}
 	}
-	iamapi.NewIamApiServer(router, authSys, cleanData)
+	bucketInfoFunc := func(ctx context.Context, accessKey string) []store.BucketInfo {
+		var bucketInfos []store.BucketInfo
+		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		if err != nil {
+			fmt.Printf("GetAllBucketsOfUser error: %v\n", err)
+			return bucketInfos
+		}
+		for _, bkt := range bkts {
+			info, err := storageSys.GetBucketInfo(ctx, bkt.Name)
+			if err != nil {
+				return nil
+			}
+			bucketInfos = append(bucketInfos, info)
+		}
+		return bucketInfos
+	}
+	iamapi.NewIamApiServer(router, authSys, cleanData, bucketInfoFunc)
 	s3api.NewS3Server(router, authSys, bmSys, storageSys)
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {

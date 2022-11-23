@@ -61,7 +61,7 @@ func TestIdentityAMSys_UserApi(t *testing.T) {
 			}
 		}
 		//add user
-		err := iamSys.AddUser(ctx, testCase.accessKey, testCase.secretKey)
+		err := iamSys.AddUser(ctx, testCase.accessKey, testCase.secretKey, 10000)
 		if err != nil {
 			fmt.Println(err)
 		}

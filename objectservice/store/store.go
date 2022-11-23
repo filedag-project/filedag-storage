@@ -337,6 +337,33 @@ type ListObjectsInfo struct {
 	Prefixes []string
 }
 
+//GetBucketInfo Get BucketInfo
+func (s *StorageSys) GetBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	seekKey := ""
+	prefixKey := fmt.Sprintf(allObjectPrefixFormat, bucket, "")
+	all, err := s.Db.ReadAllChan(ctx, prefixKey, seekKey)
+	if err != nil {
+		return bi, err
+	}
+	index := 0
+	var size, objects uint64
+	for entry := range all {
+		var o ObjectInfo
+		if err = entry.UnmarshalValue(&o); err != nil {
+			return bi, err
+		}
+		index++
+
+	}
+	return BucketInfo{
+		Name:    bucket,
+		Size:    size,
+		Objects: objects,
+	}, nil
+}
+
 //ListObjects list user object
 //TODO use more params
 func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {

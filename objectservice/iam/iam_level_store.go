@@ -3,7 +3,6 @@ package iam
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"strings"
@@ -33,7 +32,7 @@ type iamLevelDBStore struct {
 	levelDB *uleveldb.ULevelDB
 }
 
-func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Credentials) error {
+func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *UserIdentity) error {
 	err := I.levelDB.Get(getUserKey(user), m)
 	if err != nil {
 		return err
@@ -41,25 +40,25 @@ func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *auth.Cre
 	return nil
 }
 
-func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]auth.Credentials, error) {
-	m := make(map[string]auth.Credentials)
+func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]UserIdentity, error) {
+	m := make(map[string]UserIdentity)
 
 	all, err := I.levelDB.ReadAllChan(ctx, getUserKey(""), "")
 	if err != nil {
 		return m, err
 	}
 	for entry := range all {
-		cred := auth.Credentials{}
+		cred := UserIdentity{}
 		if err = entry.UnmarshalValue(&cred); err != nil {
 			continue
 		}
-		m[cred.AccessKey] = cred
+		m[cred.Credentials.AccessKey] = cred
 	}
 	return m, nil
 }
 
 func (I *iamLevelDBStore) saveUserIdentity(ctx context.Context, u UserIdentity) error {
-	err := I.levelDB.Put(getUserKey(u.Credentials.AccessKey), u.Credentials)
+	err := I.levelDB.Put(getUserKey(u.Credentials.AccessKey), u)
 	if err != nil {
 		return err
 	}

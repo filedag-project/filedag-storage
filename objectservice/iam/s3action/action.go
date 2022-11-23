@@ -164,7 +164,8 @@ const (
 
 	// RestoreObjectAction - RestoreObject REST API action
 	RestoreObjectAction = "s3:RestoreObject"
-
+	GetUserInfoAction   = "iam:GetUserInfo"
+	RemoveUserAction    = "iam:RemoveUser"
 	// AllActions - all API actions
 	AllActions = "s3:*"
 )
@@ -223,6 +224,8 @@ var SupportedActions = map[Action]struct{}{
 	ReplicateTagsAction:                    {},
 	GetObjectVersionForReplicationAction:   {},
 	AllActions:                             {},
+	GetUserInfoAction:                      {},
+	RemoveUserAction:                       {},
 }
 
 // IsValid - checks if action is valid or not.

@@ -108,7 +108,7 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 		return nil, err
 	}
 	for i := range users {
-		cerd := users[i]
+		cerd := users[i].Credentials
 		if cerd.IsExpired() {
 			continue
 		}
@@ -128,14 +128,14 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 }
 
 //AddUser add user
-func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey string) error {
+func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey string, capacity uint64) error {
 	m := make(map[string]interface{})
 	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
 	if err != nil {
 		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
 		return err
 	}
-	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions}, "*")
+	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions, s3action.GetUserInfoAction, s3action.RemoveUserAction}, "*")
 	err = sys.store.saveUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,
@@ -143,7 +143,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 	if err != nil {
 		return err
 	}
-	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials})
+	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials, capacity})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
 		sys.store.removeUserPolicy(ctx, accessKey, "default")
@@ -154,7 +154,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 }
 
 //AddSubUser add user
-func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, parentUser string) error {
+func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, parentUser string, capacity uint64) error {
 	m := make(map[string]interface{})
 	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
 	if err != nil {
@@ -162,7 +162,7 @@ func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, 
 		return err
 	}
 	credentials.ParentUser = parentUser
-	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials})
+	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials, capacity})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
 		return err
@@ -181,13 +181,13 @@ func (sys *IdentityAMSys) UpdateUser(ctx context.Context, cred auth.Credentials)
 
 // GetUser - get user credentials
 func (sys *IdentityAMSys) GetUser(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
-	m := auth.Credentials{}
-	err := sys.store.loadUser(ctx, accessKey, &m)
+	userIdentity := UserIdentity{}
+	err := sys.store.loadUser(ctx, accessKey, &userIdentity)
 	if err != nil {
-		return m, false
+		return userIdentity.Credentials, false
 	}
 
-	return m, m.IsValid()
+	return userIdentity.Credentials, userIdentity.Credentials.IsValid()
 }
 
 // RemoveUser Remove User
@@ -264,8 +264,8 @@ func (sys *IdentityAMSys) RemoveUserPolicy(ctx context.Context, userName, policy
 }
 
 // GetUserInfo  - get user info
-func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (cred auth.Credentials, err error) {
-	err = sys.store.loadUser(ctx, accessKey, &cred)
+func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (userIdentity UserIdentity, err error) {
+	err = sys.store.loadUser(ctx, accessKey, &userIdentity)
 	return
 }
 

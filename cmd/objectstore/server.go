@@ -90,9 +90,25 @@ func startServer(cctx *cli.Context) {
 			}
 		}
 	}
+	bucketInfoFunc := func(ctx context.Context, accessKey string) []store.BucketInfo {
+		var bucketInfos []store.BucketInfo
+		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		if err != nil {
+			log.Errorf("GetAllBucketsOfUser error: %v", err)
+			return bucketInfos
+		}
+		for _, bkt := range bkts {
+			info, err := storageSys.GetBucketInfo(ctx, bkt.Name)
+			if err != nil {
+				return nil
+			}
+			bucketInfos = append(bucketInfos, info)
+		}
+		return bucketInfos
+	}
 	handler := s3api.CorsHandler(router)
 	s3api.NewS3Server(router, authSys, bmSys, storageSys)
-	iamapi.NewIamApiServer(router, authSys, cleanData)
+	iamapi.NewIamApiServer(router, authSys, cleanData, bucketInfoFunc)
 
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {

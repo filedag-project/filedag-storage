@@ -15,8 +15,8 @@ var errInvalidArgument = errors.New("Invalid arguments specified")
 type iamStoreAPI interface {
 	saveUserIdentity(ctx context.Context, u UserIdentity) error
 	removeUserIdentity(ctx context.Context, userName string) error
-	loadUser(ctx context.Context, userName string, m *auth.Credentials) error
-	loadUsers(ctx context.Context) (map[string]auth.Credentials, error)
+	loadUser(ctx context.Context, userName string, m *UserIdentity) error
+	loadUsers(ctx context.Context) (map[string]UserIdentity, error)
 	//loadGroup(ctx context.Context, group string, m *GroupInfo) error
 	//loadGroups(ctx context.Context) (map[string]GroupInfo, error)
 	//saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error

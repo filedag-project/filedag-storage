@@ -1,8 +1,10 @@
 package iamapi
 
 import (
+	"context"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
@@ -12,15 +14,17 @@ var log = logging.Logger("iamsever")
 
 //iamApiServer the IamApi Server
 type iamApiServer struct {
-	authSys   *iam.AuthSys
-	cleanData func(accessKey string)
+	authSys        *iam.AuthSys
+	cleanData      func(accessKey string)
+	bucketInfoFunc func(ctx context.Context, accessKey string) []store.BucketInfo
 }
 
 //NewIamApiServer New iamApiServer
-func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys, cleanData func(accessKey string)) {
+func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys, cleanData func(accessKey string), bucketInfoFunc func(ctx context.Context, accessKey string) []store.BucketInfo) {
 	iamApiSer := &iamApiServer{
-		authSys:   authSys,
-		cleanData: cleanData,
+		authSys:        authSys,
+		cleanData:      cleanData,
+		bucketInfoFunc: bucketInfoFunc,
 	}
 	iamApiSer.registerRouter(router)
 
@@ -30,14 +34,14 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router) {
 	// API Router
 	apiRouter := router.PathPrefix("/admin/v1").Subrouter()
 	//root user
-	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iamApi.CreateUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(iamApi.CreateUser).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(iamApi.DeleteUser).Queries("accessKey", "{accessKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(iamApi.ChangePassword).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(iamApi.SetStatus).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.GetUserInfo).Queries("accessKey", "{accessKey:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(iamApi.AccountInfoHandler).Queries("accessKey", "{accessKey:.*}")
 
 	//sub user
-	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(iamApi.AddSubUser).Queries("userName", "{userName:.*}", "secretKey", "{secretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(iamApi.AddSubUser).Queries("userName", "{userName:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user").HandlerFunc(iamApi.DeleteSubUser).Queries("userName", "{userName:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/sub-user-info").HandlerFunc(iamApi.GetSubUserInfo).Queries("userName", "{userName:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/list-all-sub-users").HandlerFunc(iamApi.GetUserList)

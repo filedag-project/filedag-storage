@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	iamapi.NewIamApiServer(router, authSys, cleanData)
+	iamapi.NewIamApiServer(router, authSys, cleanData, func(ctx context.Context, accessKey string) []store.BucketInfo { return nil })
 	NewS3Server(router, authSys, bmSys, storageSys)
 	os.Exit(m.Run())
 }
