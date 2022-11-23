@@ -314,6 +314,7 @@ func (d *dagPoolService) initSlots() error {
 	}
 	sort.Strings(nameList)
 	curIndex := 0
+	cfg.Cluster = nil
 	for i := 0; i < nodesNum; i++ {
 		curPiece := piece
 		if remind > 0 {
@@ -358,6 +359,8 @@ func (d *dagPoolService) initSlots() error {
 		d.slots = empty
 		return err
 	}
+	// initialization is complete
+	d.state = StateOk
 
 	return nil
 }
@@ -417,26 +420,26 @@ func (d *dagPoolService) BalanceSlots() error {
 	availableList := make([]MigrateInfo, 0)
 	requireList := make([]MigrateInfo, 0)
 	for i := 0; i < nodesNum; i++ {
-		curPiece := piece
+		expectedPiece := piece
 		if remind > 0 {
-			curPiece += 1
+			expectedPiece += 1
 			remind--
 		}
 		node := d.dagNodesMap[nameList[i]]
 		numSlots := node.GetNumSlots()
 		// Is it necessary to adjust?
-		if curPiece == numSlots {
+		if expectedPiece == numSlots {
 			continue
 		}
-		if curPiece > numSlots {
+		if expectedPiece < numSlots {
 			availableList = append(availableList, MigrateInfo{
 				DagNodeName: nameList[i],
-				NumSlots:    curPiece - numSlots,
+				NumSlots:    numSlots - expectedPiece,
 			})
 		} else {
 			requireList = append(requireList, MigrateInfo{
 				DagNodeName: nameList[i],
-				NumSlots:    numSlots - curPiece,
+				NumSlots:    expectedPiece - numSlots,
 			})
 		}
 	}
@@ -444,6 +447,7 @@ func (d *dagPoolService) BalanceSlots() error {
 	// calculate migrate slots
 	var migrateSlots []*MigrateSlot
 	var available MigrateInfo
+	var availableSlotPairs []slotsmgr.SlotPair
 	for _, require := range requireList {
 		requireSlots := require.NumSlots
 		for {
@@ -456,28 +460,37 @@ func (d *dagPoolService) BalanceSlots() error {
 				}
 				available = availableList[0]
 				availableList = availableList[1:]
+
+				node := d.dagNodesMap[available.DagNodeName]
+				availableSlotPairs = node.GetSlotPairs()
 			}
 
-			node := d.dagNodesMap[available.DagNodeName]
-			pairs := node.GetSlotPairs()
 			toMigrateSlots := available.NumSlots
 			if toMigrateSlots > requireSlots {
 				toMigrateSlots = requireSlots
 			}
 			remain := toMigrateSlots
 			var migrateSlotPairs []slotsmgr.SlotPair
-			for index := len(pairs) - 1; index >= 0; index++ {
+			for index := len(availableSlotPairs) - 1; index >= 0; index-- {
 				if remain == 0 {
 					break
 				}
-				if remain >= int(pairs[index].Count()) {
-					migrateSlotPairs = append(migrateSlotPairs, pairs[index])
-					remain -= int(pairs[index].Count())
+				if remain >= int(availableSlotPairs[index].Count()) {
+					migrateSlotPairs = append(migrateSlotPairs, availableSlotPairs[index])
+					remain -= int(availableSlotPairs[index].Count())
+					availableSlotPairs = availableSlotPairs[:index]
+					available.NumSlots -= int(availableSlotPairs[index].Count())
 				} else {
-					migrateSlotPairs = append(migrateSlotPairs, slotsmgr.SlotPair{
-						Start: pairs[index].End - uint64(remain) + 1,
-						End:   pairs[index].End,
-					})
+					part := slotsmgr.SlotPair{
+						Start: availableSlotPairs[index].End - uint64(remain) + 1,
+						End:   availableSlotPairs[index].End,
+					}
+					migrateSlotPairs = append(migrateSlotPairs, part)
+					availableSlotPairs[index] = slotsmgr.SlotPair{
+						Start: availableSlotPairs[index].Start,
+						End:   part.Start - 1,
+					}
+					available.NumSlots -= remain
 					remain = 0
 				}
 			}
@@ -512,8 +525,18 @@ func (d *dagPoolService) BalanceSlots() error {
 }
 
 func (d *dagPoolService) Status() (*proto.StatusReply, error) {
+	d.dagNodesLock.RLock()
+	defer d.dagNodesLock.RUnlock()
+
 	list := make([]*proto.DagNodeStatus, 0, len(d.dagNodesMap))
-	for _, node := range d.dagNodesMap {
+	var nameList []string
+	for name := range d.dagNodesMap {
+		nameList = append(nameList, name)
+	}
+	sort.Strings(nameList)
+	nodesNum := len(nameList)
+	for i := 0; i < nodesNum; i++ {
+		node := d.dagNodesMap[nameList[i]]
 		pairs := node.GetSlotPairs()
 		newPairs := make([]*proto.SlotPair, 0, len(pairs))
 		for _, p := range pairs {
