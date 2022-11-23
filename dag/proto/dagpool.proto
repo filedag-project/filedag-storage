@@ -116,9 +116,8 @@ service DagPoolCluster {
 }
 
 message DataNodeInfo {
-  int32 setIndex = 1;
-  string rpcAddress = 2;
-  optional bool state = 3;
+  string rpcAddress = 1;
+  optional bool state = 2;
 }
 
 message DagNodeInfo {

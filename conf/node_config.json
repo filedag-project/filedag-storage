@@ -1,18 +1,9 @@
 {
   "name": "dag_node1",
   "nodes": [
-    {
-      "index": 0,
-      "rpc_address": "127.0.0.1:9011"
-    },
-    {
-      "index": 1,
-      "rpc_address": "127.0.0.1:9012"
-    },
-    {
-      "index": 2,
-      "rpc_address": "127.0.0.1:9013"
-    }
+    "127.0.0.1:9011",
+    "127.0.0.1:9012",
+    "127.0.0.1:9013"
   ],
   "data_blocks": 2,
   "parity_blocks": 1

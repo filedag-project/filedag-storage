@@ -18,7 +18,6 @@ import (
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
-	"sort"
 	"sync"
 	"time"
 )
@@ -43,9 +42,8 @@ type Meta struct {
 
 //NewDagNode creates a new DagNode
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
-	sort.Sort(config.DataNodeConfigs(cfg.Nodes))
 	numNodes := len(cfg.Nodes)
-	if numNodes != cfg.DataBlocks+cfg.ParityBlocks || numNodes == 0 || numNodes != cfg.Nodes[numNodes-1].SetIndex+1 {
+	if numNodes != cfg.DataBlocks+cfg.ParityBlocks || numNodes == 0 {
 		return nil, errors.New("dag node config is incorrect")
 	}
 	clients := make([]*datanode.Client, 0, cfg.DataBlocks+cfg.ParityBlocks)

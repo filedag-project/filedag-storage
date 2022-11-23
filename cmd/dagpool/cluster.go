@@ -63,12 +63,12 @@ var status = &cli.Command{
 				status.Node.Name, utils.ToSlotPairs(status.Pairs))
 			if cctx.Bool("detail") {
 				fmt.Printf("  dagnode_set:\n    nodes:\n")
-				for _, nd := range status.Node.Nodes {
+				for idx, nd := range status.Node.Nodes {
 					st := "fail"
 					if nd.State != nil && *nd.State {
 						st = "ok"
 					}
-					fmt.Printf("      set_index: %d, rpc_address: %s, state: %s\n", nd.SetIndex, nd.RpcAddress, st)
+					fmt.Printf("      set_index: %d, rpc_address: %s, state: %s\n", idx, nd.RpcAddress, st)
 				}
 				fmt.Printf("    data_blocks: %d\n    parity_blocks: %d\n",
 					status.Node.DataBlocks, status.Node.ParityBlocks)
@@ -165,8 +165,8 @@ var getDagNode = &cli.Command{
 
 		fmt.Printf("dagnode_name: %s\n", dagnode.Name)
 		fmt.Printf("dagnode_set:\n  nodes:\n")
-		for _, nd := range dagnode.Nodes {
-			fmt.Printf("    set_index: %d, rpc_address: %s\n", nd.SetIndex, nd.RpcAddress)
+		for idx, nd := range dagnode.Nodes {
+			fmt.Printf("    set_index: %d, rpc_address: %s\n", idx, nd)
 		}
 		fmt.Printf("  data_blocks: %d\n  parity_blocks: %d\n",
 			dagnode.DataBlocks, dagnode.ParityBlocks)
@@ -205,8 +205,8 @@ var removeDagNode = &cli.Command{
 		fmt.Printf("the dagnode is removed successfully\n")
 		fmt.Printf("removed_dagnode_name: %s\n", dagnode.Name)
 		fmt.Printf("removed_dagnode_set:\n  nodes:\n")
-		for _, nd := range dagnode.Nodes {
-			fmt.Printf("    set_index: %d, rpc_address: %s\n", nd.SetIndex, nd.RpcAddress)
+		for idx, nd := range dagnode.Nodes {
+			fmt.Printf("    set_index: %d, rpc_address: %s\n", idx, nd)
 		}
 		fmt.Printf("  data_blocks: %d\n  parity_blocks: %d\n",
 			dagnode.DataBlocks, dagnode.ParityBlocks)

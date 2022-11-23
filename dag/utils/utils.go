@@ -7,12 +7,9 @@ import (
 )
 
 func ToDagNodeConfig(node *proto.DagNodeInfo) *config.DagNodeConfig {
-	dataNodes := make([]config.DataNodeConfig, 0, len(node.Nodes))
+	dataNodes := make([]string, 0, len(node.Nodes))
 	for _, nd := range node.Nodes {
-		dataNodes = append(dataNodes, config.DataNodeConfig{
-			SetIndex:   int(nd.SetIndex),
-			RpcAddress: nd.RpcAddress,
-		})
+		dataNodes = append(dataNodes, nd.RpcAddress)
 	}
 	cfg := &config.DagNodeConfig{
 		Name:         node.Name,
@@ -27,8 +24,7 @@ func ToProtoDagNodeInfo(node *config.DagNodeConfig) *proto.DagNodeInfo {
 	dataNodes := make([]*proto.DataNodeInfo, 0, len(node.Nodes))
 	for _, nd := range node.Nodes {
 		dataNodes = append(dataNodes, &proto.DataNodeInfo{
-			SetIndex:   int32(nd.SetIndex),
-			RpcAddress: nd.RpcAddress,
+			RpcAddress: nd,
 		})
 	}
 	nodeInfo := &proto.DagNodeInfo{

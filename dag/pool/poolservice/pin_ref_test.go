@@ -154,19 +154,10 @@ func startTestDagPoolServer(t *testing.T) *dagPoolService {
 	go datanode.StartDataNodeServer(":9023", datanode.KVBadge, t.TempDir())
 	time.Sleep(time.Second)
 	var (
-		dagdc = []config.DataNodeConfig{
-			{
-				SetIndex:   0,
-				RpcAddress: "127.0.0.1:9021",
-			},
-			{
-				SetIndex:   1,
-				RpcAddress: "127.0.0.1:9022",
-			},
-			{
-				SetIndex:   2,
-				RpcAddress: "127.0.0.1:9023",
-			},
+		dagdc = []string{
+			"127.0.0.1:9021",
+			"127.0.0.1:9022",
+			"127.0.0.1:9023",
 		}
 		dagc = config.DagNodeConfig{
 			Name:         "dagnode1",

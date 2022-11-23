@@ -207,6 +207,13 @@ func (d *dagPoolService) migrateSlotsByName(fromDagNodeName, toDagNodeName strin
 	if !fromOk || !toOk {
 		return ErrDagNodeNotFound
 	}
+	for _, pair := range pairs {
+		for slot := pair.Start; slot <= pair.End; slot++ {
+			if d.slots[slot] != fromNode {
+				return fmt.Errorf("dagnode[%v] does not own the slot %d", fromDagNodeName, slot)
+			}
+		}
+	}
 	cfg, err := d.loadConfig()
 	if err != nil {
 		return err
@@ -215,16 +222,19 @@ func (d *dagPoolService) migrateSlotsByName(fromDagNodeName, toDagNodeName strin
 	d.migrateSlotsByNode(fromNode, toNode, pairs)
 
 	var updateSlots []uint16
+	rollback := func() {
+		d.migrateSlotsByNode(toNode, fromNode, pairs)
+		for _, idx := range updateSlots {
+			if errR := d.slotMigrateRepo.Remove(idx); errR != nil {
+				log.Warnw("slotMigrateRepo.Remove error", "slot", idx)
+			}
+		}
+	}
 	for _, pair := range pairs {
 		for slot := pair.Start; slot <= pair.End; slot++ {
 			if err = d.slotMigrateRepo.Set(uint16(slot), fromDagNodeName); err != nil {
 				// rollback
-				d.migrateSlotsByNode(toNode, fromNode, pairs)
-				for _, idx := range updateSlots {
-					if errR := d.slotMigrateRepo.Remove(idx); errR != nil {
-						log.Warnw("slotMigrateRepo.Remove error", "slot", idx)
-					}
-				}
+				rollback()
 				return err
 			}
 			updateSlots = append(updateSlots, uint16(slot))
@@ -242,7 +252,7 @@ func (d *dagPoolService) migrateSlotsByName(fromDagNodeName, toDagNodeName strin
 	}
 	if err = d.saveConfig(cfg); err != nil {
 		// rollback
-		d.migrateSlotsByNode(toNode, fromNode, pairs)
+		rollback()
 		return err
 	}
 	d.state = StateMigrating
@@ -446,19 +456,24 @@ func (d *dagPoolService) BalanceSlots() error {
 		}
 	}
 
+	var err error
+	migrated := false
 	for _, migrate := range migrateSlots {
-		if err := d.migrateSlotsByName(migrate.From, migrate.To, migrate.SlotPairs); err != nil {
-			return err
+		if err = d.migrateSlotsByName(migrate.From, migrate.To, migrate.SlotPairs); err != nil {
+			break
+		}
+		migrated = true
+	}
+
+	if migrated {
+		// start to migrate data
+		select {
+		case d.migratingCh <- struct{}{}:
+		default:
 		}
 	}
 
-	// start to migrate data
-	select {
-	case d.migratingCh <- struct{}{}:
-	default:
-	}
-
-	return nil
+	return err
 }
 
 func (d *dagPoolService) Status() (*proto.StatusReply, error) {
@@ -471,11 +486,10 @@ func (d *dagPoolService) Status() (*proto.StatusReply, error) {
 		}
 		cfg := node.GetConfig()
 		dataNodes := make([]*proto.DataNodeInfo, 0, len(cfg.Nodes))
-		for _, nd := range cfg.Nodes {
-			state := node.GetDataNodeState(nd.SetIndex)
+		for idx, nd := range cfg.Nodes {
+			state := node.GetDataNodeState(idx)
 			dataNodes = append(dataNodes, &proto.DataNodeInfo{
-				SetIndex:   int32(nd.SetIndex),
-				RpcAddress: nd.RpcAddress,
+				RpcAddress: nd,
 				State:      &state,
 			})
 		}
