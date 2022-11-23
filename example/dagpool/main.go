@@ -83,8 +83,8 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 			return
 		}
 	}
-	if err = service.InitSlots(); err != nil {
-		fmt.Printf("InitSlots err:%v\n", err)
+	if err = service.BalanceSlots(); err != nil {
+		fmt.Printf("BalanceSlots err:%v\n", err)
 		return
 	}
 	proto.RegisterDagPoolServer(s, &server.DagPoolServer{DagPool: service})

@@ -181,9 +181,9 @@ func startTestDagPoolServer(t *testing.T) *dagPoolService {
 	if err != nil {
 		t.Fatalf("AddDagNode err:%v", err)
 	}
-	err = service.InitSlots()
+	err = service.BalanceSlots()
 	if err != nil {
-		t.Fatalf("InitSlots err:%v", err)
+		t.Fatalf("BalanceSlots err:%v", err)
 	}
 	return service
 }

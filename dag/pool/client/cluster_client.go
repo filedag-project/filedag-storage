@@ -37,17 +37,6 @@ func (cli *dagPoolClusterClient) Close(ctx context.Context) {
 	cli.Conn.Close()
 }
 
-func (cli *dagPoolClusterClient) InitSlots(ctx context.Context) error {
-	_, err := cli.DPClusterClient.InitSlots(ctx, &emptypb.Empty{})
-	if err != nil {
-		if st, ok := status.FromError(err); ok && st.Code() == codes.Unknown {
-			return errors.New(st.Message())
-		}
-		return err
-	}
-	return nil
-}
-
 func (cli *dagPoolClusterClient) AddDagNode(ctx context.Context, nodeConfig *config.DagNodeConfig) error {
 	nodeInfo := utils.ToProtoDagNodeInfo(nodeConfig)
 	_, err := cli.DPClusterClient.AddDagNode(ctx, nodeInfo)

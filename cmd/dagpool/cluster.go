@@ -22,7 +22,6 @@ var clusterCmd = &cli.Command{
 		addDagNode,
 		getDagNode,
 		removeDagNode,
-		initSlots,
 		balanceSlots,
 		migrateSlots,
 	},
@@ -211,28 +210,6 @@ var removeDagNode = &cli.Command{
 		fmt.Printf("  data_blocks: %d\n  parity_blocks: %d\n",
 			dagnode.DataBlocks, dagnode.ParityBlocks)
 		return nil
-	},
-}
-
-var initSlots = &cli.Command{
-	Name:  "init",
-	Usage: "Init slots of the dag pool cluster",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "address",
-			Usage: "the address of dagpool server",
-			Value: "127.0.0.1:50001",
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		addr := cctx.String("address")
-
-		cli, err := client.NewPoolClusterClient(addr)
-		if err != nil {
-			return err
-		}
-		defer cli.Close(cctx.Context)
-		return cli.InitSlots(cctx.Context)
 	},
 }
 

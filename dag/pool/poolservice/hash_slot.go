@@ -15,6 +15,7 @@ import (
 const clusterConfig = "cluster-cfg"
 
 var ErrDagNodeAlreadyExist = errors.New("this dag node already exists")
+var ErrClusterAvailable = errors.New("cluster is unavailable, please check the slots")
 
 func keyHashSlot(key string) uint16 {
 	return crc16.Checksum([]byte(key), crc16.IBMTable) & 0x3FFF
@@ -27,11 +28,10 @@ func (d *dagPoolService) clusterInit() error {
 	}
 
 	for _, dagNodeConfig := range cfg.Cluster {
-		if err := d.AddDagNode(&dagNodeConfig.Config); err != nil {
+		dagNode, err := d.startNewDagNode(&dagNodeConfig.Config)
+		if err != nil {
 			return err
 		}
-
-		dagNode := d.dagNodesMap[dagNodeConfig.Config.Name]
 		for _, pair := range dagNodeConfig.SlotPairs {
 			for idx := pair.Start; idx <= pair.End; idx++ {
 				if err := d.addSlot(dagNode, idx); err != nil {
@@ -109,6 +109,9 @@ func (d *dagPoolService) delNodeSlots(node *dagnode.DagNode) int {
 
 // readBlock read block from dagnode
 func (d *dagPoolService) readBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
+	if d.state == StateFail {
+		return nil, ErrClusterAvailable
+	}
 	slot := keyHashSlot(c.String())
 	if node := d.importingSlotsFrom[slot]; node != nil {
 		b, err := node.Get(ctx, c)
@@ -128,6 +131,9 @@ func (d *dagPoolService) readBlock(ctx context.Context, c cid.Cid) (blocks.Block
 
 // readBlockSize read block size from dagnode
 func (d *dagPoolService) readBlockSize(ctx context.Context, c cid.Cid) (int, error) {
+	if d.state == StateFail {
+		return 0, ErrClusterAvailable
+	}
 	slot := keyHashSlot(c.String())
 	if node := d.importingSlotsFrom[slot]; node != nil {
 		size, err := node.GetSize(ctx, c)
@@ -140,6 +146,9 @@ func (d *dagPoolService) readBlockSize(ctx context.Context, c cid.Cid) (int, err
 
 // putBlock put block to dagnode
 func (d *dagPoolService) putBlock(ctx context.Context, block blocks.Block) error {
+	if d.state == StateFail {
+		return ErrClusterAvailable
+	}
 	blkCid := block.Cid()
 	slot := keyHashSlot(blkCid.String())
 	selNode := d.slots[slot]
@@ -160,6 +169,9 @@ func (d *dagPoolService) putBlock(ctx context.Context, block blocks.Block) error
 
 // deleteBlock delete block from dagnode
 func (d *dagPoolService) deleteBlock(ctx context.Context, c cid.Cid) error {
+	if d.state == StateFail {
+		return ErrClusterAvailable
+	}
 	slot := keyHashSlot(c.String())
 	if err := d.slotKeyRepo.Remove(slot, c.String()); err != nil {
 		return err

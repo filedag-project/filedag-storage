@@ -16,13 +16,6 @@ type DagPoolClusterServer struct {
 	Cluster pool.Cluster
 }
 
-func (s *DagPoolClusterServer) InitSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
-	if err := s.Cluster.InitSlots(); err != nil {
-		return nil, status.Errorf(codes.Unknown, err.Error())
-	}
-	return &emptypb.Empty{}, nil
-}
-
 func (s *DagPoolClusterServer) AddDagNode(ctx context.Context, node *proto.DagNodeInfo) (*emptypb.Empty, error) {
 	cfg := utils.ToDagNodeConfig(node)
 	if err := s.Cluster.AddDagNode(cfg); err != nil {

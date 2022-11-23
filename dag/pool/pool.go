@@ -32,7 +32,6 @@ type Cluster interface {
 	AddDagNode(nodeConfig *config.DagNodeConfig) error
 	GetDagNode(dagNodeName string) (*config.DagNodeConfig, error)
 	RemoveDagNode(dagNodeName string) (*config.DagNodeConfig, error)
-	InitSlots() error
 	MigrateSlots(fromDagNodeName, toDagNodeName string, pairs []slotsmgr.SlotPair) error
 	BalanceSlots() error
 	Status() (*proto.StatusReply, error)

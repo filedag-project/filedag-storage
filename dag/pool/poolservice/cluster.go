@@ -25,91 +25,28 @@ type MigrateSlot struct {
 	SlotPairs []slotsmgr.SlotPair
 }
 
-// InitSlots Perform the slots allocation for the first time
-func (d *dagPoolService) InitSlots() error {
-	cfg, err := d.loadConfig()
+func (d *dagPoolService) startNewDagNode(nodeConfig *config.DagNodeConfig) (*dagnode.DagNode, error) {
+	if _, ok := d.dagNodesMap[nodeConfig.Name]; ok {
+		return nil, ErrDagNodeAlreadyExist
+	}
+	dagNode, err := dagnode.NewDagNode(*nodeConfig)
 	if err != nil {
-		return err
+		log.Errorf("new dagnode err:%v", err)
+		return nil, err
 	}
-	if cfg.Version != 0 {
-		return errors.New("it's already initialized")
-	}
-	d.dagNodesLock.Lock()
-	defer d.dagNodesLock.Unlock()
-
-	// calculate number of slots each dagnode
-	nodesNum := len(d.dagNodesMap)
-	piece := slotsmgr.ClusterSlots / nodesNum
-	remind := slotsmgr.ClusterSlots - piece*nodesNum
-
-	var nameList []string
-	for name := range d.dagNodesMap {
-		nameList = append(nameList, name)
-	}
-	sort.Strings(nameList)
-	curIndex := 0
-	for i := 0; i < nodesNum; i++ {
-		curPiece := piece
-		if remind > 0 {
-			curPiece += 1
-			remind--
-		}
-
-		node := d.dagNodesMap[nameList[i]]
-		for start := curIndex; start <= curIndex+curPiece-1; start++ {
-			node.AddSlot(uint64(start))
-
-			if d.slots[start] != nil {
-				log.Fatal("the slot state is inconsistent")
-			}
-			d.slots[start] = node
-		}
-
-		dagNode := config.DagNodeInfo{}
-		dagNode.Config = *node.GetConfig()
-		dagNode.SlotPairs = node.GetSlotPairs()
-		cfg.Cluster = append(cfg.Cluster, dagNode)
-
-		curIndex += curPiece
-	}
-	// save config
-	cfg.Version = 1
-	if err = d.saveConfig(cfg); err != nil {
-		// rollback
-		for i := 0; i < nodesNum; i++ {
-			node := d.dagNodesMap[nameList[i]]
-			slotPairs := node.GetSlotPairs()
-			for _, pair := range slotPairs {
-				for slot := pair.Start; slot <= pair.End; slot++ {
-					node.ClearSlot(slot)
-				}
-			}
-			if node.GetNumSlots() != 0 {
-				log.Fatal("the slot state is inconsistent")
-			}
-		}
-		var empty [slotsmgr.ClusterSlots]*dagnode.DagNode
-		d.slots = empty
-		return err
-	}
-
-	return nil
+	go dagNode.RunHeartbeatCheck(d.parentCtx)
+	d.dagNodesMap[nodeConfig.Name] = dagNode
+	return dagNode, nil
 }
 
 func (d *dagPoolService) AddDagNode(nodeConfig *config.DagNodeConfig) error {
 	d.dagNodesLock.Lock()
 	defer d.dagNodesLock.Unlock()
 
-	if _, ok := d.dagNodesMap[nodeConfig.Name]; ok {
-		return ErrDagNodeAlreadyExist
-	}
-	dagNode, err := dagnode.NewDagNode(*nodeConfig)
+	dagNode, err := d.startNewDagNode(nodeConfig)
 	if err != nil {
-		log.Errorf("new dagnode err:%v", err)
 		return err
 	}
-	go dagNode.RunHeartbeatCheck(d.parentCtx)
-	d.dagNodesMap[nodeConfig.Name] = dagNode
 
 	// update local config
 	cfg, err := d.loadConfig()
@@ -356,6 +293,75 @@ func (d *dagPoolService) migrateSlotsDataTask(ctx context.Context) {
 	}
 }
 
+// initSlots Perform the slots allocation for the first time
+func (d *dagPoolService) initSlots() error {
+	cfg, err := d.loadConfig()
+	if err != nil {
+		return err
+	}
+
+	// calculate number of slots each dagnode
+	nodesNum := len(d.dagNodesMap)
+	if nodesNum == 0 {
+		return errors.New("please add the dagnodes first")
+	}
+	piece := slotsmgr.ClusterSlots / nodesNum
+	remind := slotsmgr.ClusterSlots - piece*nodesNum
+
+	var nameList []string
+	for name := range d.dagNodesMap {
+		nameList = append(nameList, name)
+	}
+	sort.Strings(nameList)
+	curIndex := 0
+	for i := 0; i < nodesNum; i++ {
+		curPiece := piece
+		if remind > 0 {
+			curPiece += 1
+			remind--
+		}
+
+		node := d.dagNodesMap[nameList[i]]
+		for start := curIndex; start <= curIndex+curPiece-1; start++ {
+			node.AddSlot(uint64(start))
+
+			if d.slots[start] != nil {
+				log.Fatal("the slot state is inconsistent")
+			}
+			d.slots[start] = node
+		}
+
+		dagNode := config.DagNodeInfo{}
+		dagNode.Config = *node.GetConfig()
+		dagNode.SlotPairs = node.GetSlotPairs()
+		cfg.Cluster = append(cfg.Cluster, dagNode)
+
+		curIndex += curPiece
+	}
+	// save config
+	cfg.Version += 1
+	if err = d.saveConfig(cfg); err != nil {
+		// rollback
+		for i := 0; i < nodesNum; i++ {
+			node := d.dagNodesMap[nameList[i]]
+			slotPairs := node.GetSlotPairs()
+			for _, pair := range slotPairs {
+				for slot := pair.Start; slot <= pair.End; slot++ {
+					node.ClearSlot(slot)
+				}
+			}
+			if node.GetNumSlots() != 0 {
+				log.Fatal("the slot state is inconsistent")
+			}
+		}
+		var empty [slotsmgr.ClusterSlots]*dagnode.DagNode
+		d.slots = empty
+		return err
+	}
+
+	return nil
+}
+
 func (d *dagPoolService) BalanceSlots() error {
 	d.dagNodesLock.Lock()
 	defer d.dagNodesLock.Unlock()
@@ -366,6 +372,9 @@ func (d *dagPoolService) BalanceSlots() error {
 
 	// calculate number of slots each dagnode
 	nodesNum := len(d.dagNodesMap)
+	if nodesNum == 0 {
+		return errors.New("please add the dagnodes first")
+	}
 	piece := slotsmgr.ClusterSlots / nodesNum
 	remind := slotsmgr.ClusterSlots - piece*nodesNum
 
@@ -374,11 +383,37 @@ func (d *dagPoolService) BalanceSlots() error {
 		nameList = append(nameList, name)
 	}
 	sort.Strings(nameList)
+
+	// check the slots
+	slotsTmp := slotsmgr.NewSlotsManager()
+	for slot, node := range d.slots {
+		if node == nil {
+			slotsTmp.Set(uint64(slot), true)
+		}
+	}
+	unAllocatedSlots := slotsTmp.Count()
+	if unAllocatedSlots > 0 {
+		if unAllocatedSlots == slotsmgr.ClusterSlots {
+			// init slots
+			return d.initSlots()
+		} else {
+			// slots will be assigned to the first node
+			pairs := slotsTmp.ToSlotPair()
+			firstNode := d.dagNodesMap[nameList[0]]
+			for _, pair := range pairs {
+				for slot := pair.Start; slot <= pair.End; slot++ {
+					if err := d.addSlot(firstNode, slot); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
 	type MigrateInfo struct {
 		DagNodeName string
 		NumSlots    int
 	}
-
 	availableList := make([]MigrateInfo, 0)
 	requireList := make([]MigrateInfo, 0)
 	for i := 0; i < nodesNum; i++ {

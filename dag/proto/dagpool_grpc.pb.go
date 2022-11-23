@@ -361,7 +361,6 @@ var DagPool_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DagPoolClusterClient interface {
-	InitSlots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	AddDagNode(ctx context.Context, in *DagNodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetDagNode(ctx context.Context, in *GetDagNodeReq, opts ...grpc.CallOption) (*DagNodeInfo, error)
 	RemoveDagNode(ctx context.Context, in *RemoveDagNodeReq, opts ...grpc.CallOption) (*DagNodeInfo, error)
@@ -376,15 +375,6 @@ type dagPoolClusterClient struct {
 
 func NewDagPoolClusterClient(cc grpc.ClientConnInterface) DagPoolClusterClient {
 	return &dagPoolClusterClient{cc}
-}
-
-func (c *dagPoolClusterClient) InitSlots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/InitSlots", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *dagPoolClusterClient) AddDagNode(ctx context.Context, in *DagNodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error) {
@@ -445,7 +435,6 @@ func (c *dagPoolClusterClient) Status(ctx context.Context, in *emptypb.Empty, op
 // All implementations must embed UnimplementedDagPoolClusterServer
 // for forward compatibility
 type DagPoolClusterServer interface {
-	InitSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	AddDagNode(context.Context, *DagNodeInfo) (*emptypb.Empty, error)
 	GetDagNode(context.Context, *GetDagNodeReq) (*DagNodeInfo, error)
 	RemoveDagNode(context.Context, *RemoveDagNodeReq) (*DagNodeInfo, error)
@@ -459,9 +448,6 @@ type DagPoolClusterServer interface {
 type UnimplementedDagPoolClusterServer struct {
 }
 
-func (UnimplementedDagPoolClusterServer) InitSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InitSlots not implemented")
-}
 func (UnimplementedDagPoolClusterServer) AddDagNode(context.Context, *DagNodeInfo) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddDagNode not implemented")
 }
@@ -491,24 +477,6 @@ type UnsafeDagPoolClusterServer interface {
 
 func RegisterDagPoolClusterServer(s grpc.ServiceRegistrar, srv DagPoolClusterServer) {
 	s.RegisterService(&DagPoolCluster_ServiceDesc, srv)
-}
-
-func _DagPoolCluster_InitSlots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DagPoolClusterServer).InitSlots(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.DagPoolCluster/InitSlots",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DagPoolClusterServer).InitSlots(ctx, req.(*emptypb.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _DagPoolCluster_AddDagNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -626,10 +594,6 @@ var DagPoolCluster_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.DagPoolCluster",
 	HandlerType: (*DagPoolClusterServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "InitSlots",
-			Handler:    _DagPoolCluster_InitSlots_Handler,
-		},
 		{
 			MethodName: "AddDagNode",
 			Handler:    _DagPoolCluster_AddDagNode_Handler,

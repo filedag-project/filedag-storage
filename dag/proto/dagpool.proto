@@ -106,7 +106,6 @@ message UpdateUserReply {
 
 
 service DagPoolCluster {
-  rpc InitSlots (google.protobuf.Empty) returns (google.protobuf.Empty) {}
   rpc AddDagNode (DagNodeInfo) returns (google.protobuf.Empty) {}
   rpc GetDagNode (GetDagNodeReq) returns (DagNodeInfo) {}
   rpc RemoveDagNode (RemoveDagNodeReq) returns (DagNodeInfo) {}
