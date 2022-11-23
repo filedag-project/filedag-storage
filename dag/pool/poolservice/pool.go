@@ -96,12 +96,12 @@ func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolServ
 		gcControl:       NewGcControl(),
 		gcPeriod:        cfg.GcPeriod,
 	}
+	// process migrating task
+	go serv.migrateSlotsDataTask(ctx)
+
 	if err = serv.clusterInit(); err != nil {
 		return nil, err
 	}
-
-	// process migrating task
-	go serv.migrateSlotsDataTask(ctx)
 
 	return serv, nil
 }

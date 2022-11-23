@@ -210,85 +210,87 @@ func (d *dagPoolService) migrateSlotsByNode(fromNode, toNode *dagnode.DagNode, p
 }
 
 func (d *dagPoolService) migrateSlotsDataTask(ctx context.Context) {
-	select {
-	case <-ctx.Done():
-		return
-	case _, ok := <-d.migratingCh:
-		if !ok {
+	for {
+		select {
+		case <-ctx.Done():
 			return
-		}
-
-		numSlotOk := 0
-		for slot, from := range d.importingSlotsFrom {
-			if from == nil {
-				numSlotOk++
-				continue
+		case _, ok := <-d.migratingCh:
+			if !ok {
+				return
 			}
-			to := d.slots[slot]
-			toName := to.GetConfig().Name
 
-			// slot data migrate from 'from' to 'to'
-			ch, err := d.slotKeyRepo.AllKeysChan(ctx, uint16(slot), "")
-			if err != nil {
-				log.Fatal(err)
-			}
-			toMigrateSlots := 0
-			successMigrateSlots := 0
-			for entry := range ch {
-				if entry.Value == toName {
+			numSlotOk := 0
+			for slot, from := range d.importingSlotsFrom {
+				if from == nil {
+					numSlotOk++
 					continue
 				}
-				toMigrateSlots++
-				blkCid, err := cid.Parse(entry.Key)
+				to := d.slots[slot]
+				toName := to.GetConfig().Name
+
+				// slot data migrate from 'from' to 'to'
+				ch, err := d.slotKeyRepo.AllKeysChan(ctx, uint16(slot), "")
 				if err != nil {
-					log.Errorf("slotKeyRepo parse cid error, slot: %v cid: %v, error: %v", slot, entry.Key, err)
-					continue
+					log.Fatal(err)
 				}
-				bk, err := from.Get(ctx, blkCid)
-				if err != nil {
-					if format.IsNotFound(err) {
-						successMigrateSlots++
+				toMigrateSlots := 0
+				successMigrateSlots := 0
+				for entry := range ch {
+					if entry.Value == toName {
 						continue
 					}
-					log.Errorw("migrating get block error", "from_node", from.GetConfig().Name, "slot", slot, "cid", blkCid, "err", err)
-					continue
-				}
-				if err = to.Put(ctx, bk); err != nil {
-					log.Errorw("migrating put block error", "to_node", toName, "slot", slot, "cid", entry.Key, "err", err)
-					continue
-				}
+					toMigrateSlots++
+					blkCid, err := cid.Parse(entry.Key)
+					if err != nil {
+						log.Errorf("slotKeyRepo parse cid error, slot: %v cid: %v, error: %v", slot, entry.Key, err)
+						continue
+					}
+					bk, err := from.Get(ctx, blkCid)
+					if err != nil {
+						if format.IsNotFound(err) {
+							successMigrateSlots++
+							continue
+						}
+						log.Errorw("migrating get block error", "from_node", from.GetConfig().Name, "slot", slot, "cid", blkCid, "err", err)
+						continue
+					}
+					if err = to.Put(ctx, bk); err != nil {
+						log.Errorw("migrating put block error", "to_node", toName, "slot", slot, "cid", entry.Key, "err", err)
+						continue
+					}
 
-				if err = d.slotKeyRepo.Set(uint16(slot), entry.Key, toName); err != nil {
-					log.Errorw("slotKeyRepo set key error", "to_node", toName, "slot", slot, "cid", entry.Key, "err", err)
-					continue
+					if err = d.slotKeyRepo.Set(uint16(slot), entry.Key, toName); err != nil {
+						log.Errorw("slotKeyRepo set key error", "to_node", toName, "slot", slot, "cid", entry.Key, "err", err)
+						continue
+					}
+					if err = from.DeleteBlock(ctx, blkCid); err != nil {
+						log.Warnw("migrating delete block error", "from_node", from.GetConfig().Name, "slot", slot, "cid", blkCid, "err", err)
+					}
+					successMigrateSlots++
 				}
-				if err = from.DeleteBlock(ctx, blkCid); err != nil {
-					log.Warnw("migrating delete block error", "from_node", from.GetConfig().Name, "slot", slot, "cid", blkCid, "err", err)
+				if toMigrateSlots == successMigrateSlots {
+					// all migrated
+					if err = d.slotMigrateRepo.Remove(uint16(slot)); err == nil {
+						d.importingSlotsFrom[slot] = nil
+						numSlotOk++
+					} else {
+						log.Errorw("slotMigrateRepo.Remove failed", "slot", slot)
+					}
 				}
-				successMigrateSlots++
 			}
-			if toMigrateSlots == successMigrateSlots {
-				// all migrated
-				if err = d.slotMigrateRepo.Remove(uint16(slot)); err == nil {
-					d.importingSlotsFrom[slot] = nil
-					numSlotOk++
+			// is migration done?
+			if numSlotOk == slotsmgr.ClusterSlots {
+				if d.checkAllSlots() {
+					d.state = StateOk
 				} else {
-					log.Errorw("slotMigrateRepo.Remove failed", "slot", slot)
+					d.state = StateFail
 				}
-			}
-		}
-		// is migration done?
-		if numSlotOk == slotsmgr.ClusterSlots {
-			if d.checkAllSlots() {
-				d.state = StateOk
 			} else {
-				d.state = StateFail
+				// try again
+				time.AfterFunc(time.Minute, func() {
+					d.migratingCh <- struct{}{}
+				})
 			}
-		} else {
-			// try again
-			time.AfterFunc(time.Minute, func() {
-				d.migratingCh <- struct{}{}
-			})
 		}
 	}
 }

@@ -59,6 +59,13 @@ func (d *dagPoolService) clusterInit() error {
 		d.state = StateFail
 		log.Warn("please allocate all the slots")
 	}
+	if d.state == StateMigrating {
+		// start to migrate data
+		select {
+		case d.migratingCh <- struct{}{}:
+		default:
+		}
+	}
 
 	return nil
 }
