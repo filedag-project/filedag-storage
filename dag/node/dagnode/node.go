@@ -125,6 +125,7 @@ func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
 		for i, node := range d.Nodes {
 			wg.Add(1)
 			go func(index int, cli *datanode.Client) {
+				defer wg.Done()
 				d.stateNodes[index] = d.healthCheck(ctx, cli)
 			}(i, node)
 		}
