@@ -480,8 +480,8 @@ func (d *dagPoolService) BalanceSlots() error {
 				if remain >= int(availableSlotPairs[index].Count()) {
 					migrateSlotPairs = append(migrateSlotPairs, availableSlotPairs[index])
 					remain -= int(availableSlotPairs[index].Count())
-					availableSlotPairs = availableSlotPairs[:index]
 					available.NumSlots -= int(availableSlotPairs[index].Count())
+					availableSlotPairs = availableSlotPairs[:index]
 				} else {
 					part := slotsmgr.SlotPair{
 						Start: availableSlotPairs[index].End - uint64(remain) + 1,
