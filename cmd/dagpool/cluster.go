@@ -58,10 +58,20 @@ var status = &cli.Command{
 			reply.State, len(reply.Statuses))
 
 		for _, status := range reply.Statuses {
-			fmt.Printf("  dagnode_name: %s\n  dagnode_slots: %s\n",
-				status.Node.Name, utils.ToSlotPairs(status.Pairs))
+			pairs := utils.ToSlotPairs(status.Pairs)
+			var slots uint64
+			slotsInfo := ""
+			for _, pair := range pairs {
+				if slotsInfo != "" {
+					slotsInfo += ","
+				}
+				slots += pair.Count()
+				slotsInfo += fmt.Sprintf("[%s]", pair)
+			}
+			fmt.Printf("  name: %s\n  slots: %s (%d slots)\n",
+				status.Node.Name, slotsInfo, slots)
 			if cctx.Bool("detail") {
-				fmt.Printf("  dagnode_set:\n    nodes:\n")
+				fmt.Printf("  erasure_set:\n    nodes:\n")
 				for idx, nd := range status.Node.Nodes {
 					st := "fail"
 					if nd.State != nil && *nd.State {
@@ -81,7 +91,7 @@ var status = &cli.Command{
 var addDagNode = &cli.Command{
 	Name:      "add",
 	Usage:     "Add a dagnode to the dag pool cluster",
-	ArgsUsage: "dagnode_config_path [...]",
+	ArgsUsage: "dagnode_config_path [dagnode_config_path2] ... [dagnode_config_pathN]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
@@ -238,7 +248,7 @@ var balanceSlots = &cli.Command{
 var migrateSlots = &cli.Command{
 	Name:      "migrate",
 	Usage:     "Migrate slots from a dagnode to another dagnode",
-	ArgsUsage: "from_dagnode_name to_dagnode_name slots_pair(start-end) [...]",
+	ArgsUsage: "from_dagnode_name to_dagnode_name start_slot1-end_slot1 [start_slot2-end_slot2] ... [start_slotN-end_slotN]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "address",
