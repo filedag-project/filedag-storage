@@ -347,14 +347,14 @@ func (s *StorageSys) GetBucketInfo(ctx context.Context, bucket string) (bi Bucke
 	if err != nil {
 		return bi, err
 	}
-	index := 0
 	var size, objects uint64
 	for entry := range all {
 		var o ObjectInfo
 		if err = entry.UnmarshalValue(&o); err != nil {
 			return bi, err
 		}
-		index++
+		size += uint64(o.Size)
+		objects++
 
 	}
 	return BucketInfo{

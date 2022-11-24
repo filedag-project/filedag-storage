@@ -32,17 +32,51 @@ const (
 
 // APIErrorResponse - error response format
 type APIErrorResponse struct {
-	XMLName   xml.Name `xml:"Error" json:"-"`
-	Code      string
-	Message   string
-	Resource  string
-	RequestID string `xml:"RequestId" json:"RequestId"`
-	HostID    string `xml:"HostId" json:"HostId"`
+	XMLName        xml.Name `xml:"Error" json:"Error"`
+	HTTPStatusCode int      `xml:"HTTPStatusCode" json:"HTTPStatusCode"`
+	Code           string   `xml:"Code" json:"Code"`
+	Message        string   `xml:"Message" json:"Message"`
+	Resource       string
+	RequestID      string `xml:"RequestId" json:"RequestId"`
+	HostID         string `xml:"HostId" json:"HostId"`
+}
+
+//APISuccessResponse response format
+type APISuccessResponse struct {
+	Response       interface{}
+	HTTPStatusCode int `xml:"HTTPStatusCode" json:"HTTPStatusCode"`
+	Resource       string
+	RequestID      string `xml:"RequestId" json:"RequestId"`
+	HostID         string `xml:"HostId" json:"HostId"`
 }
 
 //WriteSuccessResponseXML Write Success Response XML
 func WriteSuccessResponseXML(w http.ResponseWriter, r *http.Request, response interface{}) {
 	WriteXMLResponse(w, r, http.StatusOK, response)
+}
+
+// WriteSuccessNoContent writes success headers with http status 204
+func WriteSuccessNoContent(w http.ResponseWriter) {
+	writeResponseSimple(w, http.StatusNoContent, nil, mimeNone)
+}
+
+// WriteSuccessResponseJSON writes success headers and response if any,
+// with content-type set to `application/json`.
+func WriteSuccessResponseJSON(w http.ResponseWriter, r *http.Request, response interface{}) {
+	setCommonHeaders(w, r)
+	successResponse := getAPISuccessResponse(http.StatusOK, r.URL.Path, w.Header().Get(consts.AmzRequestID), r.Host, response)
+	encodedSuccessResponse := encodeResponseJSON(successResponse)
+	writeResponseSimple(w, http.StatusOK, encodedSuccessResponse, mimeJSON)
+}
+
+// WriteErrorResponseJSON - writes error response in JSON format;
+// useful for admin APIs.
+func WriteErrorResponseJSON(w http.ResponseWriter, r *http.Request, err apierrors.APIError) {
+	// Generate error response.
+	setCommonHeaders(w, r)
+	errorResponse := getAPIErrorResponse(err, r.URL.Path, w.Header().Get(consts.AmzRequestID), r.Host)
+	encodedErrorResponse := encodeResponseJSON(errorResponse)
+	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeJSON)
 }
 
 //WriteXMLResponse Write XMLResponse
@@ -88,25 +122,28 @@ func encodeXMLResponse(response interface{}) []byte {
 	return bytesBuffer.Bytes()
 }
 
-// WriteErrorResponseJSON - writes error response in JSON format;
-// useful for admin APIs.
-func WriteErrorResponseJSON(w http.ResponseWriter, r *http.Request, err apierrors.APIError) {
-	// Generate error response.
-	setCommonHeaders(w, r)
-	errorResponse := getAPIErrorResponse(err, r.URL.Path, w.Header().Get(consts.AmzRequestID), r.Host)
-	encodedErrorResponse := encodeResponseJSON(errorResponse)
-	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeJSON)
-}
-
 // getErrorResponse gets in standard error and resource value and
 // provides a encodable populated response values
 func getAPIErrorResponse(err apierrors.APIError, resource, requestID, hostID string) APIErrorResponse {
 	return APIErrorResponse{
-		Code:      err.Code,
-		Message:   err.Description,
-		Resource:  resource,
-		RequestID: requestID,
-		HostID:    hostID,
+		Code:           err.Code,
+		HTTPStatusCode: err.HTTPStatusCode,
+		Message:        err.Description,
+		Resource:       resource,
+		RequestID:      requestID,
+		HostID:         hostID,
+	}
+}
+
+// getAPISuccessResponse gets in standard and resource value and
+// provides a encodable populated response values
+func getAPISuccessResponse(httpStatusCode int, resource, requestID, hostID string, response interface{}) APISuccessResponse {
+	return APISuccessResponse{
+		HTTPStatusCode: httpStatusCode,
+		RequestID:      requestID,
+		Response:       response,
+		Resource:       resource,
+		HostID:         hostID,
 	}
 }
 
@@ -118,13 +155,6 @@ func encodeResponseJSON(response interface{}) []byte {
 	return bytesBuffer.Bytes()
 }
 
-// WriteSuccessResponseJSON writes success headers and response if any,
-// with content-type set to `application/json`.
-func WriteSuccessResponseJSON(w http.ResponseWriter, r *http.Request, response []byte) {
-	setCommonHeaders(w, r)
-	writeResponseSimple(w, http.StatusOK, response, mimeJSON)
-}
-
 func writeResponseSimple(w http.ResponseWriter, statusCode int, response []byte, mType mimeType) {
 	if mType != mimeNone {
 		w.Header().Set(consts.ContentType, string(mType))
@@ -134,11 +164,6 @@ func writeResponseSimple(w http.ResponseWriter, statusCode int, response []byte,
 	if response != nil {
 		w.Write(response)
 	}
-}
-
-// WriteSuccessNoContent writes success headers with http status 204
-func WriteSuccessNoContent(w http.ResponseWriter) {
-	writeResponseSimple(w, http.StatusNoContent, nil, mimeNone)
 }
 
 //ListAllMyBucketsResult  List All Buckets Result

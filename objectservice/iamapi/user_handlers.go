@@ -149,14 +149,7 @@ func (iamApi *iamApiServer) AccountInfoHandler(w http.ResponseWriter, r *http.Re
 			return iam.AccountDisabled
 		}(),
 	}
-
-	usageInfoJSON, err := json.Marshal(acctInfo)
-	if err != nil {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrMalformedJSON))
-		return
-	}
-
-	response.WriteSuccessResponseJSON(w, r, usageInfoJSON)
+	response.WriteSuccessResponseJSON(w, r, acctInfo)
 }
 
 // ChangePassword change password
@@ -300,13 +293,7 @@ func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Reques
 			return iam.AccountDisabled
 		}(),
 	}
-
-	data, err := json.Marshal(user)
-	if err != nil {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrMalformedJSON))
-		return
-	}
-	response.WriteSuccessResponseJSON(w, r, data)
+	response.WriteSuccessResponseJSON(w, r, user)
 }
 
 //GetUserList get all user

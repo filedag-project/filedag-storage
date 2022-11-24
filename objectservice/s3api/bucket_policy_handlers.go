@@ -3,14 +3,18 @@ package s3api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
+	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 const maxBucketPolicySize = 20 * humanize.KiByte
@@ -107,6 +111,20 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	w.Header().Set(consts.ServerInfo, "FDS")
+	w.Header().Set(consts.AmzRequestID, fmt.Sprintf("%d", time.Now().UnixNano()))
+	w.Header().Set(consts.AcceptRanges, "bytes")
+	if r.Header.Get("Origin") != "" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+
+	w.Header().Set(consts.ContentType, "application/json")
+	w.Header().Set(consts.ContentLength, strconv.Itoa(len(configData)))
+	w.WriteHeader(http.StatusOK)
+	if configData != nil {
+		w.Write(configData)
+	}
 	// Write to client.
-	response.WriteSuccessResponseJSON(w, r, configData)
+	//response.WriteSuccessResponseJSON(w, r, config)
 }
