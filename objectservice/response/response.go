@@ -15,7 +15,6 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	logging "github.com/ipfs/go-log/v2"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 )
@@ -91,9 +90,10 @@ func encodeXMLResponse(response interface{}) []byte {
 
 // WriteErrorResponseJSON - writes error response in JSON format;
 // useful for admin APIs.
-func WriteErrorResponseJSON(w http.ResponseWriter, err apierrors.APIError, reqURL *url.URL, host string) {
+func WriteErrorResponseJSON(w http.ResponseWriter, r *http.Request, err apierrors.APIError) {
 	// Generate error response.
-	errorResponse := getAPIErrorResponse(err, reqURL.Path, w.Header().Get(consts.AmzRequestID), host)
+	setCommonHeaders(w, r)
+	errorResponse := getAPIErrorResponse(err, r.URL.Path, w.Header().Get(consts.AmzRequestID), r.Host)
 	encodedErrorResponse := encodeResponseJSON(errorResponse)
 	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeJSON)
 }
@@ -120,7 +120,8 @@ func encodeResponseJSON(response interface{}) []byte {
 
 // WriteSuccessResponseJSON writes success headers and response if any,
 // with content-type set to `application/json`.
-func WriteSuccessResponseJSON(w http.ResponseWriter, response []byte) {
+func WriteSuccessResponseJSON(w http.ResponseWriter, r *http.Request, response []byte) {
+	setCommonHeaders(w, r)
 	writeResponseSimple(w, http.StatusOK, response, mimeJSON)
 }
 

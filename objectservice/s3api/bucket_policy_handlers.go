@@ -108,5 +108,5 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	// Write to client.
-	response.WriteSuccessResponseJSON(w, configData)
+	response.WriteSuccessResponseJSON(w, r, configData)
 }

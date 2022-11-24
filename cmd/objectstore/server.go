@@ -107,8 +107,8 @@ func startServer(cctx *cli.Context) {
 		return bucketInfos
 	}
 	handler := s3api.CorsHandler(router)
-	s3api.NewS3Server(router, authSys, bmSys, storageSys)
 	iamapi.NewIamApiServer(router, authSys, cleanData, bucketInfoFunc)
+	s3api.NewS3Server(router, authSys, bmSys, storageSys)
 
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {

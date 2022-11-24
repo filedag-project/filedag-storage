@@ -156,6 +156,9 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 		//check tempuser
 		if ucred.ParentUser != "" {
 			if ucred.ParentUser == s.AdminCred.AccessKey {
+				if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
+					return cred, false, apierrors.ErrInvalidToken
+				}
 				return cred, true, apierrors.ErrNone
 			}
 			ucred, ok = s.Iam.GetUser(r.Context(), ucred.ParentUser)
@@ -194,6 +197,9 @@ func (s *AuthSys) checkKeyValidTemp(r *http.Request, accessKey string) (auth.Cre
 		//check tempuser
 		if ucred.ParentUser != "" {
 			if ucred.ParentUser == s.AdminCred.AccessKey {
+				if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
+					return cred, false, apierrors.ErrInvalidToken
+				}
 				return ucred, true, apierrors.ErrNone
 			}
 			ucred, ok = s.Iam.GetUser(r.Context(), ucred.ParentUser)
@@ -203,7 +209,10 @@ func (s *AuthSys) checkKeyValidTemp(r *http.Request, accessKey string) (auth.Cre
 				if ucred.Status == auth.AccountOff {
 					return cred, false, apierrors.ErrAccessKeyDisabled
 				}
-				return cred, false, apierrors.ErrInvalidAccessKeyID
+				return ucred, false, apierrors.ErrInvalidAccessKeyID
+			}
+			if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
+				return ucred, false, apierrors.ErrInvalidToken
 			}
 		}
 
