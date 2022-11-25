@@ -18,8 +18,7 @@
 /dagpool
 /datanode
 /objectstore
-/dp-data
 /dn-data
+/dp-data
 /store-data
 /iam-tools
-/dagpool-db

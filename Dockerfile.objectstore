@@ -1,0 +1,27 @@
+FROM golang:1.19.3-alpine AS builder
+
+LABEL stage=gobuilder
+
+ENV CGO_ENABLED 0
+ENV GOOS linux
+ENV GOPROXY https://goproxy.cn,direct
+
+WORKDIR /build
+COPY . .
+RUN go mod download
+
+# Builds your app with optional configuration
+RUN go build -ldflags "-s -w" -o objectstore ./cmd/objectstore
+
+FROM scratch
+
+WORKDIR /app
+COPY --from=builder /build/objectstore /app/objectstore
+
+# Tells Docker which network port your container listens on
+EXPOSE 9985
+
+ENTRYPOINT ["/app/objectstore"]
+
+# Specifies the executable command that runs when the container starts
+CMD ["daemon", "--datadir=/data"]
