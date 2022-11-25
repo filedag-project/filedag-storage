@@ -85,7 +85,11 @@ func (d *dagPoolService) RemoveDagNode(dagNodeName string) (*config.DagNodeConfi
 	defer d.dagNodesLock.Unlock()
 
 	if d.state != StateOk {
-		return nil, ErrDagNodeRemove
+		if d.state == StateMigrating {
+			return nil, ErrClusterMigrating
+		} else {
+			return nil, ErrClusterAvailable
+		}
 	}
 
 	if nd, ok := d.dagNodesMap[dagNodeName]; ok {
