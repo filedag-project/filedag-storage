@@ -71,13 +71,14 @@ func TestMain(m *testing.M) {
 		return bucketInfos
 	}
 	NewIamApiServer(router, authSys, func(accessKey string) {}, bucketInfoFunc)
-	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
-	reqPutUserOther := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+otherUserAccessKey+"&secretKey="+otherUserSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, &testing.T{})
+	reqPutUserOtherUrl := addUserUrl(otherUserAccessKey, otherUserSecretKey, defaultCap)
+	reqPutUserOther := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserOtherUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, &testing.T{})
 	resultOther := reqTest(reqPutUserOther)
 	if resultOther.Code != http.StatusOK {
 		panic(fmt.Sprintf("add user fail %v,%v", resultOther.Code, resultOther.Body.String()))
 	}
-	reqPutUserNormal := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+normalAccessKey+"&secretKey="+normalSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, &testing.T{})
+	reqPutUserNormalUrl := addUserUrl(normalAccessKey, normalSecretKey, defaultCap)
+	reqPutUserNormal := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserNormalUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, &testing.T{})
 	resultNormal := reqTest(reqPutUserNormal)
 	if resultNormal.Code != http.StatusOK {
 		panic(fmt.Sprintf("add user fail %v,%v", resultNormal.Code, resultNormal.Body.String()))
@@ -94,6 +95,16 @@ func reqTest(r *http.Request) *httptest.ResponseRecorder {
 	//fmt.Println(w.Body.String())
 	return w
 }
+func addUserUrl(username, secret, cap string) string {
+	addUrl := "http://127.0.0.1:9985/admin/v1/add-user?"
+
+	urlValues := make(url.Values)
+	urlValues.Set(accessKey, username)
+	urlValues.Set(secretKey, secret)
+	urlValues.Set(capacity, cap)
+	return addUrl + urlValues.Encode()
+}
+
 func TestIamApiServer_AddUser(t *testing.T) {
 	// test cases with inputs and expected result for AddUser.
 	testCases := []struct {
@@ -152,13 +163,13 @@ func TestIamApiServer_AddUser(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 	}
-	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
 	// Iterating over the cases, fetching the result validating the response.
 	for _, testCase := range testCases {
 		// mock an HTTP request
 		// add user
 		t.Run(testCase.accessKey, func(t *testing.T) {
-			reqPutUser := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+testCase.accessKey+"&secretKey="+testCase.secretKey+"&capacity="+testCase.cap, 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
+			ur := addUserUrl(testCase.accessKey, testCase.secretKey, testCase.cap)
+			reqPutUser := utils.MustNewSignedV4Request(http.MethodPost, ur, 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
 			result := reqTest(reqPutUser)
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result.Code)
@@ -296,13 +307,15 @@ func TestIamApiServer_AccountInfo(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 	}
-	u := "http://127.0.0.1:9985/admin/v1/user-info"
+	u := "http://127.0.0.1:9985/admin/v1/user-info?"
 	// Iterating over the cases, fetching the result validating the response.
 	for _, testCase := range testCases {
 		// mock an HTTP request
 		t.Run(testCase.accessKey, func(t *testing.T) {
 			//user info
-			userinfoReq := utils.MustNewSignedV4Request(http.MethodGet, u+"?accessKey="+testCase.accessKey, 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
+			urlValues := make(url.Values)
+			urlValues.Set(accessKey, testCase.accessKey)
+			userinfoReq := utils.MustNewSignedV4Request(http.MethodGet, u+urlValues.Encode(), 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
 			result1 := reqTest(userinfoReq)
 			if result1.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result1.Code)
@@ -318,13 +331,14 @@ func TestIamApiServer_RemoveUser(t *testing.T) {
 	himselfUserSecretKey := "himselfUser"
 	removeUserAccessKey := "removeUser"
 	removeUserSecretKey := "removeUser"
-	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
-	reqPutUserHimself := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+himselfUserAccessKey+"&secretKey="+himselfUserSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutUserHimselfUrl := addUserUrl(himselfUserAccessKey, himselfUserSecretKey, defaultCap)
+	reqPutUserHimself := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserHimselfUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	resultHimself := reqTest(reqPutUserHimself)
 	if resultHimself.Code != http.StatusOK {
 		t.Fatalf("add user fail %v,%v", resultHimself.Code, resultHimself.Body.String())
 	}
-	reqPutUserRemove := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+removeUserAccessKey+"&secretKey="+removeUserSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutUserRemoveUrl := addUserUrl(removeUserAccessKey, removeUserSecretKey, defaultCap)
+	reqPutUserRemove := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserRemoveUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	resultRemove := reqTest(reqPutUserRemove)
 	if resultHimself.Code != http.StatusOK {
 		t.Fatalf("add user fail %v,%v", resultRemove.Code, resultRemove.Body.String())
@@ -381,12 +395,14 @@ func TestIamApiServer_RemoveUser(t *testing.T) {
 		},
 	}
 
-	removeUrl := "http://127.0.0.1:9985/admin/v1/remove-user"
+	removeUrl := "http://127.0.0.1:9985/admin/v1/remove-user?"
 	// Iterating over the cases, fetching the result validating the response.
 	for _, testCase := range testCases {
 		// remove user
 		t.Run(testCase.name, func(t *testing.T) {
-			reqPutBucket := utils.MustNewSignedV4Request(http.MethodPost, removeUrl+"?accessKey="+testCase.accessKey, 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
+			urlValues := make(url.Values)
+			urlValues.Set(accessKey, testCase.accessKey)
+			reqPutBucket := utils.MustNewSignedV4Request(http.MethodPost, removeUrl+urlValues.Encode(), 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
 			result1 := reqTest(reqPutBucket)
 			if result1.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result1.Code)
@@ -403,13 +419,14 @@ func TestIamApiServer_SetStatus(t *testing.T) {
 	offUserSecretKey := "offUser1234"
 	otherUserOffAccessKey := "otherUserOffUser"
 	otherUserOffSecretKey := "otherUserOffUser1234"
-	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
-	reqPutUserOff := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+offUserAccessKey+"&secretKey="+offUserSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutUserOffUrl := addUserUrl(offUserAccessKey, offUserSecretKey, defaultCap)
+	reqPutUserOff := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserOffUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	resultOff := reqTest(reqPutUserOff)
 	if resultOff.Code != http.StatusOK {
 		t.Fatalf("add user fail %v,%v", resultOff.Code, resultOff.Body.String())
 	}
-	reqPutUserOtherOff := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+otherUserOffAccessKey+"&secretKey="+otherUserOffSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutUserOtherOffUrl := addUserUrl(otherUserOffAccessKey, otherUserOffSecretKey, defaultCap)
+	reqPutUserOtherOff := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserOtherOffUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	resultOtherOff := reqTest(reqPutUserOtherOff)
 	if resultOtherOff.Code != http.StatusOK {
 		t.Fatalf("add user fail %v,%v", resultOtherOff.Code, resultOtherOff.Body.String())
@@ -522,13 +539,14 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 	himselfChangeSuccessSecretKey := "himselfChangeSuccess"
 
 	thePassToChange := "thePassToChange"
-	addUrl := "http://127.0.0.1:9985/admin/v1/add-user"
-	reqPutUserChangePassSuccess := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+changePassSuccessAccessKey+"&secretKey="+changePassSuccessSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutUserChangePassSuccessUrl := addUserUrl(changePassSuccessAccessKey, changePassSuccessSecretKey, defaultCap)
+	reqPutUserChangePassSuccess := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserChangePassSuccessUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	resultChangePassSucces := reqTest(reqPutUserChangePassSuccess)
 	if resultChangePassSucces.Code != http.StatusOK {
 		t.Fatalf("add user fail %v,%v", resultChangePassSucces.Code, resultChangePassSucces.Body.String())
 	}
-	reqPutUserHimself := utils.MustNewSignedV4Request(http.MethodPost, addUrl+"?accessKey="+himselfChangeSuccessAccessKey+"&secretKey="+himselfChangeSuccessSecretKey+"&capacity="+defaultCap, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutUserHimselfUrl := addUserUrl(himselfChangeSuccessAccessKey, himselfChangeSuccessSecretKey, defaultCap)
+	reqPutUserHimself := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserHimselfUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	resultHimself := reqTest(reqPutUserHimself)
 	if resultHimself.Code != http.StatusOK {
 		t.Fatalf("add user fail %v,%v", resultHimself.Code, resultHimself.Body.String())
