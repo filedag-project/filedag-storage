@@ -381,7 +381,7 @@ func (d *dagPoolService) BalanceSlots() error {
 		return errors.New("please add the dagnodes first")
 	}
 	piece := slotsmgr.ClusterSlots / nodesNum
-	remind := slotsmgr.ClusterSlots - piece*nodesNum
+	remain := slotsmgr.ClusterSlots - piece*nodesNum
 
 	var nameList []string
 	for name := range d.dagNodesMap {
@@ -423,9 +423,9 @@ func (d *dagPoolService) BalanceSlots() error {
 	requireList := make([]MigrateInfo, 0)
 	for i := 0; i < nodesNum; i++ {
 		expectedPiece := piece
-		if remind > 0 {
+		if remain > 0 {
 			expectedPiece += 1
-			remind--
+			remain--
 		}
 		node := d.dagNodesMap[nameList[i]]
 		numSlots := node.GetNumSlots()
