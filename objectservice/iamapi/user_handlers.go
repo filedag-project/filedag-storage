@@ -73,7 +73,6 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
 	}
-	var resp DeleteUserResponse
 	username := r.FormValue(accessKey)
 	_, err := iamApi.authSys.Iam.GetUserInfo(r.Context(), username)
 	if err != nil {
@@ -94,8 +93,7 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		iamApi.cleanData(username)
 	}()
-
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, nil)
 }
 
 // AccountInfo returns usage
@@ -198,7 +196,7 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
-	response.WriteSuccessResponseHeadersOnly(w, r)
+	response.WriteSuccessResponseJSON(w, r, nil)
 }
 
 // SetStatus set user status
@@ -232,8 +230,10 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
-	response.WriteSuccessResponseHeadersOnly(w, r)
+	response.WriteSuccessResponseJSON(w, r, nil)
 }
+
+// todo review SubUser
 
 func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
 	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
@@ -256,7 +256,7 @@ func (iamApi *iamApiServer) AddSubUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, nil)
 }
 
 func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +265,6 @@ func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
 	}
-	var resp CreateUserResponse
 	vars := mux.Vars(r)
 	username := vars["userName"]
 	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), username)
@@ -282,7 +281,7 @@ func (iamApi *iamApiServer) DeleteSubUser(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, nil)
 }
 
 func (iamApi *iamApiServer) GetSubUserInfo(w http.ResponseWriter, r *http.Request) {
@@ -335,7 +334,7 @@ func (iamApi *iamApiServer) GetUserList(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	resp.ListUsersResult.Users = users
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, resp)
 }
 
 //PutUserPolicy Put UserPolicy
@@ -346,7 +345,6 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
 	}
-	var resp PutUserPolicyResponse
 	vars := mux.Vars(r)
 	username := vars[userName]
 	policyName := vars[policyName]
@@ -373,7 +371,7 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, nil)
 }
 
 //GetUserPolicy  Get UserPolicy
@@ -397,7 +395,7 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 		return
 	}
 	resp.GetUserPolicyResult.PolicyDocument = policyDocument.String()
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, resp)
 
 }
 
@@ -422,7 +420,7 @@ func (iamApi *iamApiServer) ListUserPolicies(w http.ResponseWriter, r *http.Requ
 		members = append(members, v)
 	}
 	resp.ListUserPoliciesResult.PolicyNames.Member = members
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, resp)
 
 }
 
@@ -442,7 +440,7 @@ func (iamApi *iamApiServer) DeleteUserPolicy(w http.ResponseWriter, r *http.Requ
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUserPolicy))
 		return
 	}
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, resp)
 }
 
 //GetPolicyDocument Get PolicyDocument

@@ -16,7 +16,7 @@ var log = logging.Logger("iamsever")
 type iamApiServer struct {
 	authSys        *iam.AuthSys
 	cleanData      func(accessKey string)
-	bucketInfoFunc func(ctx context.Context, accessKey string) []store.BucketInfo
+	bucketInfoFunc func(ctx context.Context, accessKey string) []store.BucketInfo //todo use cache
 }
 
 //NewIamApiServer New iamApiServer
