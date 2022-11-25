@@ -72,14 +72,7 @@ func WriteSuccessResponseJSON(w http.ResponseWriter, r *http.Request, response i
 // WriteSuccessResponseJSONOnlyData writes success headers and response only data if any,
 // with content-type set to `application/json`.
 func WriteSuccessResponseJSONOnlyData(w http.ResponseWriter, r *http.Request, response []byte) {
-	setCommonHeaders(w, r)
-
-	w.Header().Set(consts.ContentType, string(mimeJSON))
-	w.Header().Set(consts.ContentLength, strconv.Itoa(len(response)))
-	w.WriteHeader(http.StatusOK)
-	if response != nil {
-		w.Write(response)
-	}
+	writeResponse(w, r, http.StatusOK, response, mimeJSON)
 }
 
 // WriteErrorResponseJSON - writes error response in JSON format;
