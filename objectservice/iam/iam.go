@@ -135,7 +135,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
 		return err
 	}
-	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions, s3action.GetUserInfoAction, s3action.RemoveUserAction}, "*")
+	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions, s3action.AllIamActions}, "*")
 	err = sys.store.saveUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,

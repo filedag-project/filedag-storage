@@ -35,7 +35,6 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
 	}
-	var resp CreateUserResponse
 	vars := mux.Vars(r)
 	accessKey := vars[AccessKey]
 	secretKey := vars[SecretKey]
@@ -55,7 +54,6 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if !auth.IsSecretKeyValid(secretKey) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
 	}
-	resp.CreateUserResult.User.UserName = &accessKey
 	_, err = iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
 	if err == nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrUserAlreadyExists))
@@ -66,12 +64,12 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
-	response.WriteXMLResponse(w, r, http.StatusOK, resp)
+	response.WriteSuccessResponseJSON(w, r, nil)
 }
 
 //DeleteUser delete user
 func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.RemoveUserAction, "", "")
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.RemoveUserAction, "", "")
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
@@ -81,6 +79,10 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	_, err := iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
+		return
+	}
+	if accessKey != cred.AccessKey && cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
 	}
 	err = iamApi.authSys.Iam.RemoveUser(r.Context(), accessKey)
@@ -97,35 +99,51 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	response.WriteXMLResponse(w, r, http.StatusOK, resp)
 }
 
-// AccountInfoHandler returns usage
-func (iamApi *iamApiServer) AccountInfoHandler(w http.ResponseWriter, r *http.Request) {
+// AccountInfo returns usage
+func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetUserInfoAction, "", "")
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(s3err))
 		return
 	}
-	accessKey := r.FormValue(AccessKey)
-	if cred.AccessKey != iamApi.authSys.AdminCred.AccessKey && cred.AccessKey != accessKey {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
-		return
+	accountName := r.FormValue(AccessKey)
+	if cred.AccessKey != accountName {
+		if accountName == iamApi.authSys.AdminCred.AccessKey {
+			response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
+			return
+		}
+		ucred, ok := iamApi.authSys.Iam.GetUser(ctx, accountName)
+		if ok {
+			// user exist:
+			//1) tmp user
+			//2) other user
+			if ucred.IsTemp() {
+				// For derived credentials, check the parent user's permissions.
+				accountName = ucred.ParentUser
+			} else {
+				// only root user can get other user info
+				if cred != iamApi.authSys.AdminCred {
+					response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
+					return
+				}
+			}
+		} else {
+			response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
+			return
+		}
 	}
 	var err error
-	bucketInfos := iamApi.bucketInfoFunc(ctx, cred.AccessKey)
+	bucketInfos := iamApi.bucketInfoFunc(ctx, accountName)
 
-	accountName := accessKey
-	if cred.IsTemp() {
-		// For derived credentials, check the parent user's permissions.
-		accountName = cred.ParentUser
-	}
-	polices, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), cred.AccessKey)
+	polices, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), accountName)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
 	var info = iam.UserIdentity{Credentials: iamApi.authSys.AdminCred, TotalStorageCapacity: 999999999}
-	if cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
-		info, err = iamApi.authSys.Iam.GetUserInfo(ctx, cred.AccessKey)
+	if accountName != iamApi.authSys.AdminCred.AccessKey {
+		info, err = iamApi.authSys.Iam.GetUserInfo(ctx, accountName)
 		if err != nil {
 			response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
 			return
@@ -154,7 +172,7 @@ func (iamApi *iamApiServer) AccountInfoHandler(w http.ResponseWriter, r *http.Re
 
 // ChangePassword change password
 func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "", "", "")
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ChangePassWordAction, "", "")
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
@@ -168,7 +186,11 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 	}
 	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), userName)
 	if !ok {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessKeyDisabled))
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
+		return
+	}
+	if userName != cred.AccessKey && cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
 	}
 	c.SecretKey = secret
@@ -182,7 +204,7 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 
 // SetStatus set user status
 func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
-	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, "Set-Status", "", "")
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.SetStatusAction, "", "")
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
@@ -190,15 +212,19 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 
 	user := r.FormValue(AccessKey)
 	status := r.FormValue(AccountStatus)
+	c, _ := iamApi.authSys.Iam.GetUser(r.Context(), user)
+	if c.AccessKey == "" {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
+		return
+	}
+	if user != cred.AccessKey && cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
+		return
+	}
 	switch status {
 	case auth.AccountOn, auth.AccountOff:
 	default:
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
-		return
-	}
-	c, _ := iamApi.authSys.Iam.GetUser(r.Context(), user)
-	if c.AccessKey == "" {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessKeyDisabled))
 		return
 	}
 	c.Status = status

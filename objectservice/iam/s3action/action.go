@@ -163,11 +163,14 @@ const (
 	GetObjectVersionForReplicationAction = "s3:GetObjectVersionForReplication"
 
 	// RestoreObjectAction - RestoreObject REST API action
-	RestoreObjectAction = "s3:RestoreObject"
-	GetUserInfoAction   = "iam:GetUserInfo"
-	RemoveUserAction    = "iam:RemoveUser"
+	RestoreObjectAction  = "s3:RestoreObject"
+	GetUserInfoAction    = "iam:GetUserInfo"
+	RemoveUserAction     = "iam:RemoveUser"
+	SetStatusAction      = "iam:SetStatusUser"
+	ChangePassWordAction = "iam:ChangePassWordUser"
 	// AllActions - all API actions
-	AllActions = "s3:*"
+	AllActions    = "s3:*"
+	AllIamActions = "iam:*"
 )
 
 // SupportedActions List of all supported actions.
@@ -226,6 +229,9 @@ var SupportedActions = map[Action]struct{}{
 	AllActions:                             {},
 	GetUserInfoAction:                      {},
 	RemoveUserAction:                       {},
+	SetStatusAction:                        {},
+	ChangePassWordAction:                   {},
+	AllIamActions:                          {},
 }
 
 // IsValid - checks if action is valid or not.
