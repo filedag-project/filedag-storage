@@ -502,8 +502,8 @@ func TestIamApiServer_SetStatus(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			urlValues := make(url.Values)
-			urlValues.Set("accessKey", testCase.accessKey)
-			urlValues.Set("status", testCase.status)
+			urlValues.Set(accessKey, testCase.accessKey)
+			urlValues.Set(accountStatus, testCase.status)
 			reqSetStatus := utils.MustNewSignedV4Request(http.MethodPost, setStatusUrl+urlValues.Encode(), 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
 			result := reqTest(reqSetStatus)
 			if result.Code != testCase.expectedRespStatus {
@@ -598,8 +598,8 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 		//change password
 		t.Run(testCase.name, func(t *testing.T) {
 			urlValues := make(url.Values)
-			urlValues.Set("newSecretKey", testCase.pass)
-			urlValues.Set("accessKey", testCase.accessKey)
+			urlValues.Set(newSecretKey, testCase.pass)
+			urlValues.Set(accessKey, testCase.accessKey)
 			//urlValues.Set("status", string(iam.AccountDisabled
 			reqChange := utils.MustNewSignedV4Request(http.MethodPost, changePassUrl+urlValues.Encode(), 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
 			result := reqTest(reqChange)

@@ -16,14 +16,14 @@ import (
 )
 
 const (
-	policyDocumentVersion = "2012-10-17"
-	AccessKey             = "accessKey"
-	Capacity              = "capacity"
-	SecretKey             = "secretKey"
-	NewSecretKey          = "newSecretKey"
-	UserName              = "userName"
-	PolicyName            = "policyName"
-	AccountStatus         = "status"
+	defaultPolicyDocumentVersion = "2012-10-17"
+	accessKey                    = "accessKey"
+	capacity                     = "capacity"
+	secretKey                    = "secretKey"
+	newSecretKey                 = "newSecretKey"
+	userName                     = "userName"
+	policyName                   = "policyName"
+	accountStatus                = "status"
 )
 
 var validAccessKey = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9\.\-]{1,18}[A-Za-z0-9]$`)
@@ -36,9 +36,9 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	vars := mux.Vars(r)
-	accessKey := vars[AccessKey]
-	secretKey := vars[SecretKey]
-	capacity := vars[Capacity]
+	accessKey := vars[accessKey]
+	secretKey := vars[secretKey]
+	capacity := vars[capacity]
 	capa, err := strconv.ParseUint(capacity, 10, 64)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
@@ -75,7 +75,7 @@ func (iamApi *iamApiServer) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var resp DeleteUserResponse
-	accessKey := r.FormValue(AccessKey)
+	accessKey := r.FormValue(accessKey)
 	_, err := iamApi.authSys.Iam.GetUserInfo(r.Context(), accessKey)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
@@ -107,7 +107,7 @@ func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) 
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(s3err))
 		return
 	}
-	accountName := r.FormValue(AccessKey)
+	accountName := r.FormValue(accessKey)
 	if cred.AccessKey != accountName {
 		if accountName == iamApi.authSys.AdminCred.AccessKey {
 			response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
@@ -178,8 +178,8 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	secret := r.FormValue(NewSecretKey)
-	userName := r.FormValue(AccessKey)
+	secret := r.FormValue(newSecretKey)
+	userName := r.FormValue(accessKey)
 	if !auth.IsSecretKeyValid(secret) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
 		return
@@ -210,8 +210,8 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := r.FormValue(AccessKey)
-	status := r.FormValue(AccountStatus)
+	user := r.FormValue(accessKey)
+	status := r.FormValue(accountStatus)
 	c, _ := iamApi.authSys.Iam.GetUser(r.Context(), user)
 	if c.AccessKey == "" {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
@@ -349,8 +349,8 @@ func (iamApi *iamApiServer) PutUserPolicy(w http.ResponseWriter, r *http.Request
 	}
 	var resp PutUserPolicyResponse
 	vars := mux.Vars(r)
-	userName := vars[UserName]
-	policyName := vars[PolicyName]
+	userName := vars[userName]
+	policyName := vars[policyName]
 	policyDocumentString := vars["policyDocument"]
 	policyDocument, err := GetPolicyDocument(&policyDocumentString)
 	if err != nil {
@@ -386,12 +386,12 @@ func (iamApi *iamApiServer) GetUserPolicy(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var resp GetUserPolicyResponse
-	userName := r.FormValue(UserName)
-	policyName := r.FormValue(PolicyName)
+	userName := r.FormValue(userName)
+	policyName := r.FormValue(policyName)
 
 	resp.GetUserPolicyResult.UserName = userName
 	resp.GetUserPolicyResult.PolicyName = policyName
-	policyDocument := policy.PolicyDocument{Version: policyDocumentVersion}
+	policyDocument := policy.PolicyDocument{Version: defaultPolicyDocumentVersion}
 	err := iamApi.authSys.Iam.GetUserPolicy(r.Context(), userName, policyName, &policyDocument)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUserPolicy))
@@ -411,7 +411,7 @@ func (iamApi *iamApiServer) ListUserPolicies(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	var resp ListUserPoliciesResponse
-	userName := r.FormValue(UserName)
+	userName := r.FormValue(userName)
 
 	policyNames, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), userName)
 	if err != nil {
@@ -436,8 +436,8 @@ func (iamApi *iamApiServer) DeleteUserPolicy(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	var resp DeleteUserPolicyResponse
-	userName := r.FormValue(UserName)
-	policyName := r.FormValue(PolicyName)
+	userName := r.FormValue(userName)
+	policyName := r.FormValue(policyName)
 	err := iamApi.authSys.Iam.RemoveUserPolicy(r.Context(), userName, policyName)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUserPolicy))
