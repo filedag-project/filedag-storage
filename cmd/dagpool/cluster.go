@@ -135,6 +135,7 @@ var addDagNode = &cli.Command{
 		for _, node := range dagNodes {
 			if err = cli.AddDagNode(cctx.Context, node); err != nil {
 				fmt.Printf("Error: add dagnode failed, name=%s, error=%v\n", node.Name, err)
+				continue
 			}
 			successCount++
 		}
