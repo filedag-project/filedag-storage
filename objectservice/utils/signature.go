@@ -154,20 +154,20 @@ func EncodePath(pathName string) string {
 			continue
 		}
 		switch s {
-		case '-', '_', '.', '~', '/': // §2.3 Unreserved characters (mark)
+		case '-', '_', '.', '~', '/', '(', ')': // §2.3 Unreserved characters (mark)
 			encodedPathname = encodedPathname + string(s)
 			continue
 		default:
-			len := utf8.RuneLen(s)
-			if len < 0 {
+			length := utf8.RuneLen(s)
+			if length < 0 {
 				// if utf8 cannot convert return the same string as is
 				return pathName
 			}
-			u := make([]byte, len)
+			u := make([]byte, length)
 			utf8.EncodeRune(u, s)
 			for _, r := range u {
-				hex := hex.EncodeToString([]byte{r})
-				encodedPathname = encodedPathname + "%" + strings.ToUpper(hex)
+				hexString := hex.EncodeToString([]byte{r})
+				encodedPathname = encodedPathname + "%" + strings.ToUpper(hexString)
 			}
 		}
 	}
