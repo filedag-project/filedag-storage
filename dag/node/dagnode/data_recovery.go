@@ -1,166 +1,104 @@
 package dagnode
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
-	"flag"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
-	"google.golang.org/grpc"
-	"strconv"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"io"
 )
 
 var log = logging.Logger("dag-node")
 
-// RepairDisk prepare disk repair
-func (d *DagNode) RepairDisk(ip, port string) error {
-	ctx := context.TODO()
-	keyCodeMap, err := d.db.ReadAll("")
+// RepairDataNode prepare node repair
+func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairNodeIndex int) error {
+	if fromNodeIndex >= len(d.Nodes) {
+		return errors.New("index greater than max index of nodes")
+	}
+	if repairNodeIndex >= len(d.Nodes) {
+		return errors.New("repair index greater than max index of nodes")
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stream, err := d.Nodes[fromNodeIndex].Client.AllKeysChan(ctx, &emptypb.Empty{})
 	if err != nil {
 		return err
 	}
-	index := -1
-	dataNode := new(DataNodeClient)
-	for i, node := range d.Nodes {
-		if node.Ip == ip && node.Port == port {
-			dataNode = d.Nodes[i]
-			index = i
-		}
-	}
-	if index == -1 {
-		return errors.New("the host does not exist")
-	}
-	for key, value := range keyCodeMap {
-		keyCode := key
-		size, err := dataNode.Client.Size(ctx, &proto.SizeRequest{
-			Key: keyCode,
-		})
+	repairNode := d.Nodes[repairNodeIndex]
+	for {
+		resp, err := stream.Recv()
 		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
 			return err
 		}
-		if size.Size > 0 {
+		key := resp.Key
+
+		if _, err := repairNode.Client.GetMeta(ctx, &proto.GetMetaRequest{Key: key}); err == nil {
 			continue
 		}
+		dataCid, err := cid.Decode(key)
+		if err != nil {
+			log.Errorw("decode cid error", "key", key, "error", err)
+			continue
+		}
+		size, err := d.GetSize(ctx, dataCid)
+		if err != nil {
+			log.Errorw("get block size error", "key", key, "error", err)
+			continue
+		}
+
 		merged := make([][]byte, 0)
 		for i, node := range d.Nodes {
-			if i == index {
+			if i == repairNodeIndex {
 				merged = append(merged, nil)
 				continue
 			}
-			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
+			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: key})
 			if err != nil {
-				log.Errorf("this node err : %s,: %s", node.Ip, node.Port)
-				return err
+				log.Errorf("this node[%s:%s] err: %v", node.Ip, node.Port, err)
+				merged = append(merged, nil)
+				continue
 			}
-			if len(res.DataBlock) == 0 {
+			if len(res.Data) == 0 {
 				log.Errorf("There is no data in this node")
 				merged = append(merged, nil)
 				continue
 			}
-			merged = append(merged, res.DataBlock)
+			merged = append(merged, res.Data)
 		}
-		i64, err := strconv.ParseInt(value, 10, 64)
-		if err == nil {
-			log.Errorf("strconv fail :%v", err)
-		}
-		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, i64)
+		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, int64(size))
 		if err != nil {
 			log.Errorf("new erasure fail :%v", err)
 			return err
 		}
 		err = enc.DecodeDataBlocks(merged)
 		if err != nil {
-			log.Errorf("decode date blocks fail :%v", err)
+			log.Errorf("decode data blocks failed: %v", err)
 			return err
 		}
-		dataByte := merged[index]
-		_, err = dataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: dataByte})
-		if err != nil {
+
+		meta := Meta{
+			BlockSize: int32(size),
+		}
+		var metaBuf bytes.Buffer
+		if err = binary.Write(&metaBuf, binary.LittleEndian, meta); err != nil {
+			log.Errorf("binary.Write failed: %v", err)
+			continue
+		}
+		if _, err = repairNode.Client.Put(ctx, &proto.AddRequest{
+			Key:  key,
+			Meta: metaBuf.Bytes(),
+			Data: merged[repairNodeIndex],
+		}); err != nil {
 			log.Errorf("data node put fail :%v", err)
 			return err
 		}
 	}
-	return err
-}
-
-// RepairHost prepare host repair
-func (d *DagNode) RepairHost(oldIp, newIp, oldPort, newPort string) error {
-	ctx := context.TODO()
-	index, err := d.modifyConfig(oldIp, newIp, oldPort, newPort)
-	if err != nil {
-		log.Errorf("modify node config fail")
-		return err
-	}
-	keyCodeMap, err := d.db.ReadAll("")
-	if err != nil {
-		return err
-	}
-	newDataNode := d.Nodes[index]
-	for key, value := range keyCodeMap {
-		keyCode := key
-		merged := make([][]byte, len(d.Nodes))
-		for i, node := range d.Nodes {
-			if i == index {
-				merged[i] = nil
-				continue
-			}
-			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
-			if err != nil {
-				log.Errorf("this node err : %s,: %s", node.Ip, node.Port)
-				return err
-			}
-			if len(res.DataBlock) == 0 {
-				log.Errorf("There is no data in this node")
-				merged[i] = nil
-				continue
-			}
-			merged[i] = res.DataBlock
-		}
-		i64, err := strconv.ParseInt(value, 10, 64)
-		if err != nil {
-			log.Errorf("strconv fail :%v", err)
-		}
-		enc, err := NewErasure(d.dataBlocks, d.parityBlocks, i64)
-		if err != nil {
-			log.Errorf("new erasure fail :%v", err)
-			return err
-		}
-		err = enc.DecodeDataBlocks(merged)
-		if err != nil {
-			log.Errorf("decode date blocks fail :%v", err)
-			return err
-		}
-		dataByte := merged[index]
-		_, err = newDataNode.Client.Put(ctx, &proto.AddRequest{Key: keyCode, DataBlock: dataByte})
-		if err != nil {
-			log.Errorf("data node put fail :%v", err)
-			return err
-		}
-	}
-	return err
-}
-
-//modify node config
-func (d *DagNode) modifyConfig(oldIp, newIp, oldPort, newPort string) (int, error) {
-	index := -1
-	for i, node := range d.Nodes {
-		if node.Ip == oldIp && node.Port == oldPort {
-			index = i
-		}
-	}
-	if index == -1 {
-		return index, errors.New("the old ip does not exist")
-	}
-	addr := flag.String("addr"+fmt.Sprint(len(d.Nodes)+1), fmt.Sprintf("%s:%s", newIp, newPort), "the address to connect to")
-	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
-	if err != nil {
-		return index, err
-	}
-	defer conn.Close()
-	client := proto.NewDataNodeClient(conn)
-	d.Nodes[index].Client = client
-	d.Nodes[index].Ip = newIp
-	d.Nodes[index].Port = newPort
-	return index, nil
 }

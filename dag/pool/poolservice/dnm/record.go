@@ -2,8 +2,8 @@ package dnm
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/dag/node/datanode"
+	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -45,7 +45,7 @@ func (r *NodeRecordSys) Add(cid string, name string) error {
 }
 
 //HandleDagNode handle the dag node
-func (r *NodeRecordSys) HandleDagNode(cons []*dagnode.DataNodeClient, name string) error {
+func (r *NodeRecordSys) HandleDagNode(cons []*datanode.Client, name string) error {
 	m := make(map[string]*dataNodeInfo)
 	for i, c := range cons {
 		var dni = dataNodeInfo{
@@ -66,7 +66,7 @@ func (r *NodeRecordSys) HandleDagNode(cons []*dagnode.DataNodeClient, name strin
 	}
 	return nil
 }
-func (r *NodeRecordSys) handleConn(c *dagnode.DataNodeClient, name string, dataName string) {
+func (r *NodeRecordSys) handleConn(c *datanode.Client, name string, dataName string) {
 
 	for {
 		r.NodeLock.Lock()

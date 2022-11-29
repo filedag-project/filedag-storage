@@ -3,7 +3,7 @@ package dpuser
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
-	"github.com/filedag-project/filedag-storage/http/objectstore/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"testing"
 )
 
@@ -120,7 +120,7 @@ func TestIdentityUserSys_UpdateUser(t *testing.T) {
 	err = sys.UpdateUser(DagPoolUser{
 		Username: "test",
 		Password: "test456",
-		Policy:   upolicy.OnlyRead,
+		Policy:   upolicy.ReadOnly,
 		Capacity: 0,
 	})
 	if err != nil {
@@ -161,10 +161,10 @@ func TestIdentityUserSys_CheckUserPolicy(t *testing.T) {
 		pol    upolicy.DagPoolPolicy
 		status bool
 	}{
-		{"test", "test123", upolicy.OnlyRead, true},
+		{"test", "test123", upolicy.ReadOnly, true},
 		{"test", "test123", upolicy.ReadWrite, true},
-		{"test", "test123", upolicy.OnlyWrite, true},
-		{"test", "test", upolicy.OnlyWrite, false},
+		{"test", "test123", upolicy.WriteOnly, true},
+		{"test", "test", upolicy.WriteOnly, false},
 	}
 	for i, c := range testCases {
 		if sys.CheckUserPolicy(c.user, c.pass, c.pol) != c.status {
@@ -176,7 +176,7 @@ func TestIdentityUserSys_CheckUserPolicy(t *testing.T) {
 	err = sys.AddUser(DagPoolUser{
 		Username: "test",
 		Password: "test123",
-		Policy:   upolicy.OnlyWrite,
+		Policy:   upolicy.WriteOnly,
 		Capacity: 0,
 	})
 	if err != nil {
@@ -189,10 +189,10 @@ func TestIdentityUserSys_CheckUserPolicy(t *testing.T) {
 		pol    upolicy.DagPoolPolicy
 		status bool
 	}{
-		{"test", "test123", upolicy.OnlyRead, false},
+		{"test", "test123", upolicy.ReadOnly, false},
 		{"test", "test123", upolicy.ReadWrite, false},
-		{"test", "test123", upolicy.OnlyWrite, true},
-		{"test", "test", upolicy.OnlyWrite, false},
+		{"test", "test123", upolicy.WriteOnly, true},
+		{"test", "test", upolicy.WriteOnly, false},
 	}
 	for i, c := range testCases {
 		if sys.CheckUserPolicy(c.user, c.pass, c.pol) != c.status {
@@ -203,7 +203,7 @@ func TestIdentityUserSys_CheckUserPolicy(t *testing.T) {
 	err = sys.AddUser(DagPoolUser{
 		Username: "test",
 		Password: "test123",
-		Policy:   upolicy.OnlyRead,
+		Policy:   upolicy.ReadOnly,
 		Capacity: 0,
 	})
 	if err != nil {
@@ -216,10 +216,10 @@ func TestIdentityUserSys_CheckUserPolicy(t *testing.T) {
 		pol    upolicy.DagPoolPolicy
 		status bool
 	}{
-		{"test", "test123", upolicy.OnlyRead, true},
+		{"test", "test123", upolicy.ReadOnly, true},
 		{"test", "test123", upolicy.ReadWrite, false},
-		{"test", "test123", upolicy.OnlyWrite, false},
-		{"test", "test", upolicy.OnlyWrite, false},
+		{"test", "test123", upolicy.WriteOnly, false},
+		{"test", "test", upolicy.WriteOnly, false},
 	}
 	for i, c := range testCases {
 		if sys.CheckUserPolicy(c.user, c.pass, c.pol) != c.status {

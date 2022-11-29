@@ -43,11 +43,10 @@ func delete(addr string, key string) error {
 	}
 	defer conn.Close()
 	client := proto.NewDataNodeClient(conn)
-	res, err := client.Delete(context.TODO(), &proto.DeleteRequest{Key: key})
+	_, err = client.Delete(context.TODO(), &proto.DeleteRequest{Key: key})
 	if err != nil {
 		log.Errorf("%s,keyCode:%s,kvdb delete :%v", addr, key, err)
 		return err
 	}
-	fmt.Println(res.Message)
 	return nil
 }

@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 //PoolConfig is the configuration for the dag pool
 type PoolConfig struct {
 	Listen        string          `json:"listen"`
@@ -7,6 +9,7 @@ type PoolConfig struct {
 	LeveldbPath   string          `json:"leveldb_path"`
 	RootUser      string          `json:"root_user"`
 	RootPassword  string          `json:"root_password"`
+	GcPeriod      time.Duration   `json:"gc_period"`
 }
 
 //DagNodeConfig is the configuration for a dag node
@@ -14,7 +17,6 @@ type DagNodeConfig struct {
 	Nodes        []DataNodeConfig `json:"nodes"`
 	DataBlocks   int              `json:"data_blocks"`
 	ParityBlocks int              `json:"parity_blocks"`
-	LevelDbPath  string           `json:"level_db_path"`
 }
 
 //DataNodeConfig is the configuration for a datanode
