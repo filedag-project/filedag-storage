@@ -90,7 +90,7 @@ func startServer(cctx *cli.Context) {
 			}
 		}
 	}
-
+	handler := s3api.CorsHandler(router)
 	s3api.NewS3Server(router, authSys, bmSys, storageSys)
 	iamapi.NewIamApiServer(router, authSys, cleanData)
 
@@ -102,7 +102,7 @@ func startServer(cctx *cli.Context) {
 		log.Infof("start sever at http://%v", listen)
 	}
 	go func() {
-		if err = http.ListenAndServe(listen, router); err != nil {
+		if err = http.ListenAndServe(listen, handler); err != nil {
 			log.Errorf("Listen And Serve err%v", err)
 		}
 	}()

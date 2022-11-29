@@ -214,6 +214,10 @@ func extractSignedHeaders(signedHeaders []string, r *http.Request) (http.Header,
 			extractedSignedHeaders.Set(header, "100-continue")
 		case "host":
 			// Go http server removes "host" from Request.Header
+
+			//extractedSignedHeaders.Set(header, r.Host)
+			// todo use r.Host, or filedag-web deal with
+			//value := strings.Split(r.Host, ":")
 			extractedSignedHeaders.Set(header, r.Host)
 		case "transfer-encoding":
 			// Go http server removes "host" from Request.Header
