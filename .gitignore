@@ -21,3 +21,8 @@
 /dp-data
 /dn-data
 /store-data
+
+# web
+/web/coverage
+/web/build
+/web/node_modules

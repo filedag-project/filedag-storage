@@ -1,0 +1,105 @@
+pipeline {
+    agent any
+
+    environment {
+        PROJECT_PATH = "/home/data/jenkins/workspace/$JOB_BASE_NAME"
+        WEB_ROOT_PATH = '/root/web/fildag.storage.web'
+    }
+
+    stages {
+        stage('PREPARE') {
+            steps {
+                script {
+                    env.LAST_STAGE_NAME = "$env.STAGE_NAME"
+                    env.GIT_COMMIT_EMAIL = sh(script:'git --no-pager  show -s --format=%ae', returnStdout: true).trim()
+                    env.GIT_COMMIT_AUTHOR = sh(script:'git --no-pager  show -s --format=%an', returnStdout: true).trim()
+                    env.GIT_COMMIT_DATE = sh(script:'git --no-pager  show -s --format=%ad', returnStdout: true).trim()
+                    env.PROJECT_URL = sh(script:'git --no-pager config --local remote.origin.url', returnStdout: true).trim()
+                }
+                sh '''#!/bin/bash
+                source /root/.bashrc
+                nvm use v16.13.0
+                nvm alias default v16.13.0
+                node --version
+                '''
+            }
+        }
+
+        stage('INSTALL') {
+            steps {
+                script {
+                    env.LAST_STAGE_NAME = "$env.STAGE_NAME"
+                }
+                sh '''#!/bin/bash
+                source /root/.bashrc
+                node --version
+                npm -v
+                npm config get registry
+                df -h
+                ls "$PROJECT_PATH"
+                npm install --legacy-peer-deps
+                '''
+            }
+        }
+
+        stage('BUILD') {
+            steps {
+                script {
+                    env.LAST_STAGE_NAME = "$env.STAGE_NAME"
+                }
+                sh '''#!/bin/bash
+                source /root/.bashrc
+                node --version
+                npm -v
+                npm run build:testnet
+                '''
+            }
+        }
+
+        stage('UPLOAD') {
+            steps {
+                script {
+                    env.LAST_STAGE_NAME = "$env.STAGE_NAME"
+                }
+                sh '''#!/bin/bash
+                tar -czvf build.tar.gz build
+                ansible 192.168.1.65 -m copy -a "src=$PROJECT_PATH/build.tar.gz dest=$WEB_ROOT_PATH/build.tar.gz mode=0777"
+                ansible 192.168.1.65 -m shell -a "cd $WEB_ROOT_PATH && tar -xzvf build.tar.gz"
+                '''
+            }
+        }
+
+        stage('RESET') {
+            steps {
+                script {
+                    env.LAST_STAGE_NAME = "$env.STAGE_NAME"
+                }
+                sh '''#!/bin/bash
+                source /root/.bashrc
+                nvm use system
+                nvm alias default system
+                ansible 192.168.1.65 -m shell -a "cd $WEB_ROOT_PATH && rm -rf build.tar.gz"
+                rm -rf "$PROJECT_PATH/node_modules"  "$PROJECT_PATH/package-lock.json"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                sh """
+                curl 'https://oapi.dingtalk.com/robot/send?access_token=e7b340369c40dd4785d3b1801a68ef4b6983fa50d65d808da9cc64bfdd7fd865' \
+                -H 'Content-Type: application/json' \
+                -d '{
+                        "markdown": {
+                            "title": "${JOB_BASE_NAME}",
+                            "text": " - 工程: ${JOB_BASE_NAME} \n - 邮箱: ${env.GIT_COMMIT_EMAIL} \n - Name: ${env.GIT_COMMIT_AUTHOR} \n - STAGE: ${env.LAST_STAGE_NAME} \n - [JENKINS_URL](${env.BUILD_URL}) \n - ${env.PROJECT_URL} \n"
+                        },
+                        "msgtype":"markdown"
+                    }'
+                """
+            }
+        }
+    }
+}
