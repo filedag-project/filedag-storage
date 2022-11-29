@@ -3,12 +3,10 @@ package s3api
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
@@ -400,26 +398,6 @@ func TestS3ApiServer_DeleteBucketHandler(t *testing.T) {
 		})
 	}
 
-}
-
-func TestS3ApiServer_BucketPolicyHandler(t *testing.T) {
-	u := "/testbucketpoliy"
-	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, u, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println("putbucket:", reqTest(reqPutBucket).Body.String())
-
-	p := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucket/*"}]}`
-	reqPut := utils.MustNewSignedV4Request(http.MethodPut, u+"?policy", int64(len(p)), strings.NewReader(p),
-		"s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println("put:", reqTest(reqPut).Body.String())
-
-	reqGet := utils.MustNewSignedV4Request(http.MethodGet, u+"?policy", 0, nil, "s3",
-		DefaultTestAccessKey, DefaultTestSecretKey, t)
-	resp1 := policy.Policy{}
-	json.Unmarshal([]byte(reqTest(reqGet).Body.String()), &resp1)
-	fmt.Println("get:", resp1)
-
-	reqDel := utils.MustNewSignedV4Request(http.MethodDelete, u+"?policy", 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	fmt.Println("del:", reqTest(reqDel).Body.String())
 }
 
 //func TestS3ApiServer_GetBucketLocationHandler(t *testing.T) {
