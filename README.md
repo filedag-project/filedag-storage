@@ -59,13 +59,13 @@ Implement data management.
 #### Description:
 
 - DAG Pool:
-    - reference records of data blocks
-    - strategy of data pin
-    - interruptible garbage collection mechanism of DAG Pool
+    - [x] reference records of data blocks
+    - [x] strategy of data pin
+    - [x] interruptible garbage collection mechanism of DAG Pool
 - Object store:
-    - API of bucket related operations
-    - API of object manipulation
-    - API of permission operation
+    - [x] API of bucket related operations
+    - [x] API of object manipulation
+    - [x] API of permission operation
 
 
 ### Milestone 3
