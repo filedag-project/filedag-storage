@@ -6,7 +6,9 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
+
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"net/http"
 )
 
@@ -126,4 +128,51 @@ func NewS3Server(router *mux.Router, authSys *iam.AuthSys, bmSys *store.BucketMe
 	s3server.registerS3Router(router)
 
 	router.Use(iam.SetAuthHandler)
+}
+
+// CorsHandler handler for CORS (Cross Origin Resource Sharing)
+func CorsHandler(handler http.Handler) http.Handler {
+	commonS3Headers := []string{
+		consts.Date,
+		consts.ETag,
+		consts.ServerInfo,
+		consts.Connection,
+		consts.AcceptRanges,
+		consts.ContentRange,
+		consts.ContentEncoding,
+		consts.ContentLength,
+		consts.ContentType,
+		consts.ContentDisposition,
+		consts.LastModified,
+		consts.ContentLanguage,
+		consts.CacheControl,
+		consts.RetryAfter,
+		consts.AmzBucketRegion,
+		consts.Expires,
+		consts.Authorization,
+		consts.Action,
+		consts.Range,
+		"X-Amz*",
+		"x-amz*",
+		"*",
+	}
+
+	return cors.New(cors.Options{
+		AllowOriginFunc: func(origin string) bool {
+
+			return true
+		},
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPut,
+			http.MethodHead,
+			http.MethodPost,
+			http.MethodDelete,
+			http.MethodOptions,
+			http.MethodPatch,
+		},
+		AllowedHeaders:   commonS3Headers,
+		ExposedHeaders:   commonS3Headers,
+		AllowCredentials: true,
+	}).Handler(handler)
 }

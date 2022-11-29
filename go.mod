@@ -30,6 +30,7 @@ require (
 	github.com/klauspost/readahead v1.4.0
 	github.com/klauspost/reedsolomon v1.11.0
 	github.com/libp2p/go-buffer-pool v0.0.2
+	github.com/rs/cors v1.8.2
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.0
 	github.com/syndtr/goleveldb v1.0.0

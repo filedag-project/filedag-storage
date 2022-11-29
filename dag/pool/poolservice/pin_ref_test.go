@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func TestPinRef(t *testing.T) {
+func TestPinAndReference(t *testing.T) {
 	t.SkipNow() //delete this to test
 	//utils.SetupLogLevels()
 	user, pass := "dagpool", "dagpool"
@@ -18,129 +18,128 @@ func TestPinRef(t *testing.T) {
 	go service.GC(context.Background())
 	defer service.Close()
 	testCases := []struct {
-		name          string
-		pinAddTimes   int
-		cacheAddTimes int
-		rmCacheTimes  int
-		rmUnPinTimes  int
-		bl1           blocks.Block
-		ref           int64
+		name                                        string
+		theNumberOfTimesAFileWasAddedByPin          int
+		theNumberOfTimesAFileWasAddedWithoutPin     int
+		theNumberOfTimesAFileWasRemovedWithoutUnPin int
+		theNumberOfTimesAFileWasRemovedByUnPin      int
+		theBlockDataWeAdded                         blocks.Block
+		expectReference                             int64
 	}{
 		{
-			name:          "pin-1-0",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
-			pinAddTimes:   1,
-			cacheAddTimes: 0,
-			ref:           1,
+			name:                               "adding file by pin (1)",
+			theBlockDataWeAdded:                blocks.NewBlock(bytes.Repeat([]byte("1234"), 1)),
+			theNumberOfTimesAFileWasAddedByPin: 1,
+			expectReference:                    1,
 		},
 		{
-			name:          "pin-0-1",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
-			pinAddTimes:   0,
-			cacheAddTimes: 1,
-			ref:           0,
+			name:                                    "adding file without pin(1)",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("12345"), 1)),
+			theNumberOfTimesAFileWasAddedWithoutPin: 1,
+			expectReference:                         0,
 		},
 		{
-			name:          "pin-2-1",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("123456"), 1)),
-			pinAddTimes:   2,
-			cacheAddTimes: 1,
-			ref:           2,
+			name:                                    "adding 2 files by pin,adding  1 file without pin",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("123456"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:      2,
+			theNumberOfTimesAFileWasAddedWithoutPin: 1,
+			expectReference:                         2,
 		},
 		{
-			name:          "pin-0-2",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("1234567"), 1)),
-			pinAddTimes:   0,
-			cacheAddTimes: 2,
-			ref:           0,
+			name:                                    "adding 2 files without pin",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("1234567"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:      0,
+			theNumberOfTimesAFileWasAddedWithoutPin: 2,
+			expectReference:                         0,
 		},
 		{
-			name:          "pin-1-2",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("12345678"), 1)),
-			pinAddTimes:   1,
-			cacheAddTimes: 2,
-			ref:           1,
+			name:                                    "adding 1 files by pin,adding  2 file without pin",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("12345678"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:      1,
+			theNumberOfTimesAFileWasAddedWithoutPin: 2,
+			expectReference:                         1,
 		},
 		{
-			name:          "pin-0-0",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("123456789"), 1)),
-			pinAddTimes:   0,
-			cacheAddTimes: 0,
-			ref:           0,
+			name:                                    "0 testcase",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("123456789"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:      0,
+			theNumberOfTimesAFileWasAddedWithoutPin: 0,
+			expectReference:                         0,
 		},
 		{
-			name:          "pin-1-1-1",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("12345679"), 1)),
-			pinAddTimes:   1,
-			cacheAddTimes: 1,
-			rmUnPinTimes:  1,
-			ref:           0,
+			name:                                    "adding 1 files by pin,adding 1 file without pin,removing 1 file by unpin",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("12345679"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:      1,
+			theNumberOfTimesAFileWasAddedWithoutPin: 1,
+			theNumberOfTimesAFileWasRemovedByUnPin:  1,
+			expectReference:                         0,
 		},
 		{
-			name:          "pin-2-1-1",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("1234569"), 1)),
-			pinAddTimes:   2,
-			cacheAddTimes: 1,
-			rmUnPinTimes:  1,
-			ref:           1,
+			name:                                    "adding 2 files by pin,adding 1 file without pin,removing 1 file by unpin",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("1234569"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:      2,
+			theNumberOfTimesAFileWasAddedWithoutPin: 1,
+			theNumberOfTimesAFileWasRemovedByUnPin:  1,
+			expectReference:                         1,
 		},
 		{
-			name:          "pin-2-1-2",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("123459"), 1)),
-			pinAddTimes:   2,
-			cacheAddTimes: 1,
-			rmUnPinTimes:  2,
-			ref:           0,
+			name:                                    "adding 2 files by pin,adding 1 file without pin,removing 2 file by unpin",
+			theBlockDataWeAdded:                     blocks.NewBlock(bytes.Repeat([]byte("123459"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:      2,
+			theNumberOfTimesAFileWasAddedWithoutPin: 1,
+			theNumberOfTimesAFileWasRemovedByUnPin:  2,
+			expectReference:                         0,
 		},
 		{
-			name:          "pin-2-1-2-0",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("12349"), 1)),
-			pinAddTimes:   2,
-			cacheAddTimes: 1,
-			rmCacheTimes:  2,
-			rmUnPinTimes:  0,
-			ref:           2,
+			name:                                        "adding 2 files by pin,adding 1 file without pin,removing 2 file by unpin",
+			theBlockDataWeAdded:                         blocks.NewBlock(bytes.Repeat([]byte("12349"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:          2,
+			theNumberOfTimesAFileWasAddedWithoutPin:     1,
+			theNumberOfTimesAFileWasRemovedWithoutUnPin: 2,
+			theNumberOfTimesAFileWasRemovedByUnPin:      0,
+			expectReference:                             2,
 		},
 		{
-			name:          "pin-2-1-2-1",
-			bl1:           blocks.NewBlock(bytes.Repeat([]byte("12359"), 1)),
-			pinAddTimes:   2,
-			cacheAddTimes: 1,
-			rmCacheTimes:  2,
-			rmUnPinTimes:  1,
-			ref:           1,
+			name:                                        "adding 2 files by pin,adding 1 file without pin,removing 2 file by unpin,removing 1 file without unpin",
+			theBlockDataWeAdded:                         blocks.NewBlock(bytes.Repeat([]byte("12359"), 1)),
+			theNumberOfTimesAFileWasAddedByPin:          2,
+			theNumberOfTimesAFileWasAddedWithoutPin:     1,
+			theNumberOfTimesAFileWasRemovedWithoutUnPin: 2,
+			theNumberOfTimesAFileWasRemovedByUnPin:      1,
+			expectReference:                             1,
 		},
 	}
 	for _, tc := range testCases {
 		ctx := context.Background()
 		t.Run(tc.name, func(t *testing.T) {
-			for i := 0; i < tc.pinAddTimes; i++ {
-				err := service.Add(ctx, tc.bl1, user, pass, true)
+			//Depending on the number of times for each operation, we perform the corresponding operation
+			for i := 0; i < tc.theNumberOfTimesAFileWasAddedByPin; i++ {
+				err := service.Add(ctx, tc.theBlockDataWeAdded, user, pass, true)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			for i := 0; i < tc.cacheAddTimes; i++ {
-				err := service.Add(ctx, tc.bl1, user, pass, false)
+			for i := 0; i < tc.theNumberOfTimesAFileWasAddedWithoutPin; i++ {
+				err := service.Add(ctx, tc.theBlockDataWeAdded, user, pass, false)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			for i := 0; i < tc.rmCacheTimes; i++ {
-				err := service.Remove(ctx, tc.bl1.Cid(), user, pass, false)
+			for i := 0; i < tc.theNumberOfTimesAFileWasRemovedWithoutUnPin; i++ {
+				err := service.Remove(ctx, tc.theBlockDataWeAdded.Cid(), user, pass, false)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			for i := 0; i < tc.rmUnPinTimes; i++ {
-				err := service.Remove(ctx, tc.bl1.Cid(), user, pass, true)
+			for i := 0; i < tc.theNumberOfTimesAFileWasRemovedByUnPin; i++ {
+				err := service.Remove(ctx, tc.theBlockDataWeAdded.Cid(), user, pass, true)
 				if err != nil {
 					t.Fatal(err)
 				}
 			}
-			get, _ := service.refCounter.Get(tc.bl1.Cid().String())
-			if get != tc.ref {
-				t.Fatalf("ref should be %v,but %v", tc.ref, get)
+			get, _ := service.refCounter.Get(tc.theBlockDataWeAdded.Cid().String())
+			if get != tc.expectReference {
+				t.Fatalf("expectReference should be %v,but %v", tc.expectReference, get)
 			}
 		})
 	}
