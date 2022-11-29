@@ -60,13 +60,13 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 #### Description:
 
 - DAG Pool:
-    - 数据块的引用记录
-    - 数据pin策略
-    - DAG Pool的可中断垃圾回收机制
+    - [x] 数据块的引用记录
+    - [x] 数据pin策略
+    - [x] DAG Pool的可中断垃圾回收机制
 - 对象存储:
-    - 桶相关操作的API
-    - 对象操作的API
-    - 权限操作API
+    - [x] 桶相关操作的API
+    - [x] 对象操作的API
+    - [x] 权限操作API
 
 
 ### Milestone 3
