@@ -25,7 +25,7 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	stream, err := d.Nodes[fromNodeIndex].Client.AllKeysChan(ctx, &emptypb.Empty{})
+	stream, err := d.Nodes[fromNodeIndex].Client.Client.AllKeysChan(ctx, &emptypb.Empty{})
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 		}
 		key := resp.Key
 
-		if _, err := repairNode.Client.GetMeta(ctx, &proto.GetMetaRequest{Key: key}); err == nil {
+		if _, err := repairNode.Client.Client.GetMeta(ctx, &proto.GetMetaRequest{Key: key}); err == nil {
 			continue
 		}
 		dataCid, err := cid.Decode(key)
@@ -60,7 +60,7 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 				merged = append(merged, nil)
 				continue
 			}
-			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: key})
+			res, err := node.Client.Client.Get(ctx, &proto.GetRequest{Key: key})
 			if err != nil {
 				log.Errorf("this node[%s] err: %v", node.RpcAddress, err)
 				merged = append(merged, nil)
@@ -92,7 +92,7 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 			log.Errorf("binary.Write failed: %v", err)
 			continue
 		}
-		if _, err = repairNode.Client.Put(ctx, &proto.AddRequest{
+		if _, err = repairNode.Client.Client.Put(ctx, &proto.AddRequest{
 			Key:  key,
 			Meta: metaBuf.Bytes(),
 			Data: merged[repairNodeIndex],

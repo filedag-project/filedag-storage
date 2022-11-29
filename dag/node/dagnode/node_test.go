@@ -15,12 +15,12 @@ import (
 )
 
 func TestDagNode(t *testing.T) {
-	var clients []*datanode.Client
+	var clients []*StorageNode
 	for i := 0; i < 3; i++ {
 		cli := &datanode.Client{
 			Client: newDatanode(t),
 		}
-		clients = append(clients, cli)
+		clients = append(clients, &StorageNode{Client: cli})
 	}
 	var d = DagNode{
 		Nodes: clients,

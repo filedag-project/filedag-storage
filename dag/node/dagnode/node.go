@@ -26,14 +26,18 @@ var _ blockstore.Blockstore = (*DagNode)(nil)
 
 const healthCheckService = "grpc.health.v1.Health"
 
+type StorageNode struct {
+	*datanode.Client
+	State bool // true: means the data node is health
+}
+
 //DagNode Implemented the Blockstore interface
 type DagNode struct {
-	Nodes      []*datanode.Client
-	stateNodes []bool // true: means the data node is health
-	slots      *slotsmgr.SlotsManager
-	numSlots   int
-	config     config.DagNodeConfig
-	stopCh     chan struct{}
+	Nodes    []*StorageNode
+	slots    *slotsmgr.SlotsManager
+	numSlots int
+	config   config.DagNodeConfig
+	stopCh   chan struct{}
 }
 
 type Meta struct {
@@ -46,20 +50,19 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	if numNodes != cfg.DataBlocks+cfg.ParityBlocks || numNodes == 0 {
 		return nil, errors.New("dag node config is incorrect")
 	}
-	clients := make([]*datanode.Client, 0, cfg.DataBlocks+cfg.ParityBlocks)
+	clients := make([]*StorageNode, 0, cfg.DataBlocks+cfg.ParityBlocks)
 	for _, c := range cfg.Nodes {
 		dateNode, err := datanode.NewClient(c)
 		if err != nil {
 			return nil, err
 		}
-		clients = append(clients, dateNode)
+		clients = append(clients, &StorageNode{Client: dateNode})
 	}
 	return &DagNode{
-		Nodes:      clients,
-		stateNodes: make([]bool, len(clients)),
-		slots:      slotsmgr.NewSlotsManager(),
-		config:     cfg,
-		stopCh:     make(chan struct{}),
+		Nodes:  clients,
+		slots:  slotsmgr.NewSlotsManager(),
+		config: cfg,
+		stopCh: make(chan struct{}),
 	}, nil
 }
 
@@ -68,10 +71,10 @@ func (d *DagNode) GetConfig() *config.DagNodeConfig {
 }
 
 func (d *DagNode) GetDataNodeState(setIndex int) bool {
-	if setIndex < 0 || setIndex >= len(d.stateNodes) {
-		log.Fatalf("input setIndex %v is illegal, size of set is %v", setIndex, len(d.stateNodes))
+	if setIndex < 0 || setIndex >= len(d.Nodes) {
+		log.Fatalf("input setIndex %v is illegal, size of set is %v", setIndex, len(d.Nodes))
 	}
-	return d.stateNodes[setIndex]
+	return d.Nodes[setIndex].State
 }
 
 // AddSlot Set the slot bit and return the old value
@@ -122,12 +125,12 @@ func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
 	defer ticker.Stop()
 	healthCheckAll := func() {
 		wg := sync.WaitGroup{}
-		for i, node := range d.Nodes {
+		for _, node := range d.Nodes {
 			wg.Add(1)
-			go func(index int, cli *datanode.Client) {
+			go func(sn *StorageNode) {
 				defer wg.Done()
-				d.stateNodes[index] = d.healthCheck(ctx, cli)
-			}(i, node)
+				sn.State = d.healthCheck(ctx, sn.Client)
+			}(node)
 		}
 		wg.Wait()
 	}
@@ -178,7 +181,7 @@ func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 			if err != nil {
 				log.Debugf("%s, keyCode:%s, delete block err :%v", node.RpcAddress, keyCode, err)
 			}
-		}(node)
+		}(node.Client)
 	}
 	wg.Wait()
 	return err
@@ -220,7 +223,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 			} else {
 				merged[i] = res.Data
 			}
-		}(i, node)
+		}(i, node.Client)
 	}
 	wg.Wait()
 	// TODO: After obtaining the shard data that meets the conditions, we can proceed
@@ -315,7 +318,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 				log.Errorf("%s,keyCode:%s,kvdb put :%v", node.RpcAddress, keyCode, err)
 				// TODO: Put failure handling
 			}
-		}(i, node)
+		}(i, node.Client)
 	}
 	// TODO: If the specified number of successes is met, the write succeeds,
 	// or if the specified number of failures is met, the write fails
@@ -362,7 +365,7 @@ func (d *DagNode) entryQuorum() (entryReadQuorum, entryWriteQuorum int) {
 
 // Reads all metadata as a Meta slice.
 // Returns error slice indicating the failed metadata reads.
-func readAllMeta(ctx context.Context, nodes []*datanode.Client, key string) ([]Meta, []error) {
+func readAllMeta(ctx context.Context, nodes []*StorageNode, key string) ([]Meta, []error) {
 	metadataArray := make([]Meta, len(nodes))
 	errs := make([]error, len(nodes))
 	// Read meta in parallel across nodes.
@@ -377,7 +380,7 @@ func readAllMeta(ctx context.Context, nodes []*datanode.Client, key string) ([]M
 				errs[index] = errNodeNotFound
 				return
 			}
-			resp, err := nodes[index].Client.GetMeta(ctx, &proto.GetMetaRequest{Key: key})
+			resp, err := nodes[index].Client.Client.GetMeta(ctx, &proto.GetMetaRequest{Key: key})
 			if err != nil {
 				if st, ok := status.FromError(err); ok && st.Code() == codes.Unknown {
 					errs[index] = errors.New(st.Message())
