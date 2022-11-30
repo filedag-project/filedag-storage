@@ -1,14 +1,20 @@
 package httpstats
 
 import (
+	"context"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/syndtr/goleveldb/leveldb"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
-const apiRecordTemplate = "api-record"
+const (
+	apiRecordTemplate = "api-record"
+	storeDuration     = time.Second * 10
+)
 
 var log = logging.Logger("http-stats")
 
@@ -35,13 +41,20 @@ type APIStatsSys struct {
 
 // NewHttpStatsSys - new an HttpStats  system
 func NewHttpStatsSys(db *uleveldb.ULevelDB) *APIStatsSys {
-	return &APIStatsSys{Db: db, HttpStats: NewHTTPStats(db)}
+	apiStatsSys := &APIStatsSys{Db: db, HttpStats: &HTTPStats{}}
+	apiStatsSys.load()
+	return apiStatsSys
 }
-func (st *APIStatsSys) StoreApiLog() {
-	err := st.Db.Put(apiRecordTemplate, st.HttpStats)
-	if err != nil {
-		log.Errorf("store api info err")
-		return
+func (st *APIStatsSys) StoreApiLog(ctx context.Context) {
+	tc := time.NewTicker(storeDuration)
+	for {
+		select {
+		case <-ctx.Done():
+			st.store()
+		case <-tc.C:
+			st.store()
+		}
+
 	}
 }
 func (st *HTTPStats) RecordAPIHandler(api string, f http.HandlerFunc) http.HandlerFunc {
@@ -127,9 +140,87 @@ func (st *HTTPStats) updateStats(api string, r *http.Request, w *ResponseRecorde
 	}
 }
 
-// NewHTTPStats Prepare new HTTPStats structure
-func NewHTTPStats(db *uleveldb.ULevelDB) *HTTPStats {
-	var h HTTPStats
-	db.Get(apiRecordTemplate, &h)
-	return &h
+func (st *APIStatsSys) store() {
+	err := st.Db.Put(apiRecordTemplate+"totalIamRequests", st.HttpStats.totalIamRequests.apiStats)
+	if err != nil {
+		log.Errorf("store totalIamRequests err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalIamErrors", st.HttpStats.totalIamErrors.apiStats)
+	if err != nil {
+		log.Errorf("store totalIamErrors err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalIam4xxErrors", st.HttpStats.totalIam4xxErrors.apiStats)
+	if err != nil {
+		log.Errorf("store totalIam4xxErrors err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalIam5xxErrors", st.HttpStats.totalIam5xxErrors.apiStats)
+	if err != nil {
+		log.Errorf("store totalIam5xxErrors err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalIamCanceled", st.HttpStats.totalIamCanceled.apiStats)
+	if err != nil {
+		log.Errorf("store totalIamCanceled err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalS3Requests", st.HttpStats.totalS3Requests.apiStats)
+	if err != nil {
+		log.Errorf("store totalS3Requests err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalS3Errors", st.HttpStats.totalS3Errors.apiStats)
+	if err != nil {
+		log.Errorf("store totalS3Errors err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalS34xxErrors", st.HttpStats.totalS34xxErrors.apiStats)
+	if err != nil {
+		log.Errorf("store totalS34xxErrors err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalS35xxErrors", st.HttpStats.totalS35xxErrors.apiStats)
+	if err != nil {
+		log.Errorf("store totalS35xxErrors err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"totalS3Canceled", st.HttpStats.totalS3Canceled.apiStats)
+	if err != nil {
+		log.Errorf("store totalS3Canceled err%v", err)
+	}
+}
+func (st *APIStatsSys) load() {
+	err := st.Db.Get(apiRecordTemplate+"totalIamRequests", &st.HttpStats.totalIamRequests.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalIamRequests err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalIamErrors", &st.HttpStats.totalIamErrors.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalIamErrors err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalIam4xxErrors", &st.HttpStats.totalIam4xxErrors.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalIam4xxErrors err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalIam5xxErrors", &st.HttpStats.totalIam5xxErrors.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalIam5xxErrors err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalIamCanceled", &st.HttpStats.totalIamCanceled.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalIamCanceled err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalS3Requests", &st.HttpStats.totalS3Requests.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalS3Requests err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalS3Errors", &st.HttpStats.totalS3Errors.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalS3Errors err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalS34xxErrors", &st.HttpStats.totalS34xxErrors.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalS34xxErrors err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalS35xxErrors", &st.HttpStats.totalS35xxErrors.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalS35xxErrors err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"totalS3Canceled", &st.HttpStats.totalS3Canceled.apiStats)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load totalS3Canceled err%v", err)
+	}
 }

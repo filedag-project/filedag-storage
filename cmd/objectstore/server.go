@@ -111,7 +111,7 @@ func startServer(cctx *cli.Context) {
 	httpStatsSys := httpstats.NewHttpStatsSys(db)
 	iamapi.NewIamApiServer(router, authSys, httpStatsSys, cleanData, bucketInfoFunc)
 	s3api.NewS3Server(router, authSys, bmSys, storageSys, httpStatsSys)
-
+	go httpStatsSys.StoreApiLog(cctx.Context)
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 			log.Infof("start server at http://%v%v", ip, listen)
@@ -132,7 +132,6 @@ func startServer(cctx *cli.Context) {
 	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	httpStatsSys.StoreApiLog()
 	log.Info("Shutdown Server ...")
 	log.Info("Server exit")
 }
