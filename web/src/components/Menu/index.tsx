@@ -29,7 +29,8 @@ const PageMenu = () => {
     setSelectedKey(pathname.replace("/",""));
     console.log(pathname,'objects');
     
-    if(pathname === '/objects'){
+    const _buckets = ['/power','/objects']
+    if(_buckets.includes(pathname)){
       setSelectedKey('buckets')
     }
   },[location])

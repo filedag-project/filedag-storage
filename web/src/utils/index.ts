@@ -32,6 +32,19 @@ const streamToJs = async (data) => {
   }
 };
 
+const xmlToJs = async (data) => {
+  try{
+    return convert.xml2js(data, {
+      compact: true,
+      ignoreDeclaration:true,
+      ignoreAttributes:true
+    })
+  }catch(error){
+    console.log(error,'xmlToJs');
+    throw new Error('error');
+  }
+};
+
 const formatDate = (date:string):string=>{
   const _date = new Date(date);
   return _date.toISOString() ?? ''
@@ -69,4 +82,5 @@ export {
   formatBytes,
   escapeStr,
   download,
+  xmlToJs
 };
