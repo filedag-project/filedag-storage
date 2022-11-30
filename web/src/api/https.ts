@@ -5,7 +5,7 @@ import _ from 'lodash';
 import { notification } from 'antd';
 import signV4 from './sign';
 import { ACCESS_KEY_ID, Cookies, SECRET_ACCESS_KEY, SESSION_TOKEN } from '@/utils/cookies';
-import { xmlStreamToJs,streamToJs } from "@/utils";
+import { xmlStreamToJs,streamToJs, xmlToJs } from "@/utils";
 
 const INVALID_ACCESS_KEY_ID = 'InvalidAccessKeyId';
 
@@ -63,6 +63,25 @@ export const Axios = {
         const _result = await this.handlerJson(result);
         resolve(_result);
       }).catch(error=>{
+        this.handlerError('network error');
+      })
+    })
+  },
+
+  axiosJsonAWS(params:SignModel){
+    return new Promise(async (resolve, reject) => {
+      const sign = await signV4(params);
+      const nodeHttpHandler = new FetchHttpHandler();
+      const request = new HttpRequest({
+        ...sign
+      })
+      nodeHttpHandler.handle(request)
+      .then(async result=>{
+        const _result = await this.handlerJsonAWS(result);
+        resolve(_result);
+      }).catch(error=>{
+        
+        console.log(error,'222222');
         this.handlerError('network error');
       })
     })
@@ -127,6 +146,25 @@ export const Axios = {
     })
   },
 
+  handlerJsonAWS(result){
+    return new Promise(async (resolve, reject) => {
+      const body = _.get(result,'response.body');
+      const statusCode = _.get(result,'response.statusCode');
+      if(statusCode === 200||statusCode===204){
+        const data = await streamToJs(body);
+        resolve(data)
+      }else{
+        const data = await xmlStreamToJs(body);
+        const code = _.get(data,'Error.Code._text','');
+        const message = _.get(data,'Error.Message._text','Error');
+        this.handlerError(message);
+        if(code === INVALID_ACCESS_KEY_ID){
+          this.handlerLogout()
+        }
+      }
+    })
+  },
+
   handlerError(description:string){
     notification.open({
       message: 'Error',
@@ -143,3 +181,4 @@ export const Axios = {
     },3000)
   }
 }
+

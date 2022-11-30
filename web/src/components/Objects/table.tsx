@@ -42,8 +42,8 @@ const ObjectTable = (props:any) => {
       key: 'action',
       render: (_, record) => (
         <div className='row-action'>
-          <Button type="primary" icon={<FolderViewOutlined />} onClick={()=>{viewObject(record.Name)}}>查看</Button>
-          <Button type="primary" icon={<DeleteOutlined />} onClick={()=>{deleteObject(record.Name)}}>删除</Button>
+          <Button type="primary" icon={<FolderViewOutlined />} onClick={()=>{viewObject(record.Name)}}>View</Button>
+          <Button type="primary" icon={<DeleteOutlined />} onClick={()=>{deleteObject(record.Name)}}>Delete</Button>
         </div>
       ),
     },
