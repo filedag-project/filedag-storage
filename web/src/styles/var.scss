@@ -1,0 +1,40 @@
+:root {
+  --color-FFFFFF: #FFFFFF;
+  --color-title: #333333;
+  --color-text: #666666;
+  --color-button-primary:#001529;
+  --color-button-primary-hover:#09121b;
+  --color-001529:#001529;
+  --color-border:#081C42;
+
+  --color-0064EF: #0064ef;
+  --color-FF4D4F: #ff4d4f;
+  --color-FFDE66: #FFDE66;
+  --color-336AFA: #336AFA;
+  --color-F5F8FF: #F5F8FF;
+  --color-F3F5F7: #F3F5F7;
+  --color-225BF5: #225BF5;
+  --color-8EAAFA: #8EAAFA;
+  --color-64748B: #64748B;
+  --color-2B2B2B: #2B2B2B;
+  --color-1B6Df3:#1B6DF3;
+}
+
+
+@media screen and (max-width: 1439px) {
+  :root {
+    --contentWidth: 90%;
+  }
+}
+
+@media screen and (min-width: 1440px) {
+  :root {
+    --contentWidth: 1280px;
+  }
+}
+
+@media screen and (min-width: 1920px) {
+  :root {
+    --contentWidth: 1600px;
+  }
+}

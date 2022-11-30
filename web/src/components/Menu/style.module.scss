@@ -1,0 +1,51 @@
+.login{
+    display: flex;
+    background: var(--color-FFFFFF);
+    height: 100vh;
+    .left{
+        flex:1;
+        background: linear-gradient(163.85deg,#1d2129,#00308f);
+        .logo-group{
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            .img{
+                width: 120px;
+            }
+        }
+    }
+    .right{
+        flex:2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        .form{
+            width: 400px;
+            padding: 30px;
+            box-shadow: 0px 1px 14px 0px rgb(205 223 244 / 78%);
+            .title{
+                color: var(--color-title);
+                font-size: 24px;
+                font-weight: 500;
+                line-height: 32px;
+                margin-bottom: 50px;
+            }
+            :global{
+                .ant-form{
+                    .ant-form-item{
+                        .ant-form-item-control-input-content{
+                            text-align: left;
+                        }
+                        .ant-form-item-explain-error{
+                            text-align: left;
+                        }
+                        .ant-btn{
+                            width: 100%;
+                        }
+                    }
+                    
+                }
+            }
+        }
+    }
+}

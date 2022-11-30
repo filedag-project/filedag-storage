@@ -1,0 +1,33 @@
+.bucket {
+    display: flex;
+    justify-content: space-between;
+    border:1px solid var(--color-border);
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    .top{
+        display: flex;
+        justify-content: space-between;
+        flex: 1;
+        .info{
+            flex: 1;
+            text-align: left;
+            .name{
+                color: var(--color-title);
+                font-style: 14px;
+            }
+            .create{
+                color: var(--color-text);
+                font-style: 14px;
+            }
+        }
+        .action{
+            display: flex;
+            .browse{
+                margin: 0 15px;
+            }
+        }
+    }
+    .bottom{
+
+    }
+}

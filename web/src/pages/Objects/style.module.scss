@@ -1,0 +1,14 @@
+.objects{
+    padding: 15px;
+}
+:global{
+    .ant-modal-body{
+        .modal-content{
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .preview-image{
+            width: 200px;
+        }
+    }
+}

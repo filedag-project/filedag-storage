@@ -1,0 +1,12 @@
+.action {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 30px;
+    .search{
+
+    }
+    .operation{
+        :global{
+        }
+    }
+}
