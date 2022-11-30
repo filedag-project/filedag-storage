@@ -12,7 +12,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
-	httpstatss "github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
@@ -108,9 +108,9 @@ func startServer(cctx *cli.Context) {
 		return bucketInfos
 	}
 	handler := s3api.CorsHandler(router)
-	stats := httpstatss.NewHTTPStats()
-	iamapi.NewIamApiServer(router, authSys, stats, cleanData, bucketInfoFunc)
-	s3api.NewS3Server(router, authSys, bmSys, storageSys, stats)
+	httpStatsSys := httpstats.NewHttpStatsSys(db)
+	iamapi.NewIamApiServer(router, authSys, httpStatsSys, cleanData, bucketInfoFunc)
+	s3api.NewS3Server(router, authSys, bmSys, storageSys, httpStatsSys)
 
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
@@ -132,6 +132,7 @@ func startServer(cctx *cli.Context) {
 	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	httpStatsSys.StoreApiLog()
 	log.Info("Shutdown Server ...")
 	log.Info("Server exit")
 }

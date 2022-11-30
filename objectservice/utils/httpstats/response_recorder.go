@@ -1,4 +1,4 @@
-package httpstatss
+package httpstats
 
 import (
 	"bytes"
