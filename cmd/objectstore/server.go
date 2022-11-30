@@ -12,6 +12,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	httpstatss "github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
@@ -107,8 +108,9 @@ func startServer(cctx *cli.Context) {
 		return bucketInfos
 	}
 	handler := s3api.CorsHandler(router)
-	iamapi.NewIamApiServer(router, authSys, cleanData, bucketInfoFunc)
-	s3api.NewS3Server(router, authSys, bmSys, storageSys)
+	stats := httpstatss.NewHTTPStats()
+	iamapi.NewIamApiServer(router, authSys, stats, cleanData, bucketInfoFunc)
+	s3api.NewS3Server(router, authSys, bmSys, storageSys, stats)
 
 	if strings.HasPrefix(listen, ":") {
 		for _, ip := range utils.MustGetLocalIP4().ToSlice() {
