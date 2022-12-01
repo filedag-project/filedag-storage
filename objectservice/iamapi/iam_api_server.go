@@ -38,21 +38,21 @@ func (iamApi *iamApiServer) registerConsoleRouter(router *mux.Router, stats *htt
 	// API Router
 	apiRouter := router.PathPrefix("/console/v1").Subrouter()
 	//root user
-	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.HttpStats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.HttpStats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(stats.HttpStats.RecordAPIHandler("user-info", iamApi.AccountInfo)).Queries("accessKey", "{accessKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(stats.RecordAPIHandler("user-info", iamApi.AccountInfo)).Queries("accessKey", "{accessKey:.*}")
 
 	//sub user
 	//todo
-	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("add-sub-user", iamApi.AddSubUser)).Queries("userName", "{userName:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("remove-sub-user", iamApi.DeleteSubUser)).Queries("userName", "{userName:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/sub-user-info").HandlerFunc(stats.HttpStats.RecordAPIHandler("sub-user-info", iamApi.GetSubUserInfo)).Queries("userName", "{userName:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/list-all-sub-users").HandlerFunc(stats.HttpStats.RecordAPIHandler("list-all-sub-users", iamApi.GetUserList))
+	apiRouter.Methods(http.MethodPost).Path("/add-sub-user").HandlerFunc(stats.RecordAPIHandler("add-sub-user", iamApi.AddSubUser)).Queries("userName", "{userName:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user").HandlerFunc(stats.RecordAPIHandler("remove-sub-user", iamApi.DeleteSubUser)).Queries("userName", "{userName:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/sub-user-info").HandlerFunc(stats.RecordAPIHandler("sub-user-info", iamApi.GetSubUserInfo)).Queries("userName", "{userName:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/list-all-sub-users").HandlerFunc(stats.RecordAPIHandler("list-all-sub-users", iamApi.GetUserList))
 
-	apiRouter.Methods(http.MethodPost).Path("/put-sub-user-policy").HandlerFunc(stats.HttpStats.RecordAPIHandler("put-sub-user-policy", iamApi.PutUserPolicy)).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/get-sub-user-policy").HandlerFunc(stats.HttpStats.RecordAPIHandler("get-sub-user-policy", iamApi.GetUserPolicy)).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/list-sub-user-policy").HandlerFunc(stats.HttpStats.RecordAPIHandler("list-sub-user-policy", iamApi.ListUserPolicies)).Queries("userName", "{userName:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user-policy").HandlerFunc(stats.HttpStats.RecordAPIHandler("remove-sub-user-policy", iamApi.DeleteUserPolicy)).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/put-sub-user-policy").HandlerFunc(stats.RecordAPIHandler("put-sub-user-policy", iamApi.PutUserPolicy)).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/get-sub-user-policy").HandlerFunc(stats.RecordAPIHandler("get-sub-user-policy", iamApi.GetUserPolicy)).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/list-sub-user-policy").HandlerFunc(stats.RecordAPIHandler("list-sub-user-policy", iamApi.ListUserPolicies)).Queries("userName", "{userName:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-sub-user-policy").HandlerFunc(stats.RecordAPIHandler("remove-sub-user-policy", iamApi.DeleteUserPolicy)).Queries("userName", "{userName:.*}", "policyName", "{policyName:.*}")
 
 	//apiRouter.Methods(http.MethodPost).Path("/creat-policy").HandlerFunc(iamApi.CreatePolicy).Queries("policyName", "{policyName:.*}", "policyDocument", "{policyDocument:.*}")
 
@@ -65,11 +65,11 @@ func (iamApi *iamApiServer) registerAdminsRouter(router *mux.Router, stats *http
 	// API Router
 	apiRouter := router.PathPrefix("/admin/v1").Subrouter()
 	//root user
-	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("add-user", iamApi.CreateUser)).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("remove-user", iamApi.DeleteUser)).Queries("accessKey", "{accessKey:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.HttpStats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.HttpStats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
-	apiRouter.Methods(http.MethodGet).Path("/user-infos").HandlerFunc(stats.HttpStats.RecordAPIHandler("user-infos", iamApi.AccountInfos))
-	apiRouter.Methods(http.MethodGet).Path("/request-overview").HandlerFunc(stats.HttpStats.RecordAPIHandler("request-overview", iamApi.RequestOverview))
+	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(stats.RecordAPIHandler("add-user", iamApi.CreateUser)).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(stats.RecordAPIHandler("remove-user", iamApi.DeleteUser)).Queries("accessKey", "{accessKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/user-infos").HandlerFunc(stats.RecordAPIHandler("user-infos", iamApi.AccountInfos))
+	apiRouter.Methods(http.MethodGet).Path("/request-overview").HandlerFunc(stats.RecordAPIHandler("request-overview", iamApi.RequestOverview))
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 }
