@@ -19,7 +19,7 @@ func TestDagNode(t *testing.T) {
 	var clients []*StorageNode
 	for i := 0; i < 3; i++ {
 		cli := &datanode.Client{
-			Client: newDatanode(t),
+			Client: newDatanode(t, 2, 1, i),
 		}
 		clients = append(clients, &StorageNode{Client: cli})
 	}
@@ -64,7 +64,7 @@ func TestDagNode(t *testing.T) {
 	}
 }
 
-func newDatanode(t *testing.T) *mocks.MockDataNodeClient {
+func newDatanode(t *testing.T, dataBlocks, parityBlocks int, index int) *mocks.MockDataNodeClient {
 	content := "123456"
 	block := blocks.NewBlock([]byte(content))
 	meta := Meta{
@@ -74,12 +74,20 @@ func newDatanode(t *testing.T) *mocks.MockDataNodeClient {
 	if err := binary.Write(&metaBuf, binary.LittleEndian, meta); err != nil {
 		t.Fatalf("binary.Write failed: %v", err)
 	}
+	enc, err := NewErasure(dataBlocks, parityBlocks, int64(meta.BlockSize))
+	if err != nil {
+		t.Fatalf("NewErasure failed: %v", err)
+	}
+	shards, err := enc.EncodeData(block.RawData())
+	if err != nil {
+		t.Fatalf("EncodeData failed: %v", err)
+	}
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockDataNodeClient(ctrl)
 	var ctx = reflect.TypeOf((*context.Context)(nil)).Elem()
 	m.EXPECT().Put(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.AddRequest{})).AnyTimes().Return(nil, nil)
 	m.EXPECT().Get(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.GetRequest{})).AnyTimes().
-		Return(&proto.GetResponse{Data: block.RawData(), Meta: metaBuf.Bytes()}, nil)
+		Return(&proto.GetResponse{Data: shards[index], Meta: metaBuf.Bytes()}, nil)
 	m.EXPECT().GetMeta(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.GetMetaRequest{})).AnyTimes().
 		Return(&proto.GetMetaResponse{Meta: metaBuf.Bytes()}, nil)
 	m.EXPECT().Delete(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.DeleteRequest{})).AnyTimes().Return(nil, nil)
