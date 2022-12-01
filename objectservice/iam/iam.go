@@ -127,6 +127,25 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 	return u, err
 }
 
+// GetAllUser all user
+func (sys *IdentityAMSys) GetAllUser(ctx context.Context) ([]UserIdentity, error) {
+	var allusers []UserIdentity
+	users, err := sys.store.loadUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, userIdentity := range users {
+		if userIdentity.Credentials.IsExpired() {
+			continue
+		}
+		if userIdentity.Credentials.IsTemp() {
+			continue
+		}
+		allusers = append(allusers, userIdentity)
+	}
+	return allusers, nil
+}
+
 //AddUser add user
 func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey string, capacity uint64) error {
 	m := make(map[string]interface{})

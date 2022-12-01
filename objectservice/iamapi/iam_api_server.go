@@ -29,16 +29,15 @@ func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys, stats *httpstatss
 		cleanData:      cleanData,
 		bucketInfoFunc: bucketInfoFunc,
 	}
-	iamApiSer.registerRouter(router, stats)
+	iamApiSer.registerConsoleRouter(router, stats)
+	iamApiSer.registerAdminsRouter(router, stats)
 
 }
 
-func (iamApi *iamApiServer) registerRouter(router *mux.Router, stats *httpstatss.APIStatsSys) {
+func (iamApi *iamApiServer) registerConsoleRouter(router *mux.Router, stats *httpstatss.APIStatsSys) {
 	// API Router
-	apiRouter := router.PathPrefix("/admin/v1").Subrouter()
+	apiRouter := router.PathPrefix("/console/v1").Subrouter()
 	//root user
-	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("add-user", iamApi.CreateUser)).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
-	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("remove-user", iamApi.DeleteUser)).Queries("accessKey", "{accessKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.HttpStats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.HttpStats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(stats.HttpStats.RecordAPIHandler("user-info", iamApi.AccountInfo)).Queries("accessKey", "{accessKey:.*}")
@@ -60,5 +59,17 @@ func (iamApi *iamApiServer) registerRouter(router *mux.Router, stats *httpstatss
 	//apiRouter.Methods(http.MethodPost).Path("/creat-group").HandlerFunc(iamApi.CreatGroup).Queries("groupName", "{groupName:.*}", "version", "{version:.*}")
 	//apiRouter.Methods(http.MethodGet).Path("/get_group").HandlerFunc(iamApi.GetGroup).Queries("groupName", "{groupName:.*}", "version", "{version:.*}")
 	//apiRouter.Methods(http.MethodPost).Path("/delete-group").HandlerFunc(iamApi.DeleteGroup).Queries("groupName", "{groupName:.*}", "version", "{version:.*}")
+	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
+}
+func (iamApi *iamApiServer) registerAdminsRouter(router *mux.Router, stats *httpstatss.APIStatsSys) {
+	// API Router
+	apiRouter := router.PathPrefix("/admin/v1").Subrouter()
+	//root user
+	apiRouter.Methods(http.MethodPost).Path("/add-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("add-user", iamApi.CreateUser)).Queries("accessKey", "{accessKey:.*}", "secretKey", "{secretKey:.*}", "capacity", "{capacity:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/remove-user").HandlerFunc(stats.HttpStats.RecordAPIHandler("remove-user", iamApi.DeleteUser)).Queries("accessKey", "{accessKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.HttpStats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.HttpStats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
+	apiRouter.Methods(http.MethodGet).Path("/user-infos").HandlerFunc(stats.HttpStats.RecordAPIHandler("user-infos", iamApi.AccountInfos))
+	apiRouter.Methods(http.MethodGet).Path("/overview").HandlerFunc(stats.HttpStats.RecordAPIHandler("overview", iamApi.Overview))
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 }

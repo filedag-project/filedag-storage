@@ -1,6 +1,7 @@
 package iamapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
@@ -165,6 +166,31 @@ func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) 
 		}(),
 	}
 	response.WriteSuccessResponseJSON(w, r, acctInfo)
+}
+
+// AccountInfos returns all user usage
+func (iamApi *iamApiServer) AccountInfos(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetUserInfoAction, "", "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(s3err))
+		return
+	}
+	if cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
+		return
+	}
+	infos, err := iamApi.getAllUserInfos(ctx)
+	if err != nil {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
+		return
+	}
+	response.WriteSuccessResponseJSON(w, r, infos)
+}
+
+// Overview returns all user usage
+func (iamApi *iamApiServer) Overview(w http.ResponseWriter, r *http.Request) {
+	//to implement
 }
 
 // ChangePassword change password
@@ -449,6 +475,40 @@ func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, e
 		return policy.PolicyDocument{}, err
 	}
 	return policyDocument, err
+}
+func (iamApi *iamApiServer) getAllUserInfos(ctx context.Context) ([]iam.UserInfo, error) {
+	userIdentities, err := iamApi.authSys.Iam.GetAllUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var allUserInfo []iam.UserInfo
+	for _, userIdentity := range userIdentities {
+		bucketInfos := iamApi.bucketInfoFunc(ctx, userIdentity.Credentials.AccessKey)
+
+		polices, err := iamApi.authSys.Iam.GetUserPolices(ctx, userIdentity.Credentials.AccessKey)
+		if err != nil {
+			return nil, err
+		}
+		var useStorageCapacity uint64
+		for _, bi := range bucketInfos {
+			useStorageCapacity += bi.Size
+		}
+		acctInfo := iam.UserInfo{
+			AccountName:          userIdentity.Credentials.AccessKey,
+			TotalStorageCapacity: userIdentity.TotalStorageCapacity,
+			UseStorageCapacity:   useStorageCapacity,
+			PolicyName:           polices,
+			BucketInfos:          bucketInfos,
+			Status: func() iam.AccountStatus {
+				if userIdentity.Credentials.IsValid() {
+					return iam.AccountEnabled
+				}
+				return iam.AccountDisabled
+			}(),
+		}
+		allUserInfo = append(allUserInfo, acctInfo)
+	}
+	return allUserInfo, nil
 }
 
 /*//CreatePolicy Create Policy
