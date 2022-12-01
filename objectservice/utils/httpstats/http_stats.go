@@ -2,6 +2,7 @@ package httpstats
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -21,6 +22,7 @@ var log = logging.Logger("http-stats")
 // HTTPStats holds statistics information about
 // HTTP requests made by all clients
 type HTTPStats struct {
+	sync.RWMutex
 	currentS3Requests  HTTPAPIStats
 	currentIamRequests HTTPAPIStats
 	totalIamRequests   HTTPAPIStats
@@ -35,13 +37,21 @@ type HTTPStats struct {
 	totalS3Canceled    HTTPAPIStats
 }
 type APIStatsSys struct {
-	Db        *uleveldb.ULevelDB
-	HttpStats *HTTPStats
+	Db         *uleveldb.ULevelDB
+	HttpStats  *HTTPStats
+	ObjectInfo *ObjectInfo
+}
+type ObjectInfo struct {
+	PutObjCount map[string]uint64
+	GetObjCount map[string]uint64
+	PutObjBytes map[string]uint64
+	GetObjBytes map[string]uint64
+	sync.RWMutex
 }
 
 // NewHttpStatsSys - new an HttpStats  system
 func NewHttpStatsSys(db *uleveldb.ULevelDB) *APIStatsSys {
-	apiStatsSys := &APIStatsSys{Db: db, HttpStats: &HTTPStats{}}
+	apiStatsSys := &APIStatsSys{Db: db, HttpStats: &HTTPStats{}, ObjectInfo: &ObjectInfo{}}
 	apiStatsSys.load()
 	return apiStatsSys
 }
@@ -57,16 +67,19 @@ func (st *APIStatsSys) StoreApiLog(ctx context.Context) {
 
 	}
 }
-func (st *HTTPStats) RecordAPIHandler(api string, f http.HandlerFunc) http.HandlerFunc {
+func (st *APIStatsSys) RecordAPIHandler(api string, f http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		st.currentS3Requests.inc(api)
-		defer st.currentS3Requests.dec(api)
+		st.HttpStats.currentS3Requests.inc(api)
+		defer st.HttpStats.currentS3Requests.dec(api)
+		st.HttpStats.currentIamRequests.inc(api)
+		defer st.HttpStats.currentS3Requests.dec(api)
 
 		statsWriter := NewResponseRecorder(w)
 
 		f.ServeHTTP(statsWriter, r)
 
-		st.updateStats(api, r, statsWriter)
+		st.HttpStats.updateStats(api, r, statsWriter)
+		st.updateObjInfo(api, r, statsWriter)
 	}
 }
 
@@ -102,10 +115,38 @@ func (stats *HTTPAPIStats) dec(api string) {
 	}
 }
 
+// inc increments the api stats counter.
+func (obj *ObjectInfo) inc(put bool, filetype string, bytes uint64) {
+	if obj == nil {
+		return
+	}
+	obj.Lock()
+	defer obj.Unlock()
+	if put {
+		if obj.PutObjCount == nil {
+			obj.PutObjCount = make(map[string]uint64)
+		}
+		obj.PutObjCount["PutObjCount"+filetype]++
+		if obj.PutObjBytes == nil {
+			obj.PutObjBytes = make(map[string]uint64)
+		}
+		obj.PutObjBytes["PutObjBytes"+filetype] += bytes
+	} else {
+		if obj.GetObjCount == nil {
+			obj.GetObjCount = make(map[string]uint64)
+		}
+		obj.GetObjCount["GetObjectHandler"+filetype]++
+		if obj.GetObjBytes == nil {
+			obj.GetObjBytes = make(map[string]uint64)
+		}
+		obj.GetObjBytes["GetObjBytes"+filetype] += bytes
+	}
+
+}
+
 // Update statistics from http request and response data
 func (st *HTTPStats) updateStats(api string, r *http.Request, w *ResponseRecorder) {
-	// Ignore non S3 requests
-	if strings.Contains(r.URL.Path, "admin/v1") {
+	if strings.Contains(r.URL.Path, "admin/v1") || strings.Contains(r.URL.Path, "consoles/v1") {
 		st.totalIamRequests.inc(api)
 		code := w.StatusCode
 		switch {
@@ -140,7 +181,22 @@ func (st *HTTPStats) updateStats(api string, r *http.Request, w *ResponseRecorde
 	}
 }
 
+// Update statistics from http request and response data
+func (st *APIStatsSys) updateObjInfo(api string, r *http.Request, w *ResponseRecorder) {
+	if strings.Contains(r.URL.Path, "admin/v1") || strings.Contains(r.URL.Path, "consoles/v1") {
+		return
+	} else {
+		fileType := r.Header.Get(consts.ContentType)
+		if fileType == "" {
+			fileType = "unknown"
+		}
+		st.ObjectInfo.inc(api == "PutObjectHandler", fileType, uint64(r.ContentLength))
+	}
+}
+
 func (st *APIStatsSys) store() {
+	st.HttpStats.Lock()
+	defer st.HttpStats.Unlock()
 	err := st.Db.Put(apiRecordTemplate+"totalIamRequests", st.HttpStats.totalIamRequests.apiStats)
 	if err != nil {
 		log.Errorf("store totalIamRequests err%v", err)
@@ -181,8 +237,26 @@ func (st *APIStatsSys) store() {
 	if err != nil {
 		log.Errorf("store totalS3Canceled err%v", err)
 	}
+	err = st.Db.Put(apiRecordTemplate+"PutObjCount", &st.ObjectInfo.PutObjCount)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("store PutObjCount err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"GetObjCount", &st.ObjectInfo.GetObjCount)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("store GetObjCount err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"PutObjBytes", &st.ObjectInfo.PutObjBytes)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("store PutObjBytes err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"GetObjBytes", &st.ObjectInfo.GetObjBytes)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("store GetObjBytes err%v", err)
+	}
 }
 func (st *APIStatsSys) load() {
+	st.HttpStats.RLock()
+	defer st.HttpStats.RUnlock()
 	err := st.Db.Get(apiRecordTemplate+"totalIamRequests", &st.HttpStats.totalIamRequests.apiStats)
 	if err != nil && err != leveldb.ErrNotFound {
 		log.Errorf("load totalIamRequests err%v", err)
@@ -223,30 +297,54 @@ func (st *APIStatsSys) load() {
 	if err != nil && err != leveldb.ErrNotFound {
 		log.Errorf("load totalS3Canceled err%v", err)
 	}
+	err = st.Db.Get(apiRecordTemplate+"PutObjCount", &st.ObjectInfo.PutObjCount)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load PutObjCount err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"GetObjCount", &st.ObjectInfo.GetObjCount)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load GetObjCount err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"PutObjBytes", &st.ObjectInfo.PutObjBytes)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load PutObjBytes err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"GetObjBytes", &st.ObjectInfo.GetObjBytes)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load GetObjBytes err%v", err)
+	}
 }
 
 type ApiStats struct {
 	ApiStats map[string]int
 }
+type ObjInfo struct {
+}
 
 // StatsResp holds statistics information about
 // HTTP requests made by all clients
 type StatsResp struct {
-	CurrentS3Requests  ApiStats `json:"current_s3_requests"`
-	CurrentIamRequests ApiStats `json:"current_iam_requests"`
-	TotalIamRequests   ApiStats `json:"total_iam_requests"`
-	TotalIamErrors     ApiStats `json:"total_iam_errors"`
-	TotalIam4xxErrors  ApiStats `json:"total_iam_4xx_errors"`
-	TotalIam5xxErrors  ApiStats `json:"total_iam_5xx_errors"`
-	TotalIamCanceled   ApiStats `json:"total_iam_canceled"`
-	TotalS3Requests    ApiStats `json:"total_s3_requests"`
-	TotalS3Errors      ApiStats `json:"total_s3_errors"`
-	TotalS34xxErrors   ApiStats `json:"total_s3_4xx_errors"`
-	TotalS35xxErrors   ApiStats `json:"total_s3_5xx_errors"`
-	TotalS3Canceled    ApiStats `json:"total_s3_canceled"`
+	CurrentS3Requests  ApiStats          `json:"current_s3_requests"`
+	CurrentIamRequests ApiStats          `json:"current_iam_requests"`
+	TotalIamRequests   ApiStats          `json:"total_iam_requests"`
+	TotalIamErrors     ApiStats          `json:"total_iam_errors"`
+	TotalIam4xxErrors  ApiStats          `json:"total_iam_4xx_errors"`
+	TotalIam5xxErrors  ApiStats          `json:"total_iam_5xx_errors"`
+	TotalIamCanceled   ApiStats          `json:"total_iam_canceled"`
+	TotalS3Requests    ApiStats          `json:"total_s3_requests"`
+	TotalS3Errors      ApiStats          `json:"total_s3_errors"`
+	TotalS34xxErrors   ApiStats          `json:"total_s3_4xx_errors"`
+	TotalS35xxErrors   ApiStats          `json:"total_s3_5xx_errors"`
+	TotalS3Canceled    ApiStats          `json:"total_s3_canceled"`
+	PutObjCount        map[string]uint64 `json:"put_obj_count"`
+	GetObjCount        map[string]uint64 `json:"get_obj_count"`
+	PutObjBytes        map[string]uint64 `json:"put_obj_bytes"`
+	GetObjBytes        map[string]uint64 `json:"get_obj_bytes"`
 }
 
 func (st *APIStatsSys) GetCurrentStats(ctx context.Context) (StatsResp, error) {
+	st.HttpStats.RLock()
+	defer st.HttpStats.RUnlock()
 	var statsResp = StatsResp{
 		CurrentS3Requests:  ApiStats{ApiStats: st.HttpStats.currentS3Requests.apiStats},
 		CurrentIamRequests: ApiStats{ApiStats: st.HttpStats.currentIamRequests.apiStats},
@@ -260,6 +358,10 @@ func (st *APIStatsSys) GetCurrentStats(ctx context.Context) (StatsResp, error) {
 		TotalS34xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS34xxErrors.apiStats},
 		TotalS35xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS35xxErrors.apiStats},
 		TotalS3Canceled:    ApiStats{ApiStats: st.HttpStats.totalS3Canceled.apiStats},
+		PutObjCount:        st.ObjectInfo.PutObjCount,
+		GetObjCount:        st.ObjectInfo.GetObjCount,
+		PutObjBytes:        st.ObjectInfo.PutObjBytes,
+		GetObjBytes:        st.ObjectInfo.GetObjBytes,
 	}
 	return statsResp, nil
 }
