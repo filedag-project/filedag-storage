@@ -188,9 +188,15 @@ func (iamApi *iamApiServer) AccountInfos(w http.ResponseWriter, r *http.Request)
 	response.WriteSuccessResponseJSON(w, r, infos)
 }
 
-// Overview returns all user usage
-func (iamApi *iamApiServer) Overview(w http.ResponseWriter, r *http.Request) {
+// RequestOverview returns all user usage
+func (iamApi *iamApiServer) RequestOverview(w http.ResponseWriter, r *http.Request) {
 	//to implement
+	stats, err := iamApi.stats.GetCurrentStats(r.Context())
+	if err != nil {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
+		return
+	}
+	response.WriteSuccessResponseJSON(w, r, stats)
 }
 
 // ChangePassword change password

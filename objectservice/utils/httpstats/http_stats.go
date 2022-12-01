@@ -224,3 +224,42 @@ func (st *APIStatsSys) load() {
 		log.Errorf("load totalS3Canceled err%v", err)
 	}
 }
+
+type ApiStats struct {
+	ApiStats map[string]int
+}
+
+// StatsResp holds statistics information about
+// HTTP requests made by all clients
+type StatsResp struct {
+	CurrentS3Requests  ApiStats `json:"current_s3_requests"`
+	CurrentIamRequests ApiStats `json:"current_iam_requests"`
+	TotalIamRequests   ApiStats `json:"total_iam_requests"`
+	TotalIamErrors     ApiStats `json:"total_iam_errors"`
+	TotalIam4xxErrors  ApiStats `json:"total_iam_4xx_errors"`
+	TotalIam5xxErrors  ApiStats `json:"total_iam_5xx_errors"`
+	TotalIamCanceled   ApiStats `json:"total_iam_canceled"`
+	TotalS3Requests    ApiStats `json:"total_s3_requests"`
+	TotalS3Errors      ApiStats `json:"total_s3_errors"`
+	TotalS34xxErrors   ApiStats `json:"total_s3_4xx_errors"`
+	TotalS35xxErrors   ApiStats `json:"total_s3_5xx_errors"`
+	TotalS3Canceled    ApiStats `json:"total_s3_canceled"`
+}
+
+func (st *APIStatsSys) GetCurrentStats(ctx context.Context) (StatsResp, error) {
+	var statsResp = StatsResp{
+		CurrentS3Requests:  ApiStats{ApiStats: st.HttpStats.currentS3Requests.apiStats},
+		CurrentIamRequests: ApiStats{ApiStats: st.HttpStats.currentIamRequests.apiStats},
+		TotalIamRequests:   ApiStats{ApiStats: st.HttpStats.totalIamRequests.apiStats},
+		TotalIamErrors:     ApiStats{ApiStats: st.HttpStats.totalIamErrors.apiStats},
+		TotalIam4xxErrors:  ApiStats{ApiStats: st.HttpStats.totalIam4xxErrors.apiStats},
+		TotalIam5xxErrors:  ApiStats{ApiStats: st.HttpStats.totalIam5xxErrors.apiStats},
+		TotalIamCanceled:   ApiStats{ApiStats: st.HttpStats.totalIamCanceled.apiStats},
+		TotalS3Requests:    ApiStats{ApiStats: st.HttpStats.totalS3Requests.apiStats},
+		TotalS3Errors:      ApiStats{ApiStats: st.HttpStats.totalS3Errors.apiStats},
+		TotalS34xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS34xxErrors.apiStats},
+		TotalS35xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS35xxErrors.apiStats},
+		TotalS3Canceled:    ApiStats{ApiStats: st.HttpStats.totalS3Canceled.apiStats},
+	}
+	return statsResp, nil
+}

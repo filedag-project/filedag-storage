@@ -70,6 +70,6 @@ func (iamApi *iamApiServer) registerAdminsRouter(router *mux.Router, stats *http
 	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.HttpStats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.HttpStats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/user-infos").HandlerFunc(stats.HttpStats.RecordAPIHandler("user-infos", iamApi.AccountInfos))
-	apiRouter.Methods(http.MethodGet).Path("/overview").HandlerFunc(stats.HttpStats.RecordAPIHandler("overview", iamApi.Overview))
+	apiRouter.Methods(http.MethodGet).Path("/request-overview").HandlerFunc(stats.HttpStats.RecordAPIHandler("request-overview", iamApi.RequestOverview))
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 }
