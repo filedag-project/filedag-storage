@@ -11,6 +11,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/golang/mock/gomock"
 	blocks "github.com/ipfs/go-block-format"
+	"reflect"
 	"testing"
 )
 
@@ -75,13 +76,14 @@ func newDatanode(t *testing.T) *mocks.MockDataNodeClient {
 	}
 	ctrl := gomock.NewController(t)
 	m := mocks.NewMockDataNodeClient(ctrl)
-	m.EXPECT().Put(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.AddRequest{})).AnyTimes().Return(nil, nil)
-	m.EXPECT().Get(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.GetRequest{})).AnyTimes().
+	var ctx = reflect.TypeOf((*context.Context)(nil)).Elem()
+	m.EXPECT().Put(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.AddRequest{})).AnyTimes().Return(nil, nil)
+	m.EXPECT().Get(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.GetRequest{})).AnyTimes().
 		Return(&proto.GetResponse{Data: block.RawData(), Meta: metaBuf.Bytes()}, nil)
-	m.EXPECT().GetMeta(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.GetMetaRequest{})).AnyTimes().
+	m.EXPECT().GetMeta(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.GetMetaRequest{})).AnyTimes().
 		Return(&proto.GetMetaResponse{Meta: metaBuf.Bytes()}, nil)
-	m.EXPECT().Delete(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.DeleteRequest{})).AnyTimes().Return(nil, nil)
-	m.EXPECT().Size(gomock.AssignableToTypeOf(context.Background()), gomock.AssignableToTypeOf(&proto.SizeRequest{})).AnyTimes().
+	m.EXPECT().Delete(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.DeleteRequest{})).AnyTimes().Return(nil, nil)
+	m.EXPECT().Size(gomock.AssignableToTypeOf(ctx), gomock.AssignableToTypeOf(&proto.SizeRequest{})).AnyTimes().
 		Return(&proto.SizeResponse{Size: int64(datanode.HeaderSize + 4 + len(block.RawData()))}, nil)
 	return m
 }
