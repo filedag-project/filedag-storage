@@ -12,6 +12,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
 	"github.com/filedag-project/filedag-storage/dag/proto"
 	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
+	"github.com/filedag-project/filedag-storage/dag/utils/paralleltask"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
@@ -167,24 +168,20 @@ func (d *DagNode) healthCheck(ctx context.Context, cli *datanode.Client) bool {
 func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	log.Warnf("delete block, cid :%v", cid)
 	keyCode := cid.String()
-	wg := sync.WaitGroup{}
-	wg.Add(len(d.Nodes))
-	for _, node := range d.Nodes {
-		go func(node *datanode.Client) {
-			defer func() {
-				if err := recover(); err != nil {
-					log.Errorf("%s, keyCode:%s, delete block err :%v", node.RpcAddress, keyCode, err)
-				}
-				wg.Done()
-			}()
-			_, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode})
-			if err != nil {
+	_, entryWriteQuorum := d.entryQuorum()
+	taskCtx := context.Background()
+	task := paralleltask.NewParallelTask(taskCtx, entryWriteQuorum, len(d.Nodes)-entryWriteQuorum+1, false)
+	for _, snode := range d.Nodes {
+		node := snode.Client
+		task.Goroutine(func(ctx context.Context) error {
+			var err error
+			if _, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode}); err != nil {
 				log.Debugf("%s, keyCode:%s, delete block err :%v", node.RpcAddress, keyCode, err)
 			}
-		}(node.Client)
+			return err
+		})
 	}
-	wg.Wait()
-	return err
+	return task.Wait()
 }
 
 //Has returns true if the given cid is in the DagNode
@@ -200,33 +197,40 @@ func (d *DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	log.Debugf("get block, cid :%v", cid)
 	keyCode := cid.String()
-	size, err := d.GetSize(ctx, cid)
+	meta, _, onlineNodes, err := d.getMetaInfo(ctx, cid)
 	if err != nil {
 		return nil, err
 	}
+	size := meta.BlockSize
+	entryReadQuorum, _ := d.entryQuorum()
 
-	merged := make([][]byte, len(d.Nodes))
-	wg := sync.WaitGroup{}
-	wg.Add(len(d.Nodes))
-	for i, node := range d.Nodes {
-		go func(i int, node *datanode.Client) {
-			defer func() {
-				if err := recover(); err != nil {
-					log.Errorf("%s, keyCode:%s, kvdb get err :%v", node.RpcAddress, keyCode, err)
-				}
-				wg.Done()
-			}()
+	merged := make([][]byte, len(onlineNodes))
+	task := paralleltask.NewParallelTask(ctx, entryReadQuorum, len(onlineNodes)-entryReadQuorum+1, true)
+	for i, snode := range onlineNodes {
+		index := i
+		tnode := snode
+		task.Goroutine(func(ctx context.Context) error {
+			// is offline node?
+			if tnode == nil {
+				return errors.New("offline node")
+			}
+			node := tnode.Client
+			var err error
 			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
 				log.Errorf("%s, keyCode:%s,kvdb get :%v", node.RpcAddress, keyCode, err)
-				merged[i] = nil
 			} else {
-				merged[i] = res.Data
+				merged[index] = res.Data
+				return nil
 			}
-		}(i, node.Client)
+			return err
+		})
+
 	}
-	wg.Wait()
-	// TODO: After obtaining the shard data that meets the conditions, we can proceed
+	if err = task.Wait(); err != nil {
+		log.Error("task error")
+		return nil, err
+	}
 
 	enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(size))
 	if err != nil {
@@ -249,17 +253,31 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 
 //GetSize returns the size of the block with the given cid
 func (d *DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
-	metas, errs := readAllMeta(ctx, d.Nodes, cid.String())
-	entryReadQuorum, _ := d.entryQuorum()
-	reducedErr := reduceQuorumErrs(ctx, errs, entryOpIgnoredErrs, len(metas)/2, errErasureReadQuorum)
-	if reducedErr != nil {
-		return 0, reducedErr
-	}
-	meta, err := findMetaInQuorum(ctx, metas, entryReadQuorum)
-	if err != nil {
-		return 0, err
-	}
+	meta, _, _, err := d.getMetaInfo(ctx, cid)
 	return int(meta.BlockSize), err
+}
+
+func (d *DagNode) getMetaInfo(ctx context.Context, cid cid.Cid) (meta Meta, metas []Meta, onlineNodes []*StorageNode, err error) {
+	var errs []error
+	metas, errs = readAllMeta(ctx, d.Nodes, cid.String())
+	entryReadQuorum, _ := d.entryQuorum()
+	reducedErr := reduceQuorumErrs(ctx, errs, entryOpIgnoredErrs, entryReadQuorum, errErasureReadQuorum)
+	if reducedErr != nil {
+		return meta, nil, nil, reducedErr
+	}
+	meta, err = findMetaInQuorum(ctx, metas, entryReadQuorum)
+	if err != nil {
+		return meta, nil, nil, err
+	}
+	onlineNodes = make([]*StorageNode, len(metas))
+	for i, m := range metas {
+		if m.BlockSize == meta.BlockSize {
+			onlineNodes[i] = d.Nodes[i]
+		} else {
+			onlineNodes[i] = nil
+		}
+	}
+	return meta, metas, onlineNodes, err
 }
 
 //Put adds the given block to the DagNode
@@ -300,30 +318,28 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	if ok {
 		//log.Debugf("encode ok, the data is the same format as Encode. No data is modified")
 	}
-	wg := sync.WaitGroup{}
-	wg.Add(len(d.Nodes))
-	for i, node := range d.Nodes {
-		go func(i int, node *datanode.Client) {
-			defer func() {
-				if err := recover(); err != nil {
-					log.Errorf("%s,keyCode:%s,kvdb put :%v", node.RpcAddress, keyCode, err)
-				}
-				wg.Done()
-			}()
+	_, entryWriteQuorum := d.entryQuorum()
+	taskCtx := context.Background()
+	task := paralleltask.NewParallelTask(taskCtx, entryWriteQuorum, len(d.Nodes)-entryWriteQuorum+1, false)
+	for i, snode := range d.Nodes {
+		index := i
+		node := snode.Client
+		task.Goroutine(func(ctx context.Context) error {
+			var err error
 			if _, err = node.Client.Put(ctx, &proto.AddRequest{
 				Key:  keyCode,
 				Meta: metaBuf.Bytes(),
-				Data: shards[i],
+				Data: shards[index],
 			}); err != nil {
 				log.Errorf("%s,keyCode:%s,kvdb put :%v", node.RpcAddress, keyCode, err)
 				// TODO: Put failure handling
 			}
-		}(i, node.Client)
+			return err
+		})
 	}
-	// TODO: If the specified number of successes is met, the write succeeds,
+	// If the specified number of successes is met, the write succeeds,
 	// or if the specified number of failures is met, the write fails
-	wg.Wait()
-	return err
+	return task.Wait()
 }
 
 //PutMany adds the given blocks to the DagNode
