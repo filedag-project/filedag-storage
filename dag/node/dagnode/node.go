@@ -166,7 +166,7 @@ func (d *DagNode) healthCheck(ctx context.Context, cli *datanode.Client) bool {
 
 //DeleteBlock deletes a block from the DagNode
 func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
-	log.Warnf("delete block, cid :%v", cid)
+	log.Warnf("delete block, cid: %v", cid)
 	keyCode := cid.String()
 	_, entryWriteQuorum := d.entryQuorum()
 	taskCtx := context.Background()
@@ -204,7 +204,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	size := meta.BlockSize
 	entryReadQuorum, _ := d.entryQuorum()
 
-	merged := make([][]byte, len(onlineNodes))
+	shards := make([][]byte, len(onlineNodes))
 	task := paralleltask.NewParallelTask(ctx, entryReadQuorum, len(onlineNodes)-entryReadQuorum+1, true)
 	for i, snode := range onlineNodes {
 		index := i
@@ -220,7 +220,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 			if err != nil {
 				log.Errorw("get error", "datanode", node.RpcAddress, "key", keyCode, "error", err)
 			} else {
-				merged[index] = res.Data
+				shards[index] = res.Data
 				return nil
 			}
 			return err
@@ -237,13 +237,23 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 		log.Errorf("new erasure fail :%v", err)
 		return nil, err
 	}
-	err = enc.DecodeDataBlocks(merged)
+	err = enc.DecodeDataBlocks(shards)
 	if err != nil {
 		log.Errorf("decode date blocks fail :%v", err)
 		return nil, err
 	}
-	data := bytes.Join(merged, []byte(""))
+
+	// merge to block raw data
+	shardSize := int(enc.ShardSize())
+	data := make([]byte, d.config.DataBlocks*shardSize)
+	for i, shard := range shards {
+		if i == d.config.DataBlocks {
+			break
+		}
+		copy(data[i*shardSize:], shard)
+	}
 	data = data[:size]
+
 	b, err := blocks.NewBlockWithCid(data, cid)
 	if err == blocks.ErrWrongHash {
 		return nil, blockstore.ErrHashMismatch
