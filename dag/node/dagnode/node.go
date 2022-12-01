@@ -176,7 +176,7 @@ func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 		task.Goroutine(func(ctx context.Context) error {
 			var err error
 			if _, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode}); err != nil {
-				log.Debugf("%s, keyCode:%s, delete block err :%v", node.RpcAddress, keyCode, err)
+				log.Errorw("delete error", "datanode", node.RpcAddress, "key", keyCode, "error", err)
 			}
 			return err
 		})
@@ -218,7 +218,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 			var err error
 			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
-				log.Errorf("%s, keyCode:%s,kvdb get :%v", node.RpcAddress, keyCode, err)
+				log.Errorw("get error", "datanode", node.RpcAddress, "key", keyCode, "error", err)
 			} else {
 				merged[index] = res.Data
 				return nil
@@ -228,7 +228,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 
 	}
 	if err = task.Wait(); err != nil {
-		log.Error("task error")
+		log.Errorf("task error: %v", err)
 		return nil, err
 	}
 
@@ -309,15 +309,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 		log.Errorf("encodeData fail :%v", err)
 		return err
 	}
-	// TODO: Is verify necessary?
-	ok, err := enc.encoder().Verify(shards)
-	if err != nil {
-		log.Errorf("encode fail :%v", err)
-		return err
-	}
-	if ok {
-		//log.Debugf("encode ok, the data is the same format as Encode. No data is modified")
-	}
+
 	_, entryWriteQuorum := d.entryQuorum()
 	taskCtx := context.Background()
 	task := paralleltask.NewParallelTask(taskCtx, entryWriteQuorum, len(d.Nodes)-entryWriteQuorum+1, false)
@@ -331,8 +323,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 				Meta: metaBuf.Bytes(),
 				Data: shards[index],
 			}); err != nil {
-				log.Errorf("%s,keyCode:%s,kvdb put :%v", node.RpcAddress, keyCode, err)
-				// TODO: Put failure handling
+				log.Errorw("put error", "datanode", node.RpcAddress, "key", keyCode, "error", err)
 			}
 			return err
 		})
