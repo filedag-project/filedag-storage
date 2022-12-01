@@ -9,6 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-blockservice"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -70,7 +71,8 @@ func TestMain(m *testing.M) {
 		}
 		return bucketInfos
 	}
-	NewIamApiServer(router, authSys, func(accessKey string) {}, bucketInfoFunc)
+
+	NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), func(accessKey string) {}, bucketInfoFunc)
 	reqPutUserOtherUrl := addUserUrl(otherUserAccessKey, otherUserSecretKey, defaultCap)
 	reqPutUserOther := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserOtherUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, &testing.T{})
 	resultOther := reqTest(reqPutUserOther)

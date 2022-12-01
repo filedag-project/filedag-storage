@@ -12,6 +12,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-blockservice"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -73,8 +74,9 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	iamapi.NewIamApiServer(router, authSys, cleanData, func(ctx context.Context, accessKey string) []store.BucketInfo { return nil })
-	NewS3Server(router, authSys, bmSys, storageSys)
+
+	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, func(ctx context.Context, accessKey string) []store.BucketInfo { return nil })
+	NewS3Server(router, authSys, bmSys, storageSys, httpstats.NewHttpStatsSys(db))
 	os.Exit(m.Run())
 }
 func reqTest(r *http.Request) *httptest.ResponseRecorder {

@@ -12,6 +12,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-blockservice"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -105,8 +106,8 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 		}
 		return bucketInfos
 	}
-	iamapi.NewIamApiServer(router, authSys, cleanData, bucketInfoFunc)
-	s3api.NewS3Server(router, authSys, bmSys, storageSys)
+	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, bucketInfoFunc)
+	s3api.NewS3Server(router, authSys, bmSys, storageSys, httpstats.NewHttpStatsSys(db))
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		fmt.Printf("start sever at http://%v%v", ip, port)
