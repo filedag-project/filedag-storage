@@ -26,7 +26,7 @@ const Bucket = (props:any) => {
     const {Name} = data;
     history.push({
       pathname: RouterPath.power,
-      state: { path:  `/${Name}`},
+      state: { path:  `${Name}`},
     });
   }
   return (

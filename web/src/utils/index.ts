@@ -1,4 +1,6 @@
 import convert from 'xml-js';
+import { ACCESS_KEY_ID, Cookies } from '@/utils/cookies';
+
 const xmlStreamToJs = async (data) => {
   try{
     const res = await new Response(data, {
@@ -74,6 +76,222 @@ const download = (blob:Blob,name:string)=>{
   window.URL.revokeObjectURL(href);
 }
 
+const getPublic = (bucket:string)=>{
+  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const json = {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+          "s3:*"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            accessKey //////用户
+          ]
+        },
+        "Resource": [
+          `arn:aws:s3:::${bucket}/*` //////bucket
+        ],
+        "Sid": ""
+      },
+      {
+        "Action": [
+          "s3:GetBucketLocation",
+          "s3:ListBucket",
+          "s3:ListBucketMultipartUploads"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
+        "Resource": [
+          `arn:aws:s3:::${bucket}`//bucket
+        ],
+        "Sid": ""
+      },
+      {
+        "Action": [
+          "s3:AbortMultipartUpload",
+          "s3:DeleteObject",
+          "s3:GetObject",
+          "s3:ListMultipartUploadParts",
+          "s3:PutObject"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
+        "Resource": [
+          `arn:aws:s3:::${bucket}/*`//bucket
+        ],
+        "Sid": ""
+      }
+    ]
+  };
+  return json;
+}
+
+const getDownload = (bucket:string)=>{
+  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const json = {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+          "s3:*"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            accessKey
+          ]
+        },
+        "Resource": [
+          "arn:aws:s3:::books/*"//bucket
+        ],
+        "Sid": ""
+      },
+      {
+        "Action": [
+          "s3:GetBucketLocation",
+          "s3:ListBucket"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
+        "Resource": [
+          `arn:aws:s3:::${bucket}`//bucket
+        ],
+        "Sid": ""
+      },
+      {
+        "Action": [
+          "s3:GetObject"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
+        "Resource": [
+          "arn:aws:s3:::books/*"//bucket
+        ],
+        "Sid": ""
+      }
+    ]
+  };
+  return json;
+}
+
+const getUpload = (bucket:string)=>{
+  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const json = {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+          "s3:*"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            accessKey//用户
+          ]
+        },
+        "Resource": [
+          "arn:aws:s3:::books/*"//bucket
+        ],
+        "Sid": ""
+      },
+      {
+        "Action": [
+          "s3:GetBucketLocation",
+          "s3:ListBucketMultipartUploads"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
+        "Resource": [
+          "arn:aws:s3:::books"//bucket
+        ],
+        "Sid": ""
+      },
+      {
+        "Action": [
+          "s3:AbortMultipartUpload",
+          "s3:DeleteObject",// 还需商定 上传是否可以有删除权限
+          "s3:ListMultipartUploadParts",
+          "s3:PutObject"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
+        "Resource": [
+          `arn:aws:s3:::${bucket}`//
+        ],
+        "Sid": ""
+      }
+    ]
+  };
+  return json;
+}
+
+const getPrivate = (bucket:string)=>{
+  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const json = {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+          "s3:*"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            accessKey //用户
+          ]
+        },
+        "Resource": [
+          "arn:aws:s3:::books/*"//bucket
+        ],
+        "Sid": ""
+      },
+      {
+        "Action": [
+          "s3:GetBucketLocation"
+        ],
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
+        "Resource": [
+          `arn:aws:s3:::${bucket}`//bucket
+        ],
+        "Sid": ""
+      }
+    ]
+  };
+  return json;
+}
+
 
 export { 
   xmlStreamToJs,
@@ -82,5 +300,9 @@ export {
   formatBytes,
   escapeStr,
   download,
-  xmlToJs
+  xmlToJs,
+  getPublic,
+  getDownload,
+  getUpload,
+  getPrivate
 };

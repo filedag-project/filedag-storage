@@ -33,6 +33,20 @@
                         color: var(--color-title);
                         cursor: pointer;
                     }
+                    .action{
+                        display: flex;
+                        align-items: center;
+                        .change-password{
+                            font-size: 20px;
+                            color: var(--color-title);
+                            cursor: pointer;
+                            padding-left: 20px;
+                            span{
+                                font-size: 14px;
+                                padding-left: 5px;
+                            }
+                        }
+                    }
                     .login-out{
                         font-size: 20px;
                         color: var(--color-title);

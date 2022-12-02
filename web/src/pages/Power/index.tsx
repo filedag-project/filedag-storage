@@ -1,61 +1,79 @@
 import { observer } from "mobx-react";
-import { Button, Radio, Tabs,Input } from 'antd';
+import { Button, Radio,Input } from 'antd';
 import styles from './style.module.scss';
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import powerStore from "@/store/modules/power";
 import { useLocation } from "react-router";
+import { getDownload, getPrivate, getPublic, getUpload } from "@/utils";
 const { TextArea } = Input;
 
 interface LocationParams {
   path: string;
 }
 
+
+
 const Power = (props:any) => {
   const {
     state: { path }
   } = useLocation<LocationParams>();
+  const [selectValue,setSelectValue]=useState('');
 
   useEffect(()=>{
+    console.log(path,'path 234');
+    
     powerStore.fetchGetPower(path);
   },[]);
 
-  const commonChange = ()=>{
+  const radioList = [
+    {
+      key:'Public',
+      value: getPublic(path)
+    },
+    {
+      key:'Download',
+      value: getDownload(path)
+    },
+    {
+      key:'Upload',
+      value: getUpload(path)
+    },
+    {
+      key:'Private',
+      value: getPrivate(path)
+    }
+  ]
 
+  const radioChange = (e)=>{
+    const value = e.target.value;
+    const obj = radioList.find(n=> n.key === value);
+    console.log(obj,'ddd');
+    const json = JSON.stringify(obj?.value);
+    powerStore.SET_JSON(json);
+    setSelectValue(value);
   };
 
   const save = ()=>{
-    powerStore.fetchPutPower(path,JSON.parse(powerStore.json))
+    powerStore.fetchPutPower(path,powerStore.json);
   }
 
   return <div className={styles.power}>
-    <Tabs defaultActiveKey="1">
-      <Tabs.TabPane tab="Common" key="1">
-        <Radio.Group onChange={commonChange}>
-          <div className="radio-item">
-            <Radio value="public">Public</Radio>
-          </div>
-          <div className="radio-item">
-            <Radio value="download">Download</Radio>
-          </div>
-          <div className="radio-item">
-            <Radio value="upload">Upload</Radio>
-          </div>
-          <div className="radio-item">
-            <Radio value="private">Private</Radio>
-          </div>
-          <div className="btn-wrap">
+          <Radio.Group onChange={radioChange} value={selectValue}>
+            {
+              radioList.map((item,index)=>{
+                return <div className="radio-item" key={index}>
+                <Radio value={item.key}>{item.key}</Radio>
+              </div>
+              })
+            }
+          </Radio.Group>
+          <TextArea value={powerStore.json} rows={6} />
+          <div className="btn-wrap" onClick={save}>
             <Button type="primary">Save</Button>
           </div>
-        </Radio.Group>
-      </Tabs.TabPane>
-      <Tabs.TabPane tab="Custom" key="2">
-        <TextArea value={powerStore.json} rows={6} />
-        <div className="btn-wrap">
-          <Button type="primary" onClick={save}>Save</Button>
-        </div>
-      </Tabs.TabPane>
-    </Tabs>
   </div>;
 };
 
 export default observer(Power);
+
+

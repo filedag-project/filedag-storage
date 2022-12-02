@@ -15,7 +15,7 @@ const items = [
     key: 'dashboard',
   },
   { icon: <AppstoreOutlined />, label: 'Buckets', key: 'buckets'},
-  { icon: <UserOutlined />, label: 'User', key: 'user' },
+  { icon: <UserOutlined />, label: 'Overview', key: 'overview' },
 ];
 
 
