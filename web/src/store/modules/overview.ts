@@ -11,7 +11,7 @@ interface userInfoType {
   objects:string;
 }
 
-class DashboardStore {
+class OverviewStore {
   userInfo:userInfoType = {
     total_storage_capacity:'0',
     use_storage_capacity:'0',
@@ -66,6 +66,6 @@ class DashboardStore {
   }
 }
 
-const dashboardStore = new DashboardStore();
+const overviewStore = new OverviewStore();
 
-export default dashboardStore;
+export default overviewStore;
