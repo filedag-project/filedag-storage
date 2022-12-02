@@ -572,6 +572,14 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			pass:               thePassToChange,
 		},
 		{
+			name:               "root user change a user pass",
+			credAccessKey:      DefaultTestAccessKey,
+			credSecretKey:      DefaultTestSecretKey,
+			accessKey:          DefaultTestAccessKey,
+			expectedRespStatus: http.StatusConflict,
+			pass:               thePassToChange,
+		},
+		{
 			name:               "root user change a non-exist user pass",
 			credAccessKey:      DefaultTestAccessKey,
 			credSecretKey:      DefaultTestSecretKey,

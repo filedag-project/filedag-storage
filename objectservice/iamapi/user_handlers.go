@@ -218,12 +218,15 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
 		return
 	}
-	if username != cred.AccessKey && cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+	if cred.AccessKey != c.ParentUser && cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 		return
 	}
-	c.SecretKey = secret
-	err := iamApi.authSys.Iam.UpdateUser(r.Context(), c)
+	cred.SecretKey = secret
+	m := make(map[string]interface{})
+	var err error
+	cred.SessionToken, err = auth.JWTSignWithAccessKey(cred.AccessKey, m, auth.DefaultSecretKey)
+	err = iamApi.authSys.Iam.UpdateUser(r.Context(), cred)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return

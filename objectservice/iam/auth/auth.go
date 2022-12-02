@@ -157,7 +157,7 @@ func CreateNewCredentialsWithMetadata(accessKey, secretKey string, m map[string]
 	}
 	cred.Expiration = time.Unix(expiry, 0).UTC()
 
-	cred.SessionToken, err = jWTSignWithAccessKey(cred.AccessKey, m, tokenSecret)
+	cred.SessionToken, err = JWTSignWithAccessKey(cred.AccessKey, m, tokenSecret)
 	if err != nil {
 		return cred, err
 	}
@@ -174,8 +174,8 @@ func GetNewCredentialsWithMetadata(m map[string]interface{}, tokenSecret string)
 	return CreateNewCredentialsWithMetadata(accessKey, secretKey, m, tokenSecret)
 }
 
-// jWTSignWithAccessKey - generates a session token.
-func jWTSignWithAccessKey(accessKey string, m map[string]interface{}, tokenSecret string) (string, error) {
+// JWTSignWithAccessKey - generates a session token.
+func JWTSignWithAccessKey(accessKey string, m map[string]interface{}, tokenSecret string) (string, error) {
 	m["accessKey"] = accessKey
 	jwt := jwtgo.NewWithClaims(jwtgo.SigningMethodHS512, jwtgo.MapClaims(m))
 	return jwt.SignedString([]byte(tokenSecret))

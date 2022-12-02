@@ -194,25 +194,12 @@ func (s *AuthSys) checkKeyValidTemp(r *http.Request, accessKey string) (auth.Cre
 			}
 			return cred, false, apierrors.ErrInvalidAccessKeyID
 		}
-		//check tempuser
-		if ucred.ParentUser != "" {
-			if ucred.ParentUser == s.AdminCred.AccessKey {
-				if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
-					return cred, false, apierrors.ErrInvalidToken
-				}
-				return ucred, true, apierrors.ErrNone
-			}
-			ucred, ok = s.Iam.GetUser(r.Context(), ucred.ParentUser)
-			if !ok {
-				// Credentials will be invalid but and disabled
-				// return a different error in such a scenario.
-				if ucred.Status == auth.AccountOff {
-					return cred, false, apierrors.ErrAccessKeyDisabled
-				}
-				return ucred, false, apierrors.ErrInvalidAccessKeyID
-			}
+		if ucred.IsTemp() {
 			if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
 				return ucred, false, apierrors.ErrInvalidToken
+			}
+			if ucred.ParentUser == s.AdminCred.AccessKey {
+				return ucred, true, apierrors.ErrNone
 			}
 		}
 
