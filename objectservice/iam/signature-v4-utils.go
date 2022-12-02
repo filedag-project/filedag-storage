@@ -154,7 +154,7 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 			return cred, false, apierrors.ErrInvalidAccessKeyID
 		}
 		//check tempuser
-		if ucred.ParentUser != "" {
+		if ucred.IsTemp() {
 			if ucred.ParentUser == s.AdminCred.AccessKey {
 				if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
 					return cred, false, apierrors.ErrInvalidToken
@@ -171,7 +171,6 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 				return cred, false, apierrors.ErrInvalidAccessKeyID
 			}
 		}
-
 		cred = ucred
 	}
 	owner := cred.AccessKey == s.AdminCred.AccessKey
