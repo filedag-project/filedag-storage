@@ -313,7 +313,7 @@ func TestIamApiServer_AccountInfo(t *testing.T) {
 	// Iterating over the cases, fetching the result validating the response.
 	for _, testCase := range testCases {
 		// mock an HTTP request
-		t.Run(testCase.accessKey, func(t *testing.T) {
+		t.Run(testCase.name, func(t *testing.T) {
 			//user info
 			urlValues := make(url.Values)
 			urlValues.Set(accessKey, testCase.accessKey)
@@ -528,6 +528,80 @@ func TestIamApiServer_SetStatus(t *testing.T) {
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result.Code)
 			}
+		})
+
+	}
+}
+func TestIamApiServer_AccountInfos(t *testing.T) {
+	// test cases with inputs and expected result for UserInfo.
+	testCases := []struct {
+		name               string
+		credAccessKey      string
+		credSecretKey      string
+		expectedRespStatus int // expected response status body.
+	}{
+		{
+			name:               "root user get himself info",
+			credAccessKey:      DefaultTestAccessKey,
+			credSecretKey:      DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		{
+			name:               "root user get himself info",
+			credAccessKey:      normalAccessKey,
+			credSecretKey:      normalSecretKey,
+			expectedRespStatus: http.StatusForbidden,
+		},
+	}
+	u := "http://127.0.0.1:9985/admin/v1/user-infos"
+	// Iterating over the cases, fetching the result validating the response.
+	for _, testCase := range testCases {
+		// mock an HTTP request
+		t.Run(testCase.credAccessKey, func(t *testing.T) {
+			//user info
+			userinfoReq := utils.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
+			result1 := reqTest(userinfoReq)
+			if result1.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result1.Code)
+			}
+			fmt.Println(result1.Body.String())
+		})
+
+	}
+}
+func TestIamApiServer_request_overview(t *testing.T) {
+	// test cases with inputs and expected result for UserInfo.
+	testCases := []struct {
+		name               string
+		credAccessKey      string
+		credSecretKey      string
+		expectedRespStatus int // expected response status body.
+	}{
+		{
+			name:               "root user get himself info",
+			credAccessKey:      DefaultTestAccessKey,
+			credSecretKey:      DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		{
+			name:               "root user get himself info",
+			credAccessKey:      normalAccessKey,
+			credSecretKey:      normalSecretKey,
+			expectedRespStatus: http.StatusForbidden,
+		},
+	}
+	u := "http://127.0.0.1:9985/admin/v1/request-overview"
+	// Iterating over the cases, fetching the result validating the response.
+	for _, testCase := range testCases {
+		// mock an HTTP request
+		t.Run(testCase.credAccessKey, func(t *testing.T) {
+			//user info
+			userinfoReq := utils.MustNewSignedV4Request(http.MethodGet, u, 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
+			result1 := reqTest(userinfoReq)
+			if result1.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result1.Code)
+			}
+			fmt.Println(result1.Body.String())
 		})
 
 	}
