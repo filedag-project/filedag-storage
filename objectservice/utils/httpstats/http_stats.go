@@ -81,7 +81,9 @@ func (st *APIStatsSys) RecordAPIHandler(api string, f http.HandlerFunc) http.Han
 		f.ServeHTTP(statsWriter, r)
 
 		st.HttpStats.updateStats(api, r, statsWriter)
-		st.updateObjInfo(api, r, statsWriter)
+		if strings.Contains(api, "PutObject") || strings.Contains(api, "GetObject") {
+			st.updateObjInfo(api, r, statsWriter)
+		}
 	}
 }
 
@@ -128,20 +130,20 @@ func (obj *ObjectInfo) inc(put bool, filetype string, bytes uint64) {
 		if obj.PutObjCount == nil {
 			obj.PutObjCount = make(map[string]uint64)
 		}
-		obj.PutObjCount["PutObjCount"+filetype]++
+		obj.PutObjCount[filetype]++
 		if obj.PutObjBytes == nil {
 			obj.PutObjBytes = make(map[string]uint64)
 		}
-		obj.PutObjBytes["PutObjBytes"+filetype] += bytes
+		obj.PutObjBytes[filetype] += bytes
 	} else {
 		if obj.GetObjCount == nil {
 			obj.GetObjCount = make(map[string]uint64)
 		}
-		obj.GetObjCount["GetObjectHandler"+filetype]++
+		obj.GetObjCount[filetype]++
 		if obj.GetObjBytes == nil {
 			obj.GetObjBytes = make(map[string]uint64)
 		}
-		obj.GetObjBytes["GetObjBytes"+filetype] += bytes
+		obj.GetObjBytes[filetype] += bytes
 	}
 
 }
@@ -185,19 +187,18 @@ func (st *HTTPStats) updateStats(api string, r *http.Request, w *ResponseRecorde
 
 // Update statistics from http request and response data
 func (st *APIStatsSys) updateObjInfo(api string, r *http.Request, w *ResponseRecorder) {
-	if strings.Contains(r.URL.Path, "admin/v1") || strings.Contains(r.URL.Path, "consoles/v1") {
-		return
-	} else {
+	if strings.Contains(api, "PutObject") {
 		fileType := r.Header.Get(consts.ContentType)
 		if fileType == "" {
 			fileType = "unknown"
 		}
-		if strings.Contains(api, "PutObject") {
-			st.ObjectInfo.inc(true, fileType, uint64(r.ContentLength))
-		} else if strings.Contains(api, "PutObject") {
-			st.ObjectInfo.inc(false, fileType, uint64(r.ContentLength))
+		st.ObjectInfo.inc(true, fileType, uint64(r.ContentLength))
+	} else if strings.Contains(api, "GetObject") {
+		fileType := w.Header().Get(consts.ContentType)
+		if fileType == "" {
+			fileType = "unknown"
 		}
-
+		st.ObjectInfo.inc(false, fileType, uint64(r.ContentLength))
 	}
 }
 
