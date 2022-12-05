@@ -2,13 +2,12 @@ import styles from './action.module.scss';
 import { Upload, Button } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import objectsStore from '@/store/modules/objects';
-import { escapeStr } from '@/utils';
 import { observer } from 'mobx-react';
 
 const Action = (props:any) => {
   const {bucket,Created} = props;
   const customChange = async (e)=>{
-    const name = escapeStr(e.file.name);
+    const name = e.file.name;
     const path = `${bucket}/${name}`;
     await objectsStore.fetchUpload(path,e.file);
     objectsStore.fetchList(bucket);

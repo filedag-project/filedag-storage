@@ -1,7 +1,7 @@
 import Action from "@/components/Objects/action";
 import ObjectTable from "@/components/Objects/table";
 import objectsStore from "@/store/modules/objects";
-import { download, escapeStr } from "@/utils";
+import { download } from "@/utils";
 import { Modal } from "antd";
 import { observer } from "mobx-react";
 import { useEffect } from "react";
@@ -23,7 +23,7 @@ const Objects = (props:any) => {
   },[bucket])
 
   const confirmDelete = async ()=>{
-    const name = escapeStr(objectsStore.deleteName);
+    const name = objectsStore.deleteName;
     const path = `${bucket}/${name}`;
     await objectsStore.fetchDelete(path);
     objectsStore.SET_DELETE_SHOW(false);

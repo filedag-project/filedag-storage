@@ -2,12 +2,8 @@ import { observer } from 'mobx-react';
 import { RestOutlined,SaveOutlined,FolderOutlined,FileTextOutlined } from '@ant-design/icons';
 import overviewStore from "@/store/modules/overview";
 import styles from './style.module.scss';
-import { useEffect } from 'react';
 
 const Overview = (props:any) => {
-  useEffect(()=>{
-    overviewStore.fetchUserInfo();
-  },[])
   return <div className={styles.overview}>
     <div className={styles.box}>
       <div className={styles.top}>

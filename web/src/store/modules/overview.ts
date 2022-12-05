@@ -9,6 +9,7 @@ interface userInfoType {
   use_storage_capacity:string;
   buckets:number;
   objects:string;
+  account_name:string;
 }
 
 class OverviewStore {
@@ -16,7 +17,8 @@ class OverviewStore {
     total_storage_capacity:'0',
     use_storage_capacity:'0',
     buckets:0,
-    objects:'0'
+    objects:'0',
+    account_name:''
   };
   constructor() {
     makeObservable(this, {
@@ -34,7 +36,7 @@ class OverviewStore {
           protocol: 'http',
           method: HttpMethods.get,
           applyChecksum: true,
-          path:'/admin/v1/user-info',
+          path:'/console/v1/user-info',
           region: '',
           query:{
             "accessKey":Cookies.getKey(ACCESS_KEY_ID),
@@ -51,13 +53,14 @@ class OverviewStore {
           const _current = _.get(current,'size','0');
           return Number(total) + Number(_current);
         },0);
-        
+        const name = _.get(res,'account_name')
         const _size = formatBytes(size);
         this.userInfo = {
           total_storage_capacity:_total,
           use_storage_capacity:_use,
           buckets: buckets.length,
           objects: _size,
+          account_name: name
         };
       } catch (e) {
     
