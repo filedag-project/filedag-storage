@@ -61,9 +61,6 @@ const formatBytes = (bytes, decimals = 2) =>{
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-const escapeStr = (str:string)=>{
-  return str;
-};
 
 const download = (blob:Blob,name:string)=>{
   let downloadElement = document.createElement('a');
@@ -298,7 +295,6 @@ export {
   streamToJs,
   formatDate,
   formatBytes,
-  escapeStr,
   download,
   xmlToJs,
   getPublic,

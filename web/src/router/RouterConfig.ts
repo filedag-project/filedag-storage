@@ -9,7 +9,8 @@ enum RouterPath {
   createBucket = '/create-bucket',
   dashboard = '/dashboard',
   overview = '/overview',
-  power = '/power'
+  power = '/power',
+  user = '/user',
 }
 
 const Routes: RouteModel[] = [
@@ -54,6 +55,12 @@ const Routes: RouteModel[] = [
     path: RouterPath.power,
     auth: true,
     component: lazy(() => import('@/pages/Power')),
+  },
+  {
+    name: 'user',
+    path: RouterPath.user,
+    auth: true,
+    component: lazy(() => import('@/pages/User')),
   },
   {
     name: 'login',

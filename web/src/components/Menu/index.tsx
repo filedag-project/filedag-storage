@@ -27,8 +27,6 @@ const PageMenu = () => {
   useEffect(()=>{
     const { pathname } = location;
     setSelectedKey(pathname.replace("/",""));
-    console.log(pathname,'objects');
-    
     const _buckets = ['/power','/objects']
     if(_buckets.includes(pathname)){
       setSelectedKey('buckets')
