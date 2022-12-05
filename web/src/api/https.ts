@@ -80,8 +80,6 @@ export const Axios = {
         const _result = await this.handlerJsonAWS(result);
         resolve(_result);
       }).catch(error=>{
-        
-        console.log(error,'222222');
         this.handlerError('network error');
       })
     })

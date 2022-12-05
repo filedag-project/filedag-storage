@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Redirect, Route, Switch } from 'react-router-dom';
 
 import PageLayout from '@/layout';
@@ -20,6 +20,7 @@ const MRouter = () => {
               ></PageLayout>
             );
           })}
+          
           <Route path={'/*'}>
             <Redirect to={RouterPath.error}></Redirect>
           </Route>
