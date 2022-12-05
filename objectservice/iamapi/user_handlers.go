@@ -168,6 +168,20 @@ func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) 
 	response.WriteSuccessResponseJSON(w, r, acctInfo)
 }
 
+//IsAdmin check user if admin
+func (iamApi *iamApiServer) IsAdmin(w http.ResponseWriter, r *http.Request) {
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetUserInfoAction, "", "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(s3err))
+		return
+	}
+	isAdmin := false
+	if cred.AccessKey == iamApi.authSys.AdminCred.AccessKey {
+		isAdmin = true
+	}
+	response.WriteSuccessResponseJSON(w, r, isAdmin)
+}
+
 // AccountInfos returns all user usage
 func (iamApi *iamApiServer) AccountInfos(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

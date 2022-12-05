@@ -136,9 +136,13 @@ func (sys *IdentityAMSys) GetAllUser(ctx context.Context) ([]UserIdentity, error
 	}
 	for _, userIdentity := range users {
 		if userIdentity.Credentials.IsExpired() {
+			sys.RemoveUser(ctx, userIdentity.Credentials.AccessKey)
 			continue
 		}
 		if userIdentity.Credentials.IsTemp() {
+			continue
+		}
+		if userIdentity.Credentials.AccessKey == "" {
 			continue
 		}
 		allusers = append(allusers, userIdentity)

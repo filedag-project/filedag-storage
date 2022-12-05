@@ -52,6 +52,9 @@ func (I *iamLevelDBStore) loadUsers(ctx context.Context) (map[string]UserIdentit
 		if err = entry.UnmarshalValue(&cred); err != nil {
 			continue
 		}
+		if cred.Credentials.AccessKey == "" {
+			continue
+		}
 		m[cred.Credentials.AccessKey] = cred
 	}
 	return m, nil

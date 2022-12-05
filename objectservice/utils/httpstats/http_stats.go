@@ -69,11 +69,13 @@ func (st *APIStatsSys) StoreApiLog(ctx context.Context) {
 }
 func (st *APIStatsSys) RecordAPIHandler(api string, f http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		st.HttpStats.currentS3Requests.inc(api)
-		defer st.HttpStats.currentS3Requests.dec(api)
-		st.HttpStats.currentIamRequests.inc(api)
-		defer st.HttpStats.currentS3Requests.dec(api)
-
+		if strings.Contains(r.URL.Path, "admin/v1") || strings.Contains(r.URL.Path, "consoles/v1") {
+			st.HttpStats.currentIamRequests.inc(api)
+			defer st.HttpStats.currentS3Requests.dec(api)
+		} else {
+			st.HttpStats.currentS3Requests.inc(api)
+			defer st.HttpStats.currentS3Requests.dec(api)
+		}
 		statsWriter := NewResponseRecorder(w)
 
 		f.ServeHTTP(statsWriter, r)
