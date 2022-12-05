@@ -1,7 +1,7 @@
 import { observer } from 'mobx-react';
 import { RestOutlined,SaveOutlined,FolderOutlined,FileTextOutlined } from '@ant-design/icons';
-import overviewStore from "@/store/modules/overview";
 import styles from './style.module.scss';
+import globalStore from '@/store/modules/global';
 
 const Overview = (props:any) => {
   return <div className={styles.overview}>
@@ -12,7 +12,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {overviewStore.userInfo.buckets}
+          {globalStore.userInfo.buckets}
         </span>
         <span className={styles.unit}></span>
       </div>
@@ -24,7 +24,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {overviewStore.userInfo.objects}
+          {globalStore.userInfo.objects}
         </span>
         <span className={styles.unit}></span>
       </div>
@@ -36,7 +36,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {overviewStore.userInfo.total_storage_capacity}
+          {globalStore.userInfo.total_storage_capacity}
         </span>
         <span className={styles.unit}></span>
       </div>
@@ -48,7 +48,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {overviewStore.userInfo.use_storage_capacity}
+          {globalStore.userInfo.use_storage_capacity}
         </span>
         <span className={styles.unit}></span>
       </div>

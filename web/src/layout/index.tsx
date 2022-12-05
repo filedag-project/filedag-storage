@@ -2,13 +2,13 @@ import { Redirect, Route, useHistory } from 'react-router-dom';
 import { RouterPath } from '@/router/RouterConfig';
 import classNames from 'classnames';
 import { useEffect, useState } from 'react';
-import { MenuFoldOutlined, MenuUnfoldOutlined,LoginOutlined, FormOutlined, UserOutlined } from '@ant-design/icons';
+import { MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons';
 import styles from './style.module.scss';
 import { Dropdown, Layout, MenuProps } from 'antd';
 import PageMenu from '@/components/Menu';
 import { ACCESS_KEY_ID, Cookies, SECRET_ACCESS_KEY, SESSION_TOKEN } from '@/utils/cookies';
-import overviewStore from '@/store/modules/overview';
 import { observer } from 'mobx-react';
+import globalStore from '@/store/modules/global';
 const { Sider } = Layout;
 const IS_LOGGED = false;
 
@@ -19,7 +19,7 @@ const PageLayout = (props: any) => {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(()=>{
-    overviewStore.fetchUserInfo();
+    globalStore.fetchUserInfo();
   },[]);
 
   const items: MenuProps['items'] = [
@@ -27,7 +27,7 @@ const PageLayout = (props: any) => {
       label: 'Change Password',
       key: 'changePassword',
       onClick:()=>{
-        history.push(RouterPath.user);
+        history.push(RouterPath.changePassword);
       }
     },
     {
@@ -45,8 +45,6 @@ const PageLayout = (props: any) => {
   const triggerSlider = () => {
     setCollapsed(!collapsed);
   };
-  const logOut = ()=>{
-  };
 
   const triggerNode = () => {
     return collapsed ? (
@@ -55,6 +53,10 @@ const PageLayout = (props: any) => {
       <MenuFoldOutlined></MenuFoldOutlined>
     );
   };
+  const name = globalStore.userInfo.account_name;
+
+  console.log(name,'name');
+  
   return (
     <Route
       {...rest}
@@ -82,7 +84,7 @@ const PageLayout = (props: any) => {
                       <Dropdown menu={{ items }} placement="bottomLeft">
                         <div className="user">
                           <UserOutlined />
-                          <span>{overviewStore.userInfo.account_name}</span>
+                          <span>{name}</span>
                         </div>
                       </Dropdown>
                     </div>

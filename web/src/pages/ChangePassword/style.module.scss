@@ -1,0 +1,15 @@
+.user{
+    padding: 40px 15px;
+    .title{
+        font-size: 20px;
+        color: var(--color-title);
+        font-weight: bold;
+        margin: 50px 0;
+    }
+    :global{
+        .ant-form{
+            width: 400px;
+            margin: 0 auto;
+        }
+    }
+}
