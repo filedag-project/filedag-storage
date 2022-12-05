@@ -19,7 +19,7 @@ func TestDagNode(t *testing.T) {
 	var clients []*StorageNode
 	for i := 0; i < 3; i++ {
 		cli := &datanode.Client{
-			Client: newDatanode(t, 2, 1, i),
+			DataClient: newDatanode(t, 2, 1, i),
 		}
 		clients = append(clients, &StorageNode{Client: cli})
 	}

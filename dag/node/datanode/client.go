@@ -15,7 +15,7 @@ type DataNodeClient interface {
 
 //Client is a node that stores erasure-coded sharded data
 type Client struct {
-	Client      proto.DataNodeClient
+	DataClient  proto.DataNodeClient
 	HeartClient healthpb.HealthClient
 	RpcAddress  string
 	Conn        *grpc.ClientConn
@@ -29,7 +29,7 @@ func NewClient(rpcAddress string) (datanode *Client, err error) {
 		return nil, err
 	}
 	datanode = &Client{
-		Client:      proto.NewDataNodeClient(conn),
+		DataClient:  proto.NewDataNodeClient(conn),
 		HeartClient: healthpb.NewHealthClient(conn),
 		RpcAddress:  rpcAddress,
 		Conn:        conn,

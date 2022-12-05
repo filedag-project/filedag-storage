@@ -16,6 +16,7 @@ import (
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	logging "github.com/ipfs/go-log/v2"
 	"google.golang.org/grpc/codes"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
@@ -26,6 +27,8 @@ import (
 var _ blockstore.Blockstore = (*DagNode)(nil)
 
 const healthCheckService = "grpc.health.v1.Health"
+
+var log = logging.Logger("dag-node")
 
 type StorageNode struct {
 	*datanode.Client
@@ -175,7 +178,7 @@ func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 		node := snode.Client
 		task.Goroutine(func(ctx context.Context) error {
 			var err error
-			if _, err = node.Client.Delete(ctx, &proto.DeleteRequest{Key: keyCode}); err != nil {
+			if _, err = node.DataClient.Delete(ctx, &proto.DeleteRequest{Key: keyCode}); err != nil {
 				log.Errorw("delete error", "datanode", node.RpcAddress, "key", keyCode, "error", err)
 			}
 			return err
@@ -216,7 +219,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 			}
 			node := tnode.Client
 			var err error
-			res, err := node.Client.Get(ctx, &proto.GetRequest{Key: keyCode})
+			res, err := node.DataClient.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
 				log.Errorw("get error", "datanode", node.RpcAddress, "key", keyCode, "error", err)
 			} else {
@@ -328,7 +331,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 		node := snode.Client
 		task.Goroutine(func(ctx context.Context) error {
 			var err error
-			if _, err = node.Client.Put(ctx, &proto.AddRequest{
+			if _, err = node.DataClient.Put(ctx, &proto.AddRequest{
 				Key:  keyCode,
 				Meta: metaBuf.Bytes(),
 				Data: shards[index],
@@ -397,7 +400,7 @@ func readAllMeta(ctx context.Context, nodes []*StorageNode, key string) ([]Meta,
 				errs[index] = errNodeNotFound
 				return
 			}
-			resp, err := nodes[index].Client.Client.GetMeta(ctx, &proto.GetMetaRequest{Key: key})
+			resp, err := nodes[index].Client.DataClient.GetMeta(ctx, &proto.GetMetaRequest{Key: key})
 			if err != nil {
 				if st, ok := status.FromError(err); ok && st.Code() == codes.Unknown {
 					errs[index] = errors.New(st.Message())
