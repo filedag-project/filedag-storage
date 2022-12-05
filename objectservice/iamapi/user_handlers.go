@@ -11,6 +11,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/gorilla/mux"
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -200,12 +201,39 @@ func (iamApi *iamApiServer) AccountInfos(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
+	bucketInfos := iamApi.bucketInfoFunc(ctx, iamApi.authSys.AdminCred.AccessKey)
+	var useStorageCapacity uint64
+	for _, bi := range bucketInfos {
+		useStorageCapacity += bi.Size
+	}
+	polices, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), iamApi.authSys.AdminCred.AccessKey)
+	if err != nil {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
+		return
+	}
+	infos = append(infos, iam.UserInfo{
+		AccountName:          iamApi.authSys.AdminCred.AccessKey,
+		TotalStorageCapacity: math.MaxUint64,
+		BucketInfos:          bucketInfos,
+		UseStorageCapacity:   useStorageCapacity,
+		PolicyName:           polices,
+		Status:               iam.AccountEnabled,
+	})
 	response.WriteSuccessResponseJSON(w, r, infos)
 }
 
-// RequestOverview returns all user usage
+// RequestOverview returns all user request
 func (iamApi *iamApiServer) RequestOverview(w http.ResponseWriter, r *http.Request) {
 	//to implement
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetUserInfoAction, "", "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(s3err))
+		return
+	}
+	if cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
+		return
+	}
 	stats, err := iamApi.stats.GetCurrentStats(r.Context())
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))

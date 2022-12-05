@@ -202,7 +202,7 @@ func (st *APIStatsSys) updateObjInfo(api string, r *http.Request, w *ResponseRec
 		if fileType == "" {
 			fileType = "unknown"
 		}
-		st.ObjectInfo.inc(false, fileType, uint64(r.ContentLength))
+		st.ObjectInfo.inc(false, fileType, uint64(w.Size()))
 	}
 }
 
