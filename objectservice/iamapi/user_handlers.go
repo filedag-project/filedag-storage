@@ -22,6 +22,7 @@ const (
 	capacity                     = "capacity"
 	secretKey                    = "secretKey"
 	newSecretKey                 = "newSecretKey"
+	oldSecretKey                 = "oldSecretKey"
 	userName                     = "userName"
 	policyName                   = "policyName"
 	accountStatus                = "status"
@@ -223,6 +224,11 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 
 	secret := r.FormValue(newSecretKey)
 	username := r.FormValue(accessKey)
+	oldSecret := r.FormValue(oldSecretKey)
+	if cred.SecretKey != oldSecret {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
+		return
+	}
 	if !auth.IsSecretKeyValid(secret) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
 		return

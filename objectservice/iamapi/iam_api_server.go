@@ -38,7 +38,7 @@ func (iamApi *iamApiServer) registerConsoleRouter(router *mux.Router, stats *htt
 	// API Router
 	apiRouter := router.PathPrefix("/console/v1").Subrouter()
 	//normal user
-	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}")
+	apiRouter.Methods(http.MethodPost).Path("/change-password").HandlerFunc(stats.RecordAPIHandler("change-password", iamApi.ChangePassword)).Queries("accessKey", "{accessKey:.*}", "newSecretKey", "{newSecretKey:.*}", "oldSecretKey", "{oldSecretKey:.*}")
 	apiRouter.Methods(http.MethodPost).Path("/update-accessKey_status").HandlerFunc(stats.RecordAPIHandler("update-accessKey_status", iamApi.SetStatus)).Queries("accessKey", "{accessKey:.*}", "status", "{status:.*}")
 	apiRouter.Methods(http.MethodGet).Path("/user-info").HandlerFunc(stats.RecordAPIHandler("user-info", iamApi.AccountInfo)).Queries("accessKey", "{accessKey:.*}")
 
