@@ -192,7 +192,12 @@ func (st *APIStatsSys) updateObjInfo(api string, r *http.Request, w *ResponseRec
 		if fileType == "" {
 			fileType = "unknown"
 		}
-		st.ObjectInfo.inc(api == "PutObjectHandler", fileType, uint64(r.ContentLength))
+		if strings.Contains(api, "PutObject") {
+			st.ObjectInfo.inc(true, fileType, uint64(r.ContentLength))
+		} else if strings.Contains(api, "PutObject") {
+			st.ObjectInfo.inc(false, fileType, uint64(r.ContentLength))
+		}
+
 	}
 }
 
