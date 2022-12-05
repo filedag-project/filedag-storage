@@ -141,7 +141,7 @@ func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) 
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
 	}
-	var info = iam.UserIdentity{Credentials: iamApi.authSys.AdminCred, TotalStorageCapacity: 999999999}
+	var info = iam.UserIdentity{Credentials: iamApi.authSys.AdminCred, TotalStorageCapacity: math.MaxUint64}
 	if accountName != iamApi.authSys.AdminCred.AccessKey {
 		info, err = iamApi.authSys.Iam.GetUserInfo(ctx, accountName)
 		if err != nil {
