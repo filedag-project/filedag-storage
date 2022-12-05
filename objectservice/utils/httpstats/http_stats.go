@@ -42,10 +42,12 @@ type APIStatsSys struct {
 	ObjectInfo *ObjectInfo
 }
 type ObjectInfo struct {
-	PutObjCount map[string]uint64
-	GetObjCount map[string]uint64
-	PutObjBytes map[string]uint64
-	GetObjBytes map[string]uint64
+	PutObjCount    map[string]uint64
+	GetObjCount    map[string]uint64
+	PutObjBytes    map[string]uint64
+	GetObjBytes    map[string]uint64
+	PutObjBytesAll uint64
+	GetObjBytesAll uint64
 	sync.RWMutex
 }
 
@@ -135,6 +137,7 @@ func (obj *ObjectInfo) inc(put bool, filetype string, bytes uint64) {
 			obj.PutObjBytes = make(map[string]uint64)
 		}
 		obj.PutObjBytes[filetype] += bytes
+		obj.PutObjBytesAll += bytes
 	} else {
 		if obj.GetObjCount == nil {
 			obj.GetObjCount = make(map[string]uint64)
@@ -144,6 +147,7 @@ func (obj *ObjectInfo) inc(put bool, filetype string, bytes uint64) {
 			obj.GetObjBytes = make(map[string]uint64)
 		}
 		obj.GetObjBytes[filetype] += bytes
+		obj.GetObjBytesAll += bytes
 	}
 
 }
@@ -261,6 +265,14 @@ func (st *APIStatsSys) store() {
 	if err != nil && err != leveldb.ErrNotFound {
 		log.Errorf("store GetObjBytes err%v", err)
 	}
+	err = st.Db.Put(apiRecordTemplate+"PutObjBytesAll", &st.ObjectInfo.PutObjBytesAll)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("store PutObjBytesAll err%v", err)
+	}
+	err = st.Db.Put(apiRecordTemplate+"GetObjBytesAll", &st.ObjectInfo.GetObjBytesAll)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("store GetObjBytesAll err%v", err)
+	}
 }
 func (st *APIStatsSys) load() {
 	st.HttpStats.RLock()
@@ -321,6 +333,14 @@ func (st *APIStatsSys) load() {
 	if err != nil && err != leveldb.ErrNotFound {
 		log.Errorf("load GetObjBytes err%v", err)
 	}
+	err = st.Db.Get(apiRecordTemplate+"PutObjBytesAll", &st.ObjectInfo.PutObjBytesAll)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load PutObjBytesAll err%v", err)
+	}
+	err = st.Db.Get(apiRecordTemplate+"GetObjBytesAll", &st.ObjectInfo.GetObjBytesAll)
+	if err != nil && err != leveldb.ErrNotFound {
+		log.Errorf("load GetObjBytesAll err%v", err)
+	}
 }
 
 type ApiStats struct {
@@ -332,44 +352,48 @@ type ObjInfo struct {
 // StatsResp holds statistics information about
 // HTTP requests made by all clients
 type StatsResp struct {
-	CurrentS3Requests  ApiStats          `json:"current_s3_requests"`
-	CurrentIamRequests ApiStats          `json:"current_iam_requests"`
-	TotalIamRequests   ApiStats          `json:"total_iam_requests"`
-	TotalIamErrors     ApiStats          `json:"total_iam_errors"`
-	TotalIam4xxErrors  ApiStats          `json:"total_iam_4xx_errors"`
-	TotalIam5xxErrors  ApiStats          `json:"total_iam_5xx_errors"`
-	TotalIamCanceled   ApiStats          `json:"total_iam_canceled"`
-	TotalS3Requests    ApiStats          `json:"total_s3_requests"`
-	TotalS3Errors      ApiStats          `json:"total_s3_errors"`
-	TotalS34xxErrors   ApiStats          `json:"total_s3_4xx_errors"`
-	TotalS35xxErrors   ApiStats          `json:"total_s3_5xx_errors"`
-	TotalS3Canceled    ApiStats          `json:"total_s3_canceled"`
-	PutObjCount        map[string]uint64 `json:"put_obj_count"`
-	GetObjCount        map[string]uint64 `json:"get_obj_count"`
-	PutObjBytes        map[string]uint64 `json:"put_obj_bytes"`
-	GetObjBytes        map[string]uint64 `json:"get_obj_bytes"`
+	//CurrentS3Requests  ApiStats          `json:"current_s3_requests"`
+	//CurrentIamRequests ApiStats          `json:"current_iam_requests"`
+	//TotalIamRequests   ApiStats          `json:"total_iam_requests"`
+	//TotalIamErrors     ApiStats          `json:"total_iam_errors"`
+	//TotalIam4xxErrors  ApiStats          `json:"total_iam_4xx_errors"`
+	//TotalIam5xxErrors  ApiStats          `json:"total_iam_5xx_errors"`
+	//TotalIamCanceled   ApiStats          `json:"total_iam_canceled"`
+	//TotalS3Requests    ApiStats          `json:"total_s3_requests"`
+	//TotalS3Errors      ApiStats          `json:"total_s3_errors"`
+	//TotalS34xxErrors   ApiStats          `json:"total_s3_4xx_errors"`
+	//TotalS35xxErrors   ApiStats          `json:"total_s3_5xx_errors"`
+	//TotalS3Canceled    ApiStats          `json:"total_s3_canceled"`
+	PutObjCount    map[string]uint64 `json:"put_obj_count"`
+	GetObjCount    map[string]uint64 `json:"get_obj_count"`
+	PutObjBytes    map[string]uint64 `json:"put_obj_bytes"`
+	GetObjBytes    map[string]uint64 `json:"get_obj_bytes"`
+	PutObjBytesAll uint64            `json:"put_obj_bytes_all"`
+	GetObjBytesAll uint64            `json:"get_obj_bytes_all"`
 }
 
 func (st *APIStatsSys) GetCurrentStats(ctx context.Context) (StatsResp, error) {
 	st.HttpStats.RLock()
 	defer st.HttpStats.RUnlock()
 	var statsResp = StatsResp{
-		CurrentS3Requests:  ApiStats{ApiStats: st.HttpStats.currentS3Requests.apiStats},
-		CurrentIamRequests: ApiStats{ApiStats: st.HttpStats.currentIamRequests.apiStats},
-		TotalIamRequests:   ApiStats{ApiStats: st.HttpStats.totalIamRequests.apiStats},
-		TotalIamErrors:     ApiStats{ApiStats: st.HttpStats.totalIamErrors.apiStats},
-		TotalIam4xxErrors:  ApiStats{ApiStats: st.HttpStats.totalIam4xxErrors.apiStats},
-		TotalIam5xxErrors:  ApiStats{ApiStats: st.HttpStats.totalIam5xxErrors.apiStats},
-		TotalIamCanceled:   ApiStats{ApiStats: st.HttpStats.totalIamCanceled.apiStats},
-		TotalS3Requests:    ApiStats{ApiStats: st.HttpStats.totalS3Requests.apiStats},
-		TotalS3Errors:      ApiStats{ApiStats: st.HttpStats.totalS3Errors.apiStats},
-		TotalS34xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS34xxErrors.apiStats},
-		TotalS35xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS35xxErrors.apiStats},
-		TotalS3Canceled:    ApiStats{ApiStats: st.HttpStats.totalS3Canceled.apiStats},
-		PutObjCount:        st.ObjectInfo.PutObjCount,
-		GetObjCount:        st.ObjectInfo.GetObjCount,
-		PutObjBytes:        st.ObjectInfo.PutObjBytes,
-		GetObjBytes:        st.ObjectInfo.GetObjBytes,
+		//CurrentS3Requests:  ApiStats{ApiStats: st.HttpStats.currentS3Requests.apiStats},
+		//CurrentIamRequests: ApiStats{ApiStats: st.HttpStats.currentIamRequests.apiStats},
+		//TotalIamRequests:   ApiStats{ApiStats: st.HttpStats.totalIamRequests.apiStats},
+		//TotalIamErrors:     ApiStats{ApiStats: st.HttpStats.totalIamErrors.apiStats},
+		//TotalIam4xxErrors:  ApiStats{ApiStats: st.HttpStats.totalIam4xxErrors.apiStats},
+		//TotalIam5xxErrors:  ApiStats{ApiStats: st.HttpStats.totalIam5xxErrors.apiStats},
+		//TotalIamCanceled:   ApiStats{ApiStats: st.HttpStats.totalIamCanceled.apiStats},
+		//TotalS3Requests:    ApiStats{ApiStats: st.HttpStats.totalS3Requests.apiStats},
+		//TotalS3Errors:      ApiStats{ApiStats: st.HttpStats.totalS3Errors.apiStats},
+		//TotalS34xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS34xxErrors.apiStats},
+		//TotalS35xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS35xxErrors.apiStats},
+		//TotalS3Canceled:    ApiStats{ApiStats: st.HttpStats.totalS3Canceled.apiStats},
+		PutObjCount:    st.ObjectInfo.PutObjCount,
+		GetObjCount:    st.ObjectInfo.GetObjCount,
+		PutObjBytes:    st.ObjectInfo.PutObjBytes,
+		GetObjBytes:    st.ObjectInfo.GetObjBytes,
+		PutObjBytesAll: st.ObjectInfo.PutObjBytesAll,
+		GetObjBytesAll: st.ObjectInfo.GetObjBytesAll,
 	}
 	return statsResp, nil
 }
