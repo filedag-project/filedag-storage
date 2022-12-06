@@ -24,6 +24,7 @@ var clusterCmd = &cli.Command{
 		removeDagNode,
 		balanceSlots,
 		migrateSlots,
+		repair,
 	},
 }
 
@@ -305,5 +306,45 @@ var migrateSlots = &cli.Command{
 		}
 		defer cli.Close(cctx.Context)
 		return cli.MigrateSlots(cctx.Context, from, to, slotPairs)
+	},
+}
+
+var repair = &cli.Command{
+	Name:      "repair",
+	Usage:     "Repair a datanode",
+	ArgsUsage: "dagnode_name from_node_index repair_node_index",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "address",
+			Usage: "the address of dagpool server",
+			Value: "127.0.0.1:50001",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		addr := cctx.String("address")
+		if cctx.NArg() < 3 {
+			return errors.New("at least input three parameters")
+		}
+		dagNodeName := cctx.Args().Get(0)
+		fromIndexStr := cctx.Args().Get(1)
+		repairIndexStr := cctx.Args().Get(2)
+
+		fromIndex, err := strconv.ParseInt(fromIndexStr, 10, 32)
+		if err != nil {
+			return err
+		}
+
+		repairIndex, err := strconv.ParseInt(repairIndexStr, 10, 32)
+		if err != nil {
+			return err
+		}
+
+		cli, err := client.NewPoolClusterClient(addr)
+		if err != nil {
+			return err
+		}
+		defer cli.Close(cctx.Context)
+
+		return cli.RepairDataNode(cctx.Context, dagNodeName, int(fromIndex), int(repairIndex))
 	},
 }

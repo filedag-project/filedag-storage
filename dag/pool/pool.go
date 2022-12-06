@@ -35,4 +35,5 @@ type Cluster interface {
 	MigrateSlots(fromDagNodeName, toDagNodeName string, pairs []slotsmgr.SlotPair) error
 	BalanceSlots() error
 	Status() (*proto.StatusReply, error)
+	RepairDataNode(ctx context.Context, dagNodeName string, fromNodeIndex int, repairNodeIndex int) error
 }

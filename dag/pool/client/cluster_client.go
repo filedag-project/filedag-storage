@@ -107,3 +107,18 @@ func (cli *dagPoolClusterClient) Status(ctx context.Context) (*proto.StatusReply
 	}
 	return reply, nil
 }
+
+func (cli *dagPoolClusterClient) RepairDataNode(ctx context.Context, dagNodeName string, fromIndex, repairIndex int) error {
+	_, err := cli.DPClusterClient.RepairDataNode(ctx, &proto.RepairDataNodeReq{
+		DagNodeName:     dagNodeName,
+		FromNodeIndex:   int32(fromIndex),
+		RepairNodeIndex: int32(repairIndex),
+	})
+	if err != nil {
+		if st, ok := status.FromError(err); ok && st.Code() == codes.Unknown {
+			return errors.New(st.Message())
+		}
+		return err
+	}
+	return nil
+}

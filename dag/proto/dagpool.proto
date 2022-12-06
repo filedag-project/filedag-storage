@@ -112,6 +112,7 @@ service DagPoolCluster {
   rpc MigrateSlots (MigrateSlotsReq) returns (google.protobuf.Empty) {}
   rpc BalanceSlots (google.protobuf.Empty) returns (google.protobuf.Empty) {}
   rpc Status (google.protobuf.Empty) returns (StatusReply) {}
+  rpc RepairDataNode (RepairDataNodeReq) returns (google.protobuf.Empty) {}
 }
 
 message DataNodeInfo {
@@ -153,4 +154,10 @@ message DagNodeStatus {
 message StatusReply {
   string state = 1;
   repeated DagNodeStatus statuses = 2;
+}
+
+message RepairDataNodeReq {
+  string dagNodeName = 1;
+  int32 fromNodeIndex = 2;
+  int32 repairNodeIndex = 3;
 }

@@ -51,24 +51,24 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 			continue
 		}
 
-		merged := make([][]byte, 0)
+		merged := make([][]byte, len(d.Nodes))
 		for i, node := range d.Nodes {
 			if i == repairNodeIndex {
-				merged = append(merged, nil)
+				merged[i] = nil
 				continue
 			}
 			res, err := node.Client.DataClient.Get(ctx, &proto.GetRequest{Key: key})
 			if err != nil {
 				log.Errorf("this node[%s] err: %v", node.RpcAddress, err)
-				merged = append(merged, nil)
+				merged[i] = nil
 				continue
 			}
 			if len(res.Data) == 0 {
 				log.Errorf("There is no data in this node")
-				merged = append(merged, nil)
+				merged[i] = nil
 				continue
 			}
-			merged = append(merged, res.Data)
+			merged[i] = res.Data
 		}
 		enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(size))
 		if err != nil {

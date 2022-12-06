@@ -64,3 +64,10 @@ func (s *DagPoolClusterServer) Status(context.Context, *emptypb.Empty) (*proto.S
 	}
 	return st, nil
 }
+
+func (s *DagPoolClusterServer) RepairDataNode(ctx context.Context, req *proto.RepairDataNodeReq) (*emptypb.Empty, error) {
+	if err := s.Cluster.RepairDataNode(ctx, req.DagNodeName, int(req.FromNodeIndex), int(req.RepairNodeIndex)); err != nil {
+		return nil, status.Errorf(codes.Unknown, err.Error())
+	}
+	return &emptypb.Empty{}, nil
+}

@@ -367,6 +367,7 @@ type DagPoolClusterClient interface {
 	MigrateSlots(ctx context.Context, in *MigrateSlotsReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	BalanceSlots(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Status(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*StatusReply, error)
+	RepairDataNode(ctx context.Context, in *RepairDataNodeReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type dagPoolClusterClient struct {
@@ -431,6 +432,15 @@ func (c *dagPoolClusterClient) Status(ctx context.Context, in *emptypb.Empty, op
 	return out, nil
 }
 
+func (c *dagPoolClusterClient) RepairDataNode(ctx context.Context, in *RepairDataNodeReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.DagPoolCluster/RepairDataNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DagPoolClusterServer is the server API for DagPoolCluster service.
 // All implementations must embed UnimplementedDagPoolClusterServer
 // for forward compatibility
@@ -441,6 +451,7 @@ type DagPoolClusterServer interface {
 	MigrateSlots(context.Context, *MigrateSlotsReq) (*emptypb.Empty, error)
 	BalanceSlots(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
 	Status(context.Context, *emptypb.Empty) (*StatusReply, error)
+	RepairDataNode(context.Context, *RepairDataNodeReq) (*emptypb.Empty, error)
 	mustEmbedUnimplementedDagPoolClusterServer()
 }
 
@@ -465,6 +476,9 @@ func (UnimplementedDagPoolClusterServer) BalanceSlots(context.Context, *emptypb.
 }
 func (UnimplementedDagPoolClusterServer) Status(context.Context, *emptypb.Empty) (*StatusReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Status not implemented")
+}
+func (UnimplementedDagPoolClusterServer) RepairDataNode(context.Context, *RepairDataNodeReq) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RepairDataNode not implemented")
 }
 func (UnimplementedDagPoolClusterServer) mustEmbedUnimplementedDagPoolClusterServer() {}
 
@@ -587,6 +601,24 @@ func _DagPoolCluster_Status_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DagPoolCluster_RepairDataNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RepairDataNodeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagPoolClusterServer).RepairDataNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.DagPoolCluster/RepairDataNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagPoolClusterServer).RepairDataNode(ctx, req.(*RepairDataNodeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DagPoolCluster_ServiceDesc is the grpc.ServiceDesc for DagPoolCluster service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -617,6 +649,10 @@ var DagPoolCluster_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Status",
 			Handler:    _DagPoolCluster_Status_Handler,
+		},
+		{
+			MethodName: "RepairDataNode",
+			Handler:    _DagPoolCluster_RepairDataNode_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
