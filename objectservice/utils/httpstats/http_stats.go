@@ -343,12 +343,6 @@ func (st *APIStatsSys) load() {
 	}
 }
 
-type ApiStats struct {
-	ApiStats map[string]int
-}
-type ObjInfo struct {
-}
-
 // StatsResp holds statistics information about
 // HTTP requests made by all clients
 type StatsResp struct {
@@ -364,12 +358,18 @@ type StatsResp struct {
 	//TotalS34xxErrors   ApiStats          `json:"total_s3_4xx_errors"`
 	//TotalS35xxErrors   ApiStats          `json:"total_s3_5xx_errors"`
 	//TotalS3Canceled    ApiStats          `json:"total_s3_canceled"`
-	PutObjCount    map[string]uint64 `json:"put_obj_count"`
-	GetObjCount    map[string]uint64 `json:"get_obj_count"`
-	PutObjBytes    map[string]uint64 `json:"put_obj_bytes"`
-	GetObjBytes    map[string]uint64 `json:"get_obj_bytes"`
-	PutObjBytesAll uint64            `json:"put_obj_bytes_all"`
-	GetObjBytesAll uint64            `json:"get_obj_bytes_all"`
+	PutObjCount    []ApiStats `json:"put_obj_count"`
+	GetObjCount    []ApiStats `json:"get_obj_count"`
+	PutObjBytes    []ApiStats `json:"put_obj_bytes"`
+	GetObjBytes    []ApiStats `json:"get_obj_bytes"`
+	PutObjBytesAll uint64     `json:"put_obj_bytes_all"`
+	GetObjBytesAll uint64     `json:"get_obj_bytes_all"`
+}
+
+//ApiStats ApiStats resp
+type ApiStats struct {
+	Filetype string `json:"filetype"`
+	Value    uint64 `json:"value"`
 }
 
 func (st *APIStatsSys) GetCurrentStats(ctx context.Context) (StatsResp, error) {
@@ -388,12 +388,22 @@ func (st *APIStatsSys) GetCurrentStats(ctx context.Context) (StatsResp, error) {
 		//TotalS34xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS34xxErrors.apiStats},
 		//TotalS35xxErrors:   ApiStats{ApiStats: st.HttpStats.totalS35xxErrors.apiStats},
 		//TotalS3Canceled:    ApiStats{ApiStats: st.HttpStats.totalS3Canceled.apiStats},
-		PutObjCount:    st.ObjectInfo.PutObjCount,
-		GetObjCount:    st.ObjectInfo.GetObjCount,
-		PutObjBytes:    st.ObjectInfo.PutObjBytes,
-		GetObjBytes:    st.ObjectInfo.GetObjBytes,
+		PutObjCount:    statsToApiStatsResp(st.ObjectInfo.PutObjCount),
+		GetObjCount:    statsToApiStatsResp(st.ObjectInfo.GetObjCount),
+		PutObjBytes:    statsToApiStatsResp(st.ObjectInfo.PutObjBytes),
+		GetObjBytes:    statsToApiStatsResp(st.ObjectInfo.GetObjBytes),
 		PutObjBytesAll: st.ObjectInfo.PutObjBytesAll,
 		GetObjBytesAll: st.ObjectInfo.GetObjBytesAll,
 	}
 	return statsResp, nil
+}
+func statsToApiStatsResp(stats map[string]uint64) []ApiStats {
+	var apiStats []ApiStats
+	for filetype, n := range stats {
+		apiStats = append(apiStats, ApiStats{
+			Filetype: filetype,
+			Value:    n,
+		})
+	}
+	return apiStats
 }

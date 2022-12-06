@@ -45,6 +45,10 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
 	}
+	if capa > 1<<50*10 {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
+		return
+	}
 	if !auth.IsAccessKeyValid(username) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidFormatAccessKey))
 		return
@@ -54,7 +58,7 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !auth.IsSecretKeyValid(userSecret) {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
 	}
 	_, err = iamApi.authSys.Iam.GetUserInfo(r.Context(), username)
 	if err == nil {
@@ -254,11 +258,11 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 	username := r.FormValue(accessKey)
 	oldSecret := r.FormValue(oldSecretKey)
 	if cred.SecretKey != oldSecret {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
 		return
 	}
 	if !auth.IsSecretKeyValid(secret) {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
 		return
 	}
 	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), username)
@@ -304,7 +308,11 @@ func (iamApi *iamApiServer) SetStatus(w http.ResponseWriter, r *http.Request) {
 	switch status {
 	case auth.AccountOn, auth.AccountOff:
 	default:
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidQueryParams))
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
+		return
+	}
+	if c.Status == status {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
 		return
 	}
 	c.Status = status
