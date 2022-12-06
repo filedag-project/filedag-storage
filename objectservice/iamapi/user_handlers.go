@@ -257,28 +257,27 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 	secret := r.FormValue(newSecretKey)
 	username := r.FormValue(accessKey)
 	oldSecret := r.FormValue(oldSecretKey)
-	if cred.SecretKey != oldSecret {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
+	credChange, ok := iamApi.authSys.Iam.GetUser(r.Context(), username)
+	if !ok {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
 		return
+	}
+	if cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+		if credChange.SecretKey != oldSecret {
+			response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
+			return
+		}
 	}
 	if !auth.IsSecretKeyValid(secret) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
 		return
 	}
-	c, ok := iamApi.authSys.Iam.GetUser(r.Context(), username)
-	if !ok {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrNoSuchUser))
-		return
-	}
-	if cred.AccessKey != c.ParentUser && cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
-		return
-	}
-	cred.SecretKey = secret
+
+	credChange.SecretKey = secret
 	m := make(map[string]interface{})
 	var err error
-	cred.SessionToken, err = auth.JWTSignWithAccessKey(cred.AccessKey, m, auth.DefaultSecretKey)
-	err = iamApi.authSys.Iam.UpdateUser(r.Context(), cred)
+	credChange.SessionToken, err = auth.JWTSignWithAccessKey(username, m, auth.DefaultSecretKey)
+	err = iamApi.authSys.Iam.UpdateUser(r.Context(), credChange)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
 		return
