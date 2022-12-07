@@ -155,10 +155,16 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 		}
 		//check tempuser
 		if ucred.IsTemp() {
-			if ucred.ParentUser == s.AdminCred.AccessKey {
-				if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
-					return cred, false, apierrors.ErrInvalidToken
+			if r.Form.Get(consts.AmzSecurityToken) != "" {
+				if r.Form.Get(consts.AmzSecurityToken) != ucred.SessionToken {
+					return ucred, false, apierrors.ErrInvalidToken
 				}
+			} else {
+				if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
+					return ucred, false, apierrors.ErrInvalidToken
+				}
+			}
+			if ucred.ParentUser == s.AdminCred.AccessKey {
 				return cred, true, apierrors.ErrNone
 			}
 			ucred, ok = s.Iam.GetUser(r.Context(), ucred.ParentUser)
@@ -179,7 +185,7 @@ func (s *AuthSys) checkKeyValid(r *http.Request, accessKey string) (auth.Credent
 
 // check if the access key is valid and recognized, additionally
 // also returns if the access key is owner/admin.
-func (s *AuthSys) checkKeyValidTemp(r *http.Request, accessKey string) (auth.Credentials, bool, apierrors.ErrorCode) {
+func (s *AuthSys) checkKeyValidTemp(r *http.Request, accessKey string, pre bool) (auth.Credentials, bool, apierrors.ErrorCode) {
 
 	cred := s.AdminCred
 	if cred.AccessKey != accessKey {
@@ -194,8 +200,14 @@ func (s *AuthSys) checkKeyValidTemp(r *http.Request, accessKey string) (auth.Cre
 			return cred, false, apierrors.ErrInvalidAccessKeyID
 		}
 		if ucred.IsTemp() {
-			if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
-				return ucred, false, apierrors.ErrInvalidToken
+			if pre {
+				if r.Form.Get(consts.AmzSecurityToken) != ucred.SessionToken {
+					return ucred, false, apierrors.ErrInvalidToken
+				}
+			} else {
+				if r.Header.Get(consts.AmzSecurityToken) != ucred.SessionToken {
+					return ucred, false, apierrors.ErrInvalidToken
+				}
 			}
 			if ucred.ParentUser == s.AdminCred.AccessKey {
 				return ucred, true, apierrors.ErrNone
