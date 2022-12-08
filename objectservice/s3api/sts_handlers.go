@@ -17,6 +17,7 @@ import (
 const (
 	parentClaim = "parent"
 	expClaim    = "exp"
+	isAdmin     = "isAdmin"
 )
 
 // AssumeRole - implementation of AWS STS API AssumeRole to get temporary
@@ -61,6 +62,7 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	m := map[string]interface{}{
 		expClaim:    expiration,
 		parentClaim: user.AccessKey,
+		isAdmin:     user.AccessKey == s3a.authSys.AdminCred.AccessKey,
 	}
 
 	secret := s3a.authSys.AdminCred.SecretKey
@@ -72,8 +74,7 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	// Set the parent of the temporary access key, so that it's access
 	// policy is inherited from `user.AccessKey`.
 	cred.ParentUser = user.AccessKey
-	// Set the newly generated credentials.
-	newCred, err := s3a.authSys.Iam.SetTempUser(r.Context(), cred.AccessKey, cred, m, "", s3a.authSys.AdminCred.AccessKey)
+	newCred, err := s3a.authSys.Iam.SetTempUser(r.Context(), cred.AccessKey, cred, m, "")
 	if err != nil {
 		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSInternalError, err)
 		return
