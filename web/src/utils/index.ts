@@ -1,5 +1,8 @@
 import convert from 'xml-js';
-import { ACCESS_KEY_ID, Cookies } from '@/utils/cookies';
+import { ACCESS_KEY_ID, Cookies, SESSION_TOKEN } from '@/utils/cookies';
+import dayjs from 'dayjs';
+import { tokenType } from '@/models/RouteModel';
+import jwt_decode from "jwt-decode";
 
 const xmlStreamToJs = async (data) => {
   try{
@@ -74,60 +77,62 @@ const download = (blob:Blob,name:string)=>{
 }
 
 const getPublic = (bucket:string)=>{
-  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const _jwt = Cookies.getKey(SESSION_TOKEN);
+  const _token:tokenType = jwt_decode(_jwt);
+  const {parent}=_token;
   const json = {
     "Version": "2012-10-17",
     "Statement": [
       {
-        "Action": [
-          "s3:*"
-        ],
+        "Sid": "",
         "Effect": "Allow",
         "Principal": {
           "AWS": [
-            accessKey //////用户
+            parent
           ]
         },
+        "Action": [
+          "s3:*"
+        ],
         "Resource": [
           `arn:aws:s3:::${bucket}/*` //////bucket
-        ],
-        "Sid": ""
+        ]
       },
       {
+        "Sid": "",
+        "Effect": "Allow",
+        "Principal": {
+          "AWS": [
+            "*"
+          ]
+        },
         "Action": [
           "s3:GetBucketLocation",
           "s3:ListBucket",
           "s3:ListBucketMultipartUploads"
         ],
+        "Resource": [
+          `arn:aws:s3:::${bucket}`//bucket
+        ]
+      },
+      {
+        "Sid": "",
         "Effect": "Allow",
         "Principal": {
           "AWS": [
             "*"
           ]
         },
-        "Resource": [
-          `arn:aws:s3:::${bucket}`//bucket
-        ],
-        "Sid": ""
-      },
-      {
         "Action": [
+          "s3:PutObject",
           "s3:AbortMultipartUpload",
           "s3:DeleteObject",
           "s3:GetObject",
-          "s3:ListMultipartUploadParts",
-          "s3:PutObject"
+          "s3:ListMultipartUploadParts"
         ],
-        "Effect": "Allow",
-        "Principal": {
-          "AWS": [
-            "*"
-          ]
-        },
         "Resource": [
-          `arn:aws:s3:::${bucket}/*`//bucket
-        ],
-        "Sid": ""
+          `arn:aws:s3:::${bucket}/*`
+        ]
       }
     ]
   };
@@ -135,7 +140,9 @@ const getPublic = (bucket:string)=>{
 }
 
 const getDownload = (bucket:string)=>{
-  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const _jwt = Cookies.getKey(SESSION_TOKEN);
+  const _token:tokenType = jwt_decode(_jwt);
+  const {parent}=_token;
   const json = {
     "Version": "2012-10-17",
     "Statement": [
@@ -146,7 +153,7 @@ const getDownload = (bucket:string)=>{
         "Effect": "Allow",
         "Principal": {
           "AWS": [
-            accessKey
+            parent
           ]
         },
         "Resource": [
@@ -191,7 +198,9 @@ const getDownload = (bucket:string)=>{
 }
 
 const getUpload = (bucket:string)=>{
-  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const _jwt = Cookies.getKey(SESSION_TOKEN);
+  const _token:tokenType = jwt_decode(_jwt);
+  const {parent}=_token;
   const json = {
     "Version": "2012-10-17",
     "Statement": [
@@ -202,7 +211,7 @@ const getUpload = (bucket:string)=>{
         "Effect": "Allow",
         "Principal": {
           "AWS": [
-            accessKey//用户
+            parent
           ]
         },
         "Resource": [
@@ -250,7 +259,9 @@ const getUpload = (bucket:string)=>{
 }
 
 const getPrivate = (bucket:string)=>{
-  const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+  const _jwt = Cookies.getKey(SESSION_TOKEN);
+  const _token:tokenType = jwt_decode(_jwt);
+  const {parent}=_token;
   const json = {
     "Version": "2012-10-17",
     "Statement": [
@@ -261,7 +272,7 @@ const getPrivate = (bucket:string)=>{
         "Effect": "Allow",
         "Principal": {
           "AWS": [
-            accessKey //用户
+            parent
           ]
         },
         "Resource": [
@@ -289,6 +300,10 @@ const getPrivate = (bucket:string)=>{
   return json;
 }
 
+const getExpiresDate = (second:number):string=>{
+  const str = dayjs().add(second, 'second').format('MM/DD/YYYY HH:mm:ss');
+  return str;
+}
 
 export { 
   xmlStreamToJs,
@@ -300,5 +315,6 @@ export {
   getPublic,
   getDownload,
   getUpload,
-  getPrivate
+  getPrivate,
+  getExpiresDate
 };

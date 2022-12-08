@@ -52,7 +52,7 @@ const Login = () => {
             }else{
                 Cookies.deleteKey(USER_NAME); 
             }
-            history.push(RouterPath.dashboard);
+            history.push(RouterPath.home);
         } catch (e) {
             
         }

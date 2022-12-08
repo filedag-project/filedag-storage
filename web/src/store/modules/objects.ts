@@ -2,39 +2,48 @@ import { HttpMethods, Axios } from '@/api/https';
 import { SignModel } from '@/models/SignModel';
 import { action, computed, makeObservable, observable } from 'mobx';
 import _ from 'lodash';
-import { formatBytes, formatDate } from '@/utils';
+import { formatBytes, formatDate, getExpiresDate } from '@/utils';
+import { PreSignModel } from '@/models/PreSignModel';
+import presignV4 from '@/api/presign';
+
 class ObjectsStore {
   objectsList:any[] = [];
   deleteShow:boolean = false;
   previewShow:boolean = false;
   previewText:string = '';
   previewUrl:string = '';
-  deleteName:string = '';
-  previewName:string = '';
+  actionName:string = '';
   downloadFile:Blob = new Blob();
-  downloadName:string = '';
   previewVideo: string = '';
   contentType: string ='';
-
+  shareShow:boolean = false;
+  shareLink:string='';
+  expiresDate:string = getExpiresDate(7*24*60*60);
+  maxDay:number = 7;
+  maxSecond:number = 7*24*60*60;
+  shareSecond:number = 7*24*60*60;
   constructor() {
     makeObservable(this, {
       deleteShow:observable,
       objectsList: observable,
-      deleteName:observable,
+      actionName:observable,
       previewShow:observable,
-      previewName:observable,
       previewText:observable,
       previewUrl:observable,
+      shareShow:observable,
       downloadFile:observable,
-      downloadName:observable,
       previewVideo:observable,
       contentType:observable,
+      shareLink:observable,
+      shareSecond:observable,
       formatList: computed,
       totalSize:computed,
       totalObjects:computed,
       fetchList: action,
       fetchUpload:action,
-      fetchDelete:action
+      fetchDelete:action,
+      fetchShare:action,
+      SET_OBJECT_LIST:action
     });
   }
 
@@ -73,12 +82,10 @@ class ObjectsStore {
   SET_PREVIEW_SHOW(data:boolean){
     this.previewShow = data;
   }
-  SET_PREVIEW_NAME(data:string){
-    this.previewName = data;
+  SET_ACTION_NAME(data:string){
+    this.actionName = data;
   }
-  SET_DELETE_NAME(data:string){
-    this.deleteName = data;
-  }
+
   SET_OBJECTS_URL(data:string){
     this.previewUrl = data;
   }
@@ -88,8 +95,25 @@ class ObjectsStore {
   SET_DOWNLOAD_FILE(data:Blob){
     this.downloadFile = data;
   }
-  SET_DOWNLOAD_NAME(data:string){
-    this.downloadName = data;
+ 
+  SET_SHARE_SHOW(data:boolean){
+    this.shareShow = data;
+  }
+
+  SET_SHARE_LINK(data:string){
+    this.shareLink = data;
+  }
+
+  SET_SHARE_SECOND(data:number){
+    this.shareSecond = data;
+  }
+
+  SET_EXPIRES_DATE(data:string){
+    this.expiresDate = data;
+  }
+
+  SET_OBJECT_LIST(data:any[]){
+    this.objectsList = data
   }
 
   fetchList(bucket) {
@@ -106,9 +130,9 @@ class ObjectsStore {
       const res = await Axios.axiosXMLStream(params);
       const _list:[] = _.get(res,'ListBucketResult.Contents',[]);
       if(Array.isArray(_list)){
-        this.objectsList = _list;
+        this.SET_OBJECT_LIST(_list);
       }else{
-        this.objectsList = [_list];
+        this.SET_OBJECT_LIST([_list]);
       }
       resolve(_list)
     })
@@ -134,7 +158,7 @@ class ObjectsStore {
         headers: { "Content-Type": contentType } 
       }).blob();
       this.downloadFile = blob;
-      this.downloadName = object;
+      this.actionName = object;
       
       if(contentType.includes('image')){
         const objectURL:string = URL.createObjectURL(blob);
@@ -196,11 +220,27 @@ class ObjectsStore {
     })
   }
 
+  async fetchShare(url:string,expiresIn:number){
+    const params:PreSignModel = {
+      region:'',
+      expiresIn,
+      path:url,
+    }
+    const res = await presignV4(params);
+    const { headers,path,query } = res;
+    let _params = ''
+    for(var key in query){
+      _params+=`${key}=${query[key]}&`
+    }
+    const str = `${headers.host}${path}?${_params}`;
+    this.shareLink = str;
+  }
+
   reset(){
     this.previewUrl = '';
     this.previewText = '';
     this.downloadFile = new Blob();
-    this.downloadName = '';
+    this.actionName = '';
     this.previewVideo = '';
     this.contentType = '';
   }

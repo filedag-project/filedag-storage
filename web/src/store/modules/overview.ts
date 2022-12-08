@@ -46,11 +46,11 @@ class OverviewStore {
           contentType:'application/json; charset=UTF-8'
         }
         const res = await Axios.axiosJson(params);
-        const total:string = _.get(res,'total_storage_capacity');
+        const total:string = _.get(res,'Response.total_storage_capacity');
         const _total = formatBytes(total);
-        const use = _.get(res,'use_storage_capacity');
+        const use = _.get(res,'Response.use_storage_capacity');
         const _use:string = formatBytes(use);
-        const buckets = _.get(res,'bucket_infos');
+        const buckets = _.get(res,'Response.bucket_infos');
         const size = buckets.reduce((total,current)=>{
           const _current = _.get(current,'size','0');
           return Number(total) + Number(_current);

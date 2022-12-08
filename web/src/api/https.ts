@@ -93,8 +93,8 @@ export const Axios = {
       if(statusCode === 200||statusCode===204){
        return resolve(data)
       }else{
-        const code = _.get(data,'Error.Code._text','');
-        const message = _.get(data,'Error.Message._text','Error');
+        const code = _.get(data,'ErrorResponse.Error.Code._text','');
+        const message = _.get(data,'ErrorResponse.Error.Message._text','Error');
         this.handlerError(message);
         if(code === INVALID_ACCESS_KEY_ID){
           this.handlerLogout()
@@ -131,8 +131,7 @@ export const Axios = {
       const data = await streamToJs(body);
       const statusCode = _.get(data,'HTTPStatusCode');
       if(statusCode === 200||statusCode===204){
-        const _Response = _.get(data,'Response');
-        resolve(_Response)
+        resolve(data)
       }else{
         const code = _.get(data,'Code','');
         const message = _.get(data,'Message','Error');
@@ -146,19 +145,23 @@ export const Axios = {
 
   handlerJsonAWS(result){
     return new Promise(async (resolve, reject) => {
-      const body = _.get(result,'response.body');
-      const statusCode = _.get(result,'response.statusCode');
-      if(statusCode === 200||statusCode===204){
-        const data = await streamToJs(body);
-        resolve(data)
-      }else{
-        const data = await xmlStreamToJs(body);
-        const code = _.get(data,'Error.Code._text','');
-        const message = _.get(data,'Error.Message._text','Error');
-        this.handlerError(message);
-        if(code === INVALID_ACCESS_KEY_ID){
-          this.handlerLogout()
+      try{
+        const body = _.get(result,'response.body');
+        const statusCode = _.get(result,'response.statusCode');
+        if(statusCode === 200||statusCode===204){
+          const data = await streamToJs(body);
+          resolve(data)
+        }else{
+          const data = await xmlStreamToJs(body);
+          const code = _.get(data,'Error.Code._text','');
+          const message = _.get(data,'Error.Message._text','Error');
+          this.handlerError(message);
+          if(code === INVALID_ACCESS_KEY_ID){
+            this.handlerLogout()
+          }
         }
+      }catch(error){
+
       }
     })
   },

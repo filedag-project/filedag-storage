@@ -1,10 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter, Redirect, Route, Switch } from 'react-router-dom';
-
 import PageLayout from '@/layout';
 import { RouterPath, Routes } from '@/router/RouterConfig';
 
-const MRouter = () => {
+const MRouter = ()=> {
   return (
     <Suspense fallback={<div></div>}>
       <BrowserRouter>
@@ -21,7 +20,7 @@ const MRouter = () => {
             );
           })}
           
-          <Route path={'/*'}>
+          <Route path={'/*'} >
             <Redirect to={RouterPath.error}></Redirect>
           </Route>
         </Switch>
