@@ -15,6 +15,7 @@ const (
 	statusEnabled  = "enabled"
 	statusDisabled = "disabled"
 )
+const isAdmin = "isAdmin"
 
 // error returned to IAM subsystem when user doesn't exist.
 var errNoSuchUser = errors.New("specified user does not exist")
@@ -295,12 +296,22 @@ func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (us
 // SetTempUser - set temporary user credentials, these credentials have an
 // expiry. The permissions for these STS credentials is determined in one of the
 // following ways:
-func (sys *IdentityAMSys) SetTempUser(ctx context.Context, accessKey string, cred auth.Credentials, policyName string) error {
-	err := sys.store.SetTempUser(ctx, accessKey, cred, policyName)
-	if err != nil {
-		return err
+func (sys *IdentityAMSys) SetTempUser(ctx context.Context, accessKey string, cred auth.Credentials, m map[string]interface{}, policyName string, adminAccessKey string) (auth.Credentials, error) {
+	parentUser, ok := sys.GetUser(ctx, cred.ParentUser)
+	if !ok {
+		return auth.Credentials{}, errors.New("get parent user err")
 	}
-	return nil
+	m[isAdmin] = parentUser.AccessKey == adminAccessKey
+	token, err := auth.JWTSignWithAccessKey(accessKey, m, auth.DefaultSecretKey)
+	if err != nil {
+		return auth.Credentials{}, err
+	}
+	cred.SessionToken = token
+	err = sys.store.SetTempUser(ctx, accessKey, cred, policyName)
+	if err != nil {
+		return auth.Credentials{}, err
+	}
+	return cred, nil
 }
 
 //func (sys *IdentityAMSys) CreateGroup(ctx context.Context, groupName string, version int) error {

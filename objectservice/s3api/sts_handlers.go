@@ -73,13 +73,14 @@ func (s3a *s3ApiServer) AssumeRole(w http.ResponseWriter, r *http.Request) {
 	// policy is inherited from `user.AccessKey`.
 	cred.ParentUser = user.AccessKey
 	// Set the newly generated credentials.
-	if err = s3a.authSys.Iam.SetTempUser(r.Context(), cred.AccessKey, cred, ""); err != nil {
+	newCred, err := s3a.authSys.Iam.SetTempUser(r.Context(), cred.AccessKey, cred, m, "", s3a.authSys.AdminCred.AccessKey)
+	if err != nil {
 		response.WriteSTSErrorResponse(r.Context(), w, true, apierrors.ErrSTSInternalError, err)
 		return
 	}
 	assumeRoleResponse := &response.AssumeRoleResponse{
 		Result: response.AssumeRoleResult{
-			Credentials: cred,
+			Credentials: newCred,
 		},
 	}
 	assumeRoleResponse.ResponseMetadata.RequestID = w.Header().Get(consts.AmzRequestID)

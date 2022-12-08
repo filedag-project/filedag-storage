@@ -45,9 +45,9 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 	if policyName != "" {
 		//todo policy
 	}
+	tempUser := newUserIdentity(cred)
+	err := store.saveUserIdentity(ctx, tempUser)
 
-	u := newUserIdentity(cred)
-	err := store.saveUserIdentity(ctx, u)
 	if err != nil {
 		return err
 	}
