@@ -3,6 +3,7 @@ package s3api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
@@ -21,7 +22,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	bucket, _, _ := getBucketAndObject(r)
 
 	log.Infof("PutBucketPolicyHandler %s", bucket)
-	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
@@ -44,6 +45,21 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 	bucketPolicy, err := policy.ParseConfig(bytes.NewReader(bucketPolicyBytes), bucket)
 	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ErrMalformedPolicy)
+		return
+	}
+	correct := false
+	for _, st := range bucketPolicy.Statements {
+		selfPolicy, err := getSelfPolicy(cred.AccessKey, bucket)
+		if err != nil {
+			response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+			return
+		}
+		if st.Equals(selfPolicy) {
+			correct = true
+		}
+	}
+	if !correct {
 		response.WriteErrorResponse(w, r, apierrors.ErrMalformedPolicy)
 		return
 	}
@@ -107,4 +123,27 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	response.WriteSuccessResponseJSONOnlyData(w, r, configData)
+}
+func getSelfPolicy(accessKey, bucket string) (policy.Statement, error) {
+	aa := fmt.Sprintf(`{
+      "Action": [
+        "s3:*"
+      ],
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "%v"
+        ]
+      },
+      "Resource": [
+        "arn:aws:s3:::%v/*"
+      ],
+      "Sid": ""
+    }`, accessKey, bucket)
+	var sta policy.Statement
+	err := json.Unmarshal([]byte(aa), &sta)
+	if err != nil {
+		return policy.Statement{}, err
+	}
+	return sta, nil
 }
