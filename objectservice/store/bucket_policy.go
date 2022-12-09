@@ -2,47 +2,36 @@ package store
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 )
 
-// UpdateBucketPolicy Update bucket metadata .
-// The configData data should not be modified after being sent here.
-func (sys *BucketMetadataSys) UpdateBucketPolicy(ctx context.Context, bucket string, p *policy.Policy) error {
-	lk := sys.NewNSLock(bucket)
-	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
-	if err != nil {
-		return err
-	}
-	ctx = lkctx.Context()
-	defer lk.Unlock(lkctx.Cancel)
-
-	meta, err := sys.getBucketMeta(bucket)
-	if err != nil {
-		return err
-	}
-
-	meta.PolicyConfig = p
-	return sys.setBucketMeta(bucket, &meta)
+// BucketPolicySys - policy subsystem.
+type BucketPolicySys struct {
+	BmSys *BucketMetadataSys
 }
 
-// DeleteBucketPolicy Delete bucket metadata .
-// The configData data should not be modified after being sent here.
-func (sys *BucketMetadataSys) DeleteBucketPolicy(ctx context.Context, bucket string) error {
-	return sys.UpdateBucketPolicy(ctx, bucket, nil)
+// NewIPolicySys  - creates new policy system.
+func NewIPolicySys(db *uleveldb.ULevelDB) *BucketPolicySys {
+	return &BucketPolicySys{
+		BmSys: NewBucketMetadataSys(db),
+	}
 }
 
-// GetPolicyConfig returns configured bucket policy
-func (sys *BucketMetadataSys) GetPolicyConfig(ctx context.Context, bucket string) (*policy.Policy, error) {
-	meta, err := sys.GetBucketMeta(ctx, bucket)
-	if err != nil {
-		switch err.(type) {
-		case BucketNotFound:
-			return nil, BucketPolicyNotFound{Bucket: bucket}
-		}
-		return nil, err
+// IsAllowed - checks given policy args is allowed to continue the Rest API.
+func (sys *BucketPolicySys) IsAllowed(ctx context.Context, args auth.Args) bool {
+	p, err := sys.BmSys.GetPolicyConfig(ctx, args.BucketName)
+	if err == nil {
+		return p.IsAllowed(args)
 	}
-	if meta.PolicyConfig == nil {
-		return nil, BucketPolicyNotFound{Bucket: bucket}
+	if _, ok := err.(BucketPolicyNotFound); !ok {
+		log.Errorw("can't find bucket policy", "bucket", args.BucketName)
 	}
-	return meta.PolicyConfig, nil
+	return false
+}
+
+// GetPolicy returns stored bucket policy
+func (sys *BucketPolicySys) GetPolicy(ctx context.Context, bucket string) (*policy.Policy, error) {
+	return sys.BmSys.GetPolicyConfig(ctx, bucket)
 }

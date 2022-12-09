@@ -309,7 +309,7 @@ func TestIamApiServer_AccountInfo(t *testing.T) {
 			expectedRespStatus: http.StatusForbidden,
 		},
 	}
-	u := "http://127.0.0.1:9985/admin/v1/user-info?"
+	u := "http://127.0.0.1:9985/console/v1/user-info?"
 	// Iterating over the cases, fetching the result validating the response.
 	for _, testCase := range testCases {
 		// mock an HTTP request
@@ -632,6 +632,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 		name          string
 		credAccessKey string
 		credSecretKey string
+		oldSecretKey  string
 		accessKey     string
 		pass          string
 		// expected output.
@@ -642,13 +643,15 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			credAccessKey:      DefaultTestAccessKey,
 			credSecretKey:      DefaultTestSecretKey,
 			accessKey:          changePassSuccessAccessKey,
+			oldSecretKey:       changePassSuccessSecretKey,
 			expectedRespStatus: http.StatusOK,
 			pass:               thePassToChange,
 		},
 		{
-			name:               "root user change a user pass",
+			name:               "root user change root pass",
 			credAccessKey:      DefaultTestAccessKey,
 			credSecretKey:      DefaultTestSecretKey,
+			oldSecretKey:       DefaultTestSecretKey,
 			accessKey:          DefaultTestAccessKey,
 			expectedRespStatus: http.StatusConflict,
 			pass:               thePassToChange,
@@ -658,6 +661,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			credAccessKey:      DefaultTestAccessKey,
 			credSecretKey:      DefaultTestSecretKey,
 			accessKey:          userNonExistAccessKey,
+			oldSecretKey:       userNonExistSecretKey,
 			expectedRespStatus: http.StatusConflict,
 			pass:               thePassToChange,
 		},
@@ -666,6 +670,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			credAccessKey:      himselfChangeSuccessAccessKey,
 			credSecretKey:      himselfChangeSuccessSecretKey,
 			accessKey:          himselfChangeSuccessAccessKey,
+			oldSecretKey:       himselfChangeSuccessSecretKey,
 			expectedRespStatus: http.StatusOK,
 			pass:               thePassToChange,
 		},
@@ -673,6 +678,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			name:               "normal user change other user pass",
 			credAccessKey:      normalAccessKey,
 			credSecretKey:      normalSecretKey,
+			oldSecretKey:       otherUserSecretKey,
 			accessKey:          otherUserAccessKey,
 			expectedRespStatus: http.StatusForbidden,
 			pass:               thePassToChange,
@@ -681,6 +687,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			name:               "normal user change a non-exist user pass",
 			credAccessKey:      normalAccessKey,
 			credSecretKey:      normalSecretKey,
+			oldSecretKey:       userNonExistSecretKey,
 			accessKey:          userNonExistAccessKey,
 			expectedRespStatus: http.StatusConflict,
 			pass:               thePassToChange,
@@ -689,12 +696,13 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			name:               "normal user change user err pass",
 			credAccessKey:      himselfChangeSuccessAccessKey,
 			credSecretKey:      thePassToChange,
+			oldSecretKey:       thePassToChange,
 			accessKey:          himselfChangeSuccessAccessKey,
 			expectedRespStatus: http.StatusBadRequest,
 			pass:               "dj",
 		},
 	}
-	changePassUrl := "http://127.0.0.1:9985/admin/v1/change-password?"
+	changePassUrl := "http://127.0.0.1:9985/console/v1/change-password?"
 	for _, testCase := range testCases {
 		// mock an HTTP request
 		//change password
@@ -702,6 +710,7 @@ func TestIamApiServer_ChangePassword(t *testing.T) {
 			urlValues := make(url.Values)
 			urlValues.Set(newSecretKey, testCase.pass)
 			urlValues.Set(accessKey, testCase.accessKey)
+			urlValues.Set(oldSecretKey, testCase.oldSecretKey)
 			//urlValues.Set("status", string(iam.AccountDisabled
 			reqChange := utils.MustNewSignedV4Request(http.MethodPost, changePassUrl+urlValues.Encode(), 0, nil, "s3", testCase.credAccessKey, testCase.credSecretKey, t)
 			result := reqTest(reqChange)

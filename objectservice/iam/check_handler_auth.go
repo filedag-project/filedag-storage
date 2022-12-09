@@ -8,6 +8,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/etag"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/hash"
@@ -22,7 +23,7 @@ import (
 // AuthSys auth and sign system
 type AuthSys struct {
 	Iam       *IdentityAMSys
-	PolicySys *iPolicySys
+	PolicySys *store.BucketPolicySys
 	AdminCred auth.Credentials
 }
 
@@ -30,7 +31,7 @@ type AuthSys struct {
 func NewAuthSys(db *uleveldb.ULevelDB, adminCred auth.Credentials) *AuthSys {
 	return &AuthSys{
 		Iam:       NewIdentityAMSys(db),
-		PolicySys: newIPolicySys(db),
+		PolicySys: store.NewIPolicySys(db),
 		AdminCred: adminCred,
 	}
 }
@@ -78,7 +79,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 
 		// Populate payload to extract location constraint.
 		r.Body = ioutil.NopCloser(bytes.NewReader(payload))
-		if s.PolicySys.bmSys.HasBucket(ctx, bucketName) {
+		if s.PolicySys.BmSys.HasBucket(ctx, bucketName) {
 			return cred, owner, apierrors.ErrBucketAlreadyExists
 		}
 	}
@@ -89,7 +90,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 	}
 
 	// check bucket policy
-	if s.PolicySys.isAllowed(ctx, auth.Args{
+	if s.PolicySys.IsAllowed(ctx, auth.Args{
 		AccountName: cred.AccessKey,
 		Action:      action,
 		BucketName:  bucketName,
@@ -102,7 +103,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 	if action == s3action.ListBucketVersionsAction {
 		// In AWS S3 s3:ListBucket permission is same as s3:ListBucketVersions permission
 		// verify as a fallback.
-		if s.PolicySys.isAllowed(ctx, auth.Args{
+		if s.PolicySys.IsAllowed(ctx, auth.Args{
 			AccountName: cred.AccessKey,
 			Action:      s3action.ListBucketAction,
 			BucketName:  bucketName,
@@ -128,7 +129,7 @@ func (s *AuthSys) CheckRequestAuthTypeCredential(ctx context.Context, r *http.Re
 			return cred, owner, apierrors.ErrNone
 		}
 	} else {
-		if !s.PolicySys.bmSys.HasBucket(ctx, bucketName) {
+		if !s.PolicySys.BmSys.HasBucket(ctx, bucketName) {
 			return cred, owner, apierrors.ErrNoSuchBucket
 		}
 	}
@@ -311,7 +312,7 @@ func (s *AuthSys) IsPutActionAllowed(ctx context.Context, r *http.Request, actio
 	}
 
 	// check bucket policy
-	if s.PolicySys.isAllowed(ctx, auth.Args{
+	if s.PolicySys.IsAllowed(ctx, auth.Args{
 		AccountName: cred.AccessKey,
 		Action:      action,
 		BucketName:  bucketName,
@@ -321,7 +322,7 @@ func (s *AuthSys) IsPutActionAllowed(ctx context.Context, r *http.Request, actio
 		return apierrors.ErrNone
 	}
 
-	if !s.PolicySys.bmSys.HasBucket(ctx, bucketName) {
+	if !s.PolicySys.BmSys.HasBucket(ctx, bucketName) {
 		return apierrors.ErrNoSuchBucket
 	}
 	return apierrors.ErrAccessDenied

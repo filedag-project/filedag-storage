@@ -1,6 +1,7 @@
 package s3api
 
 import (
+	"fmt"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"net/http"
 	"strings"
@@ -30,12 +31,13 @@ func TestS3ApiServer_PutGetBucketPolicyHandler(t *testing.T) {
 	if reqPutBucketNormalResult.Code != http.StatusOK {
 		t.Fatalf("reqPutBucketNormalResult expect 200 ,but found %v", reqPutBucketNormalResult.Code)
 	}
-	correctPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","filedagadmin"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucketputpoliy/*"}]}`
-	normalCorrectPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","testA"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucketputpoliynormal/*"}]}`
-	accessDeniedPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucketputpoliy/*"}]}`
-	wrongPolicy := `{"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucketputpoliypoliy/*"}]}`
-	bucketNameDoseNotMatchPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","filedagadmin"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucketpoliyae/*"}]}`
-
+	var self = `{"Action":["s3:*"],"Effect":"Allow","Principal":{"AWS":["%v"]},"Resource":["arn:aws:s3:::%v/*"],"Sid":""}`
+	correctPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","filedagadmin"]},"Action":["s3:*"],"Resource":["arn:aws:s3:::testbucketputpoliy/*"]},%v]}`
+	normalCorrectPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","testA"]},"Action":["s3:*"],"Resource":["arn:aws:s3:::testbucketputpoliynormal/*"]},%v]}`
+	accessDeniedPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":["arn:aws:s3:::testbucketputpoliy/*"]},%v]}`
+	wrongPolicy := `{"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666"]},"Action":["s3:*"],"Resource":["arn:aws:s3:::testbucketputpoliy/*"]}]}`
+	bucketNameDoseNotMatchPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","filedagadmin"]},"Action":["s3:*"],"Resource":["arn:aws:s3:::testbucketputpoliy/*"]}]}`
+	// todo more testcase
 	teatCases := []struct {
 		name                  string
 		bucketName            string
@@ -48,7 +50,7 @@ func TestS3ApiServer_PutGetBucketPolicyHandler(t *testing.T) {
 		{
 			name:                  "correctPolicy",
 			bucketName:            bucketName,
-			policyJson:            correctPolicy,
+			policyJson:            fmt.Sprintf(correctPolicy, fmt.Sprintf(self, DefaultTestAccessKey, bucketName[1:])),
 			accessKey:             DefaultTestAccessKey,
 			secretKey:             DefaultTestSecretKey,
 			expectedPutRespStatus: http.StatusNoContent,
@@ -57,11 +59,11 @@ func TestS3ApiServer_PutGetBucketPolicyHandler(t *testing.T) {
 		{
 			name:                  "accessDeniedPolicy",
 			bucketName:            bucketName,
-			policyJson:            accessDeniedPolicy,
+			policyJson:            fmt.Sprintf(accessDeniedPolicy, fmt.Sprintf(self, DefaultTestAccessKey, bucketName[1:])),
 			accessKey:             DefaultTestAccessKey,
 			secretKey:             DefaultTestSecretKey,
 			expectedPutRespStatus: http.StatusNoContent,
-			expectedGetRespStatus: http.StatusForbidden,
+			expectedGetRespStatus: http.StatusOK,
 		},
 		{
 			name:                  "wrongPolicy",
@@ -75,7 +77,7 @@ func TestS3ApiServer_PutGetBucketPolicyHandler(t *testing.T) {
 		{
 			name:                  "normal user",
 			bucketName:            bucketName + "normal",
-			policyJson:            normalCorrectPolicy,
+			policyJson:            fmt.Sprintf(normalCorrectPolicy, fmt.Sprintf(self, normalUser, bucketName[1:]+"normal")),
 			accessKey:             normalUser,
 			secretKey:             normalSecret,
 			expectedPutRespStatus: http.StatusNoContent,
@@ -129,8 +131,9 @@ func TestS3ApiServer_DelBucketPolicyHandler(t *testing.T) {
 	if reqPutBucketNormalResult.Code != http.StatusOK {
 		t.Fatalf("reqPutBucketNormalResult expect 200 ,but found %v", reqPutBucketNormalResult.Code)
 	}
-	correctPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","filedagadmin"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucketdelpoliy/*"}]}`
-	normalCorrectPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","testA"]},"Action":["s3:*"],"Resource":"arn:aws:s3:::testbucketdelpoliynormal/*"}]}`
+	var self = `{"Action":["s3:*"],"Effect":"Allow","Principal":{"AWS":["%v"]},"Resource":["arn:aws:s3:::%v/*"],"Sid":""}`
+	correctPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","filedagadmin"]},"Action":["s3:*"],"Resource":["arn:aws:s3:::testbucketdelpoliy/*"]},%v]}`
+	normalCorrectPolicy := `{"Version":"2008-10-17","Id":"aaaa-bbbb-cccc-dddd","Statement":[{"Effect":"Allow","Sid":"1","Principal":{"AWS":["111122223333","444455556666","testA"]},"Action":["s3:*"],"Resource":["arn:aws:s3:::testbucketdelpoliynormal/*"]},%v]}`
 	teatCases := []struct {
 		name                  string
 		bucketName            string
@@ -143,7 +146,7 @@ func TestS3ApiServer_DelBucketPolicyHandler(t *testing.T) {
 		{
 			name:                  "root user del bucket policy",
 			bucketName:            bucketName,
-			policyJson:            correctPolicy,
+			policyJson:            fmt.Sprintf(correctPolicy, fmt.Sprintf(self, DefaultTestAccessKey, bucketName[1:])),
 			accessKey:             DefaultTestAccessKey,
 			secretKey:             DefaultTestSecretKey,
 			expectedPutRespStatus: http.StatusNoContent,
@@ -152,7 +155,7 @@ func TestS3ApiServer_DelBucketPolicyHandler(t *testing.T) {
 		{
 			name:                  "normal user del bucket policy",
 			bucketName:            bucketName + "normal",
-			policyJson:            normalCorrectPolicy,
+			policyJson:            fmt.Sprintf(normalCorrectPolicy, fmt.Sprintf(self, normalUser, bucketName[1:]+"normal")),
 			accessKey:             normalUser,
 			secretKey:             normalSecret,
 			expectedPutRespStatus: http.StatusNoContent,

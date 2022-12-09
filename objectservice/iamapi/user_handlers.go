@@ -263,7 +263,7 @@ func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
-		if credChange.SecretKey != oldSecret {
+		if credChange.SecretKey != oldSecret || username != cred.AccessKey {
 			response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
 			return
 		}
