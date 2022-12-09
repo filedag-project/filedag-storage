@@ -14,7 +14,7 @@ const DefaultVersion = "2012-10-17"
 
 // Policy - iam bucket iamp.
 type Policy struct {
-	ID         ID `json:"ID,omitempty"`
+	ID         ID `json:"ID"`
 	Version    string
 	Statements []Statement `json:"Statement"`
 }

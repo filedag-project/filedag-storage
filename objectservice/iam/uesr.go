@@ -17,17 +17,17 @@ const (
 // UserInfo carries information about long term users.
 type UserInfo struct {
 	AccountName          string             `json:"account_name"`
-	TotalStorageCapacity uint64             `json:"total_storage_capacity,omitempty"`
-	BucketInfos          []store.BucketInfo `json:"bucket_infos,omitempty"`
-	UseStorageCapacity   uint64             `json:"use_storage_capacity,omitempty"`
-	PolicyName           []string           `json:"policy_name,omitempty"`
-	Status               AccountStatus      `json:"status,omitempty"`
+	TotalStorageCapacity uint64             `json:"total_storage_capacity"`
+	BucketInfos          []store.BucketInfo `json:"bucket_infos"`
+	UseStorageCapacity   uint64             `json:"use_storage_capacity"`
+	PolicyName           []string           `json:"policy_name"`
+	Status               AccountStatus      `json:"status"`
 }
 
 // UserIdentity represents a user's secret key and their status
 type UserIdentity struct {
 	Credentials          auth.Credentials `json:"credentials"`
-	TotalStorageCapacity uint64           `json:"total_storage_capacity,omitempty"`
+	TotalStorageCapacity uint64           `json:"total_storage_capacity"`
 }
 
 func newUserIdentity(cred auth.Credentials) UserIdentity {

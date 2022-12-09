@@ -34,7 +34,7 @@ import (
 //        }
 //    ]
 type Statement struct {
-	SID        ID                   `json:"Sid,omitempty"`
+	SID        ID                   `json:"Sid"`
 	Effect     Effect               `json:"Effect"`
 	Principal  Principal            `json:"Principal"`
 	Actions    s3action.ActionSet   `json:"Action"`
@@ -75,7 +75,7 @@ func (statement Statement) Equals(st Statement) bool {
 	if !statement.Resources.Equals(st.Resources) {
 		return false
 	}
-	if !statement.Resources.Equals(st.Resources) {
+	if !statement.Conditions.Equals(st.Conditions) {
 		return false
 	}
 	return true
