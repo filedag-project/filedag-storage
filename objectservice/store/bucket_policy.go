@@ -152,3 +152,16 @@ func getBucketPolicy(statement policy.Statement, prefix string) (commonFound, re
 
 	return commonFound, readOnly, writeOnly
 }
+
+//GetSelfPolicy get default policy
+func GetSelfPolicy(accessKey, bucket string) (policy.Statement, error) {
+	var sta = policy.Statement{
+		SID:        "",
+		Effect:     "Allow",
+		Principal:  policy.NewPrincipal(accessKey),
+		Actions:    s3action.NewActionSet(s3action.AllActions),
+		Resources:  policy.NewResourceSet(policy.NewResource(bucket, "*")),
+		Conditions: nil,
+	}
+	return sta, nil
+}

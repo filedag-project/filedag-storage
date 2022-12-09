@@ -3,12 +3,12 @@ package s3api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -50,7 +50,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 	correct := false
 	for _, st := range bucketPolicy.Statements {
-		selfPolicy, err := getSelfPolicy(cred.AccessKey, bucket)
+		selfPolicy, err := store.GetSelfPolicy(cred.AccessKey, bucket)
 		if err != nil {
 			response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 			return
@@ -123,27 +123,4 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	response.WriteSuccessResponseJSONOnlyData(w, r, configData)
-}
-func getSelfPolicy(accessKey, bucket string) (policy.Statement, error) {
-	aa := fmt.Sprintf(`{
-      "Action": [
-        "s3:*"
-      ],
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": [
-          "%v"
-        ]
-      },
-      "Resource": [
-        "arn:aws:s3:::%v/*"
-      ],
-      "Sid": ""
-    }`, accessKey, bucket)
-	var sta policy.Statement
-	err := json.Unmarshal([]byte(aa), &sta)
-	if err != nil {
-		return policy.Statement{}, err
-	}
-	return sta, nil
 }
