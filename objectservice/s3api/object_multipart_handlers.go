@@ -5,7 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/etag"

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 	"github.com/vmihailenco/msgpack/v5"
 )
 

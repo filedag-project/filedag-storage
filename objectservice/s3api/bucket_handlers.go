@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"

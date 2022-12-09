@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy/condition"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy/condition"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"testing"
 	"time"

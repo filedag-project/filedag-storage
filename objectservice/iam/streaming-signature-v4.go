@@ -27,6 +27,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"hash"
 	"io"
@@ -34,9 +35,8 @@ import (
 	"strings"
 	"time"
 
-	humanize "github.com/dustin/go-humanize"
+	"github.com/dustin/go-humanize"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 )
 
 // Streaming AWS Signature Version '4' constants.

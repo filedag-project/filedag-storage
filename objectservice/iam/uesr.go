@@ -1,7 +1,7 @@
 package iam
 
 import (
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 )
 

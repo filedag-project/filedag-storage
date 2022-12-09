@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"

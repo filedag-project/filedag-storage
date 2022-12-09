@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"testing"
 )

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	logging "github.com/ipfs/go-log/v2"
 )

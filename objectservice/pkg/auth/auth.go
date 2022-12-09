@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	jwtgo "github.com/golang-jwt/jwt/v4"
 	logging "github.com/ipfs/go-log/v2"
 	"strconv"

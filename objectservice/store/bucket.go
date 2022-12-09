@@ -3,8 +3,8 @@ package store
 import (
 	"context"
 	"encoding/xml"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/syndtr/goleveldb/leveldb"
 	"time"

@@ -8,7 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"io"
 	"net/http"
 	"regexp"

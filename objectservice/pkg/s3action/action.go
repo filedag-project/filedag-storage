@@ -1,8 +1,8 @@
 package s3action
 
 import (
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy/condition"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy/condition"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 )
 
 // ActionSet - set of actions.

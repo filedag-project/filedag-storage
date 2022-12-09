@@ -3,7 +3,7 @@ package s3api
 import (
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	httpstatss "github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"

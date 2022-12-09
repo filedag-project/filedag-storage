@@ -2,10 +2,9 @@ package condition
 
 import (
 	"encoding/base64"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 	"reflect"
 	"testing"
-
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
 )
 
 func TestStringEqualsFuncEvaluate(t *testing.T) {

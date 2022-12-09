@@ -2,7 +2,7 @@ package store
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 )
 
 // UpdateBucketPolicy Update bucket metadata .

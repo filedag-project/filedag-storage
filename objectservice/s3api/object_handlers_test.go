@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/stretchr/testify/require"

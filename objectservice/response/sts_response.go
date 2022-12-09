@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"net/http"
 )
 

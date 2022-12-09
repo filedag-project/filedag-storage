@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"

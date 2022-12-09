@@ -21,7 +21,7 @@ import (
 	"crypto/subtle"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"net/http"
 	"net/url"

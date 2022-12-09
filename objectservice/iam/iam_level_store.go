@@ -3,7 +3,7 @@ package iam
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"strings"
 )

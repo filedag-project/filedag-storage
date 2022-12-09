@@ -3,10 +3,9 @@ package condition
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 	"sort"
 	"strings"
-
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
 )
 
 func substitute(values map[string][]string) func(string) string {
