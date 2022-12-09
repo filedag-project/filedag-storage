@@ -1,6 +1,7 @@
 package iamapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,7 +11,10 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/gorilla/mux"
+	"io"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"regexp"
@@ -172,6 +176,28 @@ func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) 
 		}(),
 	}
 	response.WriteSuccessResponseJSON(w, r, acctInfo)
+}
+
+// GetPolicyName get PolicyName
+func (iamApi *iamApiServer) GetPolicyName(w http.ResponseWriter, r *http.Request) {
+	_, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetUserInfoAction, "", "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(s3err))
+		return
+	}
+	bucket := r.FormValue("bucketName")
+	bucketPolicyBytes, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
+	if err != nil {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidPolicyDocument))
+		return
+	}
+	bucketPolicy, err := policy.ParseConfig(bytes.NewReader(bucketPolicyBytes), bucket)
+	if err != nil {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrMalformedPolicy))
+		return
+	}
+	bucketPolicyName := store.GetPolicyName(bucketPolicy.Statements, bucket, "")
+	response.WriteSuccessResponseJSON(w, r, bucketPolicyName)
 }
 
 //IsAdmin check user if admin

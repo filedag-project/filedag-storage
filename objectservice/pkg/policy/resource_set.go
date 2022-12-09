@@ -17,6 +17,17 @@ func (resourceSet ResourceSet) Add(resource Resource) {
 	resourceSet[resource] = struct{}{}
 }
 
+// IsEmpty - returns whether the set is empty or not.
+func (resourceSet ResourceSet) IsEmpty() bool {
+	return len(resourceSet) == 0
+}
+
+// Contains - checks if string is in the set.
+func (resourceSet ResourceSet) Contains(resource Resource) bool {
+	_, ok := resourceSet[resource]
+	return ok
+}
+
 // Match - matches object name with anyone of resource pattern in resource set.
 func (resourceSet ResourceSet) Match(resource string, conditionValues map[string][]string) bool {
 	for r := range resourceSet {

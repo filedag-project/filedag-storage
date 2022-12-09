@@ -21,6 +21,12 @@ func (as ActionSet) Add(action Action) {
 	as[action] = struct{}{}
 }
 
+// Contains - checks given action exists in the action set.
+func (as ActionSet) Contains(action Action) bool {
+	_, found := as[action]
+	return found
+}
+
 // Match - matches object name with anyone of action pattern in action set.
 func (as ActionSet) Match(action Action) bool {
 	for r := range as {
