@@ -33,7 +33,7 @@ const signV4 = async (sign:SignModel) => {
         hostname: process.env['REACT_APP_HOST_NAME']??'',
         body: sign.body,
     });
-    const request = await signer.sign(minimalRequest,);
+    const request = await signer.sign(minimalRequest);
     return request;
 };
 

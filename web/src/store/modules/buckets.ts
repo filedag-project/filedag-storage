@@ -16,6 +16,7 @@ class BucketsStore {
       fetchList: action,
       fetchCreate:action,
       fetchDelete:action,
+      SET_BUCKET_LIST:action,
     });
   }
 
@@ -26,6 +27,10 @@ class BucketsStore {
         Name:_.get(n,'Name._text','')
       }
     });
+  }
+  
+  SET_BUCKET_LIST(data:Array<any>){
+    this.bucketList = data;
   }
 
   SET_DELETE_SHOW(data:boolean){
@@ -50,9 +55,9 @@ class BucketsStore {
       const res = await Axios.axiosXMLStream(params);
       const _list:[] = _.get(res,'ListAllMyBucketsResult.Buckets.Bucket',[]);
       if(Array.isArray(_list)){
-        this.bucketList = _list;
+        this.SET_BUCKET_LIST(_list)
       }else{
-        this.bucketList = [_list];
+        this.SET_BUCKET_LIST([_list]);
       }
       resolve(_list)
     })

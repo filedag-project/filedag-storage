@@ -11,15 +11,41 @@ enum RouterPath {
   overview = '/overview',
   power = '/power',
   changePassword = '/changePassword',
-  createUser = '/createUser'
+  createUser = '/createUser',
+  home = '/home',
+  user = '/user'
 }
-
+// all roles can be accessed
 const Routes: RouteModel[] = [
   {
-    name: 'dashboard',
+    name: 'home',
     path: '/',
     auth: true,
+    component: lazy(() => import('@/pages/Home')),
+  },
+  {
+    name: 'home',
+    path: RouterPath.home,
+    auth: true,
+    component: lazy(() => import('@/pages/Home')),
+  },
+  {
+    name: 'dashboard',
+    path: RouterPath.dashboard,
+    auth: true,
     component: lazy(() => import('@/pages/Dashboard')),
+  },
+  {
+    name: 'user',
+    path: RouterPath.user,
+    auth: true,
+    component: lazy(() => import('@/pages/User')),
+  },
+  {
+    name: 'overview',
+    path: RouterPath.overview,
+    auth: true,
+    component: lazy(() => import('@/pages/Overview')),
   },
   {
     name: 'buckets',
@@ -38,18 +64,6 @@ const Routes: RouteModel[] = [
     path: RouterPath.objects,
     auth: true,
     component: lazy(() => import('@/pages/Objects')),
-  },
-  {
-    name: 'dashboard',
-    path: RouterPath.dashboard,
-    auth: true,
-    component: lazy(() => import('@/pages/Dashboard')),
-  },
-  {
-    name: 'overview',
-    path: RouterPath.overview,
-    auth: true,
-    component: lazy(() => import('@/pages/Overview')),
   },
   {
     name: 'power',
@@ -83,4 +97,4 @@ const Routes: RouteModel[] = [
   },
 ];
 
-export { RouterPath, Routes };
+export { RouterPath,Routes };

@@ -1,3 +1,4 @@
+
 import { Redirect, Route, useHistory } from 'react-router-dom';
 import { RouterPath } from '@/router/RouterConfig';
 import classNames from 'classnames';
@@ -8,18 +9,25 @@ import { Dropdown, Layout, MenuProps } from 'antd';
 import PageMenu from '@/components/Menu';
 import { ACCESS_KEY_ID, Cookies, SECRET_ACCESS_KEY, SESSION_TOKEN } from '@/utils/cookies';
 import { observer } from 'mobx-react';
-import globalStore from '@/store/modules/global';
+import { tokenType } from '@/models/RouteModel';
+import jwt_decode from "jwt-decode";
 const { Sider } = Layout;
 const IS_LOGGED = false;
 
 const noSliderPage = ['/login'];
 const PageLayout = (props: any) => {
   const history = useHistory();
+  const [name,setName]=useState('');
   const { component: Com, auth, path, ...rest } = props;
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(()=>{
-    globalStore.fetchUserInfo();
+    const _jwt = Cookies.getKey(SESSION_TOKEN);
+    if(_jwt){
+      const _token:tokenType = jwt_decode(_jwt);
+      const {parent}=_token;
+      setName(parent);
+    }
   },[]);
 
   const items: MenuProps['items'] = [
@@ -53,14 +61,13 @@ const PageLayout = (props: any) => {
       <MenuFoldOutlined></MenuFoldOutlined>
     );
   };
-  const name = globalStore.userInfo.account_name;
-
-  console.log(name,'name');
   
   return (
     <Route
       {...rest}
       render={(props: any) => {
+        console.log(123);
+        
         if (!IS_LOGGED) {
           if (noSliderPage.includes(path)) {
             return <Com {...props} />;
@@ -103,3 +110,4 @@ const PageLayout = (props: any) => {
 };
 
 export default observer(PageLayout);
+

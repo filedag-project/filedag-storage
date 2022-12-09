@@ -26,7 +26,7 @@ const CreateUser = (props:any) => {
       region: '',
     }
     Axios.axiosXMLStream(params).then(res=>{
-      history.push(RouterPath.dashboard)
+      history.push(RouterPath.buckets)
     })
   };
 

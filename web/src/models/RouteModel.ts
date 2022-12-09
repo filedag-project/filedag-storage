@@ -5,3 +5,8 @@ export interface RouteModel {
   auth: boolean;
   child?: RouteModel[];
 }
+
+export interface tokenType{
+  isAdmin:boolean;
+  parent:string;
+}

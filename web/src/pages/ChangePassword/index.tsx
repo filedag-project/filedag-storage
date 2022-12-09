@@ -1,18 +1,23 @@
 import { Axios, HttpMethods } from '@/api/https';
 import { SignModel } from '@/models/SignModel';
 import { RouterPath } from '@/router/RouterConfig';
-import { ACCESS_KEY_ID, Cookies } from '@/utils/cookies';
+import { Cookies, SESSION_TOKEN } from '@/utils/cookies';
 import { Button, Form, Input } from 'antd';
 import { observer } from 'mobx-react';
 import { useHistory } from 'react-router';
+import jwt_decode from "jwt-decode";
 import styles from './style.module.scss';
+import { tokenType } from '@/models/RouteModel';
 const ChangePassword = (props:any) => {
   const [form] = Form.useForm();
   const history = useHistory();
   const confirm = async ()=>{
     const oldSecretKey = form.getFieldValue('oldPassword')
     const newSecretKey = form.getFieldValue('newPassword');
-    const accessKey = Cookies.getKey(ACCESS_KEY_ID);
+    const _jwt = Cookies.getKey(SESSION_TOKEN);
+    const _token:tokenType = jwt_decode(_jwt);
+    const {parent}=_token;
+
     const params:SignModel = {
       service: 's3',
       body: '',
@@ -23,12 +28,12 @@ const ChangePassword = (props:any) => {
       query:{
         oldSecretKey:oldSecretKey,
         newSecretKey:newSecretKey,
-        accessKey:accessKey
+        accessKey:parent
       },
       region: '',
     }
     Axios.axiosJson(params).then(res=>{
-      history.push(RouterPath.dashboard)
+      history.push(RouterPath.buckets)
     })
   };
 
