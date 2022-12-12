@@ -242,7 +242,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	}
 	err = enc.DecodeDataBlocks(shards)
 	if err != nil {
-		log.Errorf("decode date blocks fail :%v", err)
+		log.Errorf("decode data blocks fail :%v", err)
 		return nil, err
 	}
 

@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/proto"
+	"github.com/filedag-project/filedag-storage/dag/utils/paralleltask"
 	"github.com/ipfs/go-cid"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
@@ -51,31 +52,40 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 			continue
 		}
 
-		merged := make([][]byte, len(d.Nodes))
-		for i, node := range d.Nodes {
-			if i == repairNodeIndex {
-				merged[i] = nil
-				continue
-			}
-			res, err := node.Client.DataClient.Get(ctx, &proto.GetRequest{Key: key})
-			if err != nil {
-				log.Errorf("this node[%s] err: %v", node.RpcAddress, err)
-				merged[i] = nil
-				continue
-			}
-			if len(res.Data) == 0 {
-				log.Errorf("There is no data in this node")
-				merged[i] = nil
-				continue
-			}
-			merged[i] = res.Data
+		shards := make([][]byte, len(d.Nodes))
+		entryReadQuorum, _ := d.entryQuorum()
+		task := paralleltask.NewParallelTask(ctx, entryReadQuorum, len(d.Nodes)-entryReadQuorum+1, true)
+		for i, snode := range d.Nodes {
+			index := i
+			tnode := snode
+			task.Goroutine(func(ctx context.Context) error {
+				if index == repairNodeIndex {
+					return errors.New("there is no data in this node")
+				}
+				res, err := tnode.Client.DataClient.Get(ctx, &proto.GetRequest{Key: key})
+				if err != nil {
+					log.Errorf("this node[%s] get key err: %v", tnode.RpcAddress, err)
+					return err
+				}
+				if len(res.Data) == 0 {
+					err = errors.New("there is no data in this node")
+					return err
+				}
+				shards[index] = res.Data
+				return nil
+			})
 		}
+		if err = task.Wait(); err != nil {
+			log.Errorw("task error, missing shards", "key", key, "error", err)
+			continue
+		}
+
 		enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(size))
 		if err != nil {
 			log.Errorf("new erasure fail :%v", err)
 			return err
 		}
-		err = enc.DecodeDataBlocks(merged)
+		err = enc.DecodeDataAndParityBlocks(shards)
 		if err != nil {
 			log.Errorf("decode data blocks failed: %v", err)
 			return err
@@ -92,10 +102,11 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 		if _, err = repairNode.Client.DataClient.Put(ctx, &proto.AddRequest{
 			Key:  key,
 			Meta: metaBuf.Bytes(),
-			Data: merged[repairNodeIndex],
+			Data: shards[repairNodeIndex],
 		}); err != nil {
-			log.Errorf("data node put fail :%v", err)
+			log.Errorf("data node put failed: %v", err)
 			return err
 		}
+		log.Infow("repair entry success", "key", key)
 	}
 }
