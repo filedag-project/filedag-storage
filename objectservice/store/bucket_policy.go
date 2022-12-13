@@ -2,15 +2,15 @@ package store
 
 import (
 	"context"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 )
 
 // BucketPolicySys - policy subsystem.
 type BucketPolicySys struct {
-	BmSys *BucketMetadataSys
+	BmSys *bucketMetadataSys
 }
 
 // Read only object actions.
@@ -29,7 +29,7 @@ var readOnlyBucketActions = s3action.Action("s3:ListBucket")
 var writeOnlyBucketActions = s3action.Action("s3:ListBucketMultipartUploads")
 
 // NewIPolicySys  - creates new policy system.
-func NewIPolicySys(db *uleveldb.ULevelDB) *BucketPolicySys {
+func NewIPolicySys(db objmetadb.ObjStoreMetaDBAPI) *BucketPolicySys {
 	return &BucketPolicySys{
 		BmSys: NewBucketMetadataSys(db),
 	}

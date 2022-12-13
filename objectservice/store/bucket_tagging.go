@@ -4,7 +4,8 @@ import (
 	"context"
 )
 
-func (sys *BucketMetadataSys) UpdateBucketTagging(ctx context.Context, bucket string, tags *Tags) error {
+//UpdateBucketTagging Update BucketTagging
+func (sys *bucketMetadataSys) UpdateBucketTagging(ctx context.Context, bucket string, tags *Tags) error {
 	lk := sys.NewNSLock(bucket)
 	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -22,11 +23,13 @@ func (sys *BucketMetadataSys) UpdateBucketTagging(ctx context.Context, bucket st
 	return sys.setBucketMeta(bucket, &meta)
 }
 
-func (sys *BucketMetadataSys) DeleteBucketTagging(ctx context.Context, bucket string) error {
+//DeleteBucketTagging  Delete BucketTagging
+func (sys *bucketMetadataSys) DeleteBucketTagging(ctx context.Context, bucket string) error {
 	return sys.UpdateBucketPolicy(ctx, bucket, nil)
 }
 
-func (sys *BucketMetadataSys) GetTaggingConfig(ctx context.Context, bucket string) (*Tags, error) {
+//GetTaggingConfig  Get TaggingConfig
+func (sys *bucketMetadataSys) GetTaggingConfig(ctx context.Context, bucket string) (*Tags, error) {
 	meta, err := sys.GetBucketMeta(ctx, bucket)
 	if err != nil {
 		switch err.(type) {

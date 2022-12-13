@@ -7,10 +7,10 @@ import (
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/s3api"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
@@ -56,7 +56,7 @@ func startServer(cctx *cli.Context) {
 			"Root user length should be at least 3, and password length at least 8 characters")
 	}
 
-	db, err := uleveldb.OpenDb(datadir)
+	db, err := objmetadb.OpenDb(datadir)
 	if err != nil {
 		return
 	}

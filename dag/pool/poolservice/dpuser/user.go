@@ -2,12 +2,12 @@ package dpuser
 
 import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 )
 
 //IdentityUserSys identity user sys
 type IdentityUserSys struct {
-	DB           *uleveldb.ULevelDB
+	DB           objmetadb.ObjStoreMetaDBAPI
 	rootUser     string
 	rootPassword string
 }
@@ -103,7 +103,7 @@ func (i *IdentityUserSys) CheckUserPolicy(username, pass string, policy upolicy.
 }
 
 //NewIdentityUserSys new identity user sys
-func NewIdentityUserSys(db *uleveldb.ULevelDB, rootUser, rootPassword string) (*IdentityUserSys, error) {
+func NewIdentityUserSys(db objmetadb.ObjStoreMetaDBAPI, rootUser, rootPassword string) (*IdentityUserSys, error) {
 	return &IdentityUserSys{
 		DB:           db,
 		rootUser:     rootUser,

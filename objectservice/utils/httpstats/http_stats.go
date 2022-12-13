@@ -3,7 +3,7 @@ package httpstats
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"net/http"
@@ -37,7 +37,7 @@ type HTTPStats struct {
 	totalS3Canceled    HTTPAPIStats
 }
 type APIStatsSys struct {
-	Db         *uleveldb.ULevelDB
+	Db         objmetadb.ObjStoreMetaDBAPI
 	HttpStats  *HTTPStats
 	ObjectInfo *ObjectInfo
 }
@@ -52,7 +52,7 @@ type ObjectInfo struct {
 }
 
 // NewHttpStatsSys - new an HttpStats  system
-func NewHttpStatsSys(db *uleveldb.ULevelDB) *APIStatsSys {
+func NewHttpStatsSys(db objmetadb.ObjStoreMetaDBAPI) *APIStatsSys {
 	apiStatsSys := &APIStatsSys{Db: db, HttpStats: &HTTPStats{}, ObjectInfo: &ObjectInfo{}}
 	apiStatsSys.load()
 	return apiStatsSys

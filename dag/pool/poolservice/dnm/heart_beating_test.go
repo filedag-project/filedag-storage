@@ -3,7 +3,7 @@ package dnm
 import (
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	logging "github.com/ipfs/go-log/v2"
 	"testing"
 	"time"
@@ -11,7 +11,7 @@ import (
 
 func TestHeart_beating(t *testing.T) {
 	logging.SetLogLevel("*", "DEBUG")
-	db, err := uleveldb.OpenDb(t.TempDir())
+	db, err := objmetadb.OpenDb(t.TempDir())
 	if err != nil {
 		log.Errorf("err %v", err)
 	}

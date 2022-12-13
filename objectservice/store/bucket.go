@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/syndtr/goleveldb/leveldb"
 	"time"
 )
@@ -44,17 +44,17 @@ func (e BucketTaggingNotFound) Error() string {
 }
 
 // BucketMetadataSys captures all bucket metadata for a given cluster.
-type BucketMetadataSys struct {
-	db          *uleveldb.ULevelDB
-	nsLock      *lock.NsLockMap
-	emptyBucket func(ctx context.Context, bucket string) (bool, error)
+type bucketMetadataSys struct {
+	bucketMetaStore objmetadb.ObjStoreMetaDBAPI
+	nsLock          *lock.NsLockMap
+	emptyBucket     func(ctx context.Context, bucket string) (bool, error)
 }
 
 // NewBucketMetadataSys - creates new policy system.
-func NewBucketMetadataSys(db *uleveldb.ULevelDB) *BucketMetadataSys {
-	return &BucketMetadataSys{
-		db:     db,
-		nsLock: lock.NewNSLock(),
+func NewBucketMetadataSys(db objmetadb.ObjStoreMetaDBAPI) *bucketMetadataSys {
+	return &bucketMetadataSys{
+		bucketMetaStore: db,
+		nsLock:          lock.NewNSLock(),
 	}
 }
 
@@ -96,21 +96,21 @@ func NewBucketMetadata(name, region, accessKey string) *BucketMetadata {
 }
 
 // NewNSLock - initialize a new namespace RWLocker instance.
-func (sys *BucketMetadataSys) NewNSLock(bucket string) lock.RWLocker {
+func (sys *bucketMetadataSys) NewNSLock(bucket string) lock.RWLocker {
 	return sys.nsLock.NewNSLock("meta", bucket)
 }
 
-func (sys *BucketMetadataSys) SetEmptyBucket(emptyBucket func(ctx context.Context, bucket string) (bool, error)) {
+func (sys *bucketMetadataSys) SetEmptyBucket(emptyBucket func(ctx context.Context, bucket string) (bool, error)) {
 	sys.emptyBucket = emptyBucket
 }
 
 // setBucketMeta - sets a new metadata in-db
-func (sys *BucketMetadataSys) setBucketMeta(bucket string, meta *BucketMetadata) error {
-	return sys.db.Put(bucketPrefix+bucket, meta)
+func (sys *bucketMetadataSys) setBucketMeta(bucket string, meta *BucketMetadata) error {
+	return sys.bucketMetaStore.Put(bucketPrefix+bucket, meta)
 }
 
 // CreateBucket - create a new Bucket
-func (sys *BucketMetadataSys) CreateBucket(ctx context.Context, bucket, region, accessKey string) error {
+func (sys *bucketMetadataSys) CreateBucket(ctx context.Context, bucket, region, accessKey string) error {
 	lk := sys.NewNSLock(bucket)
 	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -122,8 +122,8 @@ func (sys *BucketMetadataSys) CreateBucket(ctx context.Context, bucket, region, 
 	return sys.setBucketMeta(bucket, NewBucketMetadata(bucket, region, accessKey))
 }
 
-func (sys *BucketMetadataSys) getBucketMeta(bucket string) (meta BucketMetadata, err error) {
-	err = sys.db.Get(bucketPrefix+bucket, &meta)
+func (sys *bucketMetadataSys) getBucketMeta(bucket string) (meta BucketMetadata, err error) {
+	err = sys.bucketMetaStore.Get(bucketPrefix+bucket, &meta)
 	if err == leveldb.ErrNotFound {
 		err = BucketNotFound{Bucket: bucket, Err: err}
 	}
@@ -131,7 +131,7 @@ func (sys *BucketMetadataSys) getBucketMeta(bucket string) (meta BucketMetadata,
 }
 
 // GetBucketMeta metadata for a bucket.
-func (sys *BucketMetadataSys) GetBucketMeta(ctx context.Context, bucket string) (meta BucketMetadata, err error) {
+func (sys *bucketMetadataSys) GetBucketMeta(ctx context.Context, bucket string) (meta BucketMetadata, err error) {
 	lk := sys.NewNSLock(bucket)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -144,13 +144,13 @@ func (sys *BucketMetadataSys) GetBucketMeta(ctx context.Context, bucket string) 
 }
 
 // HasBucket  metadata for a bucket.
-func (sys *BucketMetadataSys) HasBucket(ctx context.Context, bucket string) bool {
+func (sys *bucketMetadataSys) HasBucket(ctx context.Context, bucket string) bool {
 	_, err := sys.GetBucketMeta(ctx, bucket)
 	return err == nil
 }
 
 // DeleteBucket bucket.
-func (sys *BucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) error {
+func (sys *bucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) error {
 	lk := sys.NewNSLock(bucket)
 	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
 	if err != nil {
@@ -169,13 +169,13 @@ func (sys *BucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) e
 		return ErrBucketNotEmpty
 	}
 
-	return sys.db.Delete(bucketPrefix + bucket)
+	return sys.bucketMetaStore.Delete(bucketPrefix + bucket)
 }
 
 // GetAllBucketsOfUser metadata for all bucket.
-func (sys *BucketMetadataSys) GetAllBucketsOfUser(ctx context.Context, username string) ([]BucketMetadata, error) {
+func (sys *bucketMetadataSys) GetAllBucketsOfUser(ctx context.Context, username string) ([]BucketMetadata, error) {
 	var m []BucketMetadata
-	all, err := sys.db.ReadAllChan(ctx, bucketPrefix, "")
+	all, err := sys.bucketMetaStore.ReadAllChan(ctx, bucketPrefix, "")
 	if err != nil {
 		return nil, err
 	}

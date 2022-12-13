@@ -3,12 +3,12 @@ package iam
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"testing"
 )
 
 func TestLoadUsers(t *testing.T) {
-	db, _ := uleveldb.OpenDb(t.TempDir())
+	db, _ := objmetadb.OpenDb(t.TempDir())
 	iamSys := NewIdentityAMSys(db)
 
 	//add user

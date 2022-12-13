@@ -3,8 +3,8 @@ package iam
 import (
 	"context"
 	"fmt"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"strings"
 )
 
@@ -29,7 +29,7 @@ func getUserPolicyKey(username, policyName string) string {
 
 // iamLevelDBStore implements IAMStorageAPI
 type iamLevelDBStore struct {
-	levelDB *uleveldb.ULevelDB
+	levelDB objmetadb.ObjStoreMetaDBAPI
 }
 
 func (I *iamLevelDBStore) loadUser(ctx context.Context, user string, m *UserIdentity) error {
@@ -117,7 +117,7 @@ func (I *iamLevelDBStore) loadUserAllPolicies(ctx context.Context, userName stri
 			Version:    p.Version,
 			Statements: p.Statement,
 		})
-		k := strings.TrimPrefix(entry.Key, getUserPolicyKey(userName, ""))
+		k := strings.TrimPrefix(entry.GetKey(), getUserPolicyKey(userName, ""))
 		keys = append(keys, k)
 	}
 	return ps, keys, nil
@@ -137,7 +137,7 @@ func (I *iamLevelDBStore) removeUserAllPolicies(ctx context.Context, userName st
 		return err
 	}
 	for entry := range all {
-		if err = I.levelDB.Delete(entry.Key); err != nil {
+		if err = I.levelDB.Delete(entry.GetKey()); err != nil {
 			return err
 		}
 	}
@@ -164,7 +164,7 @@ func (I *iamLevelDBStore) removeUserAllPolicies(ctx context.Context, userName st
 //	panic("implement me")
 //}
 
-func newIAMLevelDBStore(db *uleveldb.ULevelDB) *iamLevelDBStore {
+func newIAMLevelDBStore(db objmetadb.ObjStoreMetaDBAPI) *iamLevelDBStore {
 	return &iamLevelDBStore{
 		levelDB: db,
 	}

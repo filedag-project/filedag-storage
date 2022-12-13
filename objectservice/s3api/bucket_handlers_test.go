@@ -7,10 +7,10 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
@@ -33,7 +33,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	db, err := uleveldb.OpenDb((&testing.T{}).TempDir())
+	db, err := objmetadb.OpenDb((&testing.T{}).TempDir())
 	if err != nil {
 		println(err)
 		return

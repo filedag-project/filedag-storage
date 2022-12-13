@@ -3,7 +3,7 @@ package reference
 import (
 	"context"
 	"errors"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/xerrors"
 	"strings"
@@ -14,11 +14,11 @@ const RefPrefix = "ref/"
 
 type RefCounter struct {
 	mut      sync.Mutex
-	db       *uleveldb.ULevelDB
+	db       objmetadb.ObjStoreMetaDBAPI
 	cacheSet *CacheSet
 }
 
-func NewRefCounter(db *uleveldb.ULevelDB, cacheSet *CacheSet) *RefCounter {
+func NewRefCounter(db objmetadb.ObjStoreMetaDBAPI, cacheSet *CacheSet) *RefCounter {
 	return &RefCounter{
 		db:       db,
 		cacheSet: cacheSet,
@@ -102,7 +102,7 @@ func (rc *RefCounter) AllKeysChan(ctx context.Context, count int64) (<-chan stri
 				return
 			}
 			if val == count {
-				strs := strings.Split(entry.Key, "/")
+				strs := strings.Split(entry.GetKey(), "/")
 				if len(strs) < 2 {
 					return
 				}

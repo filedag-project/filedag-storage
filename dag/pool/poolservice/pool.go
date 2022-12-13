@@ -10,7 +10,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/reference"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
@@ -28,7 +28,7 @@ type dagPoolService struct {
 	dagNodes map[string]*dagnode.DagNode
 	iam      *dpuser.IdentityUserSys
 	nrSys    *dnm.NodeRecordSys
-	db       *uleveldb.ULevelDB
+	db       objmetadb.ObjStoreMetaDBAPI
 
 	refCounter *reference.RefCounter
 	cacheSet   *reference.CacheSet
@@ -39,7 +39,7 @@ type dagPoolService struct {
 
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
 func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
-	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
+	db, err := objmetadb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
 	}

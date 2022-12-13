@@ -1,4 +1,4 @@
-package uleveldb
+package objmetadb
 
 import (
 	"fmt"

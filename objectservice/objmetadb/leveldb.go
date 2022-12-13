@@ -1,4 +1,4 @@
-package uleveldb
+package objmetadb
 
 import (
 	"context"
@@ -13,14 +13,15 @@ import (
 )
 
 var log = logging.Logger("leveldb")
+var _ ObjStoreMetaDBAPI = &objStoreMetaData{}
 
-//ULevelDB level db store key-struct
-type ULevelDB struct {
+//objStoreMetaData level db store key-struct
+type objStoreMetaData struct {
 	DB *leveldb.DB
 }
 
 // OpenDb open a db client
-func OpenDb(path string) (*ULevelDB, error) {
+func OpenDb(path string) (*objStoreMetaData, error) {
 	newDb, err := leveldb.OpenFile(path, nil)
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
 		newDb, err = leveldb.RecoverFile(path, nil)
@@ -29,20 +30,20 @@ func OpenDb(path string) (*ULevelDB, error) {
 		log.Errorf("Open Db path: %v,err:%v,", path, err)
 		return nil, err
 	}
-	return &ULevelDB{
+	return &objStoreMetaData{
 		DB: newDb,
 	}, nil
 }
 
 //Close db close
-func (l *ULevelDB) Close() error {
+func (l *objStoreMetaData) Close() error {
 	return l.DB.Close()
 }
 
 // Put
 // * @param {string} key
 // * @param {interface{}} value
-func (l *ULevelDB) Put(key string, value interface{}) error {
+func (l *objStoreMetaData) Put(key string, value interface{}) error {
 	result, err := msgpack.Marshal(value)
 	if err != nil {
 		log.Errorf("marshal error%v", err)
@@ -54,7 +55,7 @@ func (l *ULevelDB) Put(key string, value interface{}) error {
 // Get
 // * @param {string} key
 // * @param {interface{}} value
-func (l *ULevelDB) Get(key string, value interface{}) error {
+func (l *objStoreMetaData) Get(key string, value interface{}) error {
 	get, err := l.DB.Get([]byte(key), nil)
 	if err != nil {
 		return err
@@ -65,12 +66,12 @@ func (l *ULevelDB) Get(key string, value interface{}) error {
 // Delete
 // * @param {string} key
 // * @param {interface{}} value
-func (l *ULevelDB) Delete(key string) error {
+func (l *objStoreMetaData) Delete(key string) error {
 	return l.DB.Delete([]byte(key), nil)
 }
 
 // NewIterator /**
-func (l *ULevelDB) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
+func (l *objStoreMetaData) NewIterator(slice *util.Range, ro *opt.ReadOptions) iterator.Iterator {
 	return l.DB.NewIterator(slice, ro)
 }
 
@@ -82,9 +83,12 @@ type entry struct {
 func (e *entry) UnmarshalValue(value interface{}) error {
 	return msgpack.Unmarshal(e.Value, value)
 }
+func (e *entry) GetKey() string {
+	return e.Key
+}
 
 //ReadAllChan read all key value
-func (l *ULevelDB) ReadAllChan(ctx context.Context, prefix string, seekKey string) (<-chan *entry, error) {
+func (l *objStoreMetaData) ReadAllChan(ctx context.Context, prefix string, seekKey string) (<-chan *entry, error) {
 	ch := make(chan *entry)
 	var slice *util.Range
 	if prefix != "" {

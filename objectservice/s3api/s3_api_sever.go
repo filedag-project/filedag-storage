@@ -15,8 +15,8 @@ import (
 
 type s3ApiServer struct {
 	authSys *iam.AuthSys
-	store   *store.StorageSys
-	bmSys   *store.BucketMetadataSys
+	store   store.ObjectStoreSystemAPI
+	bmSys   store.BucketMetadataSysAPI
 	stats   *httpstatss.APIStatsSys
 }
 
@@ -120,7 +120,7 @@ func (s3a *s3ApiServer) registerSTSRouter(router *mux.Router, stats *httpstatss.
 }
 
 //NewS3Server Start a S3Server
-func NewS3Server(router *mux.Router, authSys *iam.AuthSys, bmSys *store.BucketMetadataSys, storageSys *store.StorageSys, stats *httpstatss.APIStatsSys) {
+func NewS3Server(router *mux.Router, authSys *iam.AuthSys, bmSys store.BucketMetadataSysAPI, storageSys store.ObjectStoreSystemAPI, stats *httpstatss.APIStatsSys) {
 	s3server := &s3ApiServer{
 		authSys: authSys,
 		store:   storageSys,

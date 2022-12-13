@@ -3,7 +3,7 @@ package dnm
 import (
 	"context"
 	"github.com/filedag-project/filedag-storage/dag/node/datanode"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
@@ -14,7 +14,7 @@ import (
 
 //NodeRecordSys is a struct for record the dag node
 type NodeRecordSys struct {
-	Db       *uleveldb.ULevelDB
+	Db       objmetadb.ObjStoreMetaDBAPI
 	RN       map[string]*dagNodeInfo
 	NodeLock sync.Mutex
 }
@@ -35,7 +35,7 @@ const dagPoolRecord = "dagPoolRecord/"
 var log = logging.Logger("data-node-manager")
 
 //NewRecordSys  create a new record system
-func NewRecordSys(db *uleveldb.ULevelDB) *NodeRecordSys {
+func NewRecordSys(db objmetadb.ObjStoreMetaDBAPI) *NodeRecordSys {
 	return &NodeRecordSys{Db: db, RN: make(map[string]*dagNodeInfo)}
 }
 

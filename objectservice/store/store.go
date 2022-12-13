@@ -9,7 +9,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
 	"github.com/google/uuid"
@@ -60,9 +60,9 @@ const (
 var ErrObjectNotFound = errors.New("object not found")
 var ErrBucketNotEmpty = errors.New("bucket not empty")
 
-//StorageSys store sys
-type StorageSys struct {
-	Db              *uleveldb.ULevelDB
+//storageSys store sys
+type storageSys struct {
+	Db              objmetadb.ObjStoreMetaDBAPI
 	DagPool         ipld.DAGService
 	CidBuilder      cid.Builder
 	nsLock          *lock.NsLockMap
@@ -74,9 +74,9 @@ type StorageSys struct {
 }
 
 //NewStorageSys new a storage sys
-func NewStorageSys(ctx context.Context, dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
+func NewStorageSys(ctx context.Context, dagService ipld.DAGService, db objmetadb.ObjStoreMetaDBAPI) *storageSys {
 	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
-	s := &StorageSys{
+	s := &storageSys{
 		Db:         db,
 		DagPool:    dagService,
 		CidBuilder: cidBuilder,
@@ -103,19 +103,19 @@ func newDelObjectKey() string {
 }
 
 // NewNSLock - initialize a new namespace RWLocker instance.
-func (s *StorageSys) NewNSLock(bucket string, objects ...string) lock.RWLocker {
+func (s *storageSys) NewNSLock(bucket string, objects ...string) lock.RWLocker {
 	return s.nsLock.NewNSLock(bucket, objects...)
 }
 
-func (s *StorageSys) SetNewBucketNSLock(newBucketNSLock func(bucket string) lock.RWLocker) {
+func (s *storageSys) SetNewBucketNSLock(newBucketNSLock func(bucket string) lock.RWLocker) {
 	s.newBucketNSLock = newBucketNSLock
 }
 
-func (s *StorageSys) SetHasBucket(hasBucket func(ctx context.Context, bucket string) bool) {
+func (s *storageSys) SetHasBucket(hasBucket func(ctx context.Context, bucket string) bool) {
 	s.hasBucket = hasBucket
 }
 
-func (s *StorageSys) store(ctx context.Context, reader io.ReadCloser, size int64) (cid.Cid, error) {
+func (s *storageSys) store(ctx context.Context, reader io.ReadCloser, size int64) (cid.Cid, error) {
 	data := io.Reader(reader)
 	if size > bigFileThreshold {
 		// We use 2 buffers, so we always have a full buffer of input.
@@ -143,7 +143,7 @@ func (s *StorageSys) store(ctx context.Context, reader io.ReadCloser, size int64
 	return node.Cid(), nil
 }
 
-func (s *StorageSys) checkAndDeleteObjectData(ctx context.Context, bucket, object string) {
+func (s *storageSys) checkAndDeleteObjectData(ctx context.Context, bucket, object string) {
 	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
 		c, err := cid.Decode(oldObjInfo.ETag)
 		if err != nil {
@@ -157,7 +157,7 @@ func (s *StorageSys) checkAndDeleteObjectData(ctx context.Context, bucket, objec
 }
 
 //StoreObject store object
-func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
+func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -215,7 +215,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 }
 
 //GetObject Get object
-func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
+func (s *storageSys) GetObject(ctx context.Context, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -243,7 +243,7 @@ func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (Obje
 	return meta, reader, nil
 }
 
-func (s *StorageSys) getObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
+func (s *storageSys) getObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
 	err = s.Db.Get(getObjectKey(bucket, object), &meta)
 	if err != nil {
 		if xerrors.Is(err, leveldb.ErrNotFound) {
@@ -253,7 +253,7 @@ func (s *StorageSys) getObjectInfo(ctx context.Context, bucket, object string) (
 	return
 }
 
-func (s *StorageSys) GetObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
+func (s *storageSys) GetObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -266,7 +266,7 @@ func (s *StorageSys) GetObjectInfo(ctx context.Context, bucket, object string) (
 }
 
 //DeleteObject delete object
-func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) error {
+func (s *storageSys) DeleteObject(ctx context.Context, bucket, object string) error {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
 	if err != nil {
@@ -294,7 +294,7 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	return nil
 }
 
-func (s *StorageSys) CleanObjectsInBucket(ctx context.Context, bucket string) error {
+func (s *storageSys) CleanObjectsInBucket(ctx context.Context, bucket string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -338,7 +338,7 @@ type ListObjectsInfo struct {
 }
 
 //GetBucketInfo Get BucketInfo
-func (s *StorageSys) GetBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error) {
+func (s *storageSys) GetBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	seekKey := ""
@@ -366,7 +366,7 @@ func (s *StorageSys) GetBucketInfo(ctx context.Context, bucket string) (bi Bucke
 
 //ListObjects list user object
 //TODO use more params
-func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
+func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
 	if maxKeys == 0 {
 		return loi, nil
 	}
@@ -417,7 +417,7 @@ func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	return loi, nil
 }
 
-func (s *StorageSys) EmptyBucket(ctx context.Context, bucket string) (bool, error) {
+func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, error) {
 	loi, err := s.ListObjects(ctx, bucket, "", "", "", 1)
 	if err != nil {
 		return false, err
@@ -450,7 +450,7 @@ type ListObjectsV2Info struct {
 }
 
 // ListObjectsV2 list objects
-func (s *StorageSys) ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error) {
+func (s *storageSys) ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error) {
 	marker := continuationToken
 	if marker == "" {
 		marker = startAfter
@@ -479,7 +479,7 @@ func mustGetUUID() string {
 	return u.String()
 }
 
-func (s *StorageSys) NewMultipartUpload(ctx context.Context, bucket string, object string, meta map[string]string) (MultipartInfo, error) {
+func (s *storageSys) NewMultipartUpload(ctx context.Context, bucket string, object string, meta map[string]string) (MultipartInfo, error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -509,7 +509,7 @@ func (s *StorageSys) NewMultipartUpload(ctx context.Context, bucket string, obje
 	return info, nil
 }
 
-func (s *StorageSys) GetMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error) {
+func (s *storageSys) GetMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -529,13 +529,13 @@ func (s *StorageSys) GetMultipartInfo(ctx context.Context, bucket string, object
 	return s.getMultipartInfo(ctx, bucket, object, uploadID)
 }
 
-func (s *StorageSys) getMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error) {
+func (s *storageSys) getMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error) {
 	info := MultipartInfo{}
 	err := s.Db.Get(getUploadKey(bucket, object, uploadID), &info)
 	return info, err
 }
 
-func (s *StorageSys) PutObjectPart(ctx context.Context, bucket string, object string, uploadID string, partID int, reader io.ReadCloser, size int64, meta map[string]string) (pi objectPartInfo, err error) {
+func (s *storageSys) PutObjectPart(ctx context.Context, bucket string, object string, uploadID string, partID int, reader io.ReadCloser, size int64, meta map[string]string) (pi objectPartInfo, err error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -577,7 +577,7 @@ func (s *StorageSys) PutObjectPart(ctx context.Context, bucket string, object st
 	return partInfo, nil
 }
 
-func (s *StorageSys) removeMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) error {
+func (s *storageSys) removeMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) error {
 	return s.Db.Delete(getUploadKey(bucket, object, uploadID))
 }
 
@@ -599,7 +599,7 @@ func canonicalizeETag(etag string) string {
 	return etagRegex.ReplaceAllString(etag, "$1")
 }
 
-func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string, object string, uploadID string, parts []datatypes.CompletePart) (oi ObjectInfo, err error) {
+func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string, object string, uploadID string, parts []datatypes.CompletePart) (oi ObjectInfo, err error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -720,7 +720,7 @@ func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 	return objInfo, nil
 }
 
-func (s *StorageSys) AbortMultipartUpload(ctx context.Context, bucket string, object string, uploadID string) error {
+func (s *storageSys) AbortMultipartUpload(ctx context.Context, bucket string, object string, uploadID string) error {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -800,7 +800,7 @@ type ListPartsInfo struct {
 	ChecksumAlgorithm string
 }
 
-func (s *StorageSys) ListObjectParts(ctx context.Context, bucket, object, uploadID string, partNumberMarker, maxParts int) (result ListPartsInfo, err error) {
+func (s *storageSys) ListObjectParts(ctx context.Context, bucket, object, uploadID string, partNumberMarker, maxParts int) (result ListPartsInfo, err error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -929,7 +929,7 @@ type ListMultipartsInfo struct {
 	EncodingType string // Not supported yet.
 }
 
-func (s *StorageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, keyMarker, uploadIDMarker, delimiter string, maxUploads int) (result ListMultipartsInfo, err error) {
+func (s *storageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, keyMarker, uploadIDMarker, delimiter string, maxUploads int) (result ListMultipartsInfo, err error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -984,11 +984,11 @@ func (s *StorageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, k
 	return result, nil
 }
 
-func (s *StorageSys) markObjetToDelete(c cid.Cid) error {
+func (s *storageSys) markObjetToDelete(c cid.Cid) error {
 	return s.Db.Put(newDelObjectKey(), c.String())
 }
 
-func (s *StorageSys) deleteObjets(ctx context.Context) error {
+func (s *storageSys) deleteObjets(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, s.gcTimeout)
 	defer cancel()
 
@@ -1004,7 +1004,7 @@ func (s *StorageSys) deleteObjets(ctx context.Context) error {
 		c, err := cid.Decode(root)
 		if err != nil {
 			log.Warnw("decode cid error", "cid", root)
-			if err = s.Db.Delete(entry.Key); err != nil {
+			if err = s.Db.Delete(entry.GetKey()); err != nil {
 				return err
 			}
 			continue
@@ -1013,7 +1013,7 @@ func (s *StorageSys) deleteObjets(ctx context.Context) error {
 			log.Errorw("remove DAG error", "cid", c.String(), "error", err)
 			break
 		}
-		if err = s.Db.Delete(entry.Key); err != nil {
+		if err = s.Db.Delete(entry.GetKey()); err != nil {
 			return err
 		}
 	}
@@ -1021,7 +1021,7 @@ func (s *StorageSys) deleteObjets(ctx context.Context) error {
 }
 
 // processObjectGC is a goroutine to do object GC
-func (s *StorageSys) processObjectGC(ctx context.Context) {
+func (s *storageSys) processObjectGC(ctx context.Context) {
 	timer := time.NewTimer(s.gcPeriod)
 	defer timer.Stop()
 	for {

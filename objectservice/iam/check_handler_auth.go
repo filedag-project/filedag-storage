@@ -6,10 +6,10 @@ import (
 	"encoding/hex"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/etag"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/hash"
 	"io"
@@ -28,7 +28,7 @@ type AuthSys struct {
 }
 
 //NewAuthSys new an AuthSys
-func NewAuthSys(db *uleveldb.ULevelDB, adminCred auth.Credentials) *AuthSys {
+func NewAuthSys(db objmetadb.ObjStoreMetaDBAPI, adminCred auth.Credentials) *AuthSys {
 	return &AuthSys{
 		Iam:       NewIdentityAMSys(db),
 		PolicySys: store.NewIPolicySys(db),

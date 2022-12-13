@@ -7,10 +7,10 @@ import (
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
 	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/s3api"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
@@ -50,7 +50,7 @@ func main() {
 	}
 }
 func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
-	db, err := uleveldb.OpenDb(leveldbPath)
+	db, err := objmetadb.OpenDb(leveldbPath)
 	if err != nil {
 		fmt.Printf("OpenDb err:%v", err)
 		return
