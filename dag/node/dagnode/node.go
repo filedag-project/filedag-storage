@@ -208,6 +208,8 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	entryReadQuorum, _ := d.entryQuorum()
 
 	shards := make([][]byte, len(onlineNodes))
+	repairIndexes := make([]bool, len(onlineNodes))
+	needRepair := false
 	task := paralleltask.NewParallelTask(ctx, entryReadQuorum, len(onlineNodes)-entryReadQuorum+1, true)
 	for i, snode := range onlineNodes {
 		index := i
@@ -215,6 +217,9 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 		task.Goroutine(func(ctx context.Context) error {
 			// is offline node?
 			if tnode == nil {
+				// repair shard
+				repairIndexes[index] = true
+				needRepair = true
 				return errors.New("offline node")
 			}
 			node := tnode.Client
@@ -222,6 +227,11 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 			res, err := node.DataClient.Get(ctx, &proto.GetRequest{Key: keyCode})
 			if err != nil {
 				log.Errorw("get error", "datanode", node.RpcAddress, "key", keyCode, "error", err)
+				if st, ok := status.FromError(err); ok && st.Code() != codes.Canceled {
+					// repair shard
+					repairIndexes[index] = true
+					needRepair = true
+				}
 			} else {
 				shards[index] = res.Data
 				return nil
@@ -244,6 +254,23 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		log.Errorf("decode data blocks fail :%v", err)
 		return nil, err
+	}
+
+	// need repair shards?
+	if needRepair {
+		indexes := make([]int, 0)
+		for i, ok := range repairIndexes {
+			if ok {
+				indexes = append(indexes, i)
+			}
+		}
+		go func() {
+			repairCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := d.repairBlock(repairCtx, keyCode, size, shards, indexes); err != nil {
+				log.Errorw("repair block failed", "key", keyCode, "blockSize", size, "indexes", indexes)
+			}
+		}()
 	}
 
 	// merge to block raw data

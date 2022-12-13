@@ -110,3 +110,58 @@ func (d *DagNode) RepairDataNode(ctx context.Context, fromNodeIndex int, repairN
 		log.Infow("repair entry success", "key", key)
 	}
 }
+
+// repairBlock repairs shards of one erasure set
+func (d *DagNode) repairBlock(ctx context.Context, key string, blockSize int32, shards [][]byte, repairIndexes []int) error {
+	for _, repairNodeIndex := range repairIndexes {
+		if repairNodeIndex >= len(d.Nodes) {
+			return errors.New("repair index greater than max index of nodes")
+		}
+	}
+
+	entryReadQuorum, _ := d.entryQuorum()
+	availableShards := 0
+	for _, shard := range shards {
+		if shard != nil {
+			availableShards++
+		}
+	}
+	if availableShards < entryReadQuorum {
+		return errors.New("repair index greater than max index of nodes")
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(blockSize))
+	if err != nil {
+		log.Errorf("new erasure fail :%v", err)
+		return err
+	}
+	err = enc.DecodeDataAndParityBlocks(shards)
+	if err != nil {
+		log.Errorf("decode data blocks failed: %v", err)
+		return err
+	}
+
+	meta := Meta{
+		BlockSize: blockSize,
+	}
+	for _, index := range repairIndexes {
+		var metaBuf bytes.Buffer
+		if err = binary.Write(&metaBuf, binary.LittleEndian, meta); err != nil {
+			log.Errorf("binary.Write failed: %v", err)
+			continue
+		}
+		if _, err = d.Nodes[index].Client.DataClient.Put(ctx, &proto.AddRequest{
+			Key:  key,
+			Meta: metaBuf.Bytes(),
+			Data: shards[index],
+		}); err != nil {
+			log.Errorf("data node put failed: %v", err)
+			return err
+		}
+		log.Infow("repair block shard success", "key", key, "shardIndex", index)
+	}
+	return nil
+}
