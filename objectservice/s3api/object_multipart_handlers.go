@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -200,7 +201,7 @@ func (s3a *s3ApiServer) PutObjectPartHandler(w http.ResponseWriter, r *http.Requ
 	// clients expect the ETag header key to be literally "ETag" - not "Etag" (case-sensitive).
 	// Therefore, we have to set the ETag directly as map entry.
 	w.Header()[consts.ETag] = []string{"\"" + etag + "\""}
-
+	r.Header.Set("file-type", path.Ext(object))
 	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 

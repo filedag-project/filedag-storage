@@ -7,7 +7,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
-// ObjStoreMetaDBAPI object service metadata store API
+// ObjStoreMetaDBAPI object service data store API
 type ObjStoreMetaDBAPI interface {
 	Close() error
 	Put(key string, value interface{}) error

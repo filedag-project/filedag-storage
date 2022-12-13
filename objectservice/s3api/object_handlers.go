@@ -148,6 +148,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	setPutObjHeaders(w, objInfo, false)
+	r.Header.Set("file-type", path.Ext(object))
 	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
@@ -198,6 +199,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
 		return
 	}
+	r.Header.Set("file-type", path.Ext(object))
 }
 
 // HeadObjectHandler - HEAD Object

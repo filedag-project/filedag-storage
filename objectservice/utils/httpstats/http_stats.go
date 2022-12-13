@@ -2,7 +2,6 @@ package httpstats
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -192,13 +191,18 @@ func (st *HTTPStats) updateStats(api string, r *http.Request, w *ResponseRecorde
 // Update statistics from http request and response data
 func (st *APIStatsSys) updateObjInfo(api string, r *http.Request, w *ResponseRecorder) {
 	if strings.Contains(api, "PutObject") {
-		fileType := r.Header.Get(consts.ContentType)
+		// todo check file info
+		fileType := r.Header.Get("file-type")
+		fileType = strings.Replace(fileType, ".", "", 1)
+		fileType = strings.ToLower(fileType)
 		if fileType == "" {
 			fileType = "unknown"
 		}
 		st.ObjectInfo.inc(true, fileType, uint64(r.ContentLength))
 	} else if strings.Contains(api, "GetObject") {
-		fileType := w.Header().Get(consts.ContentType)
+		fileType := r.Header.Get("file-type")
+		fileType = strings.Replace(fileType, ".", "", 1)
+		fileType = strings.ToLower(fileType)
 		if fileType == "" {
 			fileType = "unknown"
 		}
