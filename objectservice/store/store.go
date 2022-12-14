@@ -2,9 +2,7 @@ package store
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/dustin/go-humanize"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
@@ -33,33 +31,6 @@ import (
 
 var log = logging.Logger("store")
 
-const (
-	// bigFileThreshold is the point where we add readahead to put operations.
-	bigFileThreshold = 64 * humanize.MiByte
-	// equals unixfsChunkSize
-	chunkSize int = 1 << 20
-
-	objectKeyFormat        = "obj/%s/%s"
-	allObjectPrefixFormat  = "obj/%s/%s"
-	allObjectSeekKeyFormat = "obj/%s/%s"
-
-	uploadKeyFormat        = "uploadObj/%s/%s/%s"
-	allUploadPrefixFormat  = "uploadObj/%s/%s"
-	allUploadSeekKeyFormat = "uploadObj/%s/%s/%s"
-
-	deleteKeyFormat       = "delObj/%s"
-	allDeletePrefixFormat = "delObj/"
-
-	globalOperationTimeout = 5 * time.Minute
-	deleteOperationTimeout = 1 * time.Minute
-
-	maxCpuPercent        = 60
-	maxUsedMemoryPercent = 80
-)
-
-var ErrObjectNotFound = errors.New("object not found")
-var ErrBucketNotEmpty = errors.New("bucket not empty")
-
 //storageSys store sys
 type storageSys struct {
 	Db              objmetadb.ObjStoreMetaDBAPI
@@ -71,6 +42,24 @@ type storageSys struct {
 
 	gcPeriod  time.Duration
 	gcTimeout time.Duration
+}
+
+// StoreStats store system stats
+func (s *storageSys) StoreStats(ctx context.Context) (DataUsageInfo, error) {
+	var dataUsageInfo DataUsageInfo
+	buckets := s.GetAllBucket(ctx)
+	dataUsageInfo.BucketsCount = uint64(len(buckets))
+	dataUsageInfo.TotalCaptivity = defaultTotalCaptivity
+	for _, bucket := range buckets {
+		info, err := s.GetBucketInfo(ctx, bucket)
+		if err != nil {
+			continue
+		}
+		dataUsageInfo.BucketsUsage = append(dataUsageInfo.BucketsUsage, info)
+		dataUsageInfo.ObjectsTotalCount += info.Objects
+		dataUsageInfo.ObjectsTotalSize += info.Size
+	}
+	return dataUsageInfo, nil
 }
 
 //NewStorageSys new a storage sys
@@ -315,28 +304,6 @@ func (s *storageSys) CleanObjectsInBucket(ctx context.Context, bucket string) er
 	return nil
 }
 
-// ListObjectsInfo - container for list objects.
-type ListObjectsInfo struct {
-	// Indicates whether the returned list objects response is truncated. A
-	// value of true indicates that the list was truncated. The list can be truncated
-	// if the number of objects exceeds the limit allowed or specified
-	// by max keys.
-	IsTruncated bool
-
-	// When response is truncated (the IsTruncated element value in the response is true),
-	// you can use the key name in this field as marker in the subsequent
-	// request to get next set of objects.
-	//
-	// NOTE: AWS S3 returns NextMarker only if you have delimiter request parameter specified,
-	NextMarker string
-
-	// List of objects info for this request.
-	Objects []ObjectInfo
-
-	// List of prefixes for this request.
-	Prefixes []string
-}
-
 //GetBucketInfo Get BucketInfo
 func (s *storageSys) GetBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error) {
 	ctx, cancel := context.WithCancel(ctx)
@@ -423,30 +390,6 @@ func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, erro
 		return false, err
 	}
 	return len(loi.Objects) == 0, nil
-}
-
-// ListObjectsV2Info - container for list objects version 2.
-type ListObjectsV2Info struct {
-	// Indicates whether the returned list objects response is truncated. A
-	// value of true indicates that the list was truncated. The list can be truncated
-	// if the number of objects exceeds the limit allowed or specified
-	// by max keys.
-	IsTruncated bool
-
-	// When response is truncated (the IsTruncated element value in the response
-	// is true), you can use the key name in this field as marker in the subsequent
-	// request to get next set of objects.
-	//
-	// NOTE: This element is returned only if you have delimiter request parameter
-	// specified.
-	ContinuationToken     string
-	NextContinuationToken string
-
-	// List of objects info for this request.
-	Objects []ObjectInfo
-
-	// List of prefixes for this request.
-	Prefixes []string
 }
 
 // ListObjectsV2 list objects
@@ -765,41 +708,6 @@ func (s *storageSys) AbortMultipartUpload(ctx context.Context, bucket string, ob
 	return nil
 }
 
-// ListPartsInfo - represents list of all parts.
-type ListPartsInfo struct {
-	// Name of the bucket.
-	Bucket string
-
-	// Name of the object.
-	Object string
-
-	// Upload ID identifying the multipart upload whose parts are being listed.
-	UploadID string
-
-	// Part number after which listing begins.
-	PartNumberMarker int
-
-	// When a list is truncated, this element specifies the last part in the list,
-	// as well as the value to use for the part-number-marker request parameter
-	// in a subsequent request.
-	NextPartNumberMarker int
-
-	// Maximum number of parts that were allowed in the response.
-	MaxParts int
-
-	// Indicates whether the returned list of parts is truncated.
-	IsTruncated bool
-
-	// List of all parts.
-	Parts []objectPartInfo
-
-	// Any metadata set during InitMultipartUpload, including encryption headers.
-	Metadata map[string]string
-
-	// ChecksumAlgorithm if set
-	ChecksumAlgorithm string
-}
-
 func (s *storageSys) ListObjectParts(ctx context.Context, bucket, object, uploadID string, partNumberMarker, maxParts int) (result ListPartsInfo, err error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
@@ -882,53 +790,6 @@ func (lm ListMultipartsInfo) Lookup(uploadID string) bool {
 	return false
 }
 
-// ListMultipartsInfo - represnets bucket resources for incomplete multipart uploads.
-type ListMultipartsInfo struct {
-	// Together with upload-id-marker, this parameter specifies the multipart upload
-	// after which listing should begin.
-	KeyMarker string
-
-	// Together with key-marker, specifies the multipart upload after which listing
-	// should begin. If key-marker is not specified, the upload-id-marker parameter
-	// is ignored.
-	UploadIDMarker string
-
-	// When a list is truncated, this element specifies the value that should be
-	// used for the key-marker request parameter in a subsequent request.
-	NextKeyMarker string
-
-	// When a list is truncated, this element specifies the value that should be
-	// used for the upload-id-marker request parameter in a subsequent request.
-	NextUploadIDMarker string
-
-	// Maximum number of multipart uploads that could have been included in the
-	// response.
-	MaxUploads int
-
-	// Indicates whether the returned list of multipart uploads is truncated. A
-	// value of true indicates that the list was truncated. The list can be truncated
-	// if the number of multipart uploads exceeds the limit allowed or specified
-	// by max uploads.
-	IsTruncated bool
-
-	// List of all pending uploads.
-	Uploads []MultipartInfo
-
-	// When a prefix is provided in the request, The result contains only keys
-	// starting with the specified prefix.
-	Prefix string
-
-	// A character used to truncate the object prefixes.
-	// NOTE: only supported delimiter is '/'.
-	Delimiter string
-
-	// CommonPrefixes contains all (if there are any) keys between Prefix and the
-	// next occurrence of the string specified by delimiter.
-	CommonPrefixes []string
-
-	EncodingType string // Not supported yet.
-}
-
 func (s *storageSys) ListMultipartUploads(ctx context.Context, bucket, prefix, keyMarker, uploadIDMarker, delimiter string, maxUploads int) (result ListMultipartsInfo, err error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
@@ -988,6 +849,22 @@ func (s *storageSys) markObjetToDelete(c cid.Cid) error {
 	return s.Db.Put(newDelObjectKey(), c.String())
 }
 
+// GetAllBucket - get all bucket
+func (s *storageSys) GetAllBucket(ctx context.Context) []string {
+	var m []string
+	all, err := s.Db.ReadAllChan(ctx, bucketPrefix, "")
+	if err != nil {
+		return nil
+	}
+	for entry := range all {
+		data := BucketMetadata{}
+		if err = entry.UnmarshalValue(&data); err != nil {
+			continue
+		}
+		m = append(m, data.Name)
+	}
+	return m
+}
 func (s *storageSys) deleteObjets(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, s.gcTimeout)
 	defer cancel()

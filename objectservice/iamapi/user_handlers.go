@@ -274,6 +274,26 @@ func (iamApi *iamApiServer) RequestOverview(w http.ResponseWriter, r *http.Reque
 	response.WriteSuccessResponseJSON(w, r, stats)
 }
 
+// StorePoolStats Store Pool Stats
+func (iamApi *iamApiServer) StorePoolStats(w http.ResponseWriter, r *http.Request) {
+	//to implement
+	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.GetPoolStatsAction, "", "")
+	if s3err != apierrors.ErrNone {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(s3err))
+		return
+	}
+	if cred.AccessKey != iamApi.authSys.AdminCred.AccessKey {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrAccessDenied))
+		return
+	}
+	storePoolStats, err := iamApi.storePoolStatsFunc(r.Context())
+	if err != nil {
+		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ToApiError(r.Context(), err)))
+		return
+	}
+	response.WriteSuccessResponseJSON(w, r, storePoolStats)
+}
+
 // ChangePassword change password
 func (iamApi *iamApiServer) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	cred, _, s3err := iamApi.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.ChangePassWordAction, "", "")

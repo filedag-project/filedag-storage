@@ -15,19 +15,21 @@ var log = logging.Logger("iamsever")
 
 //iamApiServer the IamApi Server
 type iamApiServer struct {
-	authSys        *iam.AuthSys
-	stats          *httpstatss.APIStatsSys
-	cleanData      func(accessKey string)
-	bucketInfoFunc func(ctx context.Context, accessKey string) []store.BucketInfo //todo use cache
+	authSys            *iam.AuthSys
+	stats              *httpstatss.APIStatsSys
+	cleanData          func(accessKey string)
+	bucketInfoFunc     func(ctx context.Context, accessKey string) []store.BucketInfo //todo use cache
+	storePoolStatsFunc func(ctx context.Context) (store.DataUsageInfo, error)
 }
 
 //NewIamApiServer New iamApiServer
-func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys, stats *httpstatss.APIStatsSys, cleanData func(accessKey string), bucketInfoFunc func(ctx context.Context, accessKey string) []store.BucketInfo) {
+func NewIamApiServer(router *mux.Router, authSys *iam.AuthSys, stats *httpstatss.APIStatsSys, cleanData func(accessKey string), bucketInfoFunc func(ctx context.Context, accessKey string) []store.BucketInfo, storePoolStatsFunc func(ctx context.Context) (store.DataUsageInfo, error)) {
 	iamApiSer := &iamApiServer{
-		authSys:        authSys,
-		stats:          stats,
-		cleanData:      cleanData,
-		bucketInfoFunc: bucketInfoFunc,
+		authSys:            authSys,
+		stats:              stats,
+		cleanData:          cleanData,
+		bucketInfoFunc:     bucketInfoFunc,
+		storePoolStatsFunc: storePoolStatsFunc,
 	}
 	iamApiSer.registerConsoleRouter(router, stats)
 	iamApiSer.registerAdminsRouter(router, stats)
@@ -73,5 +75,6 @@ func (iamApi *iamApiServer) registerAdminsRouter(router *mux.Router, stats *http
 	apiRouter.Methods(http.MethodGet).Path("/is-admin").HandlerFunc(stats.RecordAPIHandler("is-admin", iamApi.IsAdmin))
 	apiRouter.Methods(http.MethodGet).Path("/user-infos").HandlerFunc(stats.RecordAPIHandler("user-infos", iamApi.AccountInfos))
 	apiRouter.Methods(http.MethodGet).Path("/request-overview").HandlerFunc(stats.RecordAPIHandler("request-overview", iamApi.RequestOverview))
+	apiRouter.Methods(http.MethodGet).Path("/store-pool-stats").HandlerFunc(stats.RecordAPIHandler("store-pool-stats", iamApi.StorePoolStats))
 	apiRouter.NotFoundHandler = http.HandlerFunc(response.NotFoundHandler)
 }

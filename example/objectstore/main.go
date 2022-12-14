@@ -106,7 +106,10 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 		}
 		return bucketInfos
 	}
-	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, bucketInfoFunc)
+	storePoolStatsFunc := func(ctx context.Context) (store.DataUsageInfo, error) {
+		return storageSys.StoreStats(ctx)
+	}
+	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, bucketInfoFunc, storePoolStatsFunc)
 	s3api.NewS3Server(router, authSys, bmSys, storageSys, httpstats.NewHttpStatsSys(db))
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {

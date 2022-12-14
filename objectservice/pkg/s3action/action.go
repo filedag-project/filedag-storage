@@ -165,6 +165,7 @@ const (
 	// RestoreObjectAction - RestoreObject REST API action
 	RestoreObjectAction  = "s3:RestoreObject"
 	GetUserInfoAction    = "iam:GetUserInfo"
+	GetPoolStatsAction   = "iam:GetPoolStats"
 	RemoveUserAction     = "iam:RemoveUser"
 	SetStatusAction      = "iam:SetStatusUser"
 	ChangePassWordAction = "iam:ChangePassWordUser"
@@ -228,6 +229,7 @@ var SupportedActions = map[Action]struct{}{
 	GetObjectVersionForReplicationAction:   {},
 	AllActions:                             {},
 	GetUserInfoAction:                      {},
+	GetPoolStatsAction:                     {},
 	RemoveUserAction:                       {},
 	SetStatusAction:                        {},
 	ChangePassWordAction:                   {},

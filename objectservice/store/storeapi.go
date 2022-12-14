@@ -12,6 +12,7 @@ var _ ObjectStoreSystemAPI = &storageSys{}
 
 // ObjectStoreSystemAPI object store system API
 type ObjectStoreSystemAPI interface {
+	StoreStats(ctx context.Context) (DataUsageInfo, error)
 	NewNSLock(bucket string, objects ...string) lock.RWLocker
 	SetNewBucketNSLock(newBucketNSLock func(bucket string) lock.RWLocker)
 	SetHasBucket(hasBucket func(ctx context.Context, bucket string) bool)

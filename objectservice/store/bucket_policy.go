@@ -13,21 +13,6 @@ type BucketPolicySys struct {
 	BmSys *bucketMetadataSys
 }
 
-// Read only object actions.
-var readOnlyObjectActions = s3action.Action("s3:GetObject")
-
-// Write only object actions.
-var writeOnlyObjectActions = s3action.NewActionSet("s3:AbortMultipartUpload", "s3:DeleteObject", "s3:ListMultipartUploadParts", "s3:PutObject")
-
-// Common bucket actions for both read and write policies.
-var commonBucketActions = s3action.Action("s3:GetBucketLocation")
-
-// Read only bucket actions.
-var readOnlyBucketActions = s3action.Action("s3:ListBucket")
-
-// Write only bucket actions.
-var writeOnlyBucketActions = s3action.Action("s3:ListBucketMultipartUploads")
-
 // NewIPolicySys  - creates new policy system.
 func NewIPolicySys(db objmetadb.ObjStoreMetaDBAPI) *BucketPolicySys {
 	return &BucketPolicySys{
@@ -46,17 +31,6 @@ func (sys *BucketPolicySys) IsAllowed(ctx context.Context, args auth.Args) bool 
 	}
 	return false
 }
-
-// BucketPolicy - Bucket level policy.
-type BucketPolicy string
-
-// Different types of Policies currently supported for buckets.
-const (
-	bucketPolicyNone      BucketPolicy = "private"
-	bucketPolicyReadOnly               = "download"
-	bucketPolicyReadWrite              = "public"
-	bucketPolicyWriteOnly              = "upload"
-)
 
 // GetPolicyName - Returns policy of given bucket name, prefix in given statements.
 func GetPolicyName(statements []policy.Statement, bucketName string, prefix string) BucketPolicy {

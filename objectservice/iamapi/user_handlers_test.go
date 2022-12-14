@@ -71,8 +71,10 @@ func TestMain(m *testing.M) {
 		}
 		return bucketInfos
 	}
-
-	NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), func(accessKey string) {}, bucketInfoFunc)
+	storePoolStatsFunc := func(ctx context.Context) (store.DataUsageInfo, error) {
+		return storageSys.StoreStats(ctx)
+	}
+	NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), func(accessKey string) {}, bucketInfoFunc, storePoolStatsFunc)
 	reqPutUserOtherUrl := addUserUrl(otherUserAccessKey, otherUserSecretKey, defaultCap)
 	reqPutUserOther := utils.MustNewSignedV4Request(http.MethodPost, reqPutUserOtherUrl, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, &testing.T{})
 	resultOther := reqTest(reqPutUserOther)

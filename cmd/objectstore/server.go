@@ -107,9 +107,12 @@ func startServer(cctx *cli.Context) {
 		}
 		return bucketInfos
 	}
+	storePoolStatsFunc := func(ctx context.Context) (store.DataUsageInfo, error) {
+		return storageSys.StoreStats(ctx)
+	}
 	handler := s3api.CorsHandler(router)
 	httpStatsSys := httpstats.NewHttpStatsSys(db)
-	iamapi.NewIamApiServer(router, authSys, httpStatsSys, cleanData, bucketInfoFunc)
+	iamapi.NewIamApiServer(router, authSys, httpStatsSys, cleanData, bucketInfoFunc, storePoolStatsFunc)
 	s3api.NewS3Server(router, authSys, bmSys, storageSys, httpStatsSys)
 	go httpStatsSys.StoreApiLog(cctx.Context)
 	if strings.HasPrefix(listen, ":") {

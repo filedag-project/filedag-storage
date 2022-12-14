@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
 	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
@@ -13,35 +12,6 @@ import (
 const (
 	bucketPrefix = "bkt/"
 )
-
-// BucketPolicyNotFound - no bucket policy found.
-type BucketPolicyNotFound struct {
-	Bucket string
-	Err    error
-}
-
-func (e BucketPolicyNotFound) Error() string {
-	return "No bucket policy configuration found for bucket: " + e.Bucket
-}
-
-// BucketNotFound - no bucket found.
-type BucketNotFound struct {
-	Bucket string
-	Err    error
-}
-
-func (e BucketNotFound) Error() string {
-	return "Not found for bucket: " + e.Bucket
-}
-
-type BucketTaggingNotFound struct {
-	Bucket string
-	Err    error
-}
-
-func (e BucketTaggingNotFound) Error() string {
-	return "No bucket tagging configuration found for bucket: " + e.Bucket
-}
 
 // BucketMetadataSys captures all bucket metadata for a given cluster.
 type bucketMetadataSys struct {
@@ -56,31 +26,6 @@ func NewBucketMetadataSys(db objmetadb.ObjStoreMetaDBAPI) *bucketMetadataSys {
 		bucketMetaStore: db,
 		nsLock:          lock.NewNSLock(),
 	}
-}
-
-// Tags is list of tags of XML request/response as per
-// https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketTagging.html#API_GetBucketTagging_RequestBody
-type Tags tagging
-type tagging struct {
-	XMLName xml.Name `xml:"Tagging"`
-	TagSet  *TagSet  `xml:"TagSet"`
-}
-
-// TagSet represents list of unique tags.
-type TagSet struct {
-	TagMap   map[string]string
-	IsObject bool
-}
-
-// BucketMetadata contains bucket metadata.
-type BucketMetadata struct {
-	Name    string
-	Region  string
-	Owner   string
-	Created time.Time
-
-	PolicyConfig  *policy.Policy
-	TaggingConfig *Tags
 }
 
 // NewBucketMetadata creates BucketMetadata with the supplied name and Created to Now.

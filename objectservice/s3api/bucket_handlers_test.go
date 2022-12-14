@@ -75,7 +75,9 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, func(ctx context.Context, accessKey string) []store.BucketInfo { return nil })
+	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, func(ctx context.Context, accessKey string) []store.BucketInfo { return nil }, func(ctx context.Context) (store.DataUsageInfo, error) {
+		return store.DataUsageInfo{}, nil
+	})
 	NewS3Server(router, authSys, bmSys, storageSys, httpstats.NewHttpStatsSys(db))
 	os.Exit(m.Run())
 }
