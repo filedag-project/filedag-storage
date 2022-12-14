@@ -90,7 +90,7 @@ func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCode
 
 // STSErrorResponse - error response format
 type STSErrorResponse struct {
-	XMLName xml.Name `xml:"https://sts.amazonaws.com/doc/2011-06-15/ ErrorResponse" json:"-"`
+	XMLName xml.Name `xml:"https://sts.amazonaws.com/doc/2011-06-15/ Error" json:"-"`
 	Error   struct {
 		Type    string `xml:"Type"`
 		Code    string `xml:"Code"`
