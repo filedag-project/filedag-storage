@@ -48,6 +48,7 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	capa, err := strconv.ParseUint(userCapacity, 10, 64)
 	if err != nil {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
+		return
 	}
 	if capa > 1<<50*10 {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
@@ -63,6 +64,7 @@ func (iamApi *iamApiServer) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	if !auth.IsSecretKeyValid(userSecret) {
 		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInvalidRequestParameter))
+		return
 	}
 	_, err = iamApi.authSys.Iam.GetUserInfo(r.Context(), username)
 	if err == nil {
