@@ -2,7 +2,7 @@ import { HttpMethods, Axios } from '@/api/https';
 import { SignModel } from '@/models/SignModel';
 import { action, computed, makeObservable, observable } from 'mobx';
 import _ from 'lodash';
-import { formatBytes, formatDate, getExpiresDate } from '@/utils';
+import { download, formatBytes, formatDate, getExpiresDate } from '@/utils';
 import { PreSignModel } from '@/models/PreSignModel';
 import presignV4 from '@/api/presign';
 
@@ -22,6 +22,7 @@ class ObjectsStore {
   maxDay:number = 7;
   maxSecond:number = 7*24*60*60;
   shareSecond:number = 7*24*60*60;
+  percentage:number = 0;
   constructor() {
     makeObservable(this, {
       deleteShow:observable,
@@ -36,6 +37,7 @@ class ObjectsStore {
       contentType:observable,
       shareLink:observable,
       shareSecond:observable,
+      percentage:observable,
       formatList: computed,
       totalSize:computed,
       totalObjects:computed,
@@ -43,7 +45,11 @@ class ObjectsStore {
       fetchUpload:action,
       fetchDelete:action,
       fetchShare:action,
-      SET_OBJECT_LIST:action
+      SET_OBJECT_LIST:action,
+      fetchUploadId:action,
+      fetchSliceUpload:action,
+      fetchSliceUploadComplete:action,
+      fetchAbort:action,
     });
   }
 
@@ -116,7 +122,13 @@ class ObjectsStore {
     this.objectsList = data
   }
 
+  SET_PERCENTAGE(data:number){
+    this.percentage = data;
+  }
+
   fetchList(bucket) {
+    console.log(2);
+    
     return new Promise(async (resolve) => {
       const params:SignModel = {
         service: 's3',
@@ -157,9 +169,9 @@ class ObjectsStore {
       const blob = await new Response(body, { 
         headers: { "Content-Type": contentType } 
       }).blob();
+      
       this.downloadFile = blob;
       this.actionName = object;
-      
       if(contentType.includes('image')){
         const objectURL:string = URL.createObjectURL(blob);
         this.previewUrl = objectURL;
@@ -187,14 +199,13 @@ class ObjectsStore {
         path,
         region: ''
       }
-      const res = await Axios.axiosXMLStream(params);
-      const _list:[] = _.get(res,'ListBucketResult.Contents',[]);
-      if(Array.isArray(_list)){
-        this.objectsList = _list;
-      }else{
-        this.objectsList = [_list];
-      }
-      resolve(_list)
+      const res = await Axios.axiosUpload(params,(event)=>{
+        if (event.lengthComputable) {
+          var complete = (event.loaded / event.total * 100 | 0);
+          this.percentage = complete;
+        }
+      });
+      resolve(res)
     })
   }
 
@@ -235,6 +246,89 @@ class ObjectsStore {
     const str = `${headers.host}${path}?${_params}`;
     this.shareLink = str;
   }
+
+  fetchUploadId(path:string){
+    return new Promise(async (resolve) => {
+      const params:SignModel = {
+        service: 's3',
+        body: '',
+        protocol: 'http',
+        method: HttpMethods.post,
+        applyChecksum: true,
+        path,
+        region: '',
+        query:{
+          uploads:''
+        }
+      }
+      const res = await Axios.axiosXMLStream(params);
+      const id:string = _.get(res,'InitiateMultipartUploadResult.UploadId._text','');
+      resolve(id);
+    })
+  }
+
+  fetchSliceUpload(path:string,index:number,uploadId:string,body){
+     return new Promise(async (resolve,reject) => {
+       const params:SignModel = {
+         service: 's3',
+         body: body,
+         protocol: 'http',
+         method: HttpMethods.put,
+         applyChecksum: true,
+         path,
+         region: '',
+         query:{
+          partNumber:index.toString(),
+          uploadId
+         }
+       }
+       Axios.axiosXMLStream(params).then(res=>{
+          resolve(res)
+       }).catch(()=>{
+          console.log(uploadId,'uploadId 909090');
+          reject();
+       });
+     })
+   }
+
+   fetchAbort(path:string,uploadId:string){
+    return new Promise(async (resolve, reject) => {
+      const params:SignModel = {
+        service: 's3',
+        body: '',
+        protocol: 'http',
+        method: HttpMethods.delete,
+        applyChecksum: true,
+        path,
+        region: '',
+        query:{
+         uploadId
+        }
+      }
+      const res = await Axios.axiosXMLStream(params);
+      resolve(res);
+    })
+    
+   }
+
+   fetchSliceUploadComplete(path:string,uploadId,body:string){
+     return new Promise(async (resolve) => {
+       const params:SignModel = {
+          service: 's3',
+          body: body,
+          protocol: 'http',
+          method: HttpMethods.post,
+          applyChecksum: true,
+          path,
+          region: '',
+          query:{
+            uploadId
+          }
+       }
+       const res = await Axios.axiosXMLStream(params);
+       resolve(res)
+     })
+   }
 
   reset(){
     this.previewUrl = '';

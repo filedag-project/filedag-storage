@@ -1,12 +1,12 @@
 import classNames from 'classnames';
 import styles from './style.module.scss';
 import {Button, Form, Input} from 'antd';
-import {useHistory} from 'react-router';
+import {useNavigate} from 'react-router-dom';
 import {RouterPath} from '@/router/RouterConfig';
 import bucketsStore from '@/store/modules/buckets';
 
 const CreateBucket = () => {
-    const history = useHistory();
+    const navigate = useNavigate();
     const [form] = Form.useForm();
     const create = async () => {
         try {
@@ -14,7 +14,7 @@ const CreateBucket = () => {
             const bucketName = form.getFieldValue('bucketName')
             const path = `/${bucketName}`
             await bucketsStore.fetchCreate(path);
-            history.push(RouterPath.buckets);
+            navigate(RouterPath.buckets);
         } catch (e) {
             
         }
@@ -32,6 +32,7 @@ const CreateBucket = () => {
                 <Input
                     placeholder="please enter bucket name"
                 />
+                <div className="tips">Bucket names must be globally unique and cannot contain spaces or uppercase letters.</div>
             </Form.Item>
 
             <Form.Item>

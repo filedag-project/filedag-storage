@@ -8,7 +8,7 @@ export interface SignModel {
   accessKeyId?: string;
   secretAccessKey?: string;
   sessionToken?: string;
-  contentType?:string
+  contentType?:string;
   applyChecksum?:boolean;
   query?:{
     [key:string]:string

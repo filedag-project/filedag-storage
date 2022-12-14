@@ -2,8 +2,6 @@ import { action, makeObservable, observable } from 'mobx';
 import { SignModel } from '@/models/SignModel';
 import { HttpMethods, Axios } from '@/api/https';
 import _ from 'lodash';
-import { ACCESS_KEY_ID, Cookies } from '@/utils/cookies';
-import { formatBytes } from '@/utils';
 
 interface userInfoType {
   total_storage_capacity:string;

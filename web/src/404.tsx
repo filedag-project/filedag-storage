@@ -1,10 +1,10 @@
-import { useHistory } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
 const NoFoundPage = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
   return (
     <div>
-      <button onClick={() => history.push('/')}>Back Home</button>
+      <button onClick={() => navigate('/')}>Back Home</button>
     </div>
   );
 };

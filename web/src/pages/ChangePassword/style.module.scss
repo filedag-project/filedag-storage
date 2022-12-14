@@ -1,15 +1,48 @@
 .user{
-    padding: 40px 15px;
+    padding: 45px 30px;
     .title{
-        font-size: 20px;
+        font-size: 32px;
         color: var(--color-title);
         font-weight: bold;
-        margin: 50px 0;
+        margin-bottom: 40px;
     }
     :global{
         .ant-form{
             width: 400px;
-            margin: 0 auto;
+            .ant-form-item{
+                .ant-form-item-control-input-content{
+                    text-align: left;
+                    .ant-input-prefix{
+                        margin-right: 15px;
+                        img{
+                            width: 16px;
+                        }
+                    }
+                    .ant-input-suffix{
+                        cursor: pointer;
+                        img{
+                            width: 14px;
+                        }
+                    }
+                }
+            }
+            .btn-wrap{
+                padding-top: 20px;
+            }
+            .ant-btn{
+                width: 400px;
+                height: 50px;
+                line-height: 50px;
+                padding: 0px;
+                border: 1px solid var(--color-E9E9E9);
+                border-radius: 10px;
+                font-size: 14px;
+                background: var(--color-000000-50);
+                transition: all 1s;
+                &.active{
+                    background: var(--color-000000);
+                }
+            }
         }
     }
 }

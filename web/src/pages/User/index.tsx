@@ -1,10 +1,12 @@
 import { addUserType, changePasswordType, statusType, userStatusType } from "@/models/DashboardModel";
-import dashboardStore from "@/store/modules/dashboard";
+import { tokenType } from "@/models/RouteModel";
 import userStore from "@/store/modules/user";
+import { Cookies, SESSION_TOKEN } from "@/utils/cookies";
 import { DeleteOutlined, PlusOutlined, SafetyOutlined } from "@ant-design/icons";
 import { Button, Form, Input,Switch, Modal, Table, Tooltip } from "antd";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
+import jwt_decode from "jwt-decode";
 import styles from './style.module.scss';
 
 const User = (props:any) => {
@@ -16,8 +18,16 @@ const User = (props:any) => {
   const [defaultStatus,SetDefaultStatus] = useState(false);
   const [status,SetStatus] = useState(false);
   const [addUserShow,SetAddUserShow] = useState(false);
+  const [admin,setAdmin] = useState(false);
   useEffect(()=>{
+    const _jwt = Cookies.getKey(SESSION_TOKEN);
+    if(_jwt){
+      const _token:tokenType = jwt_decode(_jwt);
+      const { isAdmin = false }=_token;
+      setAdmin(isAdmin);
+    }
     userStore.fetchUserInfos();
+    
   },[]);
 
   const columns = [
@@ -62,12 +72,14 @@ const User = (props:any) => {
       key: 'action',
       render: (_, record) => (
         <div className='row-action'>
-          <span onClick={()=>{
-            SetAccessKey(record.account_name);
-            SetChangePasswordShow(true);
-          }}>
-            <Tooltip title="Change Password"><SafetyOutlined /></Tooltip>
-          </span>
+          {
+            admin?<></>:<span onClick={()=>{
+              SetAccessKey(record.account_name);
+              SetChangePasswordShow(true);
+            }}>
+              <Tooltip title="Change Password"><SafetyOutlined /></Tooltip>
+            </span>
+          }
           
           <span onClick={()=>{
             SetAccessKey(record.account_name);
@@ -131,7 +143,7 @@ const User = (props:any) => {
   return <div className={styles.user}>
     <div className={styles.userList}>
       <div className={styles.action}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={()=>{ SetAddUserShow(true) }}>
+        <Button className="bg-btn" type="primary" icon={<PlusOutlined />} onClick={()=>{ SetAddUserShow(true) }}>
           Add User
         </Button>
       </div>
@@ -231,5 +243,4 @@ const User = (props:any) => {
 };
 
 export default observer(User);
-
 

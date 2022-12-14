@@ -5,32 +5,24 @@ import { download, getExpiresDate } from "@/utils";
 import { Modal, InputNumber, notification } from "antd";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation } from "react-router-dom";
 import ReactPlayer from 'react-player';
 import styles from './style.module.scss';
 import { CopyOutlined } from "@ant-design/icons";
 import copy from 'copy-to-clipboard';
-
-interface LocationParams {
-  bucket: string;
-  Created:string;
-}
-
 const Objects = (props:any) => {
   const [day,setDay]=useState(7);
   const [hour,setHour]=useState(0);
   const [minute,setMinute]=useState(0);
+  const { state :{ bucket = '',create = '' }} = useLocation();
   
-  const {
-    state: { bucket,Created },
-  } = useLocation<LocationParams>();
   useEffect(()=>{
     objectsStore.fetchList(bucket);
-  },[bucket])
+  },[bucket]);
 
   const confirmDelete = async ()=>{
     const name = objectsStore.actionName;
-    const path = `${bucket}/${name}`;
+    const path = `/${bucket}/${name}`;
     await objectsStore.fetchDelete(path);
     objectsStore.SET_DELETE_SHOW(false);
     objectsStore.fetchList(bucket);
@@ -80,7 +72,7 @@ const Objects = (props:any) => {
     const _expiresDate = getExpiresDate(s);
     objectsStore.SET_EXPIRES_DATE(_expiresDate);
     objectsStore.SET_SHARE_SECOND(s);
-    const url = `${bucket}/${objectsStore.actionName}`;
+    const url = `/${bucket}/${objectsStore.actionName}`;
     objectsStore.fetchShare(url,objectsStore.shareSecond);
   }
   const hourChange = (value)=>{
@@ -90,7 +82,7 @@ const Objects = (props:any) => {
     const _expiresDate = getExpiresDate(s);
     objectsStore.SET_EXPIRES_DATE(_expiresDate);
     objectsStore.SET_SHARE_SECOND(s);
-    const url = `${bucket}/${objectsStore.actionName}`;
+    const url = `/${bucket}/${objectsStore.actionName}`;
     objectsStore.fetchShare(url,objectsStore.shareSecond);
   }
   const minuteChange = (value)=>{
@@ -100,13 +92,13 @@ const Objects = (props:any) => {
     const _expiresDate = getExpiresDate(s);
     objectsStore.SET_EXPIRES_DATE(_expiresDate);
     objectsStore.SET_SHARE_SECOND(s);
-    const url = `${bucket}/${objectsStore.actionName}`;
+    const url = `/${bucket}/${objectsStore.actionName}`;
     objectsStore.fetchShare(url,objectsStore.shareSecond);
   }
 
 
   return <div className={styles.objects}>
-    <Action bucket={bucket} Created={Created}></Action>
+    <Action bucket={bucket} Created={create}></Action>
     <ObjectTable bucket={bucket}></ObjectTable>
     <Modal
       title="Delete"

@@ -4,13 +4,17 @@ import { RouterPath } from '@/router/RouterConfig';
 import { Cookies, SESSION_TOKEN } from '@/utils/cookies';
 import { Button, Form, Input } from 'antd';
 import { observer } from 'mobx-react';
-import { useHistory } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import jwt_decode from "jwt-decode";
 import styles from './style.module.scss';
 import { tokenType } from '@/models/RouteModel';
+import iconPassword from '@/assets/images/login/icon-password.png';
+import iconShow from '@/assets/images/login/icon-show.png';
+import iconHidden from '@/assets/images/login/icon-hidden.png';
+
 const ChangePassword = (props:any) => {
   const [form] = Form.useForm();
-  const history = useHistory();
+  const navigate = useNavigate();
   const confirm = async ()=>{
     const oldSecretKey = form.getFieldValue('oldPassword')
     const newSecretKey = form.getFieldValue('newPassword');
@@ -33,7 +37,7 @@ const ChangePassword = (props:any) => {
       region: '',
     }
     Axios.axiosJson(params).then(res=>{
-      history.push(RouterPath.buckets)
+      navigate(RouterPath.buckets)
     })
   };
 
@@ -48,6 +52,10 @@ const ChangePassword = (props:any) => {
         >
             <Input.Password
                 placeholder="please enter your old password"
+                prefix={<img src={iconPassword} alt=''/>}
+                iconRender={(visible)=>{
+                    return visible ? <img src={iconHidden} alt=''/>:<img src={iconShow} alt=''/>
+                }}
             />
         </Form.Item>
         <Form.Item
@@ -58,9 +66,13 @@ const ChangePassword = (props:any) => {
         >
             <Input.Password
                 placeholder="please enter your new password"
+                prefix={<img src={iconPassword} alt=''/>}
+                iconRender={(visible)=>{
+                    return visible ? <img src={iconHidden} alt=''/>:<img src={iconShow} alt=''/>
+                }}
             />
         </Form.Item>
-        <Form.Item>
+        <Form.Item className='btn-wrap'>
           <Button type="primary" onClick={confirm}>
               Confirm
           </Button>

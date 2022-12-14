@@ -4,11 +4,11 @@ import { RouterPath } from '@/router/RouterConfig';
 import { ACCESS_KEY_ID, Cookies } from '@/utils/cookies';
 import { Button, Form, Input } from 'antd';
 import { observer } from 'mobx-react';
-import { useHistory } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import styles from './style.module.scss';
 const CreateUser = (props:any) => {
   const [form] = Form.useForm();
-  const history = useHistory();
+  const navigate = useNavigate();
   const changePassword = async ()=>{
     const newSecretKey = form.getFieldValue('password');
     const accessKey = Cookies.getKey(ACCESS_KEY_ID);
@@ -26,7 +26,7 @@ const CreateUser = (props:any) => {
       region: '',
     }
     Axios.axiosXMLStream(params).then(res=>{
-      history.push(RouterPath.buckets)
+      navigate(RouterPath.buckets)
     })
   };
 

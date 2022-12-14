@@ -1,13 +1,14 @@
 .action {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     margin-bottom: 30px;
     .info{
         .bucket{
             font-size: 20px;
             color: var(--color-tile);
             font-weight: bolder;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             text-align: left;
         }
         .date-size{
@@ -21,7 +22,37 @@
         }
     }
     .operation{
+        position: relative;
         :global{
+            .ant-upload{
+                .ant-btn{
+                    display: flex;
+                    align-items: center;
+                    img{
+                        width: 16px;
+                        margin-right: 5px;
+                    }
+                }
+            }
+        }
+        .progressWrap{
+            width: 300px;
+            position: absolute;
+            right: 0;
+            top:100%;
+            z-index: 99;
+            padding: 20px 24px;
+            background-color: var(--color-FFFFFF);
+            border-radius: 8px;
+            box-shadow: 0 6px 16px 0 rgb(0 0 0 / 8%), 0 3px 6px -4px rgb(0 0 0 / 12%), 0 9px 28px 8px rgb(0 0 0 / 5%);
+            .title{
+                font-size: 14px;
+                color: var(--color-tile);
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
         }
     }
 }

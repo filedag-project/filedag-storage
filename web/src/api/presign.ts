@@ -9,7 +9,7 @@ const presignV4 = async (sign:PreSignModel) => {
     const AccessKeyId = Cookies.getKey(ACCESS_KEY_ID);
     const SecretAccessKey = Cookies.getKey(SECRET_ACCESS_KEY);
     const SessionToken = Cookies.getKey(SESSION_TOKEN);
-    const s3ObjectUrl = parseUrl("http://"+process.env['REACT_APP_HOST'] + sign.path);
+    const s3ObjectUrl = parseUrl(process.env['REACT_APP_BASE_URL'] + sign.path);
 
     const preSigner = new S3RequestPresigner({
         credentials: {
