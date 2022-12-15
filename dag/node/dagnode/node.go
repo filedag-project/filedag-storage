@@ -37,11 +37,12 @@ type StorageNode struct {
 
 //DagNode Implemented the Blockstore interface
 type DagNode struct {
-	Nodes    []*StorageNode
-	slots    *slotsmgr.SlotsManager
-	numSlots int
-	config   config.DagNodeConfig
-	stopCh   chan struct{}
+	Nodes       []*StorageNode
+	slots       *slotsmgr.SlotsManager
+	numSlots    int
+	config      config.DagNodeConfig
+	repairQueue chan func(ctx context.Context)
+	stopCh      chan struct{}
 }
 
 type Meta struct {
@@ -63,10 +64,11 @@ func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 		clients = append(clients, &StorageNode{Client: dateNode})
 	}
 	return &DagNode{
-		Nodes:  clients,
-		slots:  slotsmgr.NewSlotsManager(),
-		config: cfg,
-		stopCh: make(chan struct{}),
+		Nodes:       clients,
+		slots:       slotsmgr.NewSlotsManager(),
+		config:      cfg,
+		repairQueue: make(chan func(ctx context.Context), 10000),
+		stopCh:      make(chan struct{}),
 	}, nil
 }
 
@@ -125,15 +127,17 @@ func (d *DagNode) GetNumSlots() int {
 func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	healthCheckAll := func() {
 		wg := sync.WaitGroup{}
+		checkCtx, checkCancel := context.WithTimeout(ctx, 15*time.Second)
+		defer checkCancel()
 		for _, node := range d.Nodes {
 			wg.Add(1)
 			go func(sn *StorageNode) {
 				defer wg.Done()
-				sn.State = d.healthCheck(ctx, sn.Client)
+				sn.State = d.healthCheck(checkCtx, sn.Client)
 			}(node)
 		}
 		wg.Wait()
@@ -148,6 +152,22 @@ func (d *DagNode) RunHeartbeatCheck(ctx context.Context) {
 			return
 		case <-ticker.C:
 			healthCheckAll()
+		}
+	}
+}
+
+func (d *DagNode) RunRepairTask(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	for {
+		select {
+		case task := <-d.repairQueue:
+			task(ctx)
+		case <-ctx.Done():
+			return
+		case <-d.stopCh:
+			cancel()
+			return
 		}
 	}
 }
@@ -215,11 +235,14 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 		index := i
 		tnode := snode
 		task.Goroutine(func(ctx context.Context) error {
-			// is offline node?
+			// is offline node or have no block?
 			if tnode == nil {
-				// repair shard
-				repairIndexes[index] = true
-				needRepair = true
+				// is it online?
+				if d.Nodes[index].State {
+					// repair shard
+					repairIndexes[index] = true
+					needRepair = true
+				}
 				return errors.New("offline node")
 			}
 			node := tnode.Client
@@ -264,13 +287,18 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 				indexes = append(indexes, i)
 			}
 		}
-		go func() {
-			repairCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		repairFunc := func(ctx context.Context) {
+			repairCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 			defer cancel()
 			if err := d.repairBlock(repairCtx, keyCode, size, shards, indexes); err != nil {
 				log.Errorw("repair block failed", "key", keyCode, "blockSize", size, "indexes", indexes)
 			}
-		}()
+		}
+		select {
+		case d.repairQueue <- repairFunc:
+		default:
+			log.Warn("repair queue is full, discard this task")
+		}
 	}
 
 	// merge to block raw data
@@ -396,6 +424,7 @@ func (d *DagNode) Close() {
 		nd.Conn.Close()
 	}
 	close(d.stopCh)
+	close(d.repairQueue)
 }
 
 // Returns per entry readQuorum and writeQuorum

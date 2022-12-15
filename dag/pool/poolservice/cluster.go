@@ -35,6 +35,7 @@ func (d *dagPoolService) startNewDagNode(nodeConfig *config.DagNodeConfig) (*dag
 		return nil, err
 	}
 	go dagNode.RunHeartbeatCheck(d.parentCtx)
+	go dagNode.RunRepairTask(d.parentCtx)
 	d.dagNodesMap[nodeConfig.Name] = dagNode
 	return dagNode, nil
 }
