@@ -25,7 +25,7 @@ func TestStorageSys_Object(t *testing.T) {
 	s.SetHasBucket(mbsys.HasBucket)
 	r := ioutil.NopCloser(bytes.NewReader([]byte("123456")))
 	ctx := context.TODO()
-	object, err := s.StoreObject(ctx, "testbucket", "testobject", r, 6, map[string]string{})
+	object, err := s.StoreObject(ctx, "testbucket", "testobject", r, 6, map[string]string{}, false)
 	if err != nil {
 		fmt.Println(err)
 		return

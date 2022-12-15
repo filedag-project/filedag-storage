@@ -23,6 +23,7 @@ const (
 func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	bucketName := "/testbucketputo"
 	objectName := "/testobjectputo"
+	folder := "/testfolder/"
 	r1 := "1234567"
 	copySourceHeader := http.Header{}
 	copySourceHeader.Set("X-Amz-Copy-Source", "somewhere")
@@ -111,7 +112,7 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 		{
 			name:               "fileFolder",
 			bucketName:         bucketName,
-			objectName:         objectName + "/",
+			objectName:         folder,
 			data:               nil,
 			header:             nil,
 			accessKey:          DefaultTestAccessKey,
