@@ -380,8 +380,8 @@ func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter,
 }
 
 // generates an ListObjectsV1 response for the said bucket with other enumerated options.
-func GenerateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, resp store.ListObjectsInfo) ListObjectsResponse {
-	contents := make([]Object, 0, len(resp.Objects))
+func GenerateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingType string, maxKeys int, listObjectsInfo store.ListObjectsInfo) ListObjectsResponse {
+	contents := make([]Object, 0, len(listObjectsInfo.Objects))
 	id := consts.DefaultOwnerID
 	name := consts.DisplayName
 	owner := s3.Owner{
@@ -390,7 +390,7 @@ func GenerateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingTy
 	}
 	data := ListObjectsResponse{}
 
-	for _, object := range resp.Objects {
+	for _, object := range listObjectsInfo.Objects {
 		content := Object{}
 		if object.Name == "" {
 			continue
@@ -413,11 +413,11 @@ func GenerateListObjectsV1Response(bucket, prefix, marker, delimiter, encodingTy
 	data.Marker = utils.S3EncodeName(marker, encodingType)
 	data.Delimiter = utils.S3EncodeName(delimiter, encodingType)
 	data.MaxKeys = maxKeys
-	data.NextMarker = utils.S3EncodeName(resp.NextMarker, encodingType)
-	data.IsTruncated = resp.IsTruncated
+	data.NextMarker = utils.S3EncodeName(listObjectsInfo.NextMarker, encodingType)
+	data.IsTruncated = listObjectsInfo.IsTruncated
 
-	prefixes := make([]CommonPrefix, 0, len(resp.Prefixes))
-	for _, prefix := range resp.Prefixes {
+	prefixes := make([]CommonPrefix, 0, len(listObjectsInfo.Prefixes))
+	for _, prefix := range listObjectsInfo.Prefixes {
 		prefixItem := CommonPrefix{}
 		prefixItem.Prefix = utils.S3EncodeName(prefix, encodingType)
 		prefixes = append(prefixes, prefixItem)

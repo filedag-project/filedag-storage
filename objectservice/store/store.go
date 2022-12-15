@@ -44,6 +44,32 @@ type storageSys struct {
 	gcTimeout time.Duration
 }
 
+//canCreateFolder check if can create folder
+func (s *storageSys) canCreateFolder(ctx context.Context, bucket string, folder string) bool {
+	lk := s.newNSLock(bucket, folder)
+	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
+	if err != nil {
+		return false
+	}
+	ctx = lkctx.Context()
+	defer lk.RUnlock(lkctx.Cancel)
+	if strings.Count(folder, "/") > 1 {
+		folders := strings.SplitAfterN(folder, "/", 2)
+		last := folders[len(folders)-1]
+		aa := folder[:len(folder)-len(last)]
+		if _, err := s.getObjectInfo(ctx, bucket, aa); err != nil {
+			return false
+		}
+		folder = folders[len(folders)-1]
+	}
+	_, err = s.getObjectInfo(ctx, bucket, folder[:strings.Index(folder, "/")])
+	if err != nil {
+		return true
+	} else {
+		return false
+	}
+}
+
 // StoreStats store system stats
 func (s *storageSys) StoreStats(ctx context.Context) (DataUsageInfo, error) {
 	var dataUsageInfo DataUsageInfo
@@ -63,7 +89,7 @@ func (s *storageSys) StoreStats(ctx context.Context) (DataUsageInfo, error) {
 }
 
 //NewStorageSys new a storage sys
-func NewStorageSys(ctx context.Context, dagService ipld.DAGService, db objmetadb.ObjStoreMetaDBAPI) *storageSys {
+func NewStorageSys(ctx context.Context, dagService ipld.DAGService, db objmetadb.ObjStoreMetaDBAPI) ObjectStoreSystemAPI {
 	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
 	s := &storageSys{
 		Db:         db,
@@ -91,8 +117,8 @@ func newDelObjectKey() string {
 	return fmt.Sprintf(deleteKeyFormat, mustGetUUID())
 }
 
-// NewNSLock - initialize a new namespace RWLocker instance.
-func (s *storageSys) NewNSLock(bucket string, objects ...string) lock.RWLocker {
+// newNSLock - initialize a new namespace RWLocker instance.
+func (s *storageSys) newNSLock(bucket string, objects ...string) lock.RWLocker {
 	return s.nsLock.NewNSLock(bucket, objects...)
 }
 
@@ -146,7 +172,7 @@ func (s *storageSys) checkAndDeleteObjectData(ctx context.Context, bucket, objec
 }
 
 //StoreObject store object
-func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
+func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string, fileFolder bool) (ObjectInfo, error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -158,19 +184,31 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 	if !s.hasBucket(ctx, bucket) {
 		return ObjectInfo{}, BucketNotFound{Bucket: bucket}
 	}
-
-	root, err := s.store(ctx, reader, size)
-	if err != nil {
-		return ObjectInfo{}, err
+	var root cid.Cid
+	if !fileFolder {
+		root, err = s.store(ctx, reader, size)
+		if err != nil {
+			return ObjectInfo{}, err
+		}
+	} else {
+		if !s.canCreateFolder(ctx, bucket, object) {
+			return ObjectInfo{}, ErrCanNotCreatFolder
+		}
 	}
-
+	var etag = func(root cid.Cid) string {
+		if root != cid.Undef {
+			return root.String()
+		} else {
+			return cid.Undef.String()
+		}
+	}(root)
 	objInfo := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
 		ModTime:          time.Now().UTC(),
 		Size:             size,
 		IsDir:            false,
-		ETag:             root.String(),
+		ETag:             etag,
 		VersionID:        "",
 		IsLatest:         true,
 		DeleteMarker:     false,
@@ -185,7 +223,7 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 		}
 	}
 
-	lk := s.NewNSLock(bucket, object)
+	lk := s.newNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return ObjectInfo{}, err
@@ -205,7 +243,7 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 
 //GetObject Get object
 func (s *storageSys) GetObject(ctx context.Context, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
-	lk := s.NewNSLock(bucket, object)
+	lk := s.newNSLock(bucket, object)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return ObjectInfo{}, nil, err
@@ -243,7 +281,7 @@ func (s *storageSys) getObjectInfo(ctx context.Context, bucket, object string) (
 }
 
 func (s *storageSys) GetObjectInfo(ctx context.Context, bucket, object string) (meta ObjectInfo, err error) {
-	lk := s.NewNSLock(bucket, object)
+	lk := s.newNSLock(bucket, object)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return ObjectInfo{}, err
@@ -256,7 +294,7 @@ func (s *storageSys) GetObjectInfo(ctx context.Context, bucket, object string) (
 
 //DeleteObject delete object
 func (s *storageSys) DeleteObject(ctx context.Context, bucket, object string) error {
-	lk := s.NewNSLock(bucket, object)
+	lk := s.newNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
 	if err != nil {
 		return err
@@ -375,7 +413,14 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 			return loi, err
 		}
 		index++
-		loi.Objects = append(loi.Objects, o)
+		if strings.HasSuffix(o.Name, "/") {
+			if o.Name == prefix {
+				continue
+			}
+			loi.Prefixes = append(loi.Prefixes, o.Name[:len(o.Name)])
+		} else {
+			loi.Objects = append(loi.Objects, o)
+		}
 	}
 	if loi.IsTruncated {
 		loi.NextMarker = loi.Objects[len(loi.Objects)-1].Name
@@ -461,7 +506,7 @@ func (s *storageSys) GetMultipartInfo(ctx context.Context, bucket string, object
 	ctx = bktlkCtx.Context()
 	defer bktlk.RUnlock(bktlkCtx.Cancel)
 
-	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	uploadIDLock := s.newNSLock(bucket, lock.PathJoin(object, uploadID))
 	lkctx, err := uploadIDLock.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return MultipartInfo{}, err
@@ -499,7 +544,7 @@ func (s *storageSys) PutObjectPart(ctx context.Context, bucket string, object st
 		ModTime: time.Now().UTC(),
 	}
 
-	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	uploadIDLock := s.newNSLock(bucket, lock.PathJoin(object, uploadID))
 	ulkctx, err := uploadIDLock.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return pi, err
@@ -555,7 +600,7 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 		return oi, BucketNotFound{Bucket: bucket}
 	}
 
-	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	uploadIDLock := s.newNSLock(bucket, lock.PathJoin(object, uploadID))
 	ulkctx, err := uploadIDLock.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return oi, err
@@ -639,7 +684,7 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 		}
 	}
 
-	lk := s.NewNSLock(bucket, object)
+	lk := s.newNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return ObjectInfo{}, err
@@ -676,7 +721,7 @@ func (s *storageSys) AbortMultipartUpload(ctx context.Context, bucket string, ob
 		return BucketNotFound{Bucket: bucket}
 	}
 
-	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	uploadIDLock := s.newNSLock(bucket, lock.PathJoin(object, uploadID))
 	ulkctx, err := uploadIDLock.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return err
@@ -721,7 +766,7 @@ func (s *storageSys) ListObjectParts(ctx context.Context, bucket, object, upload
 		return result, BucketNotFound{Bucket: bucket}
 	}
 
-	uploadIDLock := s.NewNSLock(bucket, lock.PathJoin(object, uploadID))
+	uploadIDLock := s.newNSLock(bucket, lock.PathJoin(object, uploadID))
 	ulkctx, err := uploadIDLock.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
 		return result, err

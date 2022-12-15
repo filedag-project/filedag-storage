@@ -108,11 +108,41 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusBadRequest,
 		},
+		{
+			name:               "fileFolder",
+			bucketName:         bucketName,
+			objectName:         objectName + "/",
+			data:               nil,
+			header:             nil,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
+		{
+			name:               "fileFolder-bad-StatusMovedPermanently",
+			bucketName:         bucketName,
+			objectName:         objectName + "///",
+			data:               nil,
+			header:             nil,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusMovedPermanently,
+		},
+		{
+			name:               "fileFolder-bad-StatusBadRequest",
+			bucketName:         bucketName,
+			objectName:         objectName + "/" + "image/",
+			data:               nil,
+			header:             nil,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusBadRequest,
+		},
 	}
 	// Iterating over the cases, fetching the object validating the response.
 	for i, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			req := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName, int64(len(r1)), bytes.NewReader(testCase.data), "s3", testCase.accessKey, testCase.secretKey, t)
+			req := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName, int64(len(testCase.data)), bytes.NewReader(testCase.data), "s3", testCase.accessKey, testCase.secretKey, t)
 			// Add test case specific headers to the request.
 			addCustomHeaders(req, testCase.header)
 			result := reqTest(req)

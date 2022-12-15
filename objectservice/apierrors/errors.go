@@ -74,6 +74,8 @@ func ToApiError(ctx context.Context, err error) ErrorCode {
 			errCode = ErrNoSuchKey
 		} else if xerrors.Is(err, store.ErrBucketNotEmpty) {
 			errCode = ErrBucketNotEmpty
+		} else if xerrors.Is(err, store.ErrCanNotCreatFolder) {
+			errCode = ErrInvalidRequestParameter
 		}
 	}
 	return errCode
