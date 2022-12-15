@@ -306,17 +306,17 @@ func (s *storageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	if err != nil {
 		return err
 	}
-	cid, err := cid.Decode(meta.ETag)
-	if err != nil {
-		return err
+	if !strings.HasSuffix(meta.Name, "/") {
+		cid, err := cid.Decode(meta.ETag)
+		if err != nil {
+			return err
+		}
+		if err = s.markObjetToDelete(cid); err != nil {
+			log.Errorw("mark Objet to delete error", "bucket", bucket, "object", object, "cid", meta.ETag, "error", err)
+		}
 	}
-
 	if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
 		return err
-	}
-
-	if err = s.markObjetToDelete(cid); err != nil {
-		log.Errorw("mark Objet to delete error", "bucket", bucket, "object", object, "cid", meta.ETag, "error", err)
 	}
 	return nil
 }

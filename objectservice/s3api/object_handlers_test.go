@@ -346,7 +346,7 @@ func TestS3ApiServer_HeadObjectHandler(t *testing.T) {
 func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 	bucketName := "/testbucketdelo"
 	objectName := "/testobjectdelo"
-
+	folderName := "/testfolder/"
 	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	reqPutBucketResult := reqTest(reqPutBucket)
 	if reqPutBucketResult.Code != http.StatusOK {
@@ -369,6 +369,11 @@ func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 	reqPutObjectNormalResult := reqTest(reqPutObjectNormal)
 	if reqPutObjectNormalResult.Code != http.StatusOK {
 		t.Fatalf("reqPutObjectNormalResult : Expected the response status to be `%d`, but instead found `%d`", 200, reqPutObjectNormalResult.Code)
+	}
+	reqPutFolder := utils.MustNewSignedV4Request(http.MethodPut, bucketName+folderName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutFolderResult := reqTest(reqPutFolder)
+	if reqPutFolderResult.Code != http.StatusOK {
+		t.Fatalf("reqPutFolderResult : Expected the response status to be `%d`, but instead found `%d`", 200, reqPutFolderResult.Code)
 	}
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -424,6 +429,14 @@ func TestS3ApiServer_DeleteObjectHandler(t *testing.T) {
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusNotFound,
+		},
+		{
+			name:               "folder",
+			bucketName:         bucketName,
+			objectName:         folderName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusNoContent,
 		},
 	}
 	for _, testCase := range testCases {
@@ -639,6 +652,7 @@ func TestS3ApiServer_CopyObjectHandler(t *testing.T) {
 func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 	bucketName := "/testbucketlistv2"
 	objectName := "/testobjectlist"
+	folderName := "/testfolder/"
 	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
 	reqPutBucketResult := reqTest(reqPutBucket)
 	if reqPutBucketResult.Code != http.StatusOK {
@@ -661,6 +675,11 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 	reqPutObjectNormalResult := reqTest(reqPutObjectNormal)
 	if reqPutObjectNormalResult.Code != http.StatusOK {
 		t.Fatalf("reqPutObjectNormalResult : Expected the response status to be `%d`, but instead found `%d`", 200, reqPutObjectNormalResult.Code)
+	}
+	reqPutFolder := utils.MustNewSignedV4Request(http.MethodPut, bucketName+folderName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	reqPutFolderResult := reqTest(reqPutFolder)
+	if reqPutFolderResult.Code != http.StatusOK {
+		t.Fatalf("reqPutFolderResult : Expected the response status to be `%d`, but instead found `%d`", 200, reqPutFolderResult.Code)
 	}
 	// test cases with inputs and expected result for Bucket.
 	testCases := []struct {
@@ -704,11 +723,18 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 			secretKey:          DefaultTestSecretKey,
 			expectedRespStatus: http.StatusNotFound,
 		},
+		{
+			name:               "list folder",
+			bucketName:         bucketName,
+			accessKey:          DefaultTestAccessKey,
+			secretKey:          DefaultTestSecretKey,
+			expectedRespStatus: http.StatusOK,
+		},
 	}
 	// Iterating over the cases, fetching the object validating the response.
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			req := utils.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+"?list-type=2", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+			req := utils.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+"?list-type=2"+"&&prefix="+folderName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 			result := reqTest(req)
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result.Code)
