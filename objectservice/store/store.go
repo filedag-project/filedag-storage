@@ -306,7 +306,17 @@ func (s *storageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	if err != nil {
 		return err
 	}
-	if !strings.HasSuffix(meta.Name, "/") {
+	if strings.HasSuffix(meta.Name, "/") {
+		allChan, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(objectKeyFormat, bucket, object), "")
+		if err != nil {
+			return err
+		}
+		for entry := range allChan {
+			if err = s.Db.Delete(entry.GetKey()); err != nil {
+				return err
+			}
+		}
+	} else {
 		cid, err := cid.Decode(meta.ETag)
 		if err != nil {
 			return err
@@ -314,9 +324,9 @@ func (s *storageSys) DeleteObject(ctx context.Context, bucket, object string) er
 		if err = s.markObjetToDelete(cid); err != nil {
 			log.Errorw("mark Objet to delete error", "bucket", bucket, "object", object, "cid", meta.ETag, "error", err)
 		}
-	}
-	if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
-		return err
+		if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -403,6 +413,7 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		return loi, err
 	}
 	index := 0
+	m := make(map[string]struct{})
 	for entry := range all {
 		if index == maxKeys {
 			loi.IsTruncated = true
@@ -413,22 +424,28 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 			return loi, err
 		}
 		index++
-		if strings.HasSuffix(o.Name, "/") {
-			if o.Name == prefix {
-				continue
-			}
-			loi.Prefixes = append(loi.Prefixes, o.Name[:len(o.Name)])
-		} else {
-			loi.Objects = append(loi.Objects, o)
-		}
+		// bucket/aaa/ccc/
+		getFolder(o, prefix, &loi, m)
 	}
 	if loi.IsTruncated {
 		loi.NextMarker = loi.Objects[len(loi.Objects)-1].Name
 	}
-
+	for key := range m {
+		loi.Prefixes = append(loi.Prefixes, key)
+	}
 	return loi, nil
 }
-
+func getFolder(o ObjectInfo, prefix string, loi *ListObjectsInfo, m map[string]struct{}) {
+	// bucket/aaa/ccc/
+	if strings.HasSuffix(o.Name, "/") {
+		if len(o.Name) > len(prefix) {
+			name := o.Name[len(prefix):]
+			m[name[:strings.Index(name, "/")+1]] = struct{}{}
+		}
+	} else {
+		loi.Objects = append(loi.Objects, o)
+	}
+}
 func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, error) {
 	loi, err := s.ListObjects(ctx, bucket, "", "", "", 1)
 	if err != nil {
