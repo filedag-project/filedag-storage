@@ -8,10 +8,12 @@ import bucketsStore from '@/store/modules/buckets';
 const CreateBucket = () => {
     const navigate = useNavigate();
     const [form] = Form.useForm();
+    
     const create = async () => {
+        const bucketName = form.getFieldValue('bucketName1');
+        console.log(bucketName,1233);
         try {
             await form.validateFields();
-            const bucketName = form.getFieldValue('bucketName')
             const path = `/${bucketName}`
             await bucketsStore.fetchCreate(path);
             navigate(RouterPath.buckets);
@@ -24,15 +26,15 @@ const CreateBucket = () => {
       <div className={classNames(styles.createBucket)}>
         <Form form={form} autoComplete="off">
             <Form.Item
-                name="bucketName"
+                name="bucketName1"
                 rules={[
-                    {required: true, message: 'Please input bucket name!'},
+                    {required: true, message: 'Please enter bucket name'},
                 ]}
+                extra="Bucket name must be globally unique and cannot contain spaces or uppercase letters."
             >
                 <Input
-                    placeholder="please enter bucket name"
+                    placeholder="Please enter bucket name"
                 />
-                <div className="tips">Bucket names must be globally unique and cannot contain spaces or uppercase letters.</div>
             </Form.Item>
 
             <Form.Item>
@@ -41,6 +43,7 @@ const CreateBucket = () => {
                 </Button>
             </Form.Item>
         </Form>
+
         <div className={classNames(styles.right)}>
           <div className={classNames(styles.title)}>Buckets</div>
           <div className={classNames(styles.description)}>

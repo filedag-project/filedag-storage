@@ -1,5 +1,5 @@
 enum RouterPath {
-  objects = '/objects',
+  bucketDetail = '/bucket-detail',
   error = '/error',
   login = '/login',
   buckets = '/buckets',
@@ -13,7 +13,7 @@ enum RouterPath {
 }
 const RouterToBreadcrumb = {
   '/buckets':[{ path: RouterPath.buckets,label:'Buckets'}],
-  '/objects':[{ path: RouterPath.buckets,label:'Buckets'},{ path: RouterPath.objects,label:'Objects'}],
+  '/bucket-detail':[{ path: RouterPath.buckets,label:'Buckets'}],
   '/dashboard':[{ path: RouterPath.dashboard,label:'Dashboard'}],
   '/change-password':[{ path: RouterPath.changePassword,label:'Change-password'}],
   '/user':[{ path: RouterPath.user,label:'User'}],

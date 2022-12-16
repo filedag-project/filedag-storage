@@ -9,17 +9,15 @@ import iconView from '@/assets/images/common/icon-view.png';
 import iconDelete from '@/assets/images/common/icon-delete.png';
 const Bucket = (props:any) => {
   const navigate = useNavigate();
-  const { data } = props;
-  const {Name:bucket,CreationDate:create} = data;
+  const { data :{ Name: bucket,CreationDate } } = props;
   const openDelete = ()=>{
     bucketsStore.SET_DELETE_NAME(bucket);
     bucketsStore.SET_DELETE_SHOW(true);
   }
 
   const viewObjects = ()=>{
-    navigate(`${RouterPath.objects}`,{
-      state:{ bucket, create
-      }
+    navigate(`${RouterPath.bucketDetail}`,{
+      state:{ bucket }
     });
   }
   const openPower = ()=>{
@@ -30,8 +28,8 @@ const Bucket = (props:any) => {
       <div className={styles['bucket']}>
         <div className={styles['top']}>
           <div className={styles['info']}>
-            <div className={styles['name']}>{data.Name}</div>
-            <div className={styles['create']}>Created: {data.CreationDate}</div>
+            <div className={styles['name']}>{ bucket }</div>
+            <div className={styles['create']}>Created: {CreationDate}</div>
           </div>
           <div className={styles['action']}>
             <div onClick={openPower}>

@@ -3,14 +3,15 @@ import { tokenType } from "@/models/RouteModel";
 import userStore from "@/store/modules/user";
 import { Cookies, SESSION_TOKEN } from "@/utils/cookies";
 import { DeleteOutlined, PlusOutlined, SafetyOutlined } from "@ant-design/icons";
-import { Button, Form, Input,Switch, Modal, Table, Tooltip } from "antd";
+import { Button, Form, Input,Switch, Modal, Table, Tooltip, notification } from "antd";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import jwt_decode from "jwt-decode";
 import styles from './style.module.scss';
 
 const User = (props:any) => {
-  const [form] = Form.useForm();
+  const [addUserForm] = Form.useForm();
+  const [changePassWordForm] = Form.useForm();
   const [deleteUserShow,SetDeleteUserShow] = useState(false);
   const [changePasswordShow,SetChangePasswordShow] = useState(false);
   const [userStatus,SetUserStatusShow] = useState(false);
@@ -19,12 +20,14 @@ const User = (props:any) => {
   const [status,SetStatus] = useState(false);
   const [addUserShow,SetAddUserShow] = useState(false);
   const [admin,setAdmin] = useState(false);
+  const [adminName,setAdminName] = useState('');
   useEffect(()=>{
     const _jwt = Cookies.getKey(SESSION_TOKEN);
     if(_jwt){
       const _token:tokenType = jwt_decode(_jwt);
-      const { isAdmin = false }=_token;
+      const { isAdmin = false,parent }=_token;
       setAdmin(isAdmin);
+      setAdminName(parent);
     }
     userStore.fetchUserInfos();
     
@@ -73,7 +76,7 @@ const User = (props:any) => {
       render: (_, record) => (
         <div className='row-action'>
           {
-            admin?<></>:<span onClick={()=>{
+            admin && (record.account_name === adminName)?<></>:<span onClick={()=>{
               SetAccessKey(record.account_name);
               SetChangePasswordShow(true);
             }}>
@@ -93,10 +96,10 @@ const User = (props:any) => {
   ];
   const addUser = async ()=>{
     try {
-      await form.validateFields();
-      const username = form.getFieldValue('username');
-      const password = form.getFieldValue('password');
-      const capacity = form.getFieldValue('capacity');
+      await addUserForm.validateFields();
+      const username = addUserForm.getFieldValue('username');
+      const password = addUserForm.getFieldValue('password');
+      const capacity = addUserForm.getFieldValue('capacity');
       const user:addUserType = {
         accessKey:username,
         secretKey:password,
@@ -118,14 +121,19 @@ const User = (props:any) => {
     });
   };
   const changePassword = async ()=>{
-    await form.validateFields();
-    const newSecretKey = form.getFieldValue('newSecretKey');
+    await changePassWordForm.validateFields();
+    const newSecretKey = changePassWordForm.getFieldValue('newSecretKey');
     const params:changePasswordType = {    
       newSecretKey,
       accessKey
     }
     userStore.fetchChangeUserPassword(params).then(res=>{
       SetChangePasswordShow(false);
+      changePassWordForm.resetFields();
+      notification.open({
+        message: 'Change success',
+        description: '',
+      });
     });
   };
 
@@ -153,11 +161,14 @@ const User = (props:any) => {
       title="Add User"
       open={addUserShow}
       onOk={addUser}
-      onCancel={()=>{ SetAddUserShow(false) }}
+      onCancel={()=>{ 
+        SetAddUserShow(false);
+        addUserForm.resetFields();
+      }}
       okText="Confirm"
       cancelText="Cancel"
     >
-      <Form form={form} autoComplete="off">
+      <Form form={addUserForm} autoComplete="off">
             <Form.Item
                 name="username"
                 rules={[
@@ -212,8 +223,8 @@ const User = (props:any) => {
     >
       <div style={{display:'flex',}}>
         <div className="label" style={{margin:'0 8px 0 0',}}>Status</div>：
-        <Switch checkedChildren={statusType.on} unCheckedChildren={statusType.off} defaultChecked={defaultStatus} onChange={(checkd)=>{
-          SetStatus(checkd);
+        <Switch checkedChildren={statusType.on} unCheckedChildren={statusType.off} defaultChecked={defaultStatus} onChange={(checked)=>{
+          SetStatus(checked);
         }}></Switch>
       </div>
     </Modal>
@@ -222,15 +233,19 @@ const User = (props:any) => {
       title="Change Password"
       open={changePasswordShow}
       onOk={changePassword}
-      onCancel={()=>{ SetChangePasswordShow(false) }}
+      onCancel={()=>{
+        SetChangePasswordShow(false);
+        changePassWordForm.resetFields();
+      }}
       okText="Confirm"
       cancelText="Cancel"
     >
-      <Form form={form} autoComplete="off">
+      <Form form={changePassWordForm} autoComplete="off">
             <Form.Item
                 name="newSecretKey"
                 rules={[
                     {required: true, message: 'Please input new password'},
+                    { min:8, message: 'password must be at least 8 characters'},
                 ]}
             >
                 <Input.Password

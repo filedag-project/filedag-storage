@@ -6,7 +6,7 @@ const Dashboard = lazy(()=> import('@/pages/Dashboard'));
 const Overview = lazy(()=> import('@/pages/Overview'));
 const Buckets = lazy(()=> import('@/pages/Buckets'));
 const CreateBucket = lazy(()=> import('@/pages/CreateBucket'));
-const Objects = lazy(()=> import('@/pages/Objects'));
+const BucketDetail = lazy(()=> import('@/pages/BucketDetail'));
 const User = lazy(()=> import('@/pages/User'));
 const Power = lazy(()=> import('@/pages/Power'));
 const ChangePassword = lazy(()=> import('@/pages/ChangePassword'));
@@ -29,7 +29,7 @@ const router = [
       { path :'overview', element:lazyLoad(<Overview />) },
       { path :'buckets', element:lazyLoad(<Buckets />) },
       { path :'power', element:lazyLoad(<Power />) },
-      { path :'objects', element:lazyLoad(<Objects />) },
+      { path :'bucket-detail', element:lazyLoad(<BucketDetail />) },
       { path :'create-bucket', element:lazyLoad(<CreateBucket />) },
       { path :'user', element:lazyLoad(<User />) },
       { path :'change-password', element:lazyLoad(<ChangePassword />) },

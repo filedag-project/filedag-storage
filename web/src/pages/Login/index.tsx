@@ -1,7 +1,6 @@
 import classNames from 'classnames';
 import styles from './style.module.scss';
 import {Button, Checkbox, Form, Input} from 'antd';
-import {LockOutlined, UserOutlined} from '@ant-design/icons';
 import logo from '@/assets/images/common/logo.png';
 import {useNavigate} from 'react-router-dom';
 import {RouterPath} from '@/router/RouterConfig';

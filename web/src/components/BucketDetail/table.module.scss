@@ -1,0 +1,58 @@
+.object-table{
+    :global{
+        .ant-table{
+            .ant-table-thead{
+                .ant-table-cell{
+                    font-size: 14px;
+                    color: var(--color-title);
+                }
+            }
+            .ant-table-tbody{
+                .ant-table-cell{
+                    font-size: 14px;
+                    color: var(--color-text);
+                }
+            }
+            .ant-table-cell{
+                .row-action{
+                    display: flex;
+                    align-items: center;
+                    .ant-btn{
+                        display: flex;
+                        align-items: center;
+                        margin-right: 15px;
+                        &:last-child{
+                            margin-right: 0;
+                        }
+                        img{
+                            width: 16px;
+                            margin-right: 5px;
+                        }
+                    }
+                    .share-btn {
+                        background: #E6F2FF;
+                        color: #3883FF;
+                        border:none;
+                        border-radius: 4px;
+                        font-size: 12px;
+                    }
+                    .view-btn{
+                        background: #E3FAFD;
+                        border:none;
+                        border-radius: 4px;
+                        color: #74C3ED;
+                        font-size: 12px;
+                    }
+                    .delete-btn{
+                        background: #F1F2F5;
+                        border:none;
+                        border-radius: 4px;
+                        color: #A7ADBD;
+                        font-size: 12px;
+                    }
+
+                }
+            }
+        }
+    }
+}

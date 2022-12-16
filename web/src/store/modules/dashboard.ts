@@ -93,7 +93,6 @@ class DashboardStore {
       this.objectsCount = objectsCount;
       this.totalCaptivity = totalCaptivity;
       this.objectsTotalSize = objectsTotalSize;
-      console.log(res,'rrr');
       resolve(res);
     })
   }
