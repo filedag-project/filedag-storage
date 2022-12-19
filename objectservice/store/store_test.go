@@ -58,7 +58,7 @@ func TestGetFolder(t *testing.T) {
 			expect: []string{"ccc/"},
 		},
 		{
-			name: "nil_frefix",
+			name: "folder-in-folder",
 			o: []ObjectInfo{{
 				Name: "aaa/ccc/",
 			}},
@@ -67,7 +67,16 @@ func TestGetFolder(t *testing.T) {
 			expect: []string{"aaa/"},
 		},
 		{
-			name: "nil_frefix",
+			name: "folder-in-folder",
+			o: []ObjectInfo{{
+				Name: "aaa/ccc/",
+			}},
+			prefix: "aaa/",
+			loi:    &ListObjectsInfo{},
+			expect: []string{"ccc/"},
+		},
+		{
+			name: "folder-in-folder",
 			o: []ObjectInfo{
 				{
 					Name: "aaa/ccc/",
@@ -80,14 +89,55 @@ func TestGetFolder(t *testing.T) {
 			loi:    &ListObjectsInfo{},
 			expect: []string{"aaa/"},
 		},
+		{
+			name: "diff-folder-and-file",
+			o: []ObjectInfo{
+				{
+					Name: "aaa/ccc/",
+				},
+				{
+					Name: "aaa/cerd.tar",
+				},
+				{
+					Name: "aaa/bbb/",
+				},
+				{
+					Name: "aaa/bbb/cerd.tar",
+				},
+			},
+			prefix: "aaa/",
+			loi:    &ListObjectsInfo{},
+			expect: []string{"ccc/", "cerd.tar", "bbb"},
+		},
+		{
+			name: "diff-folder-and-file",
+			o: []ObjectInfo{
+				{
+					Name: "aaa/ccc/",
+				},
+				{
+					Name: "aaa/cerd.tar",
+				},
+				{
+					Name: "aaa/bbb/",
+				},
+				{
+					Name: "aaa/bbb/cerd.tar",
+				},
+			},
+			prefix: "",
+			loi:    &ListObjectsInfo{},
+			expect: []string{"aaa/"},
+		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			m := make(map[string]struct{})
 			for _, aaa := range testCase.o {
-				getFolder(aaa, testCase.prefix, testCase.loi, m)
+				getFolderAndObjectFromObjectInfo(aaa, testCase.prefix, testCase.loi, m)
 			}
 			fmt.Println(m)
+			fmt.Println(testCase.loi.Objects)
 		})
 	}
 

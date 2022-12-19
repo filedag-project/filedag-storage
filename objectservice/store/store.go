@@ -425,7 +425,7 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		}
 		index++
 		// bucket/aaa/ccc/
-		getFolder(o, prefix, &loi, m)
+		getFolderAndObjectFromObjectInfo(o, prefix, &loi, m)
 	}
 	if loi.IsTruncated {
 		loi.NextMarker = loi.Objects[len(loi.Objects)-1].Name
@@ -435,7 +435,7 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	}
 	return loi, nil
 }
-func getFolder(o ObjectInfo, prefix string, loi *ListObjectsInfo, m map[string]struct{}) {
+func getFolderAndObjectFromObjectInfo(o ObjectInfo, prefix string, loi *ListObjectsInfo, m map[string]struct{}) {
 	// bucket/aaa/ccc/
 	if strings.HasSuffix(o.Name, "/") {
 		if len(o.Name) > len(prefix) {
@@ -443,6 +443,11 @@ func getFolder(o ObjectInfo, prefix string, loi *ListObjectsInfo, m map[string]s
 			m[name[:strings.Index(name, "/")+1]] = struct{}{}
 		}
 	} else {
+		name := o.Name[len(prefix):]
+		if strings.Contains(name, "/") {
+			return
+		}
+		o.Name = name
 		loi.Objects = append(loi.Objects, o)
 	}
 }
