@@ -39,9 +39,7 @@ var _ BucketMetadataSysAPI = &bucketMetadataSys{}
 type BucketMetadataSysAPI interface {
 	NewNSLock(bucket string) lock.RWLocker
 	SetEmptyBucket(emptyBucket func(ctx context.Context, bucket string) (bool, error))
-	setBucketMeta(bucket string, meta *BucketMetadata) error
 	CreateBucket(ctx context.Context, bucket string, region string, accessKey string) error
-	getBucketMeta(bucket string) (meta BucketMetadata, err error)
 	GetBucketMeta(ctx context.Context, bucket string) (meta BucketMetadata, err error)
 	HasBucket(ctx context.Context, bucket string) bool
 	DeleteBucket(ctx context.Context, bucket string) error

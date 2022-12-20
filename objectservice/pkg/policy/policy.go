@@ -9,8 +9,8 @@ import (
 	"io"
 )
 
-// DefaultVersion - default policy version as per AWS S3 specification.
-const DefaultVersion = "2012-10-17"
+// defaultVersion - default policy version as per AWS S3 specification.
+const defaultVersion = "2012-10-17"
 
 // Policy - iam bucket iamp.
 type Policy struct {
@@ -18,6 +18,8 @@ type Policy struct {
 	Version    string
 	Statements []Statement `json:"Statement"`
 }
+
+//PolicyDocument policy document
 type PolicyDocument struct {
 	Version   string      `json:"Version"`
 	Statement []Statement `json:"Statement"`
@@ -49,13 +51,13 @@ redo:
 	}
 }
 
-func (p PolicyDocument) String() string {
+func (p *PolicyDocument) String() string {
 	b, _ := json.Marshal(p)
 	return string(b)
 }
 
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
-func (p Policy) IsAllowed(args auth.Args) bool {
+func (p *Policy) IsAllowed(args auth.Args) bool {
 	// Check all deny statements. If any one statement denies, return false.
 	for _, statement := range p.Statements {
 		if statement.Effect == Deny {
@@ -98,7 +100,7 @@ func ParseConfig(reader io.Reader, bucketName string) (*Policy, error) {
 }
 
 // Validate - validates all statements are for given bucket or not.
-func (p Policy) Validate(bucketName string) error {
+func (p *Policy) Validate(bucketName string) error {
 	if err := p.isValid(); err != nil {
 		return err
 	}
@@ -155,12 +157,12 @@ func (p *Policy) Equals(policy Policy) bool {
 }
 
 // IsEmpty - returns whether policy is empty or not.
-func (p Policy) IsEmpty() bool {
+func (p *Policy) IsEmpty() bool {
 	return len(p.Statements) == 0
 }
 
 // isValid - checks if Policy is valid or not.
-func (p Policy) isValid() error {
+func (p *Policy) isValid() error {
 
 	for _, statement := range p.Statements {
 		if err := statement.IsValid(); err != nil {
@@ -185,9 +187,10 @@ func (p *Policy) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+//CreateAnonReadOnlyBucketPolicy creates a bucket policy for anonymous read-only access
 func CreateAnonReadOnlyBucketPolicy(bucketName string) *Policy {
 	return &Policy{
-		Version: DefaultVersion,
+		Version: defaultVersion,
 		Statements: []Statement{
 			NewStatement(
 				"",
@@ -201,9 +204,10 @@ func CreateAnonReadOnlyBucketPolicy(bucketName string) *Policy {
 	}
 }
 
+//CreateAnonWriteOnlyBucketPolicy creates a policy that allows anonymous users to write to a bucket
 func CreateAnonWriteOnlyBucketPolicy(bucketName string) *Policy {
 	return &Policy{
-		Version: DefaultVersion,
+		Version: defaultVersion,
 		Statements: []Statement{
 			NewStatement(
 				"",
@@ -220,9 +224,10 @@ func CreateAnonWriteOnlyBucketPolicy(bucketName string) *Policy {
 	}
 }
 
+//CreateAnonReadOnlyObjectPolicy - create a policy for anonymous read only access to an object
 func CreateAnonReadOnlyObjectPolicy(bucketName, prefix string) *Policy {
 	return &Policy{
-		Version: DefaultVersion,
+		Version: defaultVersion,
 		Statements: []Statement{
 			NewStatement(
 				"",
@@ -236,9 +241,10 @@ func CreateAnonReadOnlyObjectPolicy(bucketName, prefix string) *Policy {
 	}
 }
 
+//CreateAnonWriteOnlyObjectPolicy creates a policy that allows anonymous users to upload objects to a bucket
 func CreateAnonWriteOnlyObjectPolicy(bucketName, prefix string) *Policy {
 	return &Policy{
-		Version: DefaultVersion,
+		Version: defaultVersion,
 		Statements: []Statement{
 			NewStatement(
 				"",
@@ -260,7 +266,7 @@ func CreateAnonWriteOnlyObjectPolicy(bucketName, prefix string) *Policy {
 //CreateUserPolicy create user policy according action and bucket
 func CreateUserPolicy(accessKey string, actions []s3action.Action, bucketName string) *Policy {
 	return &Policy{
-		Version: DefaultVersion,
+		Version: defaultVersion,
 		Statements: []Statement{
 			NewStatement(
 				"",
@@ -276,9 +282,10 @@ func CreateUserPolicy(accessKey string, actions []s3action.Action, bucketName st
 	}
 }
 
+//CreateUserBucketPolicy create user policy according accessKey and bucket
 func CreateUserBucketPolicy(bucketName, accessKey string) *Policy {
 	return &Policy{
-		Version: DefaultVersion,
+		Version: defaultVersion,
 		Statements: []Statement{
 			NewStatement(
 				"",
