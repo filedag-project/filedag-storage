@@ -1,7 +1,7 @@
 # FileDAG Storage
 
 [![LICENSE](https://img.shields.io/github/license/filedag-project/filedag-storage)](./LICENSE "LICENSE")
-[![Build Status](https://img.shields.io/github/workflow/status/filedag-project/filedag-storage/Go)]()
+[![Build Status](https://img.shields.io/github/actions/workflow/status/filedag-project/filedag-storage/go.yml)]()
 
 Language: [English](./README.md)
 
@@ -78,12 +78,12 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 #### Description:
 
 - DAG Node:
-    - 基于Reed-Solomon Erasure Code开发数据容错技术
+    - [x] 基于Reed-Solomon Erasure Code开发数据容错技术
 - DAG Pool:
-    - 基于libp2p和Redis Hash Slots，组织多个DAG Node构建存储集群
-    - 提供存储节点的运行状况报告和全局一致性状态
-    - 支持存储节点动态扩容
-    - 支持存储节点动态扩展
+    - [x] 基于Redis Hash Slots，组织多个DAG Node构建存储集群
+    - [x] 提供存储节点的运行状况报告和全局一致性状态
+    - [x] 支持存储节点动态扩容
+    - [x] 支持存储节点动态扩展
 
 ### Milestone 4
 
@@ -127,7 +127,12 @@ make
 
 ./datanode daemon --listen=127.0.0.1:9013 --datadir=/tmp/dn-data3
 
-./dagpool daemon --datadir=/tmp/dagpool-db --config=conf/node_config.json
+./dagpool daemon --datadir=/tmp/dagpool-db
+
+# add a dagnode
+./dagpool cluster add conf/node_config.json
+# allocate slots
+./dagpool cluster balance
 
 ./objectstore daemon --pool-addr=127.0.0.1:50001 --pool-user=dagpool --pool-password=dagpool
 ```
