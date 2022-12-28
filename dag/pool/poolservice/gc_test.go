@@ -81,7 +81,7 @@ func Test_Gc(t *testing.T) {
 var startgc = make(chan int)
 var interruptGC bool
 
-func (d dagPoolService) GCTest(ctx context.Context) {
+func (d *dagPoolService) GCTest(ctx context.Context) {
 	timer := time.NewTimer(d.gcPeriod)
 	defer timer.Stop()
 	for {
@@ -143,10 +143,6 @@ func (d *dagPoolService) runGCTest(ctx context.Context) error {
 			log.Warnw("decode cid error", "cid", key, "error", err)
 			continue
 		}
-		node, err := d.getDagNodeInfo(ctx, blkCid)
-		if err != nil {
-			return err
-		}
 		if err = d.cacheSet.Remove(key); err != nil {
 			log.Warnw("remove cache key error", "cid", key, "error", err)
 			continue
@@ -158,7 +154,7 @@ func (d *dagPoolService) runGCTest(ctx context.Context) error {
 		time.Sleep(time.Second)
 
 		log.Infow("delete block", "cid", key)
-		if err = node.DeleteBlock(ctx, blkCid); err != nil {
+		if err = d.deleteBlock(ctx, blkCid); err != nil {
 			if err := d.cacheSet.Add(key); err != nil {
 				log.Errorw("rollback cache key error", "cid", key, "error", err)
 			}

@@ -153,39 +153,36 @@ func startTestDagPoolServer(t *testing.T) *dagPoolService {
 	go datanode.StartDataNodeServer(":9023", datanode.KVBadge, t.TempDir())
 	time.Sleep(time.Second)
 	var (
-		dagdc = []config.DataNodeConfig{
-			{
-				Ip:   "127.0.0.1",
-				Port: "9021",
-			},
-			{
-				Ip:   "127.0.0.1",
-				Port: "9022",
-			},
-			{
-				Ip:   "127.0.0.1",
-				Port: "9023",
-			},
+		dagdc = []string{
+			"127.0.0.1:9021",
+			"127.0.0.1:9022",
+			"127.0.0.1:9023",
 		}
-		dagc = []config.DagNodeConfig{
-			{
-				Nodes:        dagdc,
-				DataBlocks:   2,
-				ParityBlocks: 1,
-			},
+		dagc = config.DagNodeConfig{
+			Name:         "dagnode1",
+			Nodes:        dagdc,
+			DataBlocks:   2,
+			ParityBlocks: 1,
 		}
 		cfg = config.PoolConfig{
-			Listen:        "127.0.0.1:50002",
-			DagNodeConfig: dagc,
-			LeveldbPath:   t.TempDir(),
-			RootUser:      user,
-			RootPassword:  pass,
-			GcPeriod:      time.Second * 5,
+			Listen:       "127.0.0.1:50002",
+			LeveldbPath:  t.TempDir(),
+			RootUser:     user,
+			RootPassword: pass,
+			GcPeriod:     time.Second * 5,
 		}
 	)
-	service, err := NewDagPoolService(cfg)
+	service, err := NewDagPoolService(context.TODO(), cfg)
 	if err != nil {
 		t.Fatalf("NewDagPoolService err:%v", err)
+	}
+	err = service.AddDagNode(&dagc)
+	if err != nil {
+		t.Fatalf("AddDagNode err:%v", err)
+	}
+	err = service.BalanceSlots()
+	if err != nil {
+		t.Fatalf("BalanceSlots err:%v", err)
 	}
 	return service
 }
