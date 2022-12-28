@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -66,14 +67,24 @@ func run(leveldbPath, listenAddr, nodeConfigPath, user, pass string) {
 		nodeConfigs = append(nodeConfigs, nc)
 	}
 	cfg := config.PoolConfig{
-		DagNodeConfig: nodeConfigs,
-		LeveldbPath:   leveldbPath,
-		RootUser:      user,
-		RootPassword:  pass,
+		LeveldbPath:  leveldbPath,
+		RootUser:     user,
+		RootPassword: pass,
 	}
-	service, err := poolservice.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(context.TODO(), cfg)
 	if err != nil {
 		fmt.Printf("NewDagPoolService err:%v\n", err)
+		return
+	}
+	for _, nd := range nodeConfigs {
+		err = service.AddDagNode(&nd)
+		if err != nil {
+			fmt.Printf("AddDagNode err:%v\n", err)
+			return
+		}
+	}
+	if err = service.BalanceSlots(); err != nil {
+		fmt.Printf("BalanceSlots err:%v\n", err)
 		return
 	}
 	proto.RegisterDagPoolServer(s, &server.DagPoolServer{DagPool: service})

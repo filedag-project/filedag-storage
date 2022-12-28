@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice"
@@ -11,12 +10,10 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
 	"path"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -40,11 +37,6 @@ var startCmd = &cli.Command{
 			Name:  "datadir",
 			Usage: "directory to store data in",
 			Value: "./dp-data",
-		},
-		&cli.StringFlag{
-			Name:  "config",
-			Usage: "set config path",
-			Value: "./conf/node_config.json",
 		},
 		&cli.StringFlag{
 			Name:    "root-user",
@@ -84,7 +76,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	}
 	// new server
 	s := grpc.NewServer()
-	service, err := poolservice.NewDagPoolService(cfg)
+	service, err := poolservice.NewDagPoolService(ctx, cfg)
 	if err != nil {
 		log.Fatalf("NewDagPoolService err:%v", err)
 		return
@@ -92,6 +84,7 @@ func startDagPoolServer(ctx context.Context, cfg config.PoolConfig) {
 	defer service.Close()
 
 	proto.RegisterDagPoolServer(s, &server.DagPoolServer{DagPool: service})
+	proto.RegisterDagPoolClusterServer(s, &server.DagPoolClusterServer{Cluster: service})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
@@ -133,23 +126,5 @@ func loadPoolConfig(cctx *cli.Context) (config.PoolConfig, error) {
 		return config.PoolConfig{}, err
 	}
 	cfg.GcPeriod = gcPer
-	nodeConfigPath := cctx.String("config")
-
-	var nodeConfigs []config.DagNodeConfig
-	for _, path := range strings.Split(nodeConfigPath, ",") {
-		var nc config.DagNodeConfig
-		file, err := ioutil.ReadFile(path)
-		if err != nil {
-			log.Errorf("ReadFile err:%v", err)
-			return config.PoolConfig{}, err
-		}
-		err = json.Unmarshal(file, &nc)
-		if err != nil {
-			log.Errorf("Unmarshal err:%v", err)
-			return config.PoolConfig{}, err
-		}
-		nodeConfigs = append(nodeConfigs, nc)
-	}
-	cfg.DagNodeConfig = nodeConfigs
 	return cfg, nil
 }
