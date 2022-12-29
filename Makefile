@@ -4,22 +4,21 @@ DAGPOOL_TARGET=./dagpool
 DATANODE_TARGET=./datanode
 OBJECTSTORE_TARGET=./objectstore
 IAMTOOLS_TARGET=./iam-tools
-PLATFORM=darwin
 
 build: clean dagpool datanode objectstore iamtools
 
 
 dagpool:
-	CGO_ENABLED=0 GOOS=${PLATFORM} GOARCH=amd64 go build -ldflags "-s -w" -o ${DAGPOOL_TARGET} ./cmd/dagpool
+	go build -ldflags "-s -w" -o ${DAGPOOL_TARGET} ./cmd/dagpool
 
 datanode:
-	CGO_ENABLED=0 GOOS=${PLATFORM} GOARCH=amd64 go build -ldflags "-s -w" -o ${DATANODE_TARGET} ./cmd/datanode
+	go build -ldflags "-s -w" -o ${DATANODE_TARGET} ./cmd/datanode
 
 objectstore:
-	CGO_ENABLED=0 GOOS=${PLATFORM} GOARCH=amd64 go build -ldflags "-s -w" -o ${OBJECTSTORE_TARGET} ./cmd/objectstore
+	go build -ldflags "-s -w" -o ${OBJECTSTORE_TARGET} ./cmd/objectstore
 
 iamtools:
-	CGO_ENABLED=0 GOOS=${PLATFORM} GOARCH=amd64 go build -ldflags "-s -w" -o ${IAMTOOLS_TARGET} ./cmd/tools/iam-tools
+	go build -ldflags "-s -w" -o ${IAMTOOLS_TARGET} ./cmd/tools/iam-tools
 
 .PHONY: clean
 clean:
