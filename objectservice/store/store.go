@@ -172,7 +172,7 @@ func (s *storageSys) checkAndDeleteObjectData(ctx context.Context, bucket, objec
 }
 
 //StoreObject store object
-func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string, fileFolder bool) (ObjectInfo, error) {
+func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string, isDir bool) (ObjectInfo, error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -185,7 +185,7 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 		return ObjectInfo{}, BucketNotFound{Bucket: bucket}
 	}
 	var root cid.Cid
-	if !fileFolder {
+	if !isDir {
 		root, err = s.store(ctx, reader, size)
 		if err != nil {
 			return ObjectInfo{}, err
@@ -195,26 +195,21 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 			return ObjectInfo{}, ErrCanNotCreatFolder
 		}
 	}
-	var etag = func(root cid.Cid) string {
-		if root != cid.Undef {
-			return root.String()
-		} else {
-			return cid.Undef.String()
-		}
-	}(root)
 	objInfo := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
-		ModTime:          time.Now().UTC(),
 		Size:             size,
-		IsDir:            false,
-		ETag:             etag,
+		IsDir:            isDir,
 		VersionID:        "",
 		IsLatest:         true,
 		DeleteMarker:     false,
-		ContentType:      meta[strings.ToLower(consts.ContentType)],
-		ContentEncoding:  meta[strings.ToLower(consts.ContentEncoding)],
 		SuccessorModTime: time.Now().UTC(),
+	}
+	if !isDir {
+		objInfo.ModTime = time.Now().UTC()
+		objInfo.ETag = root.String()
+		objInfo.ContentType = meta[strings.ToLower(consts.ContentType)]
+		objInfo.ContentEncoding = meta[strings.ToLower(consts.ContentEncoding)]
 	}
 	// Update expires
 	if exp, ok := meta[strings.ToLower(consts.Expires)]; ok {
@@ -254,6 +249,9 @@ func (s *storageSys) GetObject(ctx context.Context, bucket, object string) (Obje
 	meta, err := s.getObjectInfo(ctx, bucket, object)
 	if err != nil {
 		return ObjectInfo{}, nil, err
+	}
+	if meta.IsDir {
+		return meta, nil, nil
 	}
 	cid, err := cid.Decode(meta.ETag)
 	if err != nil {
@@ -306,25 +304,43 @@ func (s *storageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	if err != nil {
 		return err
 	}
-	if strings.HasSuffix(meta.Name, "/") {
-		allChan, err := s.Db.ReadAllChan(ctx, fmt.Sprintf(objectKeyFormat, bucket, object), "")
-		if err != nil {
+	if meta.IsDir {
+		if err = s.recursiveDeleteObjects(ctx, bucket, object); err != nil {
 			return err
 		}
-		for entry := range allChan {
-			if err = s.Db.Delete(entry.GetKey()); err != nil {
-				return err
-			}
+		if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
+			return err
 		}
 	} else {
 		cid, err := cid.Decode(meta.ETag)
 		if err != nil {
 			return err
 		}
+		if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
+			return err
+		}
 		if err = s.markObjetToDelete(cid); err != nil {
 			log.Errorw("mark Objet to delete error", "bucket", bucket, "object", object, "cid", meta.ETag, "error", err)
 		}
-		if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
+	}
+	return nil
+}
+
+func (s *storageSys) recursiveDeleteObjects(ctx context.Context, bucket, object string) error {
+	all, err := s.Db.ReadAllChan(ctx, getObjectKey(bucket, object), "")
+	if err != nil {
+		return err
+	}
+	for entry := range all {
+		var o ObjectInfo
+		if err = entry.UnmarshalValue(&o); err != nil {
+			return err
+		}
+		// skip
+		if o.Name == object {
+			continue
+		}
+		if err = s.DeleteObject(ctx, bucket, o.Name); err != nil {
 			return err
 		}
 	}
@@ -412,8 +428,9 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	if err != nil {
 		return loi, err
 	}
+	prevPrefix := ""
+	lastName := ""
 	index := 0
-	m := make(map[string]struct{})
 	for entry := range all {
 		if index == maxKeys {
 			loi.IsTruncated = true
@@ -423,34 +440,44 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		if err = entry.UnmarshalValue(&o); err != nil {
 			return loi, err
 		}
+
+		if o.IsDir {
+			if delimiter == "" {
+				continue
+			}
+			idx := strings.Index(strings.TrimPrefix(o.Name, prefix), delimiter)
+			if idx < 0 {
+				continue
+			}
+			idx = len(prefix) + idx + len(delimiter)
+			currPrefix := o.Name[:idx]
+			if currPrefix == prevPrefix {
+				continue
+			}
+			prevPrefix = currPrefix
+		} else {
+			if delimiter != "" {
+				idx := strings.Index(strings.TrimPrefix(o.Name, prefix), delimiter)
+				if idx >= 0 {
+					continue
+				}
+			}
+		}
+
 		index++
-		// bucket/aaa/ccc/
-		getFolderAndObjectFromObjectInfo(o, prefix, &loi, m)
+		lastName = o.Name
+		if o.IsDir && o.ModTime.IsZero() && delimiter != "" {
+			loi.Prefixes = append(loi.Prefixes, o.Name)
+		} else {
+			loi.Objects = append(loi.Objects, o)
+		}
 	}
 	if loi.IsTruncated {
-		loi.NextMarker = loi.Objects[len(loi.Objects)-1].Name
-	}
-	for key := range m {
-		loi.Prefixes = append(loi.Prefixes, key)
+		loi.NextMarker = lastName
 	}
 	return loi, nil
 }
-func getFolderAndObjectFromObjectInfo(o ObjectInfo, prefix string, loi *ListObjectsInfo, m map[string]struct{}) {
-	// bucket/aaa/ccc/
-	if strings.HasSuffix(o.Name, "/") {
-		if len(o.Name) > len(prefix) {
-			name := o.Name[len(prefix):]
-			m[name[:strings.Index(name, "/")+1]] = struct{}{}
-		}
-	} else {
-		name := o.Name[len(prefix):]
-		if strings.Contains(name, "/") {
-			return
-		}
-		o.Name = name
-		loi.Objects = append(loi.Objects, o)
-	}
-}
+
 func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, error) {
 	loi, err := s.ListObjects(ctx, bucket, "", "", "", 1)
 	if err != nil {

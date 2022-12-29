@@ -67,11 +67,10 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ErrMissingContentLength)
 		return
 	}
-	fileFolder := false
+	isDir := false
 	if size == 0 {
 		if strings.HasSuffix(object, "/") {
-			fileFolder = true
-			log.Infof("aaaa,%v", object)
+			isDir = true
 		} else {
 			response.WriteErrorResponse(w, r, apierrors.ErrEntityTooSmall)
 			return
@@ -137,7 +136,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		reader = mimeDetect(r, reader)
 	}
 	var hashReader *hash.Reader
-	if !fileFolder {
+	if !isDir {
 		hashReader, err = hash.NewReader(reader, size, md5hex, sha256hex, size)
 		if err != nil {
 			log.Errorf("PutObjectHandler NewReader err:%v", err)
@@ -152,7 +151,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidRequest)
 		return
 	}
-	objInfo, err := s3a.store.StoreObject(ctx, bucket, object, hashReader, size, metadata, fileFolder)
+	objInfo, err := s3a.store.StoreObject(ctx, bucket, object, hashReader, size, metadata, isDir)
 	if err != nil {
 		log.Errorf("PutObjectHandler StoreObject err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
@@ -204,11 +203,13 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	response.SetObjectHeaders(w, r, objInfo)
 	w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
 	response.SetHeadGetRespHeaders(w, r.Form)
-	_, err = io.Copy(w, reader)
-	if err != nil {
-		log.Errorf("GetObjectHandler reader readAll err:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
-		return
+	if !objInfo.IsDir {
+		_, err = io.Copy(w, reader)
+		if err != nil {
+			log.Errorf("GetObjectHandler reader readAll err:%v", err)
+			response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+			return
+		}
 	}
 	r.Header.Set("file-type", path.Ext(object))
 }
