@@ -60,7 +60,7 @@ const User = (props:any) => {
       key: 'status',
       render:(r,record)=>{
         const _value = r === statusType.on;
-        return <div className='switch-wrap'>
+        return admin && (record.account_name === adminName)?<></>:<div className='switch-wrap'>
           <Switch checkedChildren={statusType.on} unCheckedChildren={statusType.off} defaultChecked={_value}></Switch>
           <div className='mask'  onClick={()=>{
             SetAccessKey(record.account_name);
@@ -83,13 +83,15 @@ const User = (props:any) => {
               <Tooltip title="Change Password"><SafetyOutlined /></Tooltip>
             </span>
           }
+          {
+            admin && (record.account_name === adminName)?<></>:<span onClick={()=>{
+              SetAccessKey(record.account_name);
+              SetDeleteUserShow(true);
+            }}>
+              <Tooltip title="Delete User"><DeleteOutlined /></Tooltip>
+            </span>
+          }
           
-          <span onClick={()=>{
-            SetAccessKey(record.account_name);
-            SetDeleteUserShow(true);
-          }}>
-            <Tooltip title="Delete User"><DeleteOutlined /></Tooltip>
-          </span>
         </div>
       ),
     },

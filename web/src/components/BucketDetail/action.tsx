@@ -14,12 +14,7 @@ const Action = (props:any) => {
   const navigate = useNavigate();
   const [progressShow,setProgressShow] = useState(false);
   const {bucket,prefix} = props;
-  console.log(prefix,'prefix32');
-  
-  const prefixArray = (prefix.split('/')).filter(n=>n)
-
-  console.log(prefix,'sss');
-  
+  const prefixArray = (prefix.split('/')).filter(n=>n);
   
   const customChange = async (e)=>{
     const name = e.file.name;
@@ -77,10 +72,10 @@ const Action = (props:any) => {
     await bucketDetailStore.fetchUpload(path,file);
     bucketDetailStore.fetchList(bucket,prefix);
   }
-  const objectClick = (object:string)=>{
-    const index = prefixArray.indexOf(object);
+  const objectClick = (object:string,index:number)=>{
     const str = prefixArray.slice(0,index+1);
     const _p_ = str.join('/') + `/`;
+    console.log(_p_,index,'_p_');
     navigate(RouterPath.bucketDetail,{
       state :{ bucket, prefix: _p_}
     })
@@ -100,7 +95,7 @@ const Action = (props:any) => {
           {
             prefixArray.map((n,index)=>{
               const to = ` > `;
-              return <span className={styles['object-name']} key={'prefix'+index} onClick={()=>{ objectClick(n) }}>{to}{n}</span>
+              return <span className={styles['object-name']} key={'prefix'+index} onClick={()=>{ objectClick(n,index) }}>{to}{n}</span>
             })
           }
         </div>
