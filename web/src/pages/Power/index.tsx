@@ -3,63 +3,45 @@ import { Button, Radio,Input } from 'antd';
 import styles from './style.module.scss';
 import { useEffect, useState } from "react";
 import powerStore from "@/store/modules/power";
-import { useLocation } from "react-router";
-import _ from 'lodash';
+import { useLocation } from "react-router-dom";
 import { getDownload, getPrivate, getPublic, getUpload } from "@/utils";
 const { TextArea } = Input;
 
-interface LocationParams {
-  path: string;
-}
-
 const Power = (props:any) => {
-  const {
-    state: { path }
-  } = useLocation<LocationParams>();
-  const [selectValue,setSelectValue]=useState('');
+  const { state :{ bucket = '' }} = useLocation();
+  const [selectValue,setSelectValue] = useState('');
   const radioList = [
     {
-      key:'Public',
-      value: getPublic(path)
+      key:'public',
+      label:'Public',
+      value: getPublic(bucket)
     },
     {
-      key:'Download',
-      value: getDownload(path)
+      key:'download',
+      label:'Download',
+      value: getDownload(bucket)
     },
     {
-      key:'Upload',
-      value: getUpload(path)
+      key:'upload',
+      label:'Upload',
+      value: getUpload(bucket)
     },
     {
-      key:'Private',
-      value: getPrivate(path)
+      key:'private',
+      label:'Private',
+      value: getPrivate(bucket)
     }
   ]
   useEffect(()=>{
-    powerStore.fetchGetPower(path).then(res=>{
-      radioList.forEach(n=>{
-        const _value = n.value;
-        if(n.key === 'Public'){
-          console.log(_value,1);
-          console.log(JSON.parse(powerStore.json),2);
-          console.log(JSON.stringify(_value),'ziwei');
-          console.log(powerStore.json,'yuguang');
-          const ise = _.isEqual(res,_value)
-          console.log(ise,3);
-          console.log(JSON.stringify(_value) === powerStore.json,5);
-          console.log((JSON.stringify(_value)).length,(powerStore.json).length,'6');
-          
+    powerStore.fetchGetPower(bucket).then(res=>{
+      powerStore.fetchGetPowerName(bucket,powerStore.json).then(name=>{
+        const obj = radioList.find(n=>n.key === name);
+        if(obj){
+          setSelectValue(obj['key']);
         }
-        if(powerStore.json===_value){
-          console.log(123);
-          
-        }
-      })
-      
+      });
     })
   },[]);
-
-  
 
   const radioChange = (e)=>{
     const value = e.target.value;
@@ -70,7 +52,7 @@ const Power = (props:any) => {
   };
 
   const save = ()=>{
-    powerStore.fetchPutPower(path,powerStore.json);
+    powerStore.fetchPutPower(bucket,powerStore.json);
   }
 
   return <div className={styles.power}>
@@ -78,14 +60,14 @@ const Power = (props:any) => {
             {
               radioList.map((item,index)=>{
                 return <div className="radio-item" key={index}>
-                <Radio value={item.key}>{item.key}</Radio>
+                <Radio value={item.key}>{item.label}</Radio>
               </div>
               })
             }
           </Radio.Group>
           <TextArea value={powerStore.json} rows={6} />
           <div className="btn-wrap" onClick={save}>
-            <Button type="primary">Save</Button>
+            <Button className="bg-btn" type="primary">Save</Button>
           </div>
   </div>;
 };

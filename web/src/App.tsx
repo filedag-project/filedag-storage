@@ -1,12 +1,9 @@
 import './App.css';
-import MRouter from '@/router';
+import router from '@/router';
+import { useRoutes } from 'react-router-dom';
 
-function App() {
-  return (
-    <div className="App">
-      <MRouter></MRouter>
-    </div>
-  );
+const App = () =>{
+  return useRoutes(router)
 }
 
 export default App;

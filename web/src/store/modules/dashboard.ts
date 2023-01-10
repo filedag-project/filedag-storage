@@ -9,13 +9,20 @@ class DashboardStore {
   put_obj_bytes: objType[] = [];
   get_obj_count: objType[] = [];
   put_obj_count: objType[] = [];
-
+  bucketsCount:number = 0;
+  objectsCount:number = 0;
+  totalCaptivity:number = 0;
+  objectsTotalSize:number = 0;
   constructor() {
     makeObservable(this, {
       get_obj_bytes: observable,
       put_obj_bytes: observable,
       get_obj_count: observable,
       put_obj_count: observable,
+      bucketsCount: observable,
+      objectsCount: observable,
+      totalCaptivity: observable,
+      objectsTotalSize: observable,
       fetchRequestOverview: action,
     });
   }
@@ -61,6 +68,31 @@ class DashboardStore {
           value:n.value
         }
       })
+      resolve(res);
+    })
+  }
+
+  fetchStorePool(){
+    return new Promise(async (resolve, reject) => {
+      const params:SignModel = {
+        service: 's3',
+        body: '',
+        protocol: 'http',
+        method: HttpMethods.get,
+        applyChecksum: true,
+        path:`/admin/v1/store-pool-stats`,
+        query:{},
+        region: '',
+      }
+      const res = await Axios.axiosJson(params);
+      const bucketsCount = _.get(res,'Response.bucketsCount',0);
+      const objectsCount = _.get(res,'Response.objectsCount',0);
+      const totalCaptivity = _.get(res,'Response.totalCaptivity',0);
+      const objectsTotalSize = _.get(res,'Response.objectsTotalSize',0);
+      this.bucketsCount = bucketsCount;
+      this.objectsCount = objectsCount;
+      this.totalCaptivity = totalCaptivity;
+      this.objectsTotalSize = objectsTotalSize;
       resolve(res);
     })
   }

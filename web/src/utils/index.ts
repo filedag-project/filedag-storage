@@ -1,5 +1,5 @@
 import convert from 'xml-js';
-import { ACCESS_KEY_ID, Cookies, SESSION_TOKEN } from '@/utils/cookies';
+import { Cookies, SESSION_TOKEN } from '@/utils/cookies';
 import dayjs from 'dayjs';
 import { tokenType } from '@/models/RouteModel';
 import jwt_decode from "jwt-decode";

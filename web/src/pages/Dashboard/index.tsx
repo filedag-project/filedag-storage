@@ -4,8 +4,10 @@ import { useEffect } from 'react';
 import styles from './style.module.scss';
 import * as echarts from 'echarts';
 import { formatBytes } from '@/utils';
+import { FileTextOutlined, FolderOutlined, RestOutlined, SaveOutlined } from '@ant-design/icons';
 const Dashboard = (props:any) => {
   useEffect(()=>{
+    dashboardStore.fetchStorePool();
     dashboardStore.fetchRequestOverview().then(res=>{
       initGetBytesChart();
       initPutBytesChart();
@@ -169,6 +171,57 @@ const Dashboard = (props:any) => {
   };
   
   return <div className={styles.dashboard}>
+    <div className={styles.boxWrap}>
+      <div className={styles.box}>
+        <div className={styles.top}>
+          <span className={styles.label}>Buckets</span>
+          <RestOutlined />
+        </div>
+        <div className={styles.bottom}>
+          <span className={styles.value}>
+            {dashboardStore.bucketsCount}
+          </span>
+          <span className={styles.unit}></span>
+        </div>
+      </div>
+      <div className={styles.box}>
+      <div className={styles.top}>
+        <span className={styles.label}>Objects</span>
+        <SaveOutlined />
+      </div>
+      <div className={styles.bottom}>
+        <span className={styles.value}>
+            {dashboardStore.objectsCount}
+        </span>
+        <span className={styles.unit}></span>
+      </div>
+    </div>
+    <div className={styles.box}>
+      <div className={styles.top}>
+        <span className={styles.label}>Total Storage</span>
+        <FolderOutlined />
+      </div>
+      <div className={styles.bottom}>
+        <span className={styles.value}>
+          {formatBytes(dashboardStore.totalCaptivity)}
+        </span>
+        <span className={styles.unit}></span>
+      </div>
+    </div>
+    <div className={styles.box}>
+      <div className={styles.top}>
+        <span className={styles.label}>Use Storage</span>
+        <FileTextOutlined />
+      </div>
+      <div className={styles.bottom}>
+        <span className={styles.value}>
+          {formatBytes(dashboardStore.objectsTotalSize)}
+        </span>
+        <span className={styles.unit}></span>
+      </div>
+    </div>
+
+    </div>
     <div className={styles.chartWrap}>
       <div className={styles.chart} id="getBytesChart"></div>
       <div className={styles.chart} id="putBytesChart"></div>

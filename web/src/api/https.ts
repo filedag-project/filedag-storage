@@ -5,7 +5,7 @@ import _ from 'lodash';
 import { notification } from 'antd';
 import signV4 from './sign';
 import { ACCESS_KEY_ID, Cookies, SECRET_ACCESS_KEY, SESSION_TOKEN } from '@/utils/cookies';
-import { xmlStreamToJs,streamToJs, xmlToJs } from "@/utils";
+import { xmlStreamToJs,streamToJs } from "@/utils";
 
 const INVALID_ACCESS_KEY_ID = 'InvalidAccessKeyId';
 
@@ -17,6 +17,29 @@ export enum HttpMethods {
 }
 
 export const Axios = {
+  axiosUpload(params:SignModel,progressCb:Function){
+    return new Promise(async (resolve, reject) => {
+      const sign = await signV4(params);
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener("progress", (event)=>{
+        progressCb(event);
+      });
+      xhr.onload = (data)=>{
+        resolve(data);
+      }
+      xhr.onerror = (error)=>{
+        reject(error);
+      }
+      xhr.open(sign.method, process.env['REACT_APP_BASE_URL']+`${sign.path}`);
+      xhr.setRequestHeader("authorization", sign.headers.authorization);
+      xhr.setRequestHeader("x-amz-content-sha256", sign.headers['x-amz-content-sha256']);
+      xhr.setRequestHeader("x-amz-security-token", sign.headers['x-amz-security-token']);
+      xhr.setRequestHeader("x-amz-date", sign.headers['x-amz-date']);
+      xhr.setRequestHeader("content-type", '');
+      xhr.send(params.body);
+      
+    })
+  },
   axiosXMLStream(params:SignModel){
     return new Promise(async (resolve, reject) => {
       const sign = await signV4(params);
@@ -30,6 +53,7 @@ export const Axios = {
         resolve(_result);
       }).catch(error=>{
         this.handlerError('network error');
+        reject();
       })
     })
   },
@@ -47,6 +71,7 @@ export const Axios = {
         resolve(_result);
       }).catch(error=>{
         this.handlerError('network error');
+        reject();
       })
     })
   },
@@ -64,6 +89,7 @@ export const Axios = {
         resolve(_result);
       }).catch(error=>{
         this.handlerError('network error');
+        reject();
       })
     })
   },
@@ -81,6 +107,7 @@ export const Axios = {
         resolve(_result);
       }).catch(error=>{
         this.handlerError('network error');
+        reject();
       })
     })
   },
@@ -89,12 +116,14 @@ export const Axios = {
     return new Promise(async (resolve, reject) => {
       const statusCode = _.get(result,'response.statusCode');
       const body = _.get(result,'response.body');
+      const etag = _.get(result,'response.headers.etag','');
       const data = await xmlStreamToJs(body);
       if(statusCode === 200||statusCode===204){
-       return resolve(data)
+       return resolve({ ...data, etag })
       }else{
-        const code = _.get(data,'ErrorResponse.Error.Code._text','');
-        const message = _.get(data,'ErrorResponse.Error.Message._text','Error');
+        // object list
+        const code = _.get(data,'Error.Code._text','');
+        const message = _.get(data,'Error.Message._text','Error');
         this.handlerError(message);
         if(code === INVALID_ACCESS_KEY_ID){
           this.handlerLogout()

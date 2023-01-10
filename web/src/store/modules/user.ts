@@ -42,7 +42,7 @@ class UserStore {
       const data = _list.map((n)=>{
         const _total = formatBytes(n.total_storage_capacity??0);
         const _use = formatBytes(n.use_storage_capacity??0);
-        const _buckets = _.get(n,'bucket_infos',[]);
+        const _buckets = _.get(n,'bucket_infos',[])??[];
         return {
           account_name:n.account_name,
           bucket_infos:_buckets.length,

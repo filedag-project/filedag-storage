@@ -1,51 +1,45 @@
 import styles from './bucket.module.scss';
-import { FolderViewOutlined,DeleteOutlined,SettingOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 import bucketsStore from '@/store/modules/buckets';
 import { RouterPath } from '@/router/RouterConfig';
-import { useHistory } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react';
+import iconSetting from '@/assets/images/common/icon-setting.png';
+import iconView from '@/assets/images/common/icon-view.png';
+import iconDelete from '@/assets/images/common/icon-delete.png';
 const Bucket = (props:any) => {
-  const history = useHistory();
-  const { data } = props;
+  const navigate = useNavigate();
+  const { data :{ Name: bucket,CreationDate } } = props;
   const openDelete = ()=>{
-    const {Name} = data;
-    bucketsStore.SET_DELETE_NAME(Name);
+    bucketsStore.SET_DELETE_NAME(bucket);
     bucketsStore.SET_DELETE_SHOW(true);
   }
 
   const viewObjects = ()=>{
-    const {Name,CreationDate} = data;
-    const path = `/${Name}`
-    history.push({
-      pathname: RouterPath.objects,
-      state: { bucket:  path,Created:CreationDate},
+    navigate(`${RouterPath.bucketDetail}`,{
+      state:{ bucket }
     });
   }
   const openPower = ()=>{
-    const {Name} = data;
-    history.push({
-      pathname: RouterPath.power,
-      state: { path:  `${Name}`},
-    });
+    navigate(`${RouterPath.power}`,{ state :{ bucket }});
   }
   return (
     <>
       <div className={styles['bucket']}>
         <div className={styles['top']}>
           <div className={styles['info']}>
-            <div className={styles['name']}>{data.Name}</div>
-            <div className={styles['create']}>Created: {data.CreationDate}</div>
+            <div className={styles['name']}>{ bucket }</div>
+            <div className={styles['create']}>Created: {CreationDate}</div>
           </div>
           <div className={styles['action']}>
-            <div className={styles['setting']} onClick={openPower}>
-              <Button type="primary" icon={<SettingOutlined />}>Setting</Button>
+            <div onClick={openPower}>
+              <Button className={'setting-btn'} type="primary" icon={<img src={iconSetting} alt='' />}>Setting</Button>
             </div>
-            <div className={styles['browse']} onClick={viewObjects}>
-              <Button type="primary" icon={<FolderViewOutlined />}>View</Button>
+            <div onClick={viewObjects}>
+              <Button className={'browse-btn'} type="primary" icon={<img src={iconView} alt='' />}>View</Button>
             </div>
-            <div className={styles['delete']} onClick={openDelete}>
-              <Button type="primary" icon={<DeleteOutlined />}>Delete</Button>
+            <div onClick={openDelete}>
+              <Button className={'delete-btn'} type="primary" icon={<img src={iconDelete} alt='' />}>Delete</Button>
             </div>
           </div>
         </div>
