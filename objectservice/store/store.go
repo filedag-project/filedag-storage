@@ -31,7 +31,7 @@ import (
 
 var log = logging.Logger("store")
 
-//storageSys store sys
+// storageSys store sys
 type storageSys struct {
 	Db              objmetadb.ObjStoreMetaDBAPI
 	DagPool         ipld.DAGService
@@ -44,29 +44,57 @@ type storageSys struct {
 	gcTimeout time.Duration
 }
 
-//canCreateFolder check if can create folder
-func (s *storageSys) canCreateFolder(ctx context.Context, bucket string, folder string) bool {
-	lk := s.newNSLock(bucket, folder)
-	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
-	if err != nil {
-		return false
+// createDirectoryObjects recursively creates the directory objects
+func (s *storageSys) createDirectoryObjects(ctx context.Context, bucket string, dirObjectSegments []string, level int) error {
+	if len(dirObjectSegments) < 1 {
+		return ErrInvalidDirectoryObject
 	}
-	ctx = lkctx.Context()
-	defer lk.RUnlock(lkctx.Cancel)
-	if strings.Count(folder, "/") > 1 {
-		folders := strings.SplitAfterN(folder, "/", 2)
-		last := folders[len(folders)-1]
-		aa := folder[:len(folder)-len(last)]
-		if _, err := s.getObjectInfo(ctx, bucket, aa); err != nil {
-			return false
+	if level < 0 || level >= len(dirObjectSegments) {
+		log.Errorw("invalid level", "level", level)
+		return ErrInvalidDirectoryObject
+	}
+	current := dirObjectSegments[:level+1]
+	parentDirObj := strings.Join(current, "")
+	existParentDirObj := func() (bool, error) {
+		lk := s.newNSLock(bucket, parentDirObj)
+		lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
+		if err != nil {
+			return false, err
 		}
-		folder = folders[len(folders)-1]
+		ctx = lkctx.Context()
+		defer lk.RUnlock(lkctx.Cancel)
+
+		if _, err = s.getObjectInfo(ctx, bucket, parentDirObj); err != nil {
+			if err == ErrObjectNotFound {
+				return false, nil
+			} else {
+				return false, err
+			}
+		}
+		return true, nil
 	}
-	_, err = s.getObjectInfo(ctx, bucket, folder[:strings.Index(folder, "/")])
-	if err != nil {
-		return true
+	if exist, err := existParentDirObj(); err != nil {
+		return err
 	} else {
-		return false
+		if !exist {
+			if _, err = s.StoreObject(ctx, bucket, parentDirObj, nil, 0, map[string]string{}, true); err != nil {
+				return err
+			}
+		}
+		if len(dirObjectSegments) == level+1 {
+			return nil
+		}
+
+		// Rlock parent directory node
+		lk := s.newNSLock(bucket, parentDirObj)
+		lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
+		if err != nil {
+			return err
+		}
+		ctx = lkctx.Context()
+		defer lk.RUnlock(lkctx.Cancel)
+
+		return s.createDirectoryObjects(ctx, bucket, dirObjectSegments, level+1)
 	}
 }
 
@@ -184,15 +212,26 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 	if !s.hasBucket(ctx, bucket) {
 		return ObjectInfo{}, BucketNotFound{Bucket: bucket}
 	}
+
+	// create parent directory node
+	segments := strings.SplitAfter(object, "/")
+	if len(segments) >= 1 {
+		if segments[len(segments)-1] == "" {
+			segments = segments[:len(segments)-1]
+		}
+	}
+	if len(segments) > 1 {
+		segments = segments[:len(segments)-1]
+		if err = s.createDirectoryObjects(ctx, bucket, segments, 0); err != nil {
+			return ObjectInfo{}, err
+		}
+	}
+
 	var root cid.Cid
 	if !isDir {
 		root, err = s.store(ctx, reader, size)
 		if err != nil {
 			return ObjectInfo{}, err
-		}
-	} else {
-		if !s.canCreateFolder(ctx, bucket, object) {
-			return ObjectInfo{}, ErrCanNotCreatFolder
 		}
 	}
 	objInfo := ObjectInfo{

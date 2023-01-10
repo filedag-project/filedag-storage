@@ -32,5 +32,5 @@ func (e BucketTaggingNotFound) Error() string {
 }
 
 var ErrObjectNotFound = errors.New("object not found")
-var ErrCanNotCreatFolder = errors.New("can not creat folder")
+var ErrInvalidDirectoryObject = errors.New("invalid directory object")
 var ErrBucketNotEmpty = errors.New("bucket not empty")
