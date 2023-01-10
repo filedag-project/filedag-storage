@@ -50,7 +50,7 @@ class BucketsStore {
         protocol: 'http',
         method: HttpMethods.get,
         path:'/',
-        region: ''
+        region: '',
       }
       const res = await Axios.axiosXMLStream(params);
       const _list:[] = _.get(res,'ListAllMyBucketsResult.Buckets.Bucket',[]);

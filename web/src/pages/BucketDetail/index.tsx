@@ -42,6 +42,8 @@ const BucketDetail = (props:any) => {
   };
 
   const previewDom = ()=>{
+    console.log(bucketDetailStore,'bucketDetailStore');
+    
     if(bucketDetailStore.contentType.includes('image')){
       return <img src={bucketDetailStore.previewUrl} className="preview-image" alt="" />
     }else if(bucketDetailStore.contentType.includes('text')){
