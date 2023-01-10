@@ -151,16 +151,47 @@ class BucketDetailStore {
         path:bucket,
         region: '',
         query:{
-          prefix
+          prefix,
+          delimiter:'/'
         }
       }
       const res = await Axios.axiosXMLStream(params);
       const contents = _.get(res,'ListBucketResult.Contents',[]);
+      const _prefix = _.get(res,'ListBucketResult.Prefix._text','');
       const commonPrefixes = _.get(res,'ListBucketResult.CommonPrefixes',[]);
       const _contents = Array.isArray(contents) ? contents : [contents];
       const _commonPrefixes = Array.isArray(commonPrefixes) ? commonPrefixes : [commonPrefixes];
-      this.SET_CONTENTS_LIST(_contents);
-      this.SET_COMMON_PREFIXES_LIST(_commonPrefixes);
+      const _contentsList = _contents.map(n=>{
+        const _name = _.get(n,'Key._text','');
+        const _text = _name.replace(_prefix,'');
+        return {
+          ...n,
+          Key:{
+            _text
+          }
+        }
+      })
+      
+      const _filterList = _contentsList.filter(n=> {
+        const _t = _.get(n,'Key._text','');
+        return _t;
+      })
+      console.log(_contentsList,_filterList,'_contentsList');
+      
+      const _commonPrefixesList = _commonPrefixes.map(n=>{
+        const _name = _.get(n,'Prefix._text','');
+        return {
+          ...n,
+          Prefix:{
+            _text:_name.replace(_prefix,'')
+          }
+        }
+      })
+
+      
+      this.SET_CONTENTS_LIST(_filterList);
+      this.SET_COMMON_PREFIXES_LIST(_commonPrefixesList);
+
       resolve(res)
     })
   }
@@ -178,7 +209,7 @@ class BucketDetailStore {
         region: ''
       }
       const res = await Axios.axiosStream(params);
-      const contentType = _.get(res,'headers.content-type');
+      const contentType = _.get(res,'headers.content-type','');
       this.contentType = contentType;
       const body = _.get(res,'body');
       const blob = await new Response(body, { 
