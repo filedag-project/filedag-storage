@@ -787,3 +787,139 @@ func addCustomHeaders(req *http.Request, customHeaders http.Header) {
 		}
 	}
 }
+func TestS3ApiServer_PutObjectFolderHandler(t *testing.T) {
+	bucketName := "/testbucketputf"
+	keyName := "/testobjectputf"
+	r1 := "1234567"
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	resultPutBucket := reqTest(reqPutBucket)
+	if resultPutBucket.Code != http.StatusOK {
+		t.Fatalf("the response status of putbucket: %d", resultPutBucket.Code)
+	}
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		name       string
+		bucketName string
+		objectName string
+		data       []byte
+		header     http.Header
+		accessKey  string
+		secretKey  string
+		// expected output.
+		expectBody            string
+		expectedRespStatus    int // expected response status body.
+		expectedRespGetStatus int // expected response status body.
+	}{
+		{
+			name:                  "create folder",
+			bucketName:            bucketName,
+			objectName:            keyName + "/aaa/bbb/ccc/",
+			data:                  nil,
+			header:                nil,
+			accessKey:             DefaultTestAccessKey,
+			secretKey:             DefaultTestSecretKey,
+			expectBody:            "",
+			expectedRespStatus:    http.StatusOK,
+			expectedRespGetStatus: http.StatusOK,
+		},
+		{
+			name:                  "create folder,but file in body",
+			bucketName:            bucketName,
+			objectName:            keyName + "/aaa/bbb/ccc/",
+			data:                  []byte(r1),
+			header:                nil,
+			accessKey:             DefaultTestAccessKey,
+			secretKey:             DefaultTestSecretKey,
+			expectBody:            r1,
+			expectedRespStatus:    http.StatusOK,
+			expectedRespGetStatus: http.StatusOK,
+		},
+	}
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			req := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName, int64(len(testCase.data)), bytes.NewReader(testCase.data), "s3", testCase.accessKey, testCase.secretKey, t)
+			// Add test case specific headers to the request.
+			addCustomHeaders(req, testCase.header)
+			result := reqTest(req)
+			if result.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result.Code)
+			}
+
+			reqGet := utils.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+testCase.objectName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+			// Add test case specific headers to the request.
+			resultGet := reqTest(reqGet)
+			fmt.Println(resultGet.Body.String())
+			if resultGet.Body.String() != testCase.expectBody {
+				t.Fatalf("Case %s: Expected the response status to be `%s`, but instead found `%s`", testCase.name, testCase.expectBody, resultGet.Body.String())
+			}
+			if resultGet.Code != testCase.expectedRespGetStatus {
+				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespGetStatus, resultGet.Code)
+			}
+		})
+	}
+
+}
+
+func TestS3ApiServer_PutObjectAsyncHandler(t *testing.T) {
+	bucketName := "/testbucketputf"
+	keyName := "/testobjectputf"
+	r1 := "1234567"
+	reqPutBucket := utils.MustNewSignedV4Request(http.MethodPut, bucketName, 0, nil, "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
+	resultPutBucket := reqTest(reqPutBucket)
+	if resultPutBucket.Code != http.StatusOK {
+		t.Fatalf("the response status of putbucket: %d", resultPutBucket.Code)
+	}
+	// test cases with inputs and expected result for Bucket.
+	testCases := []struct {
+		name        string
+		bucketName  string
+		objectName1 string
+		objectName2 string
+		data1       []byte
+		data2       []byte
+		header      http.Header
+		accessKey   string
+		secretKey   string
+		// expected output.
+		expectBody            string
+		expectedRespStatus    int // expected response status body.
+		expectedRespGetStatus int // expected response status body.
+	}{
+		{
+			name:                  "Async create folder",
+			bucketName:            bucketName,
+			objectName1:           keyName + "/aaa/bbb/ccc/a.jpg",
+			objectName2:           keyName + "/aaa/bbb/ccc/",
+			data1:                 []byte(r1),
+			data2:                 nil,
+			header:                nil,
+			accessKey:             DefaultTestAccessKey,
+			secretKey:             DefaultTestSecretKey,
+			expectBody:            "",
+			expectedRespStatus:    http.StatusOK,
+			expectedRespGetStatus: http.StatusOK,
+		},
+	}
+	// Iterating over the cases, fetching the object validating the response.
+	for i, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			go func() {
+				req1 := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName1, int64(len(testCase.data1)), bytes.NewReader(testCase.data1), "s3", testCase.accessKey, testCase.secretKey, t)
+				// Add test case specific headers to the request.
+				addCustomHeaders(req1, testCase.header)
+				result1 := reqTest(req1)
+				if result1.Code != testCase.expectedRespStatus {
+					t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result1.Code)
+				}
+			}()
+			req2 := utils.MustNewSignedV4Request(http.MethodPut, testCase.bucketName+testCase.objectName1, int64(len(testCase.data2)), bytes.NewReader(testCase.data2), "s3", testCase.accessKey, testCase.secretKey, t)
+			// Add test case specific headers to the request.
+			addCustomHeaders(req2, testCase.header)
+			result2 := reqTest(req2)
+			if result2.Code != testCase.expectedRespStatus {
+				t.Fatalf("Case %d: Expected the response status to be `%d`, but instead found `%d`", i+1, testCase.expectedRespStatus, result2.Code)
+			}
+		})
+	}
+}

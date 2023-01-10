@@ -514,6 +514,14 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	if loi.IsTruncated {
 		loi.NextMarker = lastName
 	}
+	if prefix != "" {
+		info, err := s.getObjectInfo(ctx, bucket, prefix)
+		if err != nil {
+			return ListObjectsInfo{}, err
+		}
+		info.ModTime = info.SuccessorModTime
+		loi.Objects = append(loi.Objects, info)
+	}
 	return loi, nil
 }
 
