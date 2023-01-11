@@ -519,8 +519,10 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		if err != nil {
 			return ListObjectsInfo{}, err
 		}
-		info.ModTime = info.SuccessorModTime
-		loi.Objects = append(loi.Objects, info)
+		if info.Size == 0 {
+			info.ModTime = info.SuccessorModTime
+			loi.Objects = append(loi.Objects, info)
+		}
 	}
 	return loi, nil
 }
