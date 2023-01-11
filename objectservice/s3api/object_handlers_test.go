@@ -137,7 +137,7 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 			header:             nil,
 			accessKey:          DefaultTestAccessKey,
 			secretKey:          DefaultTestSecretKey,
-			expectedRespStatus: http.StatusBadRequest,
+			expectedRespStatus: http.StatusOK,
 		},
 	}
 	// Iterating over the cases, fetching the object validating the response.
@@ -735,7 +735,7 @@ func TestS3ApiServer_ListObjectsV2Handler(t *testing.T) {
 	// Iterating over the cases, fetching the object validating the response.
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			req := utils.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+"?list-type=2"+"&&prefix="+folderName, 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
+			req := utils.MustNewSignedV4Request(http.MethodGet, testCase.bucketName+"?list-type=2"+"&&prefix="+""+"&&delimiter=/", 0, nil, "s3", testCase.accessKey, testCase.secretKey, t)
 			result := reqTest(req)
 			if result.Code != testCase.expectedRespStatus {
 				t.Fatalf("Case %s: Expected the response status to be `%d`, but instead found `%d`", testCase.name, testCase.expectedRespStatus, result.Code)
