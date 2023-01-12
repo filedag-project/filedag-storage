@@ -956,12 +956,28 @@ func TestS3ApiServer_PutObjectInsteadFolderHandler(t *testing.T) {
 		expectedRespGetStatus int // expected response status body.
 	}{
 		{
-			name:                  "Async create folder",
+			// add folder ,then add a file but keyname is folder format
+			name:                  "Instead folder",
 			bucketName:            bucketName,
 			objectName1:           keyName + "/aaa/bbb/ccc/",
 			objectName2:           keyName + "/aaa/bbb/ccc/",
 			data1:                 nil,
 			data2:                 []byte(r1),
+			header:                nil,
+			accessKey:             DefaultTestAccessKey,
+			secretKey:             DefaultTestSecretKey,
+			expectBody:            "",
+			expectedRespStatus:    http.StatusOK,
+			expectedRespGetStatus: http.StatusOK,
+		},
+		{
+			//use nil file to instead a "/" file
+			name:                  "Instead folder with a nil file",
+			bucketName:            bucketName,
+			objectName1:           keyName + "/aaa/bbb/ccc/",
+			objectName2:           keyName + "/aaa/bbb/ccc/",
+			data1:                 []byte(r1),
+			data2:                 nil,
 			header:                nil,
 			accessKey:             DefaultTestAccessKey,
 			secretKey:             DefaultTestSecretKey,
