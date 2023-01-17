@@ -161,13 +161,15 @@ class BucketDetailStore {
       const commonPrefixes = _.get(res,'ListBucketResult.CommonPrefixes',[]);
       const _contents = Array.isArray(contents) ? contents : [contents];
       const _commonPrefixes = Array.isArray(commonPrefixes) ? commonPrefixes : [commonPrefixes];
+      
       const _contentsList = _contents.map(n=>{
         const _name = _.get(n,'Key._text','');
         const _text = _name.replace(_prefix,'');
+        const _size = _.get(n,'Size._text','');
         return {
           ...n,
           Key:{
-            _text
+            _text:_text === ''?(_size>0?'/':''):_text
           }
         }
       })
