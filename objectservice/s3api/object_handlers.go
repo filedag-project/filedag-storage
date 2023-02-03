@@ -576,7 +576,7 @@ func (s3a *s3ApiServer) ListObjectsV1Handler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	objs, _, err := s3a.store.ListObjects(ctx, bucket, prefix, marker, delimiter, uint64(maxKeys))
+	objs, err := s3a.store.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -634,8 +634,8 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 	// Initiate a list objects operation based on the input params.
 	// On success would return back ListObjectsInfo object to be
 	// marshaled into S3 compatible XML header.
-	listObjectsV2Info, keyCount, err := s3a.store.ListObjectsV2(ctx, bucket, prefix, token, delimiter,
-		uint64(maxKeys), fetchOwner, startAfter)
+	listObjectsV2Info, err := s3a.store.ListObjectsV2(ctx, bucket, prefix, token, delimiter,
+		maxKeys, fetchOwner, startAfter)
 
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
@@ -643,7 +643,7 @@ func (s3a *s3ApiServer) ListObjectsV2Handler(w http.ResponseWriter, r *http.Requ
 	}
 
 	resp := response.GenerateListObjectsV2Response(bucket, prefix, token, listObjectsV2Info.NextContinuationToken, startAfter,
-		delimiter, encodingType, keyCount, listObjectsV2Info.IsTruncated,
+		delimiter, encodingType, listObjectsV2Info.IsTruncated,
 		maxKeys, listObjectsV2Info.Objects, listObjectsV2Info.Prefixes)
 
 	// Write success response.

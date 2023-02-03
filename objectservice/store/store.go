@@ -418,9 +418,9 @@ func (s *storageSys) CleanObjectsInBucket(ctx context.Context, bucket string) er
 
 //ListObjects list user object
 //TODO use more params
-func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys uint64) (loi ListObjectsInfo, keyCount uint64, err error) {
+func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
 	if maxKeys == 0 {
-		return loi, 0, nil
+		return loi, nil
 	}
 
 	if len(prefix) > 0 && maxKeys == 1 && delimiter == "" && marker == "" {
@@ -434,7 +434,7 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		objInfo, err := s.GetObjectInfo(ctx, bucket, prefix)
 		if err == nil {
 			loi.Objects = append(loi.Objects, objInfo)
-			return loi, 1, nil
+			return loi, nil
 		}
 	}
 
@@ -447,11 +447,11 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	prefixKey := fmt.Sprintf(allObjectPrefixFormat, bucket, prefix)
 	all, err := s.Db.ReadAllChan(ctx, prefixKey, seekKey)
 	if err != nil {
-		return loi, 0, err
+		return loi, err
 	}
 	prevPrefix := ""
 	lastName := ""
-	var index uint64
+	index := 0
 	for entry := range all {
 		if index == maxKeys {
 			loi.IsTruncated = true
@@ -459,7 +459,7 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		}
 		var o ObjectInfo
 		if err = entry.UnmarshalValue(&o); err != nil {
-			return loi, 0, err
+			return loi, err
 		}
 
 		if o.IsDir {
@@ -499,22 +499,18 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	if prefix != "" {
 		info, err := s.getObjectInfo(ctx, bucket, prefix)
 		if err != nil {
-			return ListObjectsInfo{}, 0, err
+			return ListObjectsInfo{}, err
 		}
 		if info.Size == 0 {
 			info.ModTime = info.SuccessorModTime
 			loi.Objects = append(loi.Objects, info)
 		}
 	}
-	info, err := s.GetAllObjectsInBucketInfo(ctx, bucket)
-	if err != nil {
-		return ListObjectsInfo{}, 0, err
-	}
-	return loi, info.Objects, nil
+	return loi, nil
 }
 
 func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, error) {
-	loi, _, err := s.ListObjects(ctx, bucket, "", "", "", 1)
+	loi, err := s.ListObjects(ctx, bucket, "", "", "", 1)
 	if err != nil {
 		return false, err
 	}
@@ -522,14 +518,14 @@ func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, erro
 }
 
 // ListObjectsV2 list objects
-func (s *storageSys) ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys uint64, owner bool, startAfter string) (ListObjectsV2Info, uint64, error) {
+func (s *storageSys) ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error) {
 	marker := continuationToken
 	if marker == "" {
 		marker = startAfter
 	}
-	loi, keyCount, err := s.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
+	loi, err := s.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
-		return ListObjectsV2Info{}, 0, err
+		return ListObjectsV2Info{}, err
 	}
 	listV2Info := ListObjectsV2Info{
 		IsTruncated:           loi.IsTruncated,
@@ -538,7 +534,7 @@ func (s *storageSys) ListObjectsV2(ctx context.Context, bucket string, prefix st
 		Objects:               loi.Objects,
 		Prefixes:              loi.Prefixes,
 	}
-	return listV2Info, keyCount, nil
+	return listV2Info, nil
 }
 
 // mustGetUUID - get a random UUID.

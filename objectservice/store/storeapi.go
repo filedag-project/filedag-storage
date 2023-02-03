@@ -21,9 +21,9 @@ type ObjectStoreSystemAPI interface {
 	DeleteObject(ctx context.Context, bucket string, object string) error
 	CleanObjectsInBucket(ctx context.Context, bucket string) error
 	GetAllObjectsInBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error)
-	ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys uint64) (loi ListObjectsInfo, ui uint64, err error)
+	ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error)
 	EmptyBucket(ctx context.Context, bucket string) (bool, error)
-	ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys uint64, owner bool, startAfter string) (ListObjectsV2Info, uint64, error)
+	ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error)
 	NewMultipartUpload(ctx context.Context, bucket string, object string, meta map[string]string) (MultipartInfo, error)
 	GetMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error)
 	PutObjectPart(ctx context.Context, bucket string, object string, uploadID string, partID int, reader io.ReadCloser, size int64, meta map[string]string) (pi objectPartInfo, err error)
