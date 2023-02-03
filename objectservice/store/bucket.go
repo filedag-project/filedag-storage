@@ -10,7 +10,9 @@ import (
 )
 
 const (
-	bucketPrefix = "bkt/"
+	bucketPrefix         = "bkt/"
+	userBucketInfoPrefix = "userbktinfo/"
+	bucketInfoPrefix     = "allbktinfo/"
 )
 
 // BucketMetadataSys captures all bucket metadata for a given cluster.
@@ -63,8 +65,16 @@ func (sys *bucketMetadataSys) CreateBucket(ctx context.Context, bucket, region, 
 	}
 	ctx = lkctx.Context()
 	defer lk.Unlock(lkctx.Cancel)
-
-	return sys.setBucketMeta(bucket, NewBucketMetadata(bucket, region, accessKey))
+	meta := NewBucketMetadata(bucket, region, accessKey)
+	err = sys.recordUserBucketInfo(ctx, bucket, accessKey, *meta)
+	if err != nil {
+		return err
+	}
+	err = sys.setBucketMeta(bucket, meta)
+	if err != nil {
+		sys.delUserBucketInfo(ctx, bucket, accessKey)
+	}
+	return err
 }
 
 func (sys *bucketMetadataSys) getBucketMeta(bucket string) (meta BucketMetadata, err error) {
@@ -95,7 +105,7 @@ func (sys *bucketMetadataSys) HasBucket(ctx context.Context, bucket string) bool
 }
 
 // DeleteBucket bucket.
-func (sys *bucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) error {
+func (sys *bucketMetadataSys) DeleteBucket(ctx context.Context, bucket string, accessKey string) error {
 	lk := sys.NewNSLock(bucket)
 	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
 	if err != nil {
@@ -113,26 +123,10 @@ func (sys *bucketMetadataSys) DeleteBucket(ctx context.Context, bucket string) e
 	} else if !empty {
 		return ErrBucketNotEmpty
 	}
-
-	return sys.bucketMetaStore.Delete(bucketPrefix + bucket)
-}
-
-// GetAllBucketsOfUser metadata for all bucket.
-func (sys *bucketMetadataSys) GetAllBucketsOfUser(ctx context.Context, username string) ([]BucketMetadata, error) {
-	var m []BucketMetadata
-	all, err := sys.bucketMetaStore.ReadAllChan(ctx, bucketPrefix, "")
+	// todo deal del fail
+	err = sys.delUserBucketInfo(ctx, bucket, accessKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	for entry := range all {
-		data := BucketMetadata{}
-		if err = entry.UnmarshalValue(&data); err != nil {
-			continue
-		}
-		if data.Owner != username {
-			continue
-		}
-		m = append(m, data)
-	}
-	return m, nil
+	return sys.bucketMetaStore.Delete(bucketPrefix + bucket)
 }

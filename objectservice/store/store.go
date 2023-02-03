@@ -99,13 +99,12 @@ func (s *storageSys) createDirectoryObjects(ctx context.Context, bucket string, 
 }
 
 // StoreStats store system stats
-func (s *storageSys) StoreStats(ctx context.Context) (DataUsageInfo, error) {
+func (s *storageSys) StoreStats(ctx context.Context, bucketMetadataMap map[string]BucketMetadata) (DataUsageInfo, error) {
 	var dataUsageInfo DataUsageInfo
-	buckets := s.GetAllBucket(ctx)
-	dataUsageInfo.BucketsCount = uint64(len(buckets))
+	dataUsageInfo.BucketsCount = uint64(len(bucketMetadataMap))
 	dataUsageInfo.TotalCaptivity = defaultTotalCaptivity
-	for _, bucket := range buckets {
-		info, err := s.GetBucketInfo(ctx, bucket)
+	for bkt := range bucketMetadataMap {
+		info, err := s.GetAllObjectsInBucketInfo(ctx, bkt)
 		if err != nil {
 			continue
 		}
@@ -272,6 +271,10 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 	if err != nil {
 		return ObjectInfo{}, err
 	}
+	err = s.recordObjectInfo(ctx, objInfo)
+	if err != nil {
+		return ObjectInfo{}, err
+	}
 	return objInfo, nil
 }
 
@@ -350,12 +353,18 @@ func (s *storageSys) DeleteObject(ctx context.Context, bucket, object string) er
 		if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
 			return err
 		}
+		if err = s.reduceObjectInfo(ctx, meta); err != nil {
+			return err
+		}
 	} else {
 		cid, err := cid.Decode(meta.ETag)
 		if err != nil {
 			return err
 		}
 		if err = s.Db.Delete(getObjectKey(bucket, object)); err != nil {
+			return err
+		}
+		if err = s.reduceObjectInfo(ctx, meta); err != nil {
 			return err
 		}
 		if err = s.markObjetToDelete(cid); err != nil {
@@ -407,38 +416,11 @@ func (s *storageSys) CleanObjectsInBucket(ctx context.Context, bucket string) er
 	return nil
 }
 
-//GetBucketInfo Get BucketInfo
-func (s *storageSys) GetBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	seekKey := ""
-	prefixKey := fmt.Sprintf(allObjectPrefixFormat, bucket, "")
-	all, err := s.Db.ReadAllChan(ctx, prefixKey, seekKey)
-	if err != nil {
-		return bi, err
-	}
-	var size, objects uint64
-	for entry := range all {
-		var o ObjectInfo
-		if err = entry.UnmarshalValue(&o); err != nil {
-			return bi, err
-		}
-		size += uint64(o.Size)
-		objects++
-
-	}
-	return BucketInfo{
-		Name:    bucket,
-		Size:    size,
-		Objects: objects,
-	}, nil
-}
-
 //ListObjects list user object
 //TODO use more params
-func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
+func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys uint64) (loi ListObjectsInfo, keyCount uint64, err error) {
 	if maxKeys == 0 {
-		return loi, nil
+		return loi, 0, nil
 	}
 
 	if len(prefix) > 0 && maxKeys == 1 && delimiter == "" && marker == "" {
@@ -452,7 +434,7 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		objInfo, err := s.GetObjectInfo(ctx, bucket, prefix)
 		if err == nil {
 			loi.Objects = append(loi.Objects, objInfo)
-			return loi, nil
+			return loi, 1, nil
 		}
 	}
 
@@ -465,11 +447,11 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	prefixKey := fmt.Sprintf(allObjectPrefixFormat, bucket, prefix)
 	all, err := s.Db.ReadAllChan(ctx, prefixKey, seekKey)
 	if err != nil {
-		return loi, err
+		return loi, 0, err
 	}
 	prevPrefix := ""
 	lastName := ""
-	index := 0
+	var index uint64
 	for entry := range all {
 		if index == maxKeys {
 			loi.IsTruncated = true
@@ -477,7 +459,7 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 		}
 		var o ObjectInfo
 		if err = entry.UnmarshalValue(&o); err != nil {
-			return loi, err
+			return loi, 0, err
 		}
 
 		if o.IsDir {
@@ -517,18 +499,22 @@ func (s *storageSys) ListObjects(ctx context.Context, bucket string, prefix stri
 	if prefix != "" {
 		info, err := s.getObjectInfo(ctx, bucket, prefix)
 		if err != nil {
-			return ListObjectsInfo{}, err
+			return ListObjectsInfo{}, 0, err
 		}
 		if info.Size == 0 {
 			info.ModTime = info.SuccessorModTime
 			loi.Objects = append(loi.Objects, info)
 		}
 	}
-	return loi, nil
+	info, err := s.GetAllObjectsInBucketInfo(ctx, bucket)
+	if err != nil {
+		return ListObjectsInfo{}, 0, err
+	}
+	return loi, info.Objects, nil
 }
 
 func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, error) {
-	loi, err := s.ListObjects(ctx, bucket, "", "", "", 1)
+	loi, _, err := s.ListObjects(ctx, bucket, "", "", "", 1)
 	if err != nil {
 		return false, err
 	}
@@ -536,14 +522,14 @@ func (s *storageSys) EmptyBucket(ctx context.Context, bucket string) (bool, erro
 }
 
 // ListObjectsV2 list objects
-func (s *storageSys) ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error) {
+func (s *storageSys) ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys uint64, owner bool, startAfter string) (ListObjectsV2Info, uint64, error) {
 	marker := continuationToken
 	if marker == "" {
 		marker = startAfter
 	}
-	loi, err := s.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
+	loi, keyCount, err := s.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 	if err != nil {
-		return ListObjectsV2Info{}, err
+		return ListObjectsV2Info{}, 0, err
 	}
 	listV2Info := ListObjectsV2Info{
 		IsTruncated:           loi.IsTruncated,
@@ -552,7 +538,7 @@ func (s *storageSys) ListObjectsV2(ctx context.Context, bucket string, prefix st
 		Objects:               loi.Objects,
 		Prefixes:              loi.Prefixes,
 	}
-	return listV2Info, nil
+	return listV2Info, keyCount, nil
 }
 
 // mustGetUUID - get a random UUID.
@@ -992,22 +978,6 @@ func (s *storageSys) markObjetToDelete(c cid.Cid) error {
 	return s.Db.Put(newDelObjectKey(), c.String())
 }
 
-// GetAllBucket - get all bucket
-func (s *storageSys) GetAllBucket(ctx context.Context) []string {
-	var m []string
-	all, err := s.Db.ReadAllChan(ctx, bucketPrefix, "")
-	if err != nil {
-		return nil
-	}
-	for entry := range all {
-		data := BucketMetadata{}
-		if err = entry.UnmarshalValue(&data); err != nil {
-			continue
-		}
-		m = append(m, data.Name)
-	}
-	return m
-}
 func (s *storageSys) deleteObjets(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, s.gcTimeout)
 	defer cancel()

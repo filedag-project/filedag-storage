@@ -12,7 +12,7 @@ var _ ObjectStoreSystemAPI = &storageSys{}
 
 // ObjectStoreSystemAPI object store system API
 type ObjectStoreSystemAPI interface {
-	StoreStats(ctx context.Context) (DataUsageInfo, error)
+	StoreStats(ctx context.Context, bucketMetadataMap map[string]BucketMetadata) (DataUsageInfo, error)
 	SetNewBucketNSLock(newBucketNSLock func(bucket string) lock.RWLocker)
 	SetHasBucket(hasBucket func(ctx context.Context, bucket string) bool)
 	StoreObject(ctx context.Context, bucket string, object string, reader io.ReadCloser, size int64, meta map[string]string, fileFolder bool) (ObjectInfo, error)
@@ -20,10 +20,10 @@ type ObjectStoreSystemAPI interface {
 	GetObjectInfo(ctx context.Context, bucket string, object string) (meta ObjectInfo, err error)
 	DeleteObject(ctx context.Context, bucket string, object string) error
 	CleanObjectsInBucket(ctx context.Context, bucket string) error
-	GetBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error)
-	ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error)
+	GetAllObjectsInBucketInfo(ctx context.Context, bucket string) (bi BucketInfo, err error)
+	ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys uint64) (loi ListObjectsInfo, ui uint64, err error)
 	EmptyBucket(ctx context.Context, bucket string) (bool, error)
-	ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys int, owner bool, startAfter string) (ListObjectsV2Info, error)
+	ListObjectsV2(ctx context.Context, bucket string, prefix string, continuationToken string, delimiter string, maxKeys uint64, owner bool, startAfter string) (ListObjectsV2Info, uint64, error)
 	NewMultipartUpload(ctx context.Context, bucket string, object string, meta map[string]string) (MultipartInfo, error)
 	GetMultipartInfo(ctx context.Context, bucket string, object string, uploadID string) (MultipartInfo, error)
 	PutObjectPart(ctx context.Context, bucket string, object string, uploadID string, partID int, reader io.ReadCloser, size int64, meta map[string]string) (pi objectPartInfo, err error)
@@ -42,8 +42,9 @@ type BucketMetadataSysAPI interface {
 	CreateBucket(ctx context.Context, bucket string, region string, accessKey string) error
 	GetBucketMeta(ctx context.Context, bucket string) (meta BucketMetadata, err error)
 	HasBucket(ctx context.Context, bucket string) bool
-	DeleteBucket(ctx context.Context, bucket string) error
+	DeleteBucket(ctx context.Context, bucket string, accessKey string) error
 	GetAllBucketsOfUser(ctx context.Context, username string) ([]BucketMetadata, error)
+	GetAllBucketInfo(ctx context.Context) (allBucketInfo, error)
 	UpdateBucketPolicy(ctx context.Context, bucket string, p *policy.Policy) error
 	DeleteBucketPolicy(ctx context.Context, bucket string) error
 	GetPolicyConfig(ctx context.Context, bucket string) (*policy.Policy, error)

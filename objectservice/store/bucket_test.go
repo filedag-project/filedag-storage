@@ -35,7 +35,7 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 		return
 	}
 	fmt.Println(meta)
-	err = s.DeleteBucket(context.TODO(), "bucket")
+	err = s.DeleteBucket(context.TODO(), "bucket", "")
 	if err != nil {
 		return
 	}

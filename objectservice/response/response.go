@@ -332,7 +332,7 @@ type DeleteObjectsResponse struct {
 }
 
 // GenerateListObjectsV2Response Generates an ListObjectsV2 response for the said bucket with other enumerated options.
-func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter, delimiter, encodingType string, isTruncated bool, maxKeys int, objects []store.ObjectInfo, prefixes []string) ListObjectsV2Response {
+func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter, delimiter, encodingType string, keyCount uint64, isTruncated bool, maxKeys int, objects []store.ObjectInfo, prefixes []string) ListObjectsV2Response {
 	contents := make([]Object, 0, len(objects))
 	id := consts.DefaultOwnerID
 	name := consts.DisplayName
@@ -375,7 +375,7 @@ func GenerateListObjectsV2Response(bucket, prefix, token, nextToken, startAfter,
 		commonPrefixes = append(commonPrefixes, prefixItem)
 	}
 	data.CommonPrefixes = commonPrefixes
-	data.KeyCount = len(data.Contents) + len(data.CommonPrefixes)
+	data.KeyCount = int(keyCount)
 	return data
 }
 

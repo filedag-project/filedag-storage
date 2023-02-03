@@ -85,7 +85,7 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 				log.Printf("CleanObjectsInBucket error: %v", err)
 				continue
 			}
-			if err = bmSys.DeleteBucket(ctx, bkt.Name); err != nil {
+			if err = bmSys.DeleteBucket(ctx, bkt.Name, accessKey); err != nil {
 				log.Printf("DeleteBucket error: %v", err)
 			}
 		}
@@ -98,7 +98,7 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 			return bucketInfos
 		}
 		for _, bkt := range bkts {
-			info, err := storageSys.GetBucketInfo(ctx, bkt.Name)
+			info, err := storageSys.GetAllObjectsInBucketInfo(ctx, bkt.Name)
 			if err != nil {
 				return nil
 			}
@@ -107,7 +107,11 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 		return bucketInfos
 	}
 	storePoolStatsFunc := func(ctx context.Context) (store.DataUsageInfo, error) {
-		return storageSys.StoreStats(ctx)
+		bkts, err := bmSys.GetAllBucketInfo(ctx)
+		if err != nil {
+			return store.DataUsageInfo{}, nil
+		}
+		return storageSys.StoreStats(ctx, bkts.Bucket)
 	}
 	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, bucketInfoFunc, storePoolStatsFunc)
 	s3api.NewS3Server(router, authSys, bmSys, storageSys, httpstats.NewHttpStatsSys(db))

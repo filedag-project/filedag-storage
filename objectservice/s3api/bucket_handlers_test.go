@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 				log.Errorf("CleanObjectsInBucket error: %v", err)
 				continue
 			}
-			if err = bmSys.DeleteBucket(ctx, bkt.Name); err != nil {
+			if err = bmSys.DeleteBucket(ctx, bkt.Name, accessKey); err != nil {
 				log.Errorf("DeleteBucket error: %v", err)
 			}
 		}

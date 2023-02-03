@@ -57,13 +57,13 @@ func TestMain(m *testing.M) {
 	bmSys := store.NewBucketMetadataSys(db)
 	bucketInfoFunc := func(ctx context.Context, accessKey string) []store.BucketInfo {
 		var bucketInfos []store.BucketInfo
-		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		bkts, err := bmSys.GetAllBucketInfo(ctx)
 		if err != nil {
 			fmt.Printf("GetAllBucketsOfUser error: %v\n", err)
 			return bucketInfos
 		}
-		for _, bkt := range bkts {
-			info, err := storageSys.GetBucketInfo(ctx, bkt.Name)
+		for _, bkt := range bkts.Bucket {
+			info, err := storageSys.GetAllObjectsInBucketInfo(ctx, bkt.Name)
 			if err != nil {
 				return nil
 			}
@@ -72,7 +72,12 @@ func TestMain(m *testing.M) {
 		return bucketInfos
 	}
 	storePoolStatsFunc := func(ctx context.Context) (store.DataUsageInfo, error) {
-		return storageSys.StoreStats(ctx)
+		bkts, err := bmSys.GetAllBucketInfo(ctx)
+		if err != nil {
+			log.Errorf("GetAllBucketsOfUser error: %v", err)
+			return store.DataUsageInfo{}, nil
+		}
+		return storageSys.StoreStats(ctx, bkts.Bucket)
 	}
 	NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), func(accessKey string) {}, bucketInfoFunc, storePoolStatsFunc)
 	reqPutUserOtherUrl := addUserUrl(otherUserAccessKey, otherUserSecretKey, defaultCap)

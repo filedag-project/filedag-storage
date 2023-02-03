@@ -86,20 +86,20 @@ func startServer(cctx *cli.Context) {
 				log.Errorf("CleanObjectsInBucket error: %v", err)
 				continue
 			}
-			if err = bmSys.DeleteBucket(ctx, bkt.Name); err != nil {
+			if err = bmSys.DeleteBucket(ctx, bkt.Name, accessKey); err != nil {
 				log.Errorf("DeleteBucket error: %v", err)
 			}
 		}
 	}
 	bucketInfoFunc := func(ctx context.Context, accessKey string) []store.BucketInfo {
 		var bucketInfos []store.BucketInfo
-		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		bkts, err := bmSys.GetAllBucketInfo(ctx)
 		if err != nil {
 			log.Errorf("GetAllBucketsOfUser error: %v", err)
 			return bucketInfos
 		}
-		for _, bkt := range bkts {
-			info, err := storageSys.GetBucketInfo(ctx, bkt.Name)
+		for _, bkt := range bkts.Bucket {
+			info, err := storageSys.GetAllObjectsInBucketInfo(ctx, bkt.Name)
 			if err != nil {
 				return nil
 			}
@@ -108,7 +108,12 @@ func startServer(cctx *cli.Context) {
 		return bucketInfos
 	}
 	storePoolStatsFunc := func(ctx context.Context) (store.DataUsageInfo, error) {
-		return storageSys.StoreStats(ctx)
+		bkts, err := bmSys.GetAllBucketInfo(ctx)
+		if err != nil {
+			log.Errorf("GetAllBucketsOfUser error: %v", err)
+			return store.DataUsageInfo{}, nil
+		}
+		return storageSys.StoreStats(ctx, bkts.Bucket)
 	}
 	handler := s3api.CorsHandler(router)
 	httpStatsSys := httpstats.NewHttpStatsSys(db)
