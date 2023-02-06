@@ -9,6 +9,10 @@ import (
 const objInBktInfoPrefix = "objinbktinfo/"
 
 func (s *storageSys) recordObjectInfo(ctx context.Context, info ObjectInfo) error {
+	bucketInfo, err := s.GetAllObjectsInBucketInfo(ctx, info.Bucket)
+	if err != nil {
+		return err
+	}
 	var oldSize uint64 = 0
 	if s.hasObjectInfo(ctx, info.Bucket, info.Name) {
 		objectInfo, err := s.getObjectInfo(ctx, info.Bucket, info.Name)
@@ -16,12 +20,9 @@ func (s *storageSys) recordObjectInfo(ctx context.Context, info ObjectInfo) erro
 			return err
 		}
 		oldSize = uint64(objectInfo.Size)
+	} else {
+		bucketInfo.Objects++
 	}
-	bucketInfo, err := s.GetAllObjectsInBucketInfo(ctx, info.Bucket)
-	if err != nil {
-		return err
-	}
-	bucketInfo.Objects++
 	bucketInfo.Name = info.Bucket
 	bucketInfo.Size = bucketInfo.Size + uint64(info.Size) - oldSize
 	err = s.Db.Put(objInBktInfoPrefix, bucketInfo)
@@ -44,11 +45,14 @@ func (s *storageSys) reduceObjectInfo(ctx context.Context, info ObjectInfo) erro
 	return nil
 }
 func (s *storageSys) hasObjectInfo(ctx context.Context, bucket, obj string) bool {
-	_, err := s.getObjectInfo(ctx, bucket, obj)
+	get, err := s.getObjectInfo(ctx, bucket, obj)
 	if xerrors.Is(err, ErrObjectNotFound) {
 		return false
 	}
-	return true
+	if get.Name == obj {
+		return true
+	}
+	return false
 }
 
 //GetAllObjectsInBucketInfo Get BucketInfo

@@ -266,13 +266,13 @@ func (s *storageSys) StoreObject(ctx context.Context, bucket, object string, rea
 
 	// Has old file?
 	s.checkAndDeleteObjectData(ctx, bucket, object)
-
-	err = s.Db.Put(getObjectKey(bucket, object), objInfo)
+	err = s.recordObjectInfo(ctx, objInfo)
 	if err != nil {
 		return ObjectInfo{}, err
 	}
-	err = s.recordObjectInfo(ctx, objInfo)
+	err = s.Db.Put(getObjectKey(bucket, object), objInfo)
 	if err != nil {
+		s.reduceObjectInfo(ctx, objInfo)
 		return ObjectInfo{}, err
 	}
 	return objInfo, nil
