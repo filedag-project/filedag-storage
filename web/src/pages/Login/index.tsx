@@ -65,7 +65,7 @@ const Login = () => {
             Cookies.setKey(SECRET_ACCESS_KEY,SecretAccessKey);
             Cookies.setKey(SESSION_TOKEN,SessionToken);
             if(remember){
-                Cookies.setKey(USER_NAME,_username); 
+                Cookies.setKey(USER_NAME,_username,7); 
             }
             navigate(RouterPath.home);
         } catch (e) {

@@ -2,14 +2,16 @@ import Action from "@/components/BucketDetail/action";
 import ObjectTable from "@/components/BucketDetail/table";
 import bucketDetailStore from "@/store/modules/bucketDetail";
 import { download, getExpiresDate } from "@/utils";
-import { Modal, InputNumber, notification, Form, Input } from "antd";
+import { Modal, InputNumber, notification, Form, Input, Pagination, Divider } from "antd";
 import { observer } from "mobx-react";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import ReactPlayer from 'react-player';
 import styles from './style.module.scss';
-import { CopyOutlined } from "@ant-design/icons";
+import { CopyOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import copy from 'copy-to-clipboard';
+import classNames from "classnames";
+import { PAGE_SIZE } from "@/config";
 
 const BucketDetail = (props:any) => {
   const [addFolderForm] = Form.useForm();
@@ -19,14 +21,23 @@ const BucketDetail = (props:any) => {
   const { state :{ bucket = '', prefix='' }} = useLocation();
   
   useEffect(()=>{
+    resetList();
     bucketDetailStore.fetchList(bucket,prefix);
   },[bucket,prefix]);
+
+  const resetList = ()=>{
+    bucketDetailStore.SET_CURRENT_PAGE(1);
+    bucketDetailStore.SET_NEXT_CONTINUE_TOKEN('');
+    bucketDetailStore.SET_CONTENTS_LIST([]);
+    bucketDetailStore.SET_COMMON_PREFIXES_LIST([]);
+  }
 
   const confirmDelete = async ()=>{
     const name = bucketDetailStore.actionName;
     const path = `/${bucket}/${name}`;
     await bucketDetailStore.fetchDelete(path);
     bucketDetailStore.SET_DELETE_SHOW(false);
+    resetList();
     bucketDetailStore.fetchList(bucket,prefix);
   };
   const cancelDelete = ()=>{
@@ -42,8 +53,6 @@ const BucketDetail = (props:any) => {
   };
 
   const previewDom = ()=>{
-    console.log(bucketDetailStore,'bucketDetailStore');
-    
     if(bucketDetailStore.contentType.includes('image')){
       return <img src={bucketDetailStore.previewUrl} className="preview-image" alt="" />
     }else if(bucketDetailStore.contentType.includes('text')){
@@ -108,6 +117,8 @@ const BucketDetail = (props:any) => {
       const path = `/${bucket}/${_prefix}${folderName}/`;
       bucketDetailStore.fetchUploadFolder(path).then(res=>{
         bucketDetailStore.SET_ADD_FOLDER_SHOW(false);
+        resetList();
+        addFolderForm.resetFields()
         bucketDetailStore.fetchList(bucket,prefix);
       })
     }catch(error){
@@ -115,10 +126,134 @@ const BucketDetail = (props:any) => {
     }
   }
 
+  const pageRender = ()=>{
+    const current = bucketDetailStore.currentPage;
+    const total = bucketDetailStore.formatList.length;
+    const sizes = Math.ceil(total/PAGE_SIZE);
+    const ellipsis = ()=> <div className={styles.ellipsis}>•••</div>;
+   
+    if(current < 5){
+      return <>
+        {
+          Array(sizes>5?5:sizes).fill(0).map((n,index)=>{
+            return <div className={classNames(styles.pagerItem,bucketDetailStore.currentPage === index+1?styles.active:'')} key={index} 
+            onClick={()=>{
+              pageChange(index+1);
+            }}>{index+1}</div>
+          })
+        }
+        {sizes>5?ellipsis():<></>}
+      </>
+    }
+    
+    if(current >= 5){
+      let list:number[] = [];
+      if(sizes - current > 2){
+        list = [-2,-1,0,1,2]
+      }
+      if(sizes - current === 2){
+        list = [-2,-1,0,1]
+      }
+      if(sizes - current === 1){
+        list = [-3,-2,-1,0]
+      }
+      if(sizes - current === 0){
+        list = [-4,-3,-2,-1]
+      }
+      console.log(list,'list12');
+      
+      const first = ()=> {
+        return <div className={classNames(styles.pagerItem,bucketDetailStore.currentPage === 1?styles.active:'')} key={1} onClick={()=>{
+          pageChange(1);
+        }}>{1}</div>
+      }
+      const last = ()=> {
+        return <div className={classNames(styles.pagerItem,bucketDetailStore.currentPage === sizes?styles.active:'')} key={sizes} onClick={()=>{
+          pageChange(sizes)
+        }}>{sizes}</div>
+      }
+      
+      return <>
+      {
+        first()
+      }
+      {
+        current - 2 > 1 ? ellipsis():<></>
+      }
+      {
+        list.map((n,index)=>{
+          return <div className={classNames(styles.pagerItem,bucketDetailStore.currentPage === current - n?styles.active:'')} key={current - n} onClick={()=>{
+            pageChange(current + n);
+          }}>{current + n}</div>
+        })
+      }
+      {
+        sizes - current > 3 ? ellipsis():<></>
+      }
+      {
+        last()
+      }
+    </>
+    }
+  }
+
+  const prev = ()=>{
+    const current = bucketDetailStore.currentPage;
+    return <div className={
+      classNames(styles.pagerItem,bucketDetailStore.currentPage === 1 ? styles.disabled:'')
+      }
+      onClick={()=>{
+        if(current === 1) return;
+        bucketDetailStore.SET_CURRENT_PAGE(current - 1);
+      }}
+    >
+      <LeftOutlined></LeftOutlined>
+    </div>
+  }
+
+  const next = ()=>{
+    const current = bucketDetailStore.currentPage;
+    const total = bucketDetailStore.formatList.length;
+    const sizes = Math.ceil(total/PAGE_SIZE);
+    return <div className={
+      classNames(styles.pagerItem,!bucketDetailStore.isTruncated && bucketDetailStore.currentPage === sizes ? styles.disabled:'')}
+      onClick={()=>{
+        if(bucketDetailStore.isTruncated && current === sizes){
+          bucketDetailStore.SET_CURRENT_PAGE(current + 1);
+          bucketDetailStore.fetchList(bucket,prefix);
+        }
+
+        if(current < sizes ) {
+          bucketDetailStore.SET_CURRENT_PAGE(current + 1);
+        }
+      }}
+      >
+      <RightOutlined></RightOutlined>
+    </div>
+  }
+
+  const pageChange = (page)=>{
+    console.log(page,'page21');
+    
+    bucketDetailStore.SET_CURRENT_PAGE(page);
+  }
+
 
   return <div className={styles.objects}>
     <Action bucket={bucket} prefix={prefix}></Action>
     <ObjectTable bucket={bucket} prefix={prefix}></ObjectTable>
+    <div className={styles.pager}>
+      {
+        prev()
+      }
+      {
+        pageRender()
+      }
+      {
+        next()
+      }
+    </div>
+
     <Modal
       title="Delete"
       open={bucketDetailStore.deleteShow}

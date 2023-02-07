@@ -25,7 +25,7 @@ const ObjectTable = (props:any) => {
       key: 'name',
       width:150,
       render:(r)=>{
-        return <div className='row-name'>{r}</div>
+        return <div className='row-name' title={r}>{r}</div>
       }
     },
     {
@@ -59,6 +59,7 @@ const ObjectTable = (props:any) => {
       },
     },
   ];
+  
   const deleteObject = (name:string)=>{
     bucketDetailStore.SET_DELETE_SHOW(true);
     bucketDetailStore.SET_ACTION_NAME(`${prefix}${name}`);
@@ -83,7 +84,7 @@ const ObjectTable = (props:any) => {
   }
   
   return <div className={styles['object-table']}>
-    <Table columns={columns} dataSource={bucketDetailStore.formatList}  rowKey={(record) => record.Name} pagination={false}/>
+    <Table columns={columns} dataSource={bucketDetailStore.formatTableList}  rowKey={(record) => record.Name} pagination={false}/>
   </div>;
 };
 

@@ -1,5 +1,32 @@
 .objects{
     padding: 15px;
+    .pager{
+        text-align: center;
+        font-size: #333;
+        font-size: 14px;
+        padding: 10px;
+        cursor: pointer;
+        background-color: #fbfafa;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        .pagerItem{
+            width: 32px;
+            height: 32px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+            &.active{
+                border:1px solid var(--color-004DE5-91);
+                border-radius: 2px;
+                color: var(--color-004DE5-91);
+            }
+            &.disabled{
+                cursor: not-allowed;
+            }
+        }
+    }
 }
 :global{
     .ant-modal-body{

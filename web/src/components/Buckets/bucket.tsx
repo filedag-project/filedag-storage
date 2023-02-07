@@ -28,7 +28,7 @@ const Bucket = (props:any) => {
       <div className={styles['bucket']}>
         <div className={styles['top']}>
           <div className={styles['info']}>
-            <div className={styles['name']}>{ bucket }</div>
+            <div className={styles['name']} onClick={viewObjects}>{ bucket }</div>
             <div className={styles['create']}>Created: {CreationDate}</div>
           </div>
           <div className={styles['action']}>
