@@ -1,4 +1,4 @@
-import { action, makeObservable, observable } from 'mobx';
+import { action, computed, makeObservable, observable } from 'mobx';
 import { SignModel } from '@/models/SignModel';
 import _ from 'lodash';
 import { HttpMethods, Axios } from '@/api/https';
@@ -23,9 +23,35 @@ class DashboardStore {
       objectsCount: observable,
       totalCaptivity: observable,
       objectsTotalSize: observable,
+      top_20_get_obj_bytes:computed,
+      top_20_put_obj_bytes:computed,
+      top_20_get_obj_count:computed,
+      top_20_put_obj_count:computed,
       fetchRequestOverview: action,
     });
   }
+
+  get top_20_get_obj_bytes(){
+    const _sort = sortArray(this.get_obj_bytes);
+    const _top20 = top20(_sort);
+    return _top20;
+  }
+  get top_20_put_obj_bytes(){
+    const _sort = sortArray(this.put_obj_bytes);
+    const _top20 = top20(_sort);
+    return _top20;
+  }
+  get top_20_get_obj_count(){
+    const _sort = sortArray(this.get_obj_count);
+    const _top20 = top20(_sort);
+    return _top20;
+  }
+  get top_20_put_obj_count(){
+    const _sort = sortArray(this.put_obj_count);
+    const _top20 = top20(_sort);
+    return _top20;
+  }
+  
 
   fetchRequestOverview() {
     return new Promise(async (resolve) => {
@@ -96,6 +122,17 @@ class DashboardStore {
       resolve(res);
     })
   }
+}
+
+const sortArray = (data:Array<any>)=>{
+  const res =  data.sort((a,b)=>{
+    return  b.value - a.value;
+  })
+  return res;
+}
+
+const top20 = (data:Array<any>)=>{
+  return data.length >= 20 ? data.splice(0,20):data;
 }
 
 const dashboardStore = new DashboardStore();
