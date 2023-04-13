@@ -24,8 +24,8 @@ import (
 	"strings"
 )
 
-//PutObjectHandler Put ObjectHandler
-//https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html
+// PutObjectHandler Put ObjectHandler
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutObject.html
 func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
 
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/UploadingObjects.html
@@ -155,7 +155,7 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 // ----------
 // This implementation of the GET operation retrieves object. To use GET,
 // you must have READ access to the object.
-//https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html
 func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	bucket, object, err := getBucketAndObject(r)
@@ -201,7 +201,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 }
 
 // HeadObjectHandler - HEAD Object
-//https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html
 // The HEAD operation retrieves metadata from an object without returning the object itself.
 func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -245,7 +245,7 @@ func (s3a *s3ApiServer) HeadObjectHandler(w http.ResponseWriter, r *http.Request
 
 // DeleteObjectHandler - delete an object
 // Delete objectAPIHandlers
-//https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html
+// https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteObject.html
 func (s3a *s3ApiServer) DeleteObjectHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	bucket, object, err := getBucketAndObject(r)
@@ -519,7 +519,13 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 			metadata[key] = val
 		}
 	}
-	obj, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
+	hashReader, err := hash.NewReader(srcReader, srcObjInfo.Size, srcObjInfo.ETag, "", srcObjInfo.Size)
+	if err != nil {
+		log.Errorf("PutObjectHandler NewReader err:%v", err)
+		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+		return
+	}
+	obj, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, hashReader, srcObjInfo.Size, metadata)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
@@ -761,9 +767,9 @@ func trimLeadingSlash(ep string) string {
 
 // Validate all the ListObjects query arguments, returns an APIErrorCode
 // if one of the args do not meet the required conditions.
-// - delimiter if set should be equal to '/', otherwise the request is rejected.
-// - marker if set should have a common prefix with 'prefix' param, otherwise
-//   the request is rejected.
+//   - delimiter if set should be equal to '/', otherwise the request is rejected.
+//   - marker if set should have a common prefix with 'prefix' param, otherwise
+//     the request is rejected.
 func validateListObjectsArgs(marker, delimiter, encodingType string, maxKeys int) apierrors.ErrorCode {
 	// Max keys cannot be negative.
 	if maxKeys < 0 {

@@ -6,23 +6,25 @@ import (
 )
 
 // ObjectInfo - represents object metadata.
-//{
-// 	Bucket = {string} "test"
-// 	Name = {string} "default.exe"
-// 	ModTime = {time.Time} 2022-03-18 10:54:43.308685163 +0800
-// 	Size = {int64} 11604147
-// 	IsDir = {bool} false
-// 	ETag = {string} "a6b0b7ddb4630832ed47821af59aa125"
-// 	VersionID = {string} ""
-// 	IsLatest = {bool} false
-// 	DeleteMarker = {bool} false
-// 	ContentType = {string} "application/x-msdownload"
-// 	ContentEncoding = {string} ""
-// 	Expires = {time.Time} 0001-01-01 00:00:00 +0000
-// 	Parts = {[]ObjectPartInfo} nil
-// 	AccTime = {time.Time} 0001-01-01 00:00:00 +0000
-// 	SuccessorModTime = {time.Time} 0001-01-01 00:00:00 +0000
-//}
+//
+//	{
+//		Bucket = {string} "test"
+//		Name = {string} "default.exe"
+//		ModTime = {time.Time} 2022-03-18 10:54:43.308685163 +0800
+//		Size = {int64} 11604147
+//		IsDir = {bool} false
+//		ETag = {string} "a6b0b7ddb4630832ed47821af59aa125"
+//		Cid = {string} "QmRP168AQEN9vz8vnjWdEWiiJbNt4BZ5cB81qSRL5FQfGt"
+//		VersionID = {string} ""
+//		IsLatest = {bool} false
+//		DeleteMarker = {bool} false
+//		ContentType = {string} "application/x-msdownload"
+//		ContentEncoding = {string} ""
+//		Expires = {time.Time} 0001-01-01 00:00:00 +0000
+//		Parts = {[]ObjectPartInfo} nil
+//		AccTime = {time.Time} 0001-01-01 00:00:00 +0000
+//		SuccessorModTime = {time.Time} 0001-01-01 00:00:00 +0000
+//	}
 type ObjectInfo struct {
 	// Name of the bucket.
 	Bucket string
@@ -42,6 +44,8 @@ type ObjectInfo struct {
 	// Hex encoded unique entity tag of the object.
 	ETag string
 
+	// ipfs key
+	Cid string
 	// Version ID of this object.
 	VersionID string
 
@@ -75,6 +79,7 @@ type ObjectInfo struct {
 // file after CompleteMultipartUpload() is called.
 type objectPartInfo struct {
 	ETag    string    `json:"etag,omitempty"`
+	Cid     string    `json:"cid,omitempty"`
 	Number  int       `json:"number"`
 	Size    int64     `json:"size"`
 	ModTime time.Time `json:"mod_time"`

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/dustin/go-humanize"
@@ -11,6 +12,8 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/lock"
 	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/etag"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/hash"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
 	"github.com/google/uuid"
 	"github.com/ipfs/go-cid"
@@ -60,7 +63,7 @@ const (
 var ErrObjectNotFound = errors.New("object not found")
 var ErrBucketNotEmpty = errors.New("bucket not empty")
 
-//StorageSys store sys
+// StorageSys store sys
 type StorageSys struct {
 	Db              *uleveldb.ULevelDB
 	DagPool         ipld.DAGService
@@ -73,7 +76,7 @@ type StorageSys struct {
 	gcTimeout time.Duration
 }
 
-//NewStorageSys new a storage sys
+// NewStorageSys new a storage sys
 func NewStorageSys(ctx context.Context, dagService ipld.DAGService, db *uleveldb.ULevelDB) *StorageSys {
 	cidBuilder, _ := merkledag.PrefixForCidVersion(0)
 	s := &StorageSys{
@@ -145,7 +148,7 @@ func (s *StorageSys) store(ctx context.Context, reader io.ReadCloser, size int64
 
 func (s *StorageSys) checkAndDeleteObjectData(ctx context.Context, bucket, object string) {
 	if oldObjInfo, err := s.getObjectInfo(ctx, bucket, object); err == nil {
-		c, err := cid.Decode(oldObjInfo.ETag)
+		c, err := cid.Decode(oldObjInfo.Cid)
 		if err != nil {
 			log.Warnw("decode cid error", "cid", oldObjInfo.ETag)
 		} else {
@@ -156,8 +159,8 @@ func (s *StorageSys) checkAndDeleteObjectData(ctx context.Context, bucket, objec
 	}
 }
 
-//StoreObject store object
-func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, reader io.ReadCloser, size int64, meta map[string]string) (ObjectInfo, error) {
+// StoreObject store object
+func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, reader *hash.Reader, size int64, meta map[string]string) (ObjectInfo, error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -181,7 +184,8 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 		ModTime:          time.Now().UTC(),
 		Size:             size,
 		IsDir:            false,
-		ETag:             root.String(),
+		ETag:             reader.ETag().String(),
+		Cid:              root.String(),
 		VersionID:        "",
 		IsLatest:         true,
 		DeleteMarker:     false,
@@ -214,7 +218,7 @@ func (s *StorageSys) StoreObject(ctx context.Context, bucket, object string, rea
 	return objInfo, nil
 }
 
-//GetObject Get object
+// GetObject Get object
 func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (ObjectInfo, io.ReadCloser, error) {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetRLock(ctx, globalOperationTimeout)
@@ -228,11 +232,11 @@ func (s *StorageSys) GetObject(ctx context.Context, bucket, object string) (Obje
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	cid, err := cid.Decode(meta.ETag)
+	meatCid, err := cid.Decode(meta.Cid)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
-	dagNode, err := s.DagPool.Get(ctx, cid)
+	dagNode, err := s.DagPool.Get(ctx, meatCid)
 	if err != nil {
 		return ObjectInfo{}, nil, err
 	}
@@ -265,7 +269,7 @@ func (s *StorageSys) GetObjectInfo(ctx context.Context, bucket, object string) (
 	return s.getObjectInfo(ctx, bucket, object)
 }
 
-//DeleteObject delete object
+// DeleteObject delete object
 func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) error {
 	lk := s.NewNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, deleteOperationTimeout)
@@ -279,7 +283,7 @@ func (s *StorageSys) DeleteObject(ctx context.Context, bucket, object string) er
 	if err != nil {
 		return err
 	}
-	cid, err := cid.Decode(meta.ETag)
+	cid, err := cid.Decode(meta.Cid)
 	if err != nil {
 		return err
 	}
@@ -337,8 +341,8 @@ type ListObjectsInfo struct {
 	Prefixes []string
 }
 
-//ListObjects list user object
-//TODO use more params
+// ListObjects list user object
+// TODO use more params
 func (s *StorageSys) ListObjects(ctx context.Context, bucket string, prefix string, marker string, delimiter string, maxKeys int) (loi ListObjectsInfo, err error) {
 	if maxKeys == 0 {
 		return loi, nil
@@ -508,7 +512,7 @@ func (s *StorageSys) getMultipartInfo(ctx context.Context, bucket string, object
 	return info, err
 }
 
-func (s *StorageSys) PutObjectPart(ctx context.Context, bucket string, object string, uploadID string, partID int, reader io.ReadCloser, size int64, meta map[string]string) (pi objectPartInfo, err error) {
+func (s *StorageSys) PutObjectPart(ctx context.Context, bucket string, object string, uploadID string, partID int, reader *hash.Reader, size int64, meta map[string]string) (pi objectPartInfo, err error) {
 	bktlk := s.newBucketNSLock(bucket)
 	bktlkCtx, err := bktlk.GetRLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -524,7 +528,8 @@ func (s *StorageSys) PutObjectPart(ctx context.Context, bucket string, object st
 
 	partInfo := objectPartInfo{
 		Number:  partID,
-		ETag:    root.String(),
+		ETag:    reader.ETag().String(),
+		Cid:     root.String(),
 		Size:    size,
 		ModTime: time.Now().UTC(),
 	}
@@ -634,7 +639,7 @@ func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 		// Save for total object size.
 		objectSize += gotPart.Size
 
-		c, err := cid.Decode(gotPart.ETag)
+		c, err := cid.Decode(gotPart.Cid)
 		if err != nil {
 			return oi, err
 		}
@@ -648,13 +653,15 @@ func (s *StorageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 	if err != nil {
 		return oi, err
 	}
+	etag := ComputeCompleteMultipartMD5(parts)
 	objInfo := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
 		ModTime:          time.Now().UTC(),
 		Size:             objectSize,
 		IsDir:            false,
-		ETag:             root.String(),
+		ETag:             etag,
+		Cid:              root.String(),
 		VersionID:        "",
 		IsLatest:         true,
 		DeleteMarker:     false,
@@ -720,7 +727,7 @@ func (s *StorageSys) AbortMultipartUpload(ctx context.Context, bucket string, ob
 	}
 
 	for _, part := range mi.Parts {
-		c, err := cid.Decode(part.ETag)
+		c, err := cid.Decode(part.Cid)
 		if err != nil {
 			return err
 		}
@@ -1034,4 +1041,17 @@ func checkSystemIdle() bool {
 		return false
 	}
 	return true
+}
+func ComputeCompleteMultipartMD5(parts []datatypes.CompletePart) string {
+	var finalMD5Bytes []byte
+	for _, part := range parts {
+		md5Bytes, err := hex.DecodeString(canonicalizeETag(part.ETag))
+		if err != nil {
+			finalMD5Bytes = append(finalMD5Bytes, []byte(part.ETag)...)
+		} else {
+			finalMD5Bytes = append(finalMD5Bytes, md5Bytes...)
+		}
+	}
+	s3MD5 := fmt.Sprintf("%s-%d", etag.Multipart(finalMD5Bytes), len(parts))
+	return s3MD5
 }
