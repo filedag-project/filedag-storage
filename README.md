@@ -1,7 +1,7 @@
 # FileDAG Storage
 
 [![LICENSE](https://img.shields.io/github/license/filedag-project/filedag-storage)](./LICENSE "LICENSE")
-[![Build Status](https://img.shields.io/github/workflow/status/filedag-project/filedag-storage/Go)]()
+[![Build Status](https://img.shields.io/github/actions/workflow/status/filedag-project/filedag-storage/go.yml)]()
 
 Language: [Chinese](./README-cn.md)
 
@@ -77,12 +77,12 @@ Realize clustered DAG Node and development of data fault tolerance.
 #### Description:
 
 - DAG Node:
-    - develops data fault tolerance based on Reed-Solomon Erasure Code
+    - [x] develops data fault tolerance based on Reed-Solomon Erasure Code
 - DAG Pool:
-    - organizes multiple DAG Nodes to build a storage cluster based on libp2p and Redis Hash Slots
-    - provides health report of storage nodes and status of global consistency
-    - supports dynamic expansion of storage nodes
-    - supports dynamic scaling of storage nodes
+    - [x] organizes multiple DAG Nodes to build a storage cluster based on Redis Hash Slots
+    - [x] provides health report of storage nodes and status of global consistency
+    - [x] supports dynamic expansion of storage nodes
+    - [x] supports dynamic scaling of storage nodes
 
 ### Milestone 4
 
@@ -126,7 +126,12 @@ Start 3 datanodes, dagpool and objectstore:
 
 ./datanode daemon --listen=127.0.0.1:9013 --datadir=/tmp/dn-data3
 
-./dagpool daemon --datadir=/tmp/dagpool-db --config=conf/node_config.json
+./dagpool daemon --datadir=/tmp/dagpool-db
+ 
+# add a dagnode
+./dagpool cluster add conf/node_config.json
+# allocate slots
+./dagpool cluster balance
 
 ./objectstore daemon --pool-addr=127.0.0.1:50001 --pool-user=dagpool --pool-password=dagpool
 ```

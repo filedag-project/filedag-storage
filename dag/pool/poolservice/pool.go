@@ -2,20 +2,22 @@ package poolservice
 
 import (
 	"context"
-	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/config"
 	"github.com/filedag-project/filedag-storage/dag/node/dagnode"
 	"github.com/filedag-project/filedag-storage/dag/pool"
-	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dnm"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/reference"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/slotkeyrepo"
+	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/slotmigraterepo"
+	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
 	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
+	"sync"
 	"time"
 )
 
@@ -23,22 +25,53 @@ var log = logging.Logger("dag-pool")
 
 var _ pool.DagPool = &dagPoolService{}
 
+type ClusterState int
+
+func (cs ClusterState) String() string {
+	switch cs {
+	case StateOk:
+		return "ok"
+	case StateFail:
+		return "fail"
+	case StateMigrating:
+		return "migrating"
+	default:
+		return "unknown"
+	}
+}
+
+const (
+	StateOk ClusterState = iota
+	StateMigrating
+	StateFail
+)
+
 // dagPoolService is an IPFS Merkle DAG service.
 type dagPoolService struct {
-	dagNodes map[string]*dagnode.DagNode
-	iam      *dpuser.IdentityUserSys
-	nrSys    *dnm.NodeRecordSys
-	db       objmetadb.ObjStoreMetaDBAPI
+	slots              [slotsmgr.ClusterSlots]*dagnode.DagNode
+	importingSlotsFrom [slotsmgr.ClusterSlots]*dagnode.DagNode
 
-	refCounter *reference.RefCounter
-	cacheSet   *reference.CacheSet
+	dagNodesMap  map[string]*dagnode.DagNode
+	dagNodesLock sync.RWMutex
+
+	state       ClusterState
+	parentCtx   context.Context
+	migratingCh chan struct{}
+
+	iam *dpuser.IdentityUserSys
+	db  objmetadb.ObjStoreMetaDBAPI
+
+	refCounter      *reference.RefCounter
+	cacheSet        *reference.CacheSet
+	slotKeyRepo     *slotkeyrepo.SlotKeyRepo
+	slotMigrateRepo *slotmigraterepo.SlotMigrateRepo
 
 	gcControl *GcControl
 	gcPeriod  time.Duration
 }
 
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
-func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
+func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolService, error) {
 	db, err := objmetadb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
@@ -49,31 +82,28 @@ func NewDagPoolService(cfg config.PoolConfig) (*dagPoolService, error) {
 	}
 	cacheSet := reference.NewCacheSet(db)
 	refCounter := reference.NewRefCounter(db, cacheSet)
-	dn := make(map[string]*dagnode.DagNode)
-	var nrs = dnm.NewRecordSys(db)
-	for num, c := range cfg.DagNodeConfig {
-		bs, err := dagnode.NewDagNode(c)
-		if err != nil {
-			log.Errorf("new dagnode err:%v", err)
-			return nil, err
-		}
-		name := "the" + fmt.Sprintf("%v", num)
-		err = nrs.HandleDagNode(bs.Nodes, name)
-		if err != nil {
-			return nil, err
-		}
-		dn[name] = bs
+
+	serv := &dagPoolService{
+		dagNodesMap:     make(map[string]*dagnode.DagNode),
+		parentCtx:       ctx,
+		migratingCh:     make(chan struct{}),
+		iam:             i,
+		db:              db,
+		refCounter:      refCounter,
+		cacheSet:        cacheSet,
+		slotKeyRepo:     slotkeyrepo.NewSlotKeyRepo(db),
+		slotMigrateRepo: slotmigraterepo.NewSlotMigrateRepo(db),
+		gcControl:       NewGcControl(),
+		gcPeriod:        cfg.GcPeriod,
 	}
-	return &dagPoolService{
-		dagNodes:   dn,
-		iam:        i,
-		nrSys:      nrs,
-		db:         db,
-		refCounter: refCounter,
-		cacheSet:   cacheSet,
-		gcControl:  NewGcControl(),
-		gcPeriod:   cfg.GcPeriod,
-	}, nil
+	// process migrating task
+	go serv.migrateSlotsDataTask(ctx)
+
+	if err = serv.clusterInit(); err != nil {
+		return nil, err
+	}
+
+	return serv, nil
 }
 
 // Add adds a node to the dagPoolService, storing the block in the BlockService
@@ -84,11 +114,7 @@ func (d *dagPoolService) Add(ctx context.Context, block blocks.Block, user strin
 
 	key := block.Cid().String()
 	addBlock := func() error {
-		selNode, err := d.choseDagNode(ctx, block.Cid())
-		if err != nil {
-			return err
-		}
-		return selNode.Put(ctx, block)
+		return d.putBlock(ctx, block)
 	}
 
 	if pin {
@@ -121,22 +147,10 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 		return nil, format.ErrNotFound{Cid: c}
 	}
 
-	getNode, err := d.getDagNodeInfo(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	b, err := getNode.Get(ctx, c)
-	if err != nil {
-		if format.IsNotFound(err) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("failed to get block for %s: %v", c, err)
-	}
-
-	return b, nil
+	return d.readBlock(ctx, c)
 }
 
-//Remove remove block from DAGPool
+// Remove remove block from DAGPool
 func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string, unpin bool) error {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
@@ -148,7 +162,7 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 	return nil
 }
 
-//GetSize get the block size
+// GetSize get the block size
 func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return 0, upolicy.AccessDenied
@@ -163,14 +177,10 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	getNode, err := d.getDagNodeInfo(ctx, c)
-	if err != nil {
-		return 0, err
-	}
-	return getNode.GetSize(ctx, c)
+	return d.readBlockSize(ctx, c)
 }
 
-//AddUser add a user
+// AddUser add a user
 func (d *dagPoolService) AddUser(newUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
@@ -184,7 +194,7 @@ func (d *dagPoolService) AddUser(newUser dpuser.DagPoolUser, user string, passwo
 	return d.iam.AddUser(newUser)
 }
 
-//RemoveUser remove the user
+// RemoveUser remove the user
 func (d *dagPoolService) RemoveUser(rmUser string, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
@@ -195,7 +205,7 @@ func (d *dagPoolService) RemoveUser(rmUser string, user string, password string)
 	return d.iam.RemoveUser(rmUser)
 }
 
-//QueryUser query the user
+// QueryUser query the user
 func (d *dagPoolService) QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error) {
 	if !d.iam.CheckUser(user, password) {
 		return nil, upolicy.AccessDenied
@@ -210,7 +220,7 @@ func (d *dagPoolService) QueryUser(qUser string, user string, password string) (
 	return d.iam.QueryUser(qUser)
 }
 
-//UpdateUser update the user
+// UpdateUser update the user
 func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
@@ -238,8 +248,17 @@ func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, passw
 //	return d.iam.CheckUserPolicy(username, pass, policy)
 //}
 
-//Close the dagPoolService
+// Close the dagPoolService
 func (d *dagPoolService) Close() error {
+	func() {
+		d.dagNodesLock.RLock()
+		defer d.dagNodesLock.RUnlock()
+
+		for _, node := range d.dagNodesMap {
+			node.Close()
+		}
+	}()
+	close(d.migratingCh)
 	return d.db.Close()
 }
 

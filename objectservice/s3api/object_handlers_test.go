@@ -154,17 +154,7 @@ func TestS3ApiServer_PutObjectHandler(t *testing.T) {
 	}
 
 }
-func Test_Amwi(t *testing.T) {
-	r1 := "1234567"
-	req := utils.MustNewSignedV4Request(http.MethodPut, "http://192.168.1.64:9985/testfolder/aaa/", int64(len(r1)), bytes.NewReader([]byte(r1)), "s3", DefaultTestAccessKey, DefaultTestSecretKey, t)
-	client := &http.Client{}
-	res, err := client.Do(req)
-	log.Infof("err%v", err)
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	fmt.Println(string(body))
-	fmt.Println(res)
-}
+
 func TestS3ApiServer_GetObjectHandler(t *testing.T) {
 	bucketName := "/testbucketfeto"
 	objectName := "/testobjectgeto"

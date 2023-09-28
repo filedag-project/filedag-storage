@@ -21,6 +21,7 @@
 /dp-data
 /dn-data
 /store-data
+/iam-tools
 
 # web
 /web/coverage

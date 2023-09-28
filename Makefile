@@ -5,6 +5,12 @@ DATANODE_TARGET=./datanode
 OBJECTSTORE_TARGET=./objectstore
 IAMTOOLS_TARGET=./iam-tools
 
+#VERSION ?= $(shell git describe --tags)
+#TAG_DATANODE ?= "filedag/datanode:$(VERSION)"
+TAG_DATANODE ?= "filedag/datanode:latest"
+TAG_DAGPOOL ?= "filedag/dagpool:latest"
+TAG_OBJECTSTORE ?= "filedag/objectstore:latest"
+
 build: clean dagpool datanode objectstore iamtools
 
 
@@ -19,6 +25,18 @@ objectstore:
 
 iamtools:
 	go build -ldflags "-s -w" -o ${IAMTOOLS_TARGET} ./cmd/tools/iam-tools
+
+docker-datanode:
+	docker build -q --no-cache -t $(TAG_DATANODE) . -f Dockerfile.datanode
+
+docker-dagpool:
+	docker build -q --no-cache -t $(TAG_DAGPOOL) . -f Dockerfile.dagpool
+
+docker-objectstore:
+	docker build -q --no-cache -t $(TAG_OBJECTSTORE) . -f Dockerfile.objectstore
+
+docker: docker-datanode docker-dagpool docker-objectstore
+	docker buildx prune -f
 
 .PHONY: clean
 clean:
