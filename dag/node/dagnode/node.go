@@ -227,6 +227,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	size := meta.BlockSize
 	entryReadQuorum, _ := d.entryQuorum()
 
+	shardsTmp := make([][]byte, len(onlineNodes))
 	shards := make([][]byte, len(onlineNodes))
 	repairIndexes := make([]bool, len(onlineNodes))
 	needRepair := false
@@ -256,7 +257,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 					needRepair = true
 				}
 			} else {
-				shards[index] = res.Data
+				shardsTmp[index] = res.Data
 				return nil
 			}
 			return err
@@ -266,6 +267,11 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	if err = task.Wait(); err != nil {
 		log.Errorf("task error: %v", err)
 		return nil, err
+	}
+
+	// clone a copy
+	for i, v := range shardsTmp {
+		shards[i] = v
 	}
 
 	enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(size))
