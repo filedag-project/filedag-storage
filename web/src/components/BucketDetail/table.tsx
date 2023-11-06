@@ -67,7 +67,9 @@ const ObjectTable = (props:any) => {
 
   const viewObject = (name:string,type:string)=>{
     if(type === FileType.file){
-      bucketDetailStore.fetchObject(`/${props.bucket}`,name).then(res=>{
+      const _prefix = prefix ? `${prefix}`:''
+      const path = `/${bucket}/${_prefix}`;
+      bucketDetailStore.fetchObject(`/${path}`,name).then(res=>{
         bucketDetailStore.SET_ACTION_NAME(name);
         bucketDetailStore.SET_PREVIEW_SHOW(true);
       })
@@ -79,7 +81,9 @@ const ObjectTable = (props:any) => {
   const shareObject = async (name:string)=>{
     bucketDetailStore.SET_ACTION_NAME(name);
     bucketDetailStore.SET_SHARE_SHOW(true);
-    const url = `/${props.bucket}/${name}`;
+    const _prefix = prefix ? `${prefix}`:''
+    const path = `/${bucket}/${_prefix}`;
+    const url = `${path}${name}`;
     bucketDetailStore.fetchShare(url,bucketDetailStore.shareSecond);
   }
   
