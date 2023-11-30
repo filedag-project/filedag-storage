@@ -131,7 +131,7 @@ const Dashboard = (props:any) => {
           bottom:20,
           formatter: function (name) {
             const obj = dashboardStore.top_20_get_obj_count.find(n=>n.name === name);
-            const _value = formatBytes(obj?.value??0);
+            const _value = obj?.value??0;
             return `${name}: ${_value}` ;
           }
         },
@@ -177,7 +177,7 @@ const Dashboard = (props:any) => {
           bottom:20,
           formatter: function (name) {
             const obj = dashboardStore.top_20_put_obj_count.find(n=>n.name === name);
-            const _value = formatBytes(obj?.value??0);
+            const _value = obj?.value??0;
             return `${name}: ${_value}` ;
           }
         },
