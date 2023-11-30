@@ -13,6 +13,7 @@ TAG_OBJECTSTORE ?= "filedag/objectstore:latest"
 
 build: clean dagpool datanode objectstore iamtools
 
+build-linux: clean dagpool-linux datanode-linux objectstore-linux iamtools-linux
 
 dagpool:
 	go build -ldflags "-s -w" -o ${DAGPOOL_TARGET} ./cmd/dagpool
@@ -25,6 +26,18 @@ objectstore:
 
 iamtools:
 	go build -ldflags "-s -w" -o ${IAMTOOLS_TARGET} ./cmd/tools/iam-tools
+
+dagpool-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ${DAGPOOL_TARGET} ./cmd/dagpool
+
+datanode-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ${DATANODE_TARGET} ./cmd/datanode
+
+objectstore-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ${OBJECTSTORE_TARGET} ./cmd/objectstore
+
+iamtools-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o ${IAMTOOLS_TARGET} ./cmd/tools/iam-tools
 
 docker-datanode:
 	docker build -q --no-cache -t $(TAG_DATANODE) . -f Dockerfile.datanode
