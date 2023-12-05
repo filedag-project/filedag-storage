@@ -623,7 +623,6 @@ func (s *storageSys) PutObjectPart(ctx context.Context, bucket string, object st
 		Size:    size,
 		ModTime: time.Now().UTC(),
 	}
-
 	uploadIDLock := s.newNSLock(bucket, lock.PathJoin(object, uploadID))
 	ulkctx, err := uploadIDLock.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -779,7 +778,10 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 	if err != nil {
 		return ObjectInfo{}, err
 	}
-
+	err = s.recordObjectInfo(ctx, objInfo)
+	if err != nil {
+		log.Errorf("recordObjectInfo %v err %v", object, err)
+	}
 	// remove MultipartInfo
 	err = s.removeMultipartInfo(ctx, bucket, object, uploadID)
 	if err != nil {
