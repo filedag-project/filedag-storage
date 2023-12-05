@@ -106,8 +106,10 @@ func (s *storageSys) StoreStats(ctx context.Context, bucketMetadataMap map[strin
 	for bkt := range bucketMetadataMap {
 		info, err := s.GetAllObjectsInBucketInfo(ctx, bkt)
 		if err != nil {
+			log.Errorf("GetAllObjectsInBucketInfo %v err %v", bkt, err)
 			continue
 		}
+		log.Debugf("GetAllObjectsInBucketInfo %v %v,", bkt, info)
 		dataUsageInfo.BucketsUsage = append(dataUsageInfo.BucketsUsage, info)
 		dataUsageInfo.ObjectsTotalCount += info.Objects
 		dataUsageInfo.ObjectsTotalSize += info.Size
@@ -726,8 +728,9 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 		}
 
 		// Save for total object size.
-		objectSize += gotPart.Size
-
+		if i == len(parts)-1 {
+			objectSize = gotPart.Size
+		}
 		c, err := cid.Decode(gotPart.ETag)
 		if err != nil {
 			return oi, err
@@ -762,7 +765,10 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 			objInfo.Expires = t.UTC()
 		}
 	}
-
+	err = s.recordObjectInfo(ctx, objInfo)
+	if err != nil {
+		log.Errorf("recordObjectInfo %v err %v", object, err)
+	}
 	lk := s.newNSLock(bucket, object)
 	lkctx, err := lk.GetLock(ctx, globalOperationTimeout)
 	if err != nil {
@@ -777,10 +783,6 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 	err = s.Db.Put(getObjectKey(bucket, object), objInfo)
 	if err != nil {
 		return ObjectInfo{}, err
-	}
-	err = s.recordObjectInfo(ctx, objInfo)
-	if err != nil {
-		log.Errorf("recordObjectInfo %v err %v", object, err)
 	}
 	// remove MultipartInfo
 	err = s.removeMultipartInfo(ctx, bucket, object, uploadID)

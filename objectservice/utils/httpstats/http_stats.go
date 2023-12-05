@@ -6,6 +6,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -82,7 +83,10 @@ func (st *APIStatsSys) RecordAPIHandler(api string, f http.HandlerFunc) http.Han
 		f.ServeHTTP(statsWriter, r)
 
 		st.HttpStats.updateStats(api, r, statsWriter)
-		if strings.Contains(api, "PutObject") || strings.Contains(api, "GetObject") {
+		if api == "PutObjectHandler" || api == "GetObjectHandler" {
+			st.updateObjInfo(api, r, statsWriter)
+		}
+		if api == "CompleteMultipartUploadHandler" {
 			st.updateObjInfo(api, r, statsWriter)
 		}
 	}
@@ -207,6 +211,17 @@ func (st *APIStatsSys) updateObjInfo(api string, r *http.Request, w *ResponseRec
 			fileType = "unknown"
 		}
 		st.ObjectInfo.inc(false, fileType, uint64(w.Size()))
+	} else if strings.Contains(api, "CompleteMultipartUploadHandler") {
+		fileType := r.Header.Get("file-type")
+		fileType = strings.Replace(fileType, ".", "", 1)
+		fileType = strings.ToLower(fileType)
+		if fileType == "" {
+			fileType = "unknown"
+		}
+		size := r.Header.Get("file-size")
+		parseInt, _ := strconv.ParseUint(size, 10, 64)
+
+		st.ObjectInfo.inc(true, fileType, parseInt)
 	}
 }
 

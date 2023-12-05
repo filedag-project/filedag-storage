@@ -278,6 +278,8 @@ func (s3a *s3ApiServer) CompleteMultipartUploadHandler(w http.ResponseWriter, r 
 	// Generate complete multipart response.
 	resp := response.GenerateCompleteMultpartUploadResponse(bucket, object, bucketMetas.Region, objInfo)
 	setPutObjHeaders(w, objInfo, false)
+	r.Header.Set("file-size", strconv.FormatInt(objInfo.Size, 10))
+	r.Header.Set("file-type", path.Ext(object))
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 

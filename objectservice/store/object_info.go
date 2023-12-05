@@ -25,8 +25,10 @@ func (s *storageSys) recordObjectInfo(ctx context.Context, info ObjectInfo) erro
 	}
 	bucketInfo.Name = info.Bucket
 	bucketInfo.Size = bucketInfo.Size + uint64(info.Size) - oldSize
+	log.Debugf("objInBktInfoPrefix %v bucketInfo %v", objInBktInfoPrefix, bucketInfo)
 	err = s.Db.Put(objInBktInfoPrefix, bucketInfo)
 	if err != nil {
+		log.Errorf("objInBktInfoPrefix %v bucketInfo %v err %v", objInBktInfoPrefix, bucketInfo, err)
 		return err
 	}
 	return nil
