@@ -92,13 +92,13 @@ Develop the Control Panel of FileDAG Storage.
 
 #### Description:
 
-- Dashboard of storage pool statistics overview
-- User interface
+- [x] Dashboard of storage pool statistics overview
+- [x] User interface
 - Object Store interface:
-    - users
-    - user access operations
-    - bucket operations
-    - permission setting
+    - [x] users
+    - [x] user access operations
+    - [x] bucket operations
+    - [x] permission setting
     
 ### Milestone 5
 
