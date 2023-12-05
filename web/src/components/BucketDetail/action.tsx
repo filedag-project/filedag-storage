@@ -128,7 +128,7 @@ const Action = (props:any) => {
         <Button className='upload-folder' type="primary" icon={<FolderOutlined />} onClick={()=>{
           bucketDetailStore.SET_ADD_FOLDER_SHOW(true);
         }}>
-          Upload Folder
+          Create Folder
         </Button>
         <Upload customRequest={customChange} showUploadList={false}>
           <Button className='bg-btn' type="primary" icon={<img src={iconUpload} alt='' />}>Upload File</Button>
