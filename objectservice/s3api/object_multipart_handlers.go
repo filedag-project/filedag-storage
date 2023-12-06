@@ -13,6 +13,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
 	"io"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"path"
 	"sort"
@@ -53,7 +54,7 @@ func (s3a *s3ApiServer) NewMultipartUploadHandler(w http.ResponseWriter, r *http
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidRequest)
 		return
 	}
-
+	metadata[consts.AmzMetaFileSize] = textproto.MIMEHeader(r.Header).Get(consts.AmzMetaFileSize)
 	info, err := s3a.store.NewMultipartUpload(ctx, bucket, object, metadata)
 	if err != nil {
 		log.Errorf("NewMultipartUploadHandler NewMultipartUpload err:%v", err)

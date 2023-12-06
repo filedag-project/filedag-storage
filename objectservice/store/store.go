@@ -25,6 +25,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -694,7 +695,6 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 		return oi, err
 	}
 
-	var objectSize int64
 	var links []dagpoolcli.LinkInfo
 	for i, part := range parts {
 		partIndex := objectPartIndex(mi.Parts, part.PartNumber)
@@ -726,11 +726,6 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 				PartETag:   part.ETag,
 			}
 		}
-
-		// Save for total object size.
-		if i == len(parts)-1 {
-			objectSize = gotPart.Size
-		}
 		c, err := cid.Decode(gotPart.ETag)
 		if err != nil {
 			return oi, err
@@ -745,11 +740,15 @@ func (s *storageSys) CompleteMultiPartUpload(ctx context.Context, bucket string,
 	if err != nil {
 		return oi, err
 	}
+	objSize, err := strconv.ParseInt(mi.MetaData[consts.AmzMetaFileSize], 10, 64)
+	if err != nil {
+		return oi, err
+	}
 	objInfo := ObjectInfo{
 		Bucket:           bucket,
 		Name:             object,
 		ModTime:          time.Now().UTC(),
-		Size:             objectSize,
+		Size:             objSize,
 		IsDir:            false,
 		ETag:             root.String(),
 		VersionID:        "",

@@ -201,7 +201,7 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
 
 	response.SetObjectHeaders(w, r, objInfo)
-	w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
+	//w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
 	response.SetHeadGetRespHeaders(w, r.Form)
 	if !objInfo.IsDir {
 		_, err = io.Copy(w, reader)

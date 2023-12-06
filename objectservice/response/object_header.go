@@ -5,7 +5,6 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 )
 
@@ -36,7 +35,7 @@ func SetObjectHeaders(w http.ResponseWriter, r *http.Request, objInfo store.Obje
 	}
 
 	// Set content length
-	w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
+	//w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
 
 	// Set the relevant version ID as part of the response header.
 	if objInfo.VersionID != "" {

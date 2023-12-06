@@ -136,6 +136,7 @@ const (
 	Connection         = "Connection"
 	AcceptRanges       = "Accept-Ranges"
 	AmzBucketRegion    = "X-Amz-Bucket-Region"
+	AmzMetaFileSize    = "X-Amz-Meta-File-Size"
 	ServerInfo         = "Server"
 	RetryAfter         = "Retry-After"
 	Location           = "Location"
