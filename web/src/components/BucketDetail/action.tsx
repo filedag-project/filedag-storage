@@ -32,7 +32,9 @@ const Action = (props:any) => {
   }
   const sliceUpload = (path:string,file:File)=>{
     const totalPieces = Math.ceil(file.size / PIECE_BYTES);
-    bucketDetailStore.fetchUploadId(path).then(async res=>{
+    console.log(file.size,'file.size123');
+    const size = String(file.size??0)
+    bucketDetailStore.fetchUploadId(path,size).then(async res=>{
       const uploadId:string = typeof res === 'string' ? res :'';
       let index = 0;
       let parts = ``;

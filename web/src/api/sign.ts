@@ -20,6 +20,11 @@ const signV4 = async (sign:SignModel) => {
         },
         uriEscapePath: true
     });
+    const size = sign['X-Amz-Meta-File-Size'] ?? '0';
+    let amzSize = {}
+    if(size !== '0'){
+        amzSize = { "X-Amz-Meta-File-Size":size }
+    }
     const minimalRequest = new HttpRequest({
         method: sign.method,
         protocol: sign.protocol,
@@ -29,6 +34,7 @@ const signV4 = async (sign:SignModel) => {
         headers: {
             host: process.env['REACT_APP_HOST']??'',
             'Content-Type': sign.contentType??'',
+            ...amzSize
         },
         hostname: process.env['REACT_APP_HOST_NAME']??'',
         body: sign.body,

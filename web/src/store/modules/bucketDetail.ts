@@ -350,7 +350,7 @@ class BucketDetailStore {
     this.shareLink = str;
   }
 
-  fetchUploadId(path:string){
+  fetchUploadId(path:string,size:string){
     return new Promise(async (resolve) => {
       const params:SignModel = {
         service: 's3',
@@ -360,6 +360,7 @@ class BucketDetailStore {
         applyChecksum: true,
         path,
         region: '',
+        "X-Amz-Meta-File-Size":size,
         query:{
           uploads:''
         }

@@ -10,6 +10,7 @@ export interface SignModel {
   sessionToken?: string;
   contentType?:string;
   applyChecksum?:boolean;
+  "X-Amz-Meta-File-Size"?:string,
   query?:{
     [key:string]:string
   }
