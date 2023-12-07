@@ -1,6 +1,6 @@
 import { action, makeObservable, observable } from 'mobx';
 import { SignModel } from '@/models/SignModel';
-import _ from 'lodash';
+import { get } from 'lodash';
 import { HttpMethods, Axios } from '@/api/https';
 import { ACCESS_KEY_ID, Cookies } from '@/utils/cookies';
 import { formatBytes } from '@/utils';
@@ -27,6 +27,10 @@ class OverviewStore {
     });
   }
 
+  SET_USER_INFO(data:userInfoType){
+    this.userInfo = data
+  }
+
   fetchUserInfo() {
     return new Promise(async (resolve) => {
       try {
@@ -46,27 +50,29 @@ class OverviewStore {
           contentType:'application/json; charset=UTF-8'
         }
         const res = await Axios.axiosJson(params);
-        const total:string = _.get(res,'Response.total_storage_capacity');
+        const total:string = get(res,'Response.total_storage_capacity');
         const _total = formatBytes(total);
-        const use = _.get(res,'Response.use_storage_capacity');
+        const use = get(res,'Response.use_storage_capacity');
         const _use:string = formatBytes(use);
-        const buckets = _.get(res,'Response.bucket_infos');
-        const size = buckets.reduce((total,current)=>{
-          const _current = _.get(current,'size','0');
-          return Number(total) + Number(_current);
-        },0);
-        const name = _.get(res,'account_name')
-        const _size = formatBytes(size);
+        const buckets = get(res,'Response.buckets_count',0)??0;
+        const objects = get(res,'Response.objects_count',0)??0;
+        const name = get(res,'account_name')
         
-        this.userInfo = {
+        this.SET_USER_INFO ({
           total_storage_capacity:_total,
           use_storage_capacity:_use,
-          buckets: buckets.length,
-          objects: _size,
+          buckets: buckets,
+          objects: objects,
           account_name: name
-        };
+        });
       } catch (e) {
-    
+        this.SET_USER_INFO({
+          total_storage_capacity:'0',
+          use_storage_capacity:'0',
+          buckets:0,
+          objects:'0',
+          account_name:''
+        })
       }
     })
   }

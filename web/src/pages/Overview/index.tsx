@@ -1,9 +1,14 @@
 import { observer } from 'mobx-react';
 import { RestOutlined,SaveOutlined,FolderOutlined,FileTextOutlined } from '@ant-design/icons';
 import styles from './style.module.scss';
-import globalStore from '@/store/modules/global';
+import { useEffect } from 'react';
+import overviewStore from '@/store/modules/overview';
+
 
 const Overview = (props:any) => {
+  useEffect(()=>{
+    overviewStore.fetchUserInfo();
+  },[]);
   return <div className={styles.overview}>
     <div className={styles.box}>
       <div className={styles.top}>
@@ -12,7 +17,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {globalStore.userInfo.buckets}
+          {overviewStore.userInfo.buckets}
         </span>
         <span className={styles.unit}></span>
       </div>
@@ -24,7 +29,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {globalStore.userInfo.objects}
+          {overviewStore.userInfo.objects}
         </span>
         <span className={styles.unit}></span>
       </div>
@@ -36,7 +41,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {globalStore.userInfo.total_storage_capacity}
+          {overviewStore.userInfo.total_storage_capacity}
         </span>
         <span className={styles.unit}></span>
       </div>
@@ -48,7 +53,7 @@ const Overview = (props:any) => {
       </div>
       <div className={styles.bottom}>
         <span className={styles.value}>
-          {globalStore.userInfo.use_storage_capacity}
+          {overviewStore.userInfo.use_storage_capacity}
         </span>
         <span className={styles.unit}></span>
       </div>
