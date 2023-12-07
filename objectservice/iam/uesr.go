@@ -24,6 +24,15 @@ type UserInfo struct {
 	Status               AccountStatus      `json:"status"`
 }
 
+// UserInfo carries information about long term users.
+type UserOverView struct {
+	AccountName          string `json:"account_name"`
+	TotalStorageCapacity uint64 `json:"total_storage_capacity"`
+	UseStorageCapacity   uint64 `json:"use_storage_capacity"`
+	BucketsCount         uint64 `json:"buckets_count"`
+	ObjectsCount         uint64 `json:"objects_count"`
+}
+
 // UserIdentity represents a user's secret key and their status
 type UserIdentity struct {
 	Credentials          auth.Credentials `json:"credentials"`

@@ -93,12 +93,12 @@ func startServer(cctx *cli.Context) {
 	}
 	bucketInfoFunc := func(ctx context.Context, accessKey string) []store.BucketInfo {
 		var bucketInfos []store.BucketInfo
-		bkts, err := bmSys.GetAllBucketInfo(ctx)
+		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
 		if err != nil {
 			log.Errorf("GetAllBucketsOfUser error: %v", err)
 			return bucketInfos
 		}
-		for _, bkt := range bkts.Bucket {
+		for _, bkt := range bkts {
 			info, err := storageSys.GetAllObjectsInBucketInfo(ctx, bkt.Name)
 			if err != nil {
 				return nil

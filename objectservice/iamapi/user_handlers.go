@@ -145,12 +145,6 @@ func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) 
 	}
 	var err error
 	bucketInfos := iamApi.bucketInfoFunc(ctx, accountName)
-
-	polices, err := iamApi.authSys.Iam.GetUserPolices(r.Context(), accountName)
-	if err != nil {
-		response.WriteErrorResponseJSON(w, r, apierrors.GetAPIError(apierrors.ErrInternalError))
-		return
-	}
 	var info = iam.UserIdentity{Credentials: iamApi.authSys.AdminCred, TotalStorageCapacity: math.MaxUint64}
 	if accountName != iamApi.authSys.AdminCred.AccessKey {
 		info, err = iamApi.authSys.Iam.GetUserInfo(ctx, accountName)
@@ -160,22 +154,19 @@ func (iamApi *iamApiServer) AccountInfo(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	var useStorageCapacity uint64
+	var useStorageCapacity, bucketsCount, objectsCount uint64
+
 	for _, bi := range bucketInfos {
 		useStorageCapacity += bi.Size
+		bucketsCount++
+		objectsCount += bi.Objects
 	}
-	acctInfo := iam.UserInfo{
+	acctInfo := iam.UserOverView{
 		AccountName:          accountName,
 		TotalStorageCapacity: info.TotalStorageCapacity,
 		UseStorageCapacity:   useStorageCapacity,
-		PolicyName:           polices,
-		BucketInfos:          bucketInfos,
-		Status: func() iam.AccountStatus {
-			if cred.IsValid() {
-				return iam.AccountEnabled
-			}
-			return iam.AccountDisabled
-		}(),
+		BucketsCount:         bucketsCount,
+		ObjectsCount:         objectsCount,
 	}
 	response.WriteSuccessResponseJSON(w, r, acctInfo)
 }
