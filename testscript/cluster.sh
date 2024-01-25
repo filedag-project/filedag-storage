@@ -34,7 +34,12 @@ function add_datanodes_to_dagpool() {
     ./dagpool cluster add conf/node_config.json conf/node_config2.json conf/node_config3.json > /dev/null 2>&1
     green_echo "Add datanodes to dagpool cluster success"
 }
-
+function init() {
+    start_datanode 9011 9019 dn
+    start_dagpool
+    start_objectstore
+    add_datanodes_to_dagpool
+}
 function status_and_balance() {
     ./dagpool cluster status
     echo ""
@@ -76,16 +81,10 @@ function result() {
 
 case "$1" in
     "init")
-        start_datanode 9011 9019 dn
-        start_dagpool
-        start_objectstore
-        add_datanodes_to_dagpool
+        init
         ;;
     "all")
-        start_datanode 9011 9019 dn
-        start_dagpool
-        start_objectstore
-        add_datanodes_to_dagpool
+        init
         status_and_balance
         expansion
         scaling
