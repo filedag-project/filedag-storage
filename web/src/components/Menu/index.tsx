@@ -43,7 +43,8 @@ const Menu = () => {
   useEffect(()=>{
     const { pathname } = location;
     setSelectedKey(pathname.replace("/",""));
-    if(pathname.startsWith('/objects') || pathname.startsWith('/power')){
+    const bucketArray = ['/bucket-detail','/create-bucket','/power']
+    if(bucketArray.includes(pathname)){
       setSelectedKey('buckets')
     }
     const _jwt = Cookies.getKey(SESSION_TOKEN);

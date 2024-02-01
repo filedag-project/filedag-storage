@@ -6,6 +6,7 @@ import { formatBytes, formatDate, getExpiresDate } from '@/utils';
 import { PreSignModel } from '@/models/PreSignModel';
 import presignV4 from '@/api/presign';
 import { FileType } from '@/models/BucketModel';
+import { MAX_KEYS, PAGE_SIZE } from '@/config';
 
 class BucketDetailStore {
   contentsList:any[] = [];
@@ -26,6 +27,10 @@ class BucketDetailStore {
   maxSecond:number = 7*24*60*60;
   shareSecond:number = 7*24*60*60;
   percentage:number = 0;
+  isTruncated:boolean = true;
+  nextContinueToken:string = '';
+  currentPage :number = 1;
+  keyCount:number = 0;
   constructor() {
     makeObservable(this, {
       deleteShow:observable,
@@ -43,6 +48,11 @@ class BucketDetailStore {
       shareSecond:observable,
       percentage:observable,
       addFolderShow:observable,
+      isTruncated:observable,
+      nextContinueToken:observable,
+      currentPage:observable,
+      keyCount:observable,
+
       formatList: computed,
       totalObjects:computed,
       fetchList: action,
@@ -67,28 +77,46 @@ class BucketDetailStore {
       const _ETag_ = _ETag.replace(/"/g,'');
       const _LastModified = _.get(n,'LastModified._text','');
       const _LastModified_ = formatDate(_LastModified);
+      const continueToken = _.get(n,'continueToken');
+      const nextContinueToken = _.get(n,'nextContinueToken');
       return {
         Name:_.get(n,'Key._text',''),
         LastModified:_LastModified_,
         Size:_size_,
         ETag:_ETag_,
-        Type:FileType.file
+        Type:FileType.file,
+        continueToken,
+        nextContinueToken
       }
     }) || [];
     const commonPrefixesList = this.commonPrefixesList.map(n=>{
+      const continueToken = _.get(n,'continueToken');
+      const nextContinueToken = _.get(n,'nextContinueToken');
       return {
         Name:_.get(n,'Prefix._text',''),
         LastModified:'-',
         Size:'-',
         ETag:'-',
-        Type:FileType.folder
+        Type:FileType.folder,
+        continueToken,
+        nextContinueToken
       }
     }) || [];
-    return [...contentsList,...commonPrefixesList];
+    return [...commonPrefixesList,...contentsList];
+  }
+
+  get formatTableList(){
+    const start = (this.currentPage-1)*PAGE_SIZE;
+    const end = this.currentPage*PAGE_SIZE;
+    console.log(start,end,this.formatList.length,'start,end');
+    const res = this.formatList.slice(start>=0?start:1,end)
+    return res;
   }
 
   get totalObjects(){
-    return this.contentsList.length??0 + this.commonPrefixesList.length??0;
+    const _con = this.contentsList.length??0;
+    const _pre = this.commonPrefixesList.length??0;
+    return  _con + _pre;
   }
 
   SET_DELETE_SHOW(data:boolean){
@@ -140,8 +168,34 @@ class BucketDetailStore {
     this.percentage = data;
   }
 
+  SET_IS_TRUNCATED(data:boolean){
+    this.isTruncated = data;
+  }
+
+  SET_NEXT_CONTINUE_TOKEN(data:string){
+    this.nextContinueToken = data;
+  }
+
+  SET_CURRENT_PAGE(data:number){
+    this.currentPage = data; 
+  }
+
+  SET_KEY_COUNT(data:number){
+    this.keyCount = data;
+  }
+
   fetchList(bucket:string,prefix:string) {
     return new Promise(async (resolve) => {
+      const query = {
+        prefix,
+        delimiter:'/',
+        "list-type":"2",
+        "max-keys": MAX_KEYS
+      }
+      if(this.nextContinueToken){
+        query['continuation-token'] = this.nextContinueToken;
+      }
+      
       const params:SignModel = {
         service: 's3',
         body: '',
@@ -150,24 +204,32 @@ class BucketDetailStore {
         applyChecksum: true,
         path:bucket,
         region: '',
-        query:{
-          prefix,
-          delimiter:'/'
-        }
+        query
       }
       const res = await Axios.axiosXMLStream(params);
+      const isTruncated:string = _.get(res,'ListBucketResult.IsTruncated._text',true);
+      this.SET_IS_TRUNCATED( isTruncated === "true" ? true:false);
+      const continueToken:string = _.get(res,'ListBucketResult.continuationToken._text',''); 
+      const nextContinueToken:string = _.get(res,'ListBucketResult.NextContinuationToken._text','');
+      this.SET_NEXT_CONTINUE_TOKEN(nextContinueToken);
+      const _keyCount = _.get(res,'ListBucketResult.KeyCount._text',0);
+      this.SET_KEY_COUNT(_keyCount);
       const contents = _.get(res,'ListBucketResult.Contents',[]);
       const _prefix = _.get(res,'ListBucketResult.Prefix._text','');
       const commonPrefixes = _.get(res,'ListBucketResult.CommonPrefixes',[]);
       const _contents = Array.isArray(contents) ? contents : [contents];
       const _commonPrefixes = Array.isArray(commonPrefixes) ? commonPrefixes : [commonPrefixes];
+      
       const _contentsList = _contents.map(n=>{
         const _name = _.get(n,'Key._text','');
         const _text = _name.replace(_prefix,'');
+        const _size = _.get(n,'Size._text','');
         return {
           ...n,
+          continueToken:continueToken,
+          nextContinueToken:nextContinueToken,
           Key:{
-            _text
+            _text:_text === ''?(_size>0?'/':''):_text
           }
         }
       })
@@ -176,24 +238,25 @@ class BucketDetailStore {
         const _t = _.get(n,'Key._text','');
         return _t;
       })
-      console.log(_contentsList,_filterList,'_contentsList');
-      
+
       const _commonPrefixesList = _commonPrefixes.map(n=>{
         const _name = _.get(n,'Prefix._text','');
         return {
           ...n,
+          continueToken:continueToken,
+          nextContinueToken:nextContinueToken,
           Prefix:{
             _text:_name.replace(_prefix,'')
           }
         }
       })
 
-      
-      this.SET_CONTENTS_LIST(_filterList);
-      this.SET_COMMON_PREFIXES_LIST(_commonPrefixesList);
+      this.SET_CONTENTS_LIST([...this.contentsList,..._filterList]);
+      this.SET_COMMON_PREFIXES_LIST([...this.commonPrefixesList,..._commonPrefixesList]);
 
       resolve(res)
     })
+    
   }
 
   fetchObject(bucket,object) {
@@ -287,7 +350,7 @@ class BucketDetailStore {
     this.shareLink = str;
   }
 
-  fetchUploadId(path:string){
+  fetchUploadId(path:string,size:string){
     return new Promise(async (resolve) => {
       const params:SignModel = {
         service: 's3',
@@ -297,6 +360,7 @@ class BucketDetailStore {
         applyChecksum: true,
         path,
         region: '',
+        "X-Amz-Meta-File-Size":size,
         query:{
           uploads:''
         }

@@ -6,8 +6,8 @@ export const SESSION_TOKEN = 'dag-sessionToken';
 export const USER_NAME = 'dag-username';
 
 export class Cookies {
-  static setKey(key:string,value:string):void {
-    _Cookies.set(key, value);
+  static setKey(key:string,value:string, expires?:number):void {
+    _Cookies.set(key, value,{ expires });
   }
 
   static getKey(key:string): string {

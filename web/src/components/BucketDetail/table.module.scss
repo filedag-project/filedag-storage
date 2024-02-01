@@ -14,6 +14,14 @@
                 }
             }
             .ant-table-cell{
+
+                .row-name{
+                    width: 150px;
+                    white-space: nowrap;
+                    display: block;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
                 .row-action{
                     display: flex;
                     align-items: center;

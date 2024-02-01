@@ -10,7 +10,7 @@ const BucketDetail = lazy(()=> import('@/pages/BucketDetail'));
 const User = lazy(()=> import('@/pages/User'));
 const Power = lazy(()=> import('@/pages/Power'));
 const ChangePassword = lazy(()=> import('@/pages/ChangePassword'));
-
+const NotFound = lazy(()=> import('@/pages/NotFound'));
 
 const lazyLoad = (children:ReactNode):ReactNode => {
   return <Suspense fallback={<>loading...</>}>
@@ -33,6 +33,8 @@ const router = [
       { path :'create-bucket', element:lazyLoad(<CreateBucket />) },
       { path :'user', element:lazyLoad(<User />) },
       { path :'change-password', element:lazyLoad(<ChangePassword />) },
+      { path :'*', element:lazyLoad(<NotFound />) },
+      
     ]
   },
   { path:'/login', element:lazyLoad(<Login />) },

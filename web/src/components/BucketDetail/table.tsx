@@ -25,7 +25,7 @@ const ObjectTable = (props:any) => {
       key: 'name',
       width:150,
       render:(r)=>{
-        return <div className='row-name'>{r}</div>
+        return <div className='row-name' title={r}>{r}</div>
       }
     },
     {
@@ -59,6 +59,7 @@ const ObjectTable = (props:any) => {
       },
     },
   ];
+  
   const deleteObject = (name:string)=>{
     bucketDetailStore.SET_DELETE_SHOW(true);
     bucketDetailStore.SET_ACTION_NAME(`${prefix}${name}`);
@@ -66,7 +67,9 @@ const ObjectTable = (props:any) => {
 
   const viewObject = (name:string,type:string)=>{
     if(type === FileType.file){
-      bucketDetailStore.fetchObject(`/${props.bucket}`,name).then(res=>{
+      const _prefix = prefix ? `${prefix}`:''
+      const path = `/${bucket}/${_prefix}`;
+      bucketDetailStore.fetchObject(`/${path}`,name).then(res=>{
         bucketDetailStore.SET_ACTION_NAME(name);
         bucketDetailStore.SET_PREVIEW_SHOW(true);
       })
@@ -78,12 +81,14 @@ const ObjectTable = (props:any) => {
   const shareObject = async (name:string)=>{
     bucketDetailStore.SET_ACTION_NAME(name);
     bucketDetailStore.SET_SHARE_SHOW(true);
-    const url = `/${props.bucket}/${name}`;
+    const _prefix = prefix ? `${prefix}`:''
+    const path = `/${bucket}/${_prefix}`;
+    const url = `${path}${name}`;
     bucketDetailStore.fetchShare(url,bucketDetailStore.shareSecond);
   }
   
   return <div className={styles['object-table']}>
-    <Table columns={columns} dataSource={bucketDetailStore.formatList}  rowKey={(record) => record.Name} pagination={false}/>
+    <Table columns={columns} dataSource={bucketDetailStore.formatTableList}  rowKey={(record) => record.Name} pagination={false}/>
   </div>;
 };
 

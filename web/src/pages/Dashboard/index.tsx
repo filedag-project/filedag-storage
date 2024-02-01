@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import styles from './style.module.scss';
 import * as echarts from 'echarts';
 import { formatBytes } from '@/utils';
-import { FileTextOutlined, FolderOutlined, RestOutlined, SaveOutlined } from '@ant-design/icons';
 const Dashboard = (props:any) => {
   useEffect(()=>{
     dashboardStore.fetchStorePool();
@@ -13,6 +12,7 @@ const Dashboard = (props:any) => {
       initPutBytesChart();
       initGetCountChart();
       initPutCountChart();
+      
     })
   },[]);
   const initGetBytesChart = ()=>{
@@ -21,8 +21,9 @@ const Dashboard = (props:any) => {
       var myChart = echarts.init(el);
       myChart.setOption({
         title: {
-          text: 'Get object bytes',
-          left: 'center'
+          text: 'Get object bytes(Top 20)',
+          left: 20,
+          top:20
         },
         tooltip: {
           trigger: 'item',
@@ -33,14 +34,21 @@ const Dashboard = (props:any) => {
         },
         legend: {
           orient: 'vertical',
-          left: 'left'
+          right: 20,
+          bottom:20,
+          formatter: function (name) {
+            const obj = dashboardStore.top_20_get_obj_bytes.find(n=>n.name === name);
+            const _value = formatBytes(obj?.value??0);
+            return `${name}: ${_value}` ;
+          }
         },
         series: [
           {
             name: 'Get object bytes',
             type: 'pie',
-            radius: '50%',
-            data: dashboardStore.get_obj_bytes,
+            radius: 100,
+            center:[200,'55%'],
+            data: dashboardStore.top_20_get_obj_bytes,
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -60,8 +68,9 @@ const Dashboard = (props:any) => {
       var myChart = echarts.init(el);
       myChart.setOption({
         title: {
-          text: 'Put object bytes',
-          left: 'center'
+          text: 'Put object bytes(Top 20)',
+          left: 20,
+          top:20
         },
         tooltip: {
           trigger: 'item',
@@ -72,14 +81,21 @@ const Dashboard = (props:any) => {
         },
         legend: {
           orient: 'vertical',
-          left: 'left'
+          right: 20,
+          bottom:20,
+          formatter: function (name) {
+            const obj = dashboardStore.top_20_put_obj_bytes.find(n=>n.name === name);
+            const _value = formatBytes(obj?.value??0);
+            return `${name}: ${_value}` ;
+          }
         },
         series: [
           {
             name: 'Put object bytes',
             type: 'pie',
-            radius: '50%',
-            data: dashboardStore.put_obj_bytes,
+            radius: 100,
+            center:[200,'55%'],
+            data: dashboardStore.top_20_put_obj_bytes,
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -99,8 +115,9 @@ const Dashboard = (props:any) => {
       var myChart = echarts.init(el);
       myChart.setOption({
         title: {
-          text: 'Get object count',
-          left: 'center'
+          text: 'Get object count(Top 20)',
+          left: 20,
+          top:20
         },
         tooltip: {
           trigger: 'item',
@@ -110,14 +127,21 @@ const Dashboard = (props:any) => {
         },
         legend: {
           orient: 'vertical',
-          left: 'left'
+          right: 20,
+          bottom:20,
+          formatter: function (name) {
+            const obj = dashboardStore.top_20_get_obj_count.find(n=>n.name === name);
+            const _value = obj?.value??0;
+            return `${name}: ${_value}` ;
+          }
         },
         series: [
           {
             name: 'Get object count',
             type: 'pie',
-            radius: '50%',
-            data: dashboardStore.get_obj_count,
+            radius: 100,
+            center:[200,'55%'],
+            data: dashboardStore.top_20_get_obj_count,
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -137,8 +161,9 @@ const Dashboard = (props:any) => {
       var myChart = echarts.init(el);
       myChart.setOption({
         title: {
-          text: 'Put object count',
-          left: 'center'
+          text: 'Put object count(Top 20)',
+          left: 20,
+          top:20
         },
         tooltip: {
           trigger: 'item',
@@ -148,14 +173,21 @@ const Dashboard = (props:any) => {
         },
         legend: {
           orient: 'vertical',
-          left: 'left'
+          right: 20,
+          bottom:20,
+          formatter: function (name) {
+            const obj = dashboardStore.top_20_put_obj_count.find(n=>n.name === name);
+            const _value = obj?.value??0;
+            return `${name}: ${_value}` ;
+          }
         },
         series: [
           {
             name: 'Put object count',
             type: 'pie',
-            radius: '50%',
-            data: dashboardStore.put_obj_count,
+            radius: 100,
+            center:[200,'55%'],
+            data: dashboardStore.top_20_put_obj_count,
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -173,60 +205,68 @@ const Dashboard = (props:any) => {
   return <div className={styles.dashboard}>
     <div className={styles.boxWrap}>
       <div className={styles.box}>
-        <div className={styles.top}>
-          <span className={styles.label}>Buckets</span>
-          <RestOutlined />
+        <div className={styles.left}>
+          <div className={styles.valueGroup}>
+            <span className={styles.value}>
+              {dashboardStore.bucketsCount}
+            </span>
+            <span className={styles.unit}></span>
+          </div>
+          <div className={styles.label}>Buckets</div>
         </div>
-        <div className={styles.bottom}>
-          <span className={styles.value}>
-            {dashboardStore.bucketsCount}
-          </span>
-          <span className={styles.unit}></span>
+        <div className={styles.right}>
+          <img src={require('@/assets/images/dashboard/icon-1.png')} alt="" />
         </div>
       </div>
       <div className={styles.box}>
-      <div className={styles.top}>
-        <span className={styles.label}>Objects</span>
-        <SaveOutlined />
+        <div className={styles.left}>
+          <div className={styles.valueGroup}>
+            <span className={styles.value}>
+                {dashboardStore.objectsCount}
+            </span>
+            <span className={styles.unit}></span>
+          </div>
+          <div className={styles.label}>Objects</div>
+          
+        </div>
+        <div className={styles.right}>
+          <img src={require('@/assets/images/dashboard/icon-2.png')} alt="" />
+        </div>
       </div>
-      <div className={styles.bottom}>
-        <span className={styles.value}>
-            {dashboardStore.objectsCount}
-        </span>
-        <span className={styles.unit}></span>
+      <div className={styles.box}>
+        <div className={styles.left}>
+          <div className={styles.valueGroup}>
+            <span className={styles.value}>
+              {formatBytes(dashboardStore.totalCaptivity)}
+            </span>
+            <span className={styles.unit}></span>
+          </div>
+          <div className={styles.label}>Total Storage</div>
+          
+        </div>
+        <div className={styles.right}>
+          <img src={require('@/assets/images/dashboard/icon-3.png')} alt="" />
+        </div>
       </div>
-    </div>
-    <div className={styles.box}>
-      <div className={styles.top}>
-        <span className={styles.label}>Total Storage</span>
-        <FolderOutlined />
+      <div className={styles.box}>
+        <div className={styles.left}>
+          <div  className={styles.valueGroup}>
+            <span className={styles.value}>
+              {formatBytes(dashboardStore.objectsTotalSize)}
+            </span>
+            <span className={styles.unit}></span>
+          </div>
+          <div className={styles.label}>Use Storage</div>
+        </div>
+        <div className={styles.right}>
+          <img src={require('@/assets/images/dashboard/icon-4.png')} alt="" />
+        </div>
       </div>
-      <div className={styles.bottom}>
-        <span className={styles.value}>
-          {formatBytes(dashboardStore.totalCaptivity)}
-        </span>
-        <span className={styles.unit}></span>
-      </div>
-    </div>
-    <div className={styles.box}>
-      <div className={styles.top}>
-        <span className={styles.label}>Use Storage</span>
-        <FileTextOutlined />
-      </div>
-      <div className={styles.bottom}>
-        <span className={styles.value}>
-          {formatBytes(dashboardStore.objectsTotalSize)}
-        </span>
-        <span className={styles.unit}></span>
-      </div>
-    </div>
 
     </div>
     <div className={styles.chartWrap}>
       <div className={styles.chart} id="getBytesChart"></div>
       <div className={styles.chart} id="putBytesChart"></div>
-    </div>
-    <div className={styles.chartWrap}>
       <div className={styles.chart} id="getCountChart"></div>
       <div className={styles.chart} id="putCountChart"></div>
     </div>
