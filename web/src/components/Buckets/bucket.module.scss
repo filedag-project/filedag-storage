@@ -1,0 +1,65 @@
+.bucket {
+    display: flex;
+    justify-content: space-between;
+    box-shadow: 0px 5px 20px -6px var(--color-435179-10);
+    padding: 10px 15px;
+    margin-bottom: 20px;
+    background: var(--color-FFFFFF);
+    border: 0.5px solid var(--color-CCD1E0);
+    border-radius: 5px;
+    .top{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex: 1;
+        .info{
+            flex: 1;
+            text-align: left;
+            .name{
+                color: var(--color-title);
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+            .create{
+                color: var(--color-text);
+                font-style: 14px;
+            }
+        }
+        .action{
+            display: flex;
+            :global{
+                .ant-btn{
+                    display: flex;
+                    align-items: center;
+                    img{
+                        width: 16px;
+                        margin-right: 5px;
+                    }
+                }
+                .setting-btn {
+                    background: #E6F2FF;
+                    color: #3883FF;
+                    border:none;
+                    border-radius: 4px;
+                    font-size: 12px;
+                }
+                .browse-btn{
+                    margin: 0 15px;
+                    background: #E3FAFD;
+                    border:none;
+                    border-radius: 4px;
+                    color: #74C3ED;
+                    font-size: 12px;
+                }
+                .delete-btn{
+                    background: #F1F2F5;
+                    border:none;
+                    border-radius: 4px;
+                    color: #A7ADBD;
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+}

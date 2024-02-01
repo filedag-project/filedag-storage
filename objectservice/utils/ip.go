@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 	logging "github.com/ipfs/go-log/v2"
 	"net"
 	"runtime"

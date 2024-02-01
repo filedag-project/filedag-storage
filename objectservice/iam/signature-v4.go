@@ -21,7 +21,7 @@ import (
 	"crypto/subtle"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/set"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/set"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"net/http"
 	"net/url"
@@ -67,7 +67,7 @@ func (s *AuthSys) doesPresignedSignatureMatch(hashedPayload string, r *http.Requ
 		return err
 	}
 
-	cred, _, s3Err := s.checkKeyValid(r, pSignValues.Credential.accessKey)
+	cred, _, s3Err := s.checkKeyValidTemp(r, pSignValues.Credential.accessKey, true)
 	if s3Err != apierrors.ErrNone {
 		return s3Err
 	}
@@ -202,7 +202,7 @@ func (s *AuthSys) doesSignatureMatch(hashedPayload string, r *http.Request, regi
 		return errCode
 	}
 
-	cred, _, s3Err := s.checkKeyValid(r, signV4Values.Credential.accessKey)
+	cred, _, s3Err := s.checkKeyValidTemp(r, signV4Values.Credential.accessKey, false)
 	if s3Err != apierrors.ErrNone {
 		return s3Err
 	}

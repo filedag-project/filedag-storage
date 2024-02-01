@@ -11,7 +11,7 @@ import (
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/slotkeyrepo"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/slotmigraterepo"
 	"github.com/filedag-project/filedag-storage/dag/slotsmgr"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
@@ -59,7 +59,7 @@ type dagPoolService struct {
 	migratingCh chan struct{}
 
 	iam *dpuser.IdentityUserSys
-	db  *uleveldb.ULevelDB
+	db  objmetadb.ObjStoreMetaDBAPI
 
 	refCounter      *reference.RefCounter
 	cacheSet        *reference.CacheSet
@@ -72,7 +72,7 @@ type dagPoolService struct {
 
 // NewDagPoolService constructs a new DAGPool (using the default implementation).
 func NewDagPoolService(ctx context.Context, cfg config.PoolConfig) (*dagPoolService, error) {
-	db, err := uleveldb.OpenDb(cfg.LeveldbPath)
+	db, err := objmetadb.OpenDb(cfg.LeveldbPath)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (d *dagPoolService) Get(ctx context.Context, c cid.Cid, user string, passwo
 	return d.readBlock(ctx, c)
 }
 
-//Remove remove block from DAGPool
+// Remove remove block from DAGPool
 func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, password string, unpin bool) error {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.WriteOnly) {
 		return upolicy.AccessDenied
@@ -162,7 +162,7 @@ func (d *dagPoolService) Remove(ctx context.Context, c cid.Cid, user string, pas
 	return nil
 }
 
-//GetSize get the block size
+// GetSize get the block size
 func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, password string) (int, error) {
 	if !d.iam.CheckUserPolicy(user, password, upolicy.ReadOnly) {
 		return 0, upolicy.AccessDenied
@@ -180,7 +180,7 @@ func (d *dagPoolService) GetSize(ctx context.Context, c cid.Cid, user string, pa
 	return d.readBlockSize(ctx, c)
 }
 
-//AddUser add a user
+// AddUser add a user
 func (d *dagPoolService) AddUser(newUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
@@ -194,7 +194,7 @@ func (d *dagPoolService) AddUser(newUser dpuser.DagPoolUser, user string, passwo
 	return d.iam.AddUser(newUser)
 }
 
-//RemoveUser remove the user
+// RemoveUser remove the user
 func (d *dagPoolService) RemoveUser(rmUser string, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
@@ -205,7 +205,7 @@ func (d *dagPoolService) RemoveUser(rmUser string, user string, password string)
 	return d.iam.RemoveUser(rmUser)
 }
 
-//QueryUser query the user
+// QueryUser query the user
 func (d *dagPoolService) QueryUser(qUser string, user string, password string) (*dpuser.DagPoolUser, error) {
 	if !d.iam.CheckUser(user, password) {
 		return nil, upolicy.AccessDenied
@@ -220,7 +220,7 @@ func (d *dagPoolService) QueryUser(qUser string, user string, password string) (
 	return d.iam.QueryUser(qUser)
 }
 
-//UpdateUser update the user
+// UpdateUser update the user
 func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, password string) error {
 	if !d.iam.CheckAdmin(user, password) {
 		return upolicy.AccessDenied
@@ -248,7 +248,7 @@ func (d *dagPoolService) UpdateUser(uUser dpuser.DagPoolUser, user string, passw
 //	return d.iam.CheckUserPolicy(username, pass, policy)
 //}
 
-//Close the dagPoolService
+// Close the dagPoolService
 func (d *dagPoolService) Close() error {
 	func() {
 		d.dagNodesLock.RLock()

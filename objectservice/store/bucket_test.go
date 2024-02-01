@@ -3,16 +3,16 @@ package store
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy/condition"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy/condition"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"testing"
 	"time"
 )
 
 func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
-	db, err := uleveldb.OpenDb(t.TempDir())
+	db, err := objmetadb.OpenDb(t.TempDir())
 	if err != nil {
 		return
 	}
@@ -35,7 +35,7 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 		return
 	}
 	fmt.Println(meta)
-	err = s.DeleteBucket(context.TODO(), "bucket")
+	err = s.DeleteBucket(context.TODO(), "bucket", "")
 	if err != nil {
 		return
 	}
@@ -44,7 +44,7 @@ func TestBucketMetadataSys_BucketMetadata(t *testing.T) {
 	fmt.Println(ok)
 }
 func TestBucketMetadataSys_GetPolicyConfig(t *testing.T) {
-	db, err := uleveldb.OpenDb(t.TempDir())
+	db, err := objmetadb.OpenDb(t.TempDir())
 	if err != nil {
 		return
 	}

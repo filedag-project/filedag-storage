@@ -4,14 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
 	"testing"
 )
 
 func TestIdentityAMSys_UserApi(t *testing.T) {
-	db, _ := uleveldb.OpenDb(t.TempDir())
+	db, _ := objmetadb.OpenDb(t.TempDir())
 	iamSys := NewIdentityAMSys(db)
 	//var accessKey = "test1"
 	//var secretKey = "test12345"
@@ -61,7 +61,7 @@ func TestIdentityAMSys_UserApi(t *testing.T) {
 			}
 		}
 		//add user
-		err := iamSys.AddUser(ctx, testCase.accessKey, testCase.secretKey)
+		err := iamSys.AddUser(ctx, testCase.accessKey, testCase.secretKey, 10000)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -133,7 +133,7 @@ func GetPolicyDocument(policyD *string) (policyDocument policy.PolicyDocument, e
 //}
 
 func TestIsAllowed(t *testing.T) {
-	db, _ := uleveldb.OpenDb(t.TempDir())
+	db, _ := objmetadb.OpenDb(t.TempDir())
 	iamSys := NewIdentityAMSys(db)
 	a := iamSys.IsAllowed(context.Background(), auth.Args{
 		AccountName: "test",

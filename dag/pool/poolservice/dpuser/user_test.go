@@ -3,12 +3,12 @@ package dpuser
 import (
 	"fmt"
 	"github.com/filedag-project/filedag-storage/dag/pool/poolservice/dpuser/upolicy"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"testing"
 )
 
 func newTestIdentityUserSys(t *testing.T) (*IdentityUserSys, error) {
-	db, _ := uleveldb.OpenDb(t.TempDir())
+	db, _ := objmetadb.OpenDb(t.TempDir())
 	sys, err := NewIdentityUserSys(db, "pool", "pool123")
 	if err != nil {
 		return sys, err

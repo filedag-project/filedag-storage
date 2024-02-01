@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
@@ -74,6 +74,10 @@ var addUserCmd = &cli.Command{
 			Name:  "password",
 			Usage: "the password that you want to add",
 		},
+		&cli.StringFlag{
+			Name:  "capacity",
+			Usage: "the capacity of  the user you want to add",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		apiAddr := cctx.String(ServerApi)
@@ -97,8 +101,9 @@ var addUserCmd = &cli.Command{
 		if !auth.IsSecretKeyValid(password) {
 			return errInvalidSecretKeyLength
 		}
+		capacity := cctx.String("capacity")
 
-		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+addUserUrl+"?accessKey="+username+"&secretKey="+password,
+		req, err := mustNewSignedV4Request(http.MethodPost, apiAddr+addUserUrl+"?accessKey="+username+"&secretKey="+password+"&capacity="+capacity,
 			0, nil, "s3", accessKey, secretKey)
 		if err != nil {
 			log.Errorf("mustNewSignedV4Request err: %v", err)

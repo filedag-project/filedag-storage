@@ -3,7 +3,7 @@ package slotmigraterepo
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strconv"
 	"strings"
@@ -13,10 +13,10 @@ const SlotMigratePrefix = "migrate/"
 
 // SlotMigrateRepo saves information about the slot to be transferred.
 type SlotMigrateRepo struct {
-	db *uleveldb.ULevelDB
+	db objmetadb.ObjStoreMetaDBAPI
 }
 
-func NewSlotMigrateRepo(db *uleveldb.ULevelDB) *SlotMigrateRepo {
+func NewSlotMigrateRepo(db objmetadb.ObjStoreMetaDBAPI) *SlotMigrateRepo {
 	return &SlotMigrateRepo{db: db}
 }
 

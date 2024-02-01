@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"github.com/dustin/go-humanize"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
+	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -21,7 +22,7 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	bucket, _, _ := getBucketAndObject(r)
 
 	log.Infof("PutBucketPolicyHandler %s", bucket)
-	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(r.Context(), r, s3action.PutBucketPolicyAction, bucket, "")
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
@@ -44,6 +45,21 @@ func (s3a *s3ApiServer) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 	}
 	bucketPolicy, err := policy.ParseConfig(bytes.NewReader(bucketPolicyBytes), bucket)
 	if err != nil {
+		response.WriteErrorResponse(w, r, apierrors.ErrMalformedPolicy)
+		return
+	}
+	correct := false
+	for _, st := range bucketPolicy.Statements {
+		selfPolicy, err := store.GetSelfPolicy(cred.AccessKey, bucket)
+		if err != nil {
+			response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+			return
+		}
+		if st.Equals(selfPolicy) {
+			correct = true
+		}
+	}
+	if !correct {
 		response.WriteErrorResponse(w, r, apierrors.ErrMalformedPolicy)
 		return
 	}
@@ -106,7 +122,5 @@ func (s3a *s3ApiServer) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Re
 		response.WriteErrorResponse(w, r, apierrors.ErrMalformedJSON)
 		return
 	}
-
-	// Write to client.
-	response.WriteSuccessResponseJSON(w, configData)
+	response.WriteSuccessResponseJSONOnlyData(w, r, configData)
 }

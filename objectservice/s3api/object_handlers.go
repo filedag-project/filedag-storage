@@ -7,7 +7,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
@@ -67,10 +67,16 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 		response.WriteErrorResponse(w, r, apierrors.ErrMissingContentLength)
 		return
 	}
+	isDir := false
 	if size == 0 {
-		response.WriteErrorResponse(w, r, apierrors.ErrEntityTooSmall)
-		return
+		if strings.HasSuffix(object, "/") {
+			isDir = true
+		} else {
+			response.WriteErrorResponse(w, r, apierrors.ErrEntityTooSmall)
+			return
+		}
 	}
+
 	// maximum Upload size for objects in a single operation
 	if size > consts.MaxObjectSize {
 		response.WriteErrorResponse(w, r, apierrors.ErrEntityTooLarge)
@@ -129,25 +135,30 @@ func (s3a *s3ApiServer) PutObjectHandler(w http.ResponseWriter, r *http.Request)
 	if r.Header.Get(consts.ContentType) == "" {
 		reader = mimeDetect(r, reader)
 	}
-	hashReader, err := hash.NewReader(reader, size, md5hex, sha256hex, size)
-	if err != nil {
-		log.Errorf("PutObjectHandler NewReader err:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
-		return
+	var hashReader *hash.Reader
+	if !isDir {
+		hashReader, err = hash.NewReader(reader, size, md5hex, sha256hex, size)
+		if err != nil {
+			log.Errorf("PutObjectHandler NewReader err:%v", err)
+			response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
+			return
+		}
 	}
+
 	metadata, err := extractMetadata(ctx, r)
 	if err != nil {
 		log.Errorf("PutObjectHandler extractMetadata err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidRequest)
 		return
 	}
-	objInfo, err := s3a.store.StoreObject(ctx, bucket, object, hashReader, size, metadata)
+	objInfo, err := s3a.store.StoreObject(ctx, bucket, object, hashReader, size, metadata, isDir)
 	if err != nil {
 		log.Errorf("PutObjectHandler StoreObject err:%v", err)
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return
 	}
 	setPutObjHeaders(w, objInfo, false)
+	r.Header.Set("file-type", path.Ext(object))
 	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
@@ -190,14 +201,17 @@ func (s3a *s3ApiServer) GetObjectHandler(w http.ResponseWriter, r *http.Request)
 	w.Header().Set(consts.AmzServerSideEncryption, consts.AmzEncryptionAES)
 
 	response.SetObjectHeaders(w, r, objInfo)
-	w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
+	//w.Header().Set(consts.ContentLength, strconv.FormatInt(objInfo.Size, 10))
 	response.SetHeadGetRespHeaders(w, r.Form)
-	_, err = io.Copy(w, reader)
-	if err != nil {
-		log.Errorf("GetObjectHandler reader readAll err:%v", err)
-		response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
-		return
+	if !objInfo.IsDir {
+		_, err = io.Copy(w, reader)
+		if err != nil {
+			log.Errorf("GetObjectHandler reader readAll err:%v", err)
+			response.WriteErrorResponse(w, r, apierrors.ErrInternalError)
+			return
+		}
 	}
+	r.Header.Set("file-type", path.Ext(object))
 }
 
 // HeadObjectHandler - HEAD Object
@@ -519,7 +533,7 @@ func (s3a *s3ApiServer) CopyObjectHandler(w http.ResponseWriter, r *http.Request
 			metadata[key] = val
 		}
 	}
-	obj, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata)
+	obj, err := s3a.store.StoreObject(ctx, dstBucket, dstObject, srcReader, srcObjInfo.Size, metadata, false)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return

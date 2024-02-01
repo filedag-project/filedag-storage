@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
@@ -149,13 +149,13 @@ func (s3a *s3ApiServer) DeleteBucketHandler(w http.ResponseWriter, r *http.Reque
 	bucket, _, _ := getBucketAndObject(r)
 	ctx := r.Context()
 	log.Infof("DeleteBucketHandler %s", bucket)
-	_, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
+	cred, _, s3err := s3a.authSys.CheckRequestAuthTypeCredential(ctx, r, s3action.DeleteBucketAction, bucket, "")
 	if s3err != apierrors.ErrNone {
 		response.WriteErrorResponse(w, r, s3err)
 		return
 	}
 
-	err := s3a.bmSys.DeleteBucket(ctx, bucket)
+	err := s3a.bmSys.DeleteBucket(ctx, bucket, cred.AccessKey)
 	if err != nil {
 		response.WriteErrorResponse(w, r, apierrors.ToApiError(ctx, err))
 		return

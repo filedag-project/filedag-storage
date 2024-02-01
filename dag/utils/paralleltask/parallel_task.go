@@ -84,8 +84,8 @@ func (et *ParallelTask) Wait() error {
 }
 
 func (et *ParallelTask) clean() {
+	et.cancel()
 	go func() {
-		et.cancel()
 		et.wg.Wait()
 		close(et.resCh)
 	}()

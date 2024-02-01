@@ -18,7 +18,12 @@
 /dagpool
 /datanode
 /objectstore
-/dn-data
 /dp-data
+/dn-data
 /store-data
 /iam-tools
+
+# web
+/web/coverage
+/web/build
+/web/node_modules

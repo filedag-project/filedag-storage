@@ -1,0 +1,84 @@
+.ant-btn{
+    &.bg-btn{
+        background: linear-gradient(131deg,var(--color-0085F4-12), var(--color-004DE5-91));
+        border-radius: 4px;
+        box-shadow: 0px 1px 2px 0px rgba(15,23,42,0.08);
+        border:none;
+        &:hover{
+            background: linear-gradient(131deg,var(--color-0085F4-12), var(--color-004DE5-91));
+            border-color: none;
+        }
+        &:focus{
+            background: linear-gradient(131deg,var(--color-0085F4-12), var(--color-004DE5-91));
+            border-color:none;
+        }
+    }
+    &.ant-btn-primary{
+        background: linear-gradient(131deg,var(--color-0085F4-12), var(--color-004DE5-91));
+        border-radius: 4px;
+        box-shadow: 0px 1px 2px 0px rgba(15,23,42,0.08);
+        border:none;
+        &:hover{
+            background: linear-gradient(131deg,var(--color-0085F4-12), var(--color-004DE5-91));
+            border-color: none;
+        }
+        &:focus{
+            background: linear-gradient(131deg,var(--color-0085F4-12), var(--color-004DE5-91));
+            border-color:none;
+        }
+    }
+}
+
+
+.ant-input-affix-wrapper{
+    padding: 13px 20px;
+    border-radius: 6px;
+}
+
+.ant-menu{
+   .ant-menu-item-selected{
+        background-color: #023260 !important;
+    } 
+}
+.ant-checkbox-wrapper{
+    &:hover{
+        .ant-checkbox-inner{
+            border-color:var(--color-000000);
+        }
+    }
+}
+.ant-checkbox{
+    &:hover{
+        .ant-checkbox-inner{
+            border-color:var(--color-000000);
+        }
+    }
+}
+.ant-checkbox-input:focus+.ant-checkbox-inner{
+    border-color:var(--color-000000);
+}
+.ant-checkbox-checked{
+    &::after{
+        border:1px solid var(--color-000000);
+    }
+    .ant-checkbox-inner{
+        background-color: var(--color-FFFFFF);
+        border-color:var(--color-E9E9E9);
+        &::after{
+            opacity: 0;
+        }
+        &::before{
+            width: 6px;
+            height: 6px;
+            background: var(--color-000000);
+            border: 1px solid var(--color-000000);
+            border-radius: 1px;
+            content: '';
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+        }
+    }
+}

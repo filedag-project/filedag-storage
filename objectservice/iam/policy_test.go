@@ -3,16 +3,16 @@ package iam
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy/condition"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy/condition"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"testing"
 )
 
 func TestPolicySys_IsAllowed(t *testing.T) {
-	db, _ := uleveldb.OpenDb(t.TempDir())
+	db, _ := objmetadb.OpenDb(t.TempDir())
 	iamSys := NewIdentityAMSys(db)
 	//poli := NewIPolicySys(db)
 	initSys()

@@ -35,7 +35,7 @@ type StorageNode struct {
 	State bool // true: means the data node is health
 }
 
-//DagNode Implemented the Blockstore interface
+// DagNode Implemented the Blockstore interface
 type DagNode struct {
 	Nodes       []*StorageNode
 	slots       *slotsmgr.SlotsManager
@@ -49,7 +49,7 @@ type Meta struct {
 	BlockSize int32
 }
 
-//NewDagNode creates a new DagNode
+// NewDagNode creates a new DagNode
 func NewDagNode(cfg config.DagNodeConfig) (*DagNode, error) {
 	numNodes := len(cfg.Nodes)
 	if numNodes != cfg.DataBlocks+cfg.ParityBlocks || numNodes == 0 {
@@ -187,7 +187,7 @@ func (d *DagNode) healthCheck(ctx context.Context, cli *datanode.Client) bool {
 	return true
 }
 
-//DeleteBlock deletes a block from the DagNode
+// DeleteBlock deletes a block from the DagNode
 func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	log.Warnf("delete block, cid: %v", cid)
 	keyCode := cid.String()
@@ -207,7 +207,7 @@ func (d *DagNode) DeleteBlock(ctx context.Context, cid cid.Cid) (err error) {
 	return task.Wait()
 }
 
-//Has returns true if the given cid is in the DagNode
+// Has returns true if the given cid is in the DagNode
 func (d *DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 	if _, err := d.GetSize(ctx, cid); err != nil {
 		return false, err
@@ -216,7 +216,7 @@ func (d *DagNode) Has(ctx context.Context, cid cid.Cid) (bool, error) {
 	return true, nil
 }
 
-//Get returns the block with the given cid
+// Get returns the block with the given cid
 func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	log.Debugf("get block, cid :%v", cid)
 	keyCode := cid.String()
@@ -227,6 +227,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	size := meta.BlockSize
 	entryReadQuorum, _ := d.entryQuorum()
 
+	shardsTmp := make([][]byte, len(onlineNodes))
 	shards := make([][]byte, len(onlineNodes))
 	repairIndexes := make([]bool, len(onlineNodes))
 	needRepair := false
@@ -256,7 +257,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 					needRepair = true
 				}
 			} else {
-				shards[index] = res.Data
+				shardsTmp[index] = res.Data
 				return nil
 			}
 			return err
@@ -266,6 +267,11 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	if err = task.Wait(); err != nil {
 		log.Errorf("task error: %v", err)
 		return nil, err
+	}
+
+	// clone a copy
+	for i, v := range shardsTmp {
+		shards[i] = v
 	}
 
 	enc, err := NewErasure(d.config.DataBlocks, d.config.ParityBlocks, int64(size))
@@ -319,7 +325,7 @@ func (d *DagNode) Get(ctx context.Context, cid cid.Cid) (blocks.Block, error) {
 	return b, err
 }
 
-//GetSize returns the size of the block with the given cid
+// GetSize returns the size of the block with the given cid
 func (d *DagNode) GetSize(ctx context.Context, cid cid.Cid) (int, error) {
 	meta, _, _, err := d.getMetaInfo(ctx, cid)
 	return int(meta.BlockSize), err
@@ -348,7 +354,7 @@ func (d *DagNode) getMetaInfo(ctx context.Context, cid cid.Cid) (meta Meta, meta
 	return meta, metas, onlineNodes, err
 }
 
-//Put adds the given block to the DagNode
+// Put adds the given block to the DagNode
 func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	log.Debugf("put block, cid :%v", block.Cid())
 	// copy data from block, because reedsolomon may modify data
@@ -401,7 +407,7 @@ func (d *DagNode) Put(ctx context.Context, block blocks.Block) (err error) {
 	return task.Wait()
 }
 
-//PutMany adds the given blocks to the DagNode
+// PutMany adds the given blocks to the DagNode
 func (d *DagNode) PutMany(ctx context.Context, blocks []blocks.Block) (err error) {
 	for _, block := range blocks {
 		err = d.Put(ctx, block)
@@ -409,12 +415,12 @@ func (d *DagNode) PutMany(ctx context.Context, blocks []blocks.Block) (err error
 	return err
 }
 
-//AllKeysChan returns a channel that will yield every key in the dag
+// AllKeysChan returns a channel that will yield every key in the dag
 func (d *DagNode) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	panic("implement me")
 }
 
-//HashOnRead tells the dag node to calculate the hash of the block
+// HashOnRead tells the dag node to calculate the hash of the block
 func (d *DagNode) HashOnRead(enabled bool) {
 	panic("implement me")
 }

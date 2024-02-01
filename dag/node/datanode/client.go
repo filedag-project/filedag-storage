@@ -13,7 +13,7 @@ type DataNodeClient interface {
 	proto.DataNodeClient
 }
 
-//Client is a node that stores erasure-coded sharded data
+// Client is a node that stores erasure-coded sharded data
 type Client struct {
 	DataClient  proto.DataNodeClient
 	HeartClient healthpb.HealthClient
@@ -21,7 +21,7 @@ type Client struct {
 	Conn        *grpc.ClientConn
 }
 
-//NewClient creates a grpc connection to a slice
+// NewClient creates a grpc connection to a slice
 func NewClient(rpcAddress string) (datanode *Client, err error) {
 	conn, err := grpc.Dial(rpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

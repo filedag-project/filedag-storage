@@ -14,6 +14,13 @@ type APIError struct {
 }
 
 // RESTErrorResponse - error response format
+//<?xml version="1.0" encoding="UTF-8"?>
+//<Error>
+//  <Code>NoSuchKey</Code>
+//  <Message>The resource you requested does not exist</Message>
+//  <Resource>/mybucket/myfoto.jpg</Resource>
+//  <RequestId>4442587FB7D0A2F9</RequestId>
+//</Error>
 type RESTErrorResponse struct {
 	XMLName    xml.Name `xml:"Error" json:"-"`
 	Code       string   `xml:"Code" json:"Code"`

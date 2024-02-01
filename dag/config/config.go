@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//PoolConfig is the configuration for the dag pool
+// PoolConfig is the configuration for the dag pool
 type PoolConfig struct {
 	Listen       string        `json:"listen"`
 	LeveldbPath  string        `json:"leveldb_path"`
@@ -14,13 +14,13 @@ type PoolConfig struct {
 	GcPeriod     time.Duration `json:"gc_period"`
 }
 
-//ClusterConfig is the configuration for a cluster
+// ClusterConfig is the configuration for a cluster
 type ClusterConfig struct {
 	Version int           `json:"version"`
 	Cluster []DagNodeInfo `json:"cluster"`
 }
 
-//DagNodeConfig is the configuration for a dag node
+// DagNodeConfig is the configuration for a dag node
 type DagNodeConfig struct {
 	Name         string   `json:"name"`
 	Nodes        []string `json:"nodes"`         // rpc address list of datanodes

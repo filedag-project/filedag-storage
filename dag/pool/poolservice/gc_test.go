@@ -123,7 +123,7 @@ func (d *dagPoolService) GCTest(ctx context.Context) {
 	}
 }
 
-//IExactly the same logic as runGC, just increase the deletion time to test the GC interruption problem
+// IExactly the same logic as runGC, just increase the deletion time to test the GC interruption problem
 func (d *dagPoolService) runGCTest(ctx context.Context) error {
 	keys, err := d.cacheSet.AllKeysChan(ctx)
 	if err != nil {

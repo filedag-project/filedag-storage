@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"github.com/filedag-project/filedag-storage/objectservice/apierrors"
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"net/http"
 )
 
@@ -78,11 +78,11 @@ func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCode
 	}
 	// Generate error response.
 	stsErrorResponse := STSErrorResponse{}
-	stsErrorResponse.Error.Code = err.Code
+	stsErrorResponse.Code = err.Code
 	stsErrorResponse.RequestID = w.Header().Get(consts.AmzRequestID)
-	stsErrorResponse.Error.Message = err.Description
+	stsErrorResponse.Message = err.Description
 	if errCtxt != nil {
-		stsErrorResponse.Error.Message = errCtxt.Error()
+		stsErrorResponse.Message = errCtxt.Error()
 	}
 	encodedErrorResponse := encodeXMLResponse(stsErrorResponse)
 	writeResponseSimple(w, err.HTTPStatusCode, encodedErrorResponse, mimeXML)
@@ -90,11 +90,9 @@ func WriteSTSErrorResponse(ctx context.Context, w http.ResponseWriter, isErrCode
 
 // STSErrorResponse - error response format
 type STSErrorResponse struct {
-	XMLName xml.Name `xml:"https://sts.amazonaws.com/doc/2011-06-15/ ErrorResponse" json:"-"`
-	Error   struct {
-		Type    string `xml:"Type"`
-		Code    string `xml:"Code"`
-		Message string `xml:"Message"`
-	} `xml:"Error"`
-	RequestID string `xml:"RequestId"`
+	XMLName   xml.Name `xml:"https://sts.amazonaws.com/doc/2011-06-15/ Error" json:"-"`
+	Code      string   `xml:"Code" json:"Code"`
+	Message   string   `xml:"Message" json:"Message"`
+	RequestID string   `xml:"RequestId" json:"RequestID"`
+	Resource  string   `xml:"Resource" json:"Resource"`
 }

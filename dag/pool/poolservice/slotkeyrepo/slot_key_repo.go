@@ -3,7 +3,7 @@ package slotkeyrepo
 import (
 	"context"
 	"fmt"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strings"
 )
@@ -12,10 +12,10 @@ const SlotPrefix = "slot/"
 
 // SlotKeyRepo saves information about the slot and cid key mapping.
 type SlotKeyRepo struct {
-	db *uleveldb.ULevelDB
+	db objmetadb.ObjStoreMetaDBAPI
 }
 
-func NewSlotKeyRepo(db *uleveldb.ULevelDB) *SlotKeyRepo {
+func NewSlotKeyRepo(db objmetadb.ObjStoreMetaDBAPI) *SlotKeyRepo {
 	return &SlotKeyRepo{db: db}
 }
 

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-//GC is a goroutine to do GC
+// GC is a goroutine to do GC
 func (d *dagPoolService) GC(ctx context.Context) {
 	timer := time.NewTimer(d.gcPeriod)
 	defer timer.Stop()

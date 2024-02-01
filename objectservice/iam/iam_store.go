@@ -3,9 +3,9 @@ package iam
 import (
 	"context"
 	"errors"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 )
 
 // errInvalidArgument means that input argument is invalid.
@@ -15,8 +15,8 @@ var errInvalidArgument = errors.New("Invalid arguments specified")
 type iamStoreAPI interface {
 	saveUserIdentity(ctx context.Context, u UserIdentity) error
 	removeUserIdentity(ctx context.Context, userName string) error
-	loadUser(ctx context.Context, userName string, m *auth.Credentials) error
-	loadUsers(ctx context.Context) (map[string]auth.Credentials, error)
+	loadUser(ctx context.Context, userName string, m *UserIdentity) error
+	loadUsers(ctx context.Context) (map[string]UserIdentity, error)
 	//loadGroup(ctx context.Context, group string, m *GroupInfo) error
 	//loadGroups(ctx context.Context) (map[string]GroupInfo, error)
 	//saveGroupInfo(ctx context.Context, group string, gi GroupInfo) error
@@ -45,9 +45,9 @@ func (store *iamStoreSys) SetTempUser(ctx context.Context, accessKey string, cre
 	if policyName != "" {
 		//todo policy
 	}
+	tempUser := newUserIdentity(cred)
+	err := store.saveUserIdentity(ctx, tempUser)
 
-	u := newUserIdentity(cred)
-	err := store.saveUserIdentity(ctx, u)
 	if err != nil {
 		return err
 	}

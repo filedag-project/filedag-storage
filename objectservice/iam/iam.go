@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/policy"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/policy"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	logging "github.com/ipfs/go-log/v2"
 )
 
@@ -29,7 +29,7 @@ type IdentityAMSys struct {
 }
 
 // NewIdentityAMSys - new an IdentityAM config system
-func NewIdentityAMSys(db *uleveldb.ULevelDB) *IdentityAMSys {
+func NewIdentityAMSys(db objmetadb.ObjStoreMetaDBAPI) *IdentityAMSys {
 	sys := &IdentityAMSys{}
 	sys.store = &iamStoreSys{newIAMLevelDBStore(db)}
 	// TODO: Is it necessary?
@@ -108,7 +108,7 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 		return nil, err
 	}
 	for i := range users {
-		cerd := users[i]
+		cerd := users[i].Credentials
 		if cerd.IsExpired() {
 			continue
 		}
@@ -127,15 +127,38 @@ func (sys *IdentityAMSys) GetUserList(ctx context.Context, accressKey string) ([
 	return u, err
 }
 
+// GetAllUser all user
+func (sys *IdentityAMSys) GetAllUser(ctx context.Context) ([]UserIdentity, error) {
+	var allusers []UserIdentity
+	users, err := sys.store.loadUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, userIdentity := range users {
+		if userIdentity.Credentials.IsExpired() {
+			sys.RemoveUser(ctx, userIdentity.Credentials.AccessKey)
+			continue
+		}
+		if userIdentity.Credentials.IsTemp() {
+			continue
+		}
+		if userIdentity.Credentials.AccessKey == "" {
+			continue
+		}
+		allusers = append(allusers, userIdentity)
+	}
+	return allusers, nil
+}
+
 //AddUser add user
-func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey string) error {
+func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey string, capacity uint64) error {
 	m := make(map[string]interface{})
 	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
 	if err != nil {
 		log.Errorf("Create NewCredentials WithMetadata err:%v,%v,%v", accessKey, secretKey, err)
 		return err
 	}
-	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions}, "*")
+	p := policy.CreateUserPolicy(accessKey, []s3action.Action{s3action.AllActions, s3action.AllIamActions}, "*")
 	err = sys.store.saveUserPolicy(ctx, accessKey, "default", policy.PolicyDocument{
 		Version:   p.Version,
 		Statement: p.Statements,
@@ -143,7 +166,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 	if err != nil {
 		return err
 	}
-	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials})
+	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials, capacity})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
 		sys.store.removeUserPolicy(ctx, accessKey, "default")
@@ -154,7 +177,7 @@ func (sys *IdentityAMSys) AddUser(ctx context.Context, accessKey, secretKey stri
 }
 
 //AddSubUser add user
-func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, parentUser string) error {
+func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, parentUser string, capacity uint64) error {
 	m := make(map[string]interface{})
 	credentials, err := auth.CreateNewCredentialsWithMetadata(accessKey, secretKey, m, auth.DefaultSecretKey)
 	if err != nil {
@@ -162,7 +185,7 @@ func (sys *IdentityAMSys) AddSubUser(ctx context.Context, accessKey, secretKey, 
 		return err
 	}
 	credentials.ParentUser = parentUser
-	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials})
+	err = sys.store.saveUserIdentity(ctx, UserIdentity{credentials, capacity})
 	if err != nil {
 		log.Errorf("save UserIdentity err:%v", err)
 		return err
@@ -181,13 +204,13 @@ func (sys *IdentityAMSys) UpdateUser(ctx context.Context, cred auth.Credentials)
 
 // GetUser - get user credentials
 func (sys *IdentityAMSys) GetUser(ctx context.Context, accessKey string) (cred auth.Credentials, ok bool) {
-	m := auth.Credentials{}
-	err := sys.store.loadUser(ctx, accessKey, &m)
+	userIdentity := UserIdentity{}
+	err := sys.store.loadUser(ctx, accessKey, &userIdentity)
 	if err != nil {
-		return m, false
+		return userIdentity.Credentials, false
 	}
 
-	return m, m.IsValid()
+	return userIdentity.Credentials, userIdentity.Credentials.IsValid()
 }
 
 // RemoveUser Remove User
@@ -264,20 +287,25 @@ func (sys *IdentityAMSys) RemoveUserPolicy(ctx context.Context, userName, policy
 }
 
 // GetUserInfo  - get user info
-func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (cred auth.Credentials, err error) {
-	err = sys.store.loadUser(ctx, accessKey, &cred)
+func (sys *IdentityAMSys) GetUserInfo(ctx context.Context, accessKey string) (userIdentity UserIdentity, err error) {
+	err = sys.store.loadUser(ctx, accessKey, &userIdentity)
 	return
 }
 
 // SetTempUser - set temporary user credentials, these credentials have an
 // expiry. The permissions for these STS credentials is determined in one of the
 // following ways:
-func (sys *IdentityAMSys) SetTempUser(ctx context.Context, accessKey string, cred auth.Credentials, policyName string) error {
-	err := sys.store.SetTempUser(ctx, accessKey, cred, policyName)
+func (sys *IdentityAMSys) SetTempUser(ctx context.Context, accessKey string, cred auth.Credentials, m map[string]interface{}, policyName string) (auth.Credentials, error) {
+	token, err := auth.JWTSignWithAccessKey(accessKey, m, auth.DefaultSecretKey)
 	if err != nil {
-		return err
+		return auth.Credentials{}, err
 	}
-	return nil
+	cred.SessionToken = token
+	err = sys.store.SetTempUser(ctx, accessKey, cred, policyName)
+	if err != nil {
+		return auth.Credentials{}, err
+	}
+	return cred, nil
 }
 
 //func (sys *IdentityAMSys) CreateGroup(ctx context.Context, groupName string, version int) error {

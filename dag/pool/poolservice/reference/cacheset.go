@@ -2,7 +2,7 @@ package reference
 
 import (
 	"context"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strings"
 )
@@ -10,10 +10,10 @@ import (
 const CachePrefix = "cache/"
 
 type CacheSet struct {
-	db *uleveldb.ULevelDB
+	db objmetadb.ObjStoreMetaDBAPI
 }
 
-func NewCacheSet(db *uleveldb.ULevelDB) *CacheSet {
+func NewCacheSet(db objmetadb.ObjStoreMetaDBAPI) *CacheSet {
 	return &CacheSet{db: db}
 }
 
@@ -43,7 +43,7 @@ func (s *CacheSet) AllKeysChan(ctx context.Context) (<-chan string, error) {
 	go func() {
 		defer close(kc)
 		for entry := range all {
-			strs := strings.Split(entry.Key, "/")
+			strs := strings.Split(entry.GetKey(), "/")
 			if len(strs) < 2 {
 				return
 			}

@@ -1,0 +1,89 @@
+.login{
+    display: flex;
+    background: var(--color-FFFFFF);
+    height: 100vh;
+    .left{
+        position: relative;
+        flex:1;
+        background: linear-gradient(139deg,var(--color-000000), var(--color-000104-91));
+        .logo-group{
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            .img{
+                width: 120px;
+            }
+        }
+        .login-bg{
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 90%;
+        }
+    }
+    .right{
+        flex:2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        .form{
+            width: 400px;
+            .title{
+                color: var(--color-title);
+                font-size: 32px;
+                font-weight: 600;
+                line-height: 40px;
+                margin-bottom: 50px;
+            }
+            :global{
+                .ant-form{
+                    .ant-form-item{
+                        .ant-form-item-control-input-content{
+                            text-align: left;
+                            .ant-input-prefix{
+                                margin-right: 15px;
+                                img{
+                                    width: 16px;
+                                }
+                            }
+                            .ant-input-suffix{
+                                cursor: pointer;
+                                img{
+                                    width: 14px;
+                                }
+                            }
+                        }
+                        .ant-form-item-explain-error{
+                            text-align: left;
+                        }
+                        .ant-btn{
+                            width: 100%;
+                        }
+                    }
+                    .login-btn{
+                        padding-top: 25px;
+                    }
+                    .remember-me{
+                        .ant-form-item-control-input-content{
+                            text-align: center;
+                        }
+                    }
+                }
+                .ant-btn{
+                    height: 50px;
+                    line-height: 50px;
+                    padding: 0px;
+                    border: 1px solid var(--color-E9E9E9);
+                    border-radius: 10px;
+                    font-size: 14px;
+                    background: var(--color-000000-50);
+                    transition: all 1s;
+                    &.active{
+                        background: var(--color-000000);
+                    }
+                }
+            }
+        }
+    }
+}

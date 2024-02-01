@@ -18,7 +18,7 @@ type dagPoolClusterClient struct {
 	Conn            *grpc.ClientConn
 }
 
-//NewPoolClusterClient new a dagPoolClusterClient
+// NewPoolClusterClient new a dagPoolClusterClient
 func NewPoolClusterClient(addr string) (*dagPoolClusterClient, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
@@ -32,7 +32,7 @@ func NewPoolClusterClient(addr string) (*dagPoolClusterClient, error) {
 	}, nil
 }
 
-//Close  the client
+// Close  the client
 func (cli *dagPoolClusterClient) Close(ctx context.Context) {
 	cli.Conn.Close()
 }

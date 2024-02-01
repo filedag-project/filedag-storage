@@ -6,12 +6,13 @@ import (
 	"fmt"
 	dagpoolcli "github.com/filedag-project/filedag-storage/dag/pool/client"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/iamapi"
+	"github.com/filedag-project/filedag-storage/objectservice/objmetadb"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/auth"
 	"github.com/filedag-project/filedag-storage/objectservice/s3api"
 	"github.com/filedag-project/filedag-storage/objectservice/store"
-	"github.com/filedag-project/filedag-storage/objectservice/uleveldb"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
+	"github.com/filedag-project/filedag-storage/objectservice/utils/httpstats"
 	"github.com/gorilla/mux"
 	"github.com/ipfs/go-blockservice"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -49,7 +50,7 @@ func main() {
 	}
 }
 func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
-	db, err := uleveldb.OpenDb(leveldbPath)
+	db, err := objmetadb.OpenDb(leveldbPath)
 	if err != nil {
 		fmt.Printf("OpenDb err:%v", err)
 		return
@@ -84,13 +85,36 @@ func run(leveldbPath, port, poolAddr, poolUser, poolPass string) {
 				log.Printf("CleanObjectsInBucket error: %v", err)
 				continue
 			}
-			if err = bmSys.DeleteBucket(ctx, bkt.Name); err != nil {
+			if err = bmSys.DeleteBucket(ctx, bkt.Name, accessKey); err != nil {
 				log.Printf("DeleteBucket error: %v", err)
 			}
 		}
 	}
-	iamapi.NewIamApiServer(router, authSys, cleanData)
-	s3api.NewS3Server(router, authSys, bmSys, storageSys)
+	bucketInfoFunc := func(ctx context.Context, accessKey string) []store.BucketInfo {
+		var bucketInfos []store.BucketInfo
+		bkts, err := bmSys.GetAllBucketsOfUser(ctx, accessKey)
+		if err != nil {
+			fmt.Printf("GetAllBucketsOfUser error: %v\n", err)
+			return bucketInfos
+		}
+		for _, bkt := range bkts {
+			info, err := storageSys.GetAllObjectsInBucketInfo(ctx, bkt.Name)
+			if err != nil {
+				return nil
+			}
+			bucketInfos = append(bucketInfos, info)
+		}
+		return bucketInfos
+	}
+	storePoolStatsFunc := func(ctx context.Context) (store.DataUsageInfo, error) {
+		bkts, err := bmSys.GetAllBucketInfo(ctx)
+		if err != nil {
+			return store.DataUsageInfo{}, nil
+		}
+		return storageSys.StoreStats(ctx, bkts.Bucket)
+	}
+	iamapi.NewIamApiServer(router, authSys, httpstats.NewHttpStatsSys(db), cleanData, bucketInfoFunc, storePoolStatsFunc)
+	s3api.NewS3Server(router, authSys, bmSys, storageSys, httpstats.NewHttpStatsSys(db))
 
 	for _, ip := range utils.MustGetLocalIP4().ToSlice() {
 		fmt.Printf("start sever at http://%v%v", ip, port)

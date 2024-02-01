@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-//go run -tags example main.go daemon --datadir=/tmp/dagpool-db --listen=localhost:50001 --config=node_config.json --root-user=dagpool --root-password=dagpool
+// go run -tags example main.go daemon --datadir=/tmp/dagpool-db --listen=localhost:50001 --config=node_config.json --root-user=dagpool --root-password=dagpool
 func main() {
 	var leveldbPath, listenAddr, nodeConfigPath, user, pass string
 	f := flag.NewFlagSet("daemon", flag.ExitOnError)

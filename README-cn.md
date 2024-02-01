@@ -42,14 +42,14 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 #### Description:
       
 - 单DAG Node模式的开发:
-    - [x] 支持block store API
-    - [x] 为DAG Pool提供基础存储服务
+  - ✅ 支持block store API
+  - ✅ 为DAG Pool提供基础存储服务
 - DAG Pool:
-    - [x] 多用户访问
-    - [x] 身份验证机制
+  - ✅ 多用户访问
+  - ✅ 身份验证机制
 - 对象存储:
-    - [x] 实现用户、区域、桶、对象等基本数据结构
-    - [x] 实现用户认证的API
+  - ✅ 实现用户、区域、桶、对象等基本数据结构
+  - ✅ 实现用户认证的API
 
 ### Millstone 2
 
@@ -60,13 +60,13 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 #### Description:
 
 - DAG Pool:
-    - [x] 数据块的引用记录
-    - [x] 数据pin策略
-    - [x] DAG Pool的可中断垃圾回收机制
+  - ✅ 数据块的引用记录
+  - ✅ 数据pin策略
+  - ✅ DAG Pool的可中断垃圾回收机制
 - 对象存储:
-    - [x] 桶相关操作的API
-    - [x] 对象操作的API
-    - [x] 权限操作API
+  - ✅ 桶相关操作的API
+  - ✅ 对象操作的API
+  - ✅ 权限操作API
 
 
 ### Milestone 3
@@ -78,12 +78,12 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 #### Description:
 
 - DAG Node:
-    - [x] 基于Reed-Solomon Erasure Code开发数据容错技术
+  - ✅ 基于Reed-Solomon Erasure Code开发数据容错技术
 - DAG Pool:
-    - [x] 基于Redis Hash Slots，组织多个DAG Node构建存储集群
-    - [x] 提供存储节点的运行状况报告和全局一致性状态
-    - [x] 支持存储节点动态扩容
-    - [x] 支持存储节点动态扩展
+  - ✅ 基于Redis Hash Slots，组织多个DAG Node构建存储集群
+  - ✅ 提供存储节点的运行状况报告和全局一致性状态
+  - ✅ 支持存储节点动态扩容
+  - ✅ 支持存储节点动态扩展
 
 ### Milestone 4
 
@@ -93,13 +93,13 @@ FileDAG Storage 的开发将为上述问题提供一种解决方案
 
 #### Description:
 
-- 存储池统计概况面板
-- 用户界面
+- ✅ 存储池统计概况面板
+- ✅ 用户界面
 - 对象存储接口:
-    - 用户
-    - 用户访问操作
-    - 桶操作
-    - 权限设置
+  - ✅ 用户
+  - ✅ 用户访问操作
+  - ✅ 桶操作
+  - ✅ 权限设置
 
 ### Milestone 5
 

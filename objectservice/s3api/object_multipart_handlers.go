@@ -5,7 +5,7 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/consts"
 	"github.com/filedag-project/filedag-storage/objectservice/datatypes"
 	"github.com/filedag-project/filedag-storage/objectservice/iam"
-	"github.com/filedag-project/filedag-storage/objectservice/iam/s3action"
+	"github.com/filedag-project/filedag-storage/objectservice/pkg/s3action"
 	"github.com/filedag-project/filedag-storage/objectservice/response"
 	"github.com/filedag-project/filedag-storage/objectservice/utils"
 	"github.com/filedag-project/filedag-storage/objectservice/utils/etag"
@@ -13,7 +13,9 @@ import (
 	"github.com/filedag-project/filedag-storage/objectservice/utils/s3utils"
 	"io"
 	"net/http"
+	"net/textproto"
 	"net/url"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -52,7 +54,7 @@ func (s3a *s3ApiServer) NewMultipartUploadHandler(w http.ResponseWriter, r *http
 		response.WriteErrorResponse(w, r, apierrors.ErrInvalidRequest)
 		return
 	}
-
+	metadata[consts.AmzMetaFileSize] = textproto.MIMEHeader(r.Header).Get(consts.AmzMetaFileSize)
 	info, err := s3a.store.NewMultipartUpload(ctx, bucket, object, metadata)
 	if err != nil {
 		log.Errorf("NewMultipartUploadHandler NewMultipartUpload err:%v", err)
@@ -200,7 +202,7 @@ func (s3a *s3ApiServer) PutObjectPartHandler(w http.ResponseWriter, r *http.Requ
 	// clients expect the ETag header key to be literally "ETag" - not "Etag" (case-sensitive).
 	// Therefore, we have to set the ETag directly as map entry.
 	w.Header()[consts.ETag] = []string{"\"" + etag + "\""}
-
+	r.Header.Set("file-type", path.Ext(object))
 	response.WriteSuccessResponseHeadersOnly(w, r)
 }
 
@@ -277,6 +279,8 @@ func (s3a *s3ApiServer) CompleteMultipartUploadHandler(w http.ResponseWriter, r 
 	// Generate complete multipart response.
 	resp := response.GenerateCompleteMultpartUploadResponse(bucket, object, bucketMetas.Region, objInfo)
 	setPutObjHeaders(w, objInfo, false)
+	r.Header.Set("file-size", strconv.FormatInt(objInfo.Size, 10))
+	r.Header.Set("file-type", path.Ext(object))
 	response.WriteSuccessResponseXML(w, r, resp)
 }
 

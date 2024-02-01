@@ -1,0 +1,26 @@
+.power{
+    padding: 30px;
+    :global{
+        .ant-radio-group{
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            .radio-item{
+                margin-right: 80px;
+                &:last-child{
+                    margin-right: 0;
+                }
+            }
+        }
+        .ant-input{
+            margin-bottom: 20px;
+        }
+        .btn-wrap{
+            padding-top: 20px;
+            text-align: right;
+            .ant-btn{
+                padding: 4px 20px;
+            }
+        }
+    }
+}
