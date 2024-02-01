@@ -41,14 +41,14 @@ Build fundamental data structure, and the overall architecture of this project.
 #### Description:
 
 - Development of single DAG Node:
-    - [x] supports API of the block store
-    - [x] providers basic storage service for DAG Pool
+  - ✅ supports API of the block store
+  - ✅ providers basic storage service for DAG Pool
 - DAG Pool:
-    - [x] multi-user access
-    - [x] authentication mechanism
+  - ✅ multi-user access
+  - ✅ authentication mechanism
 - Object store:
-    - [x] implements basic data structure, such as user, region, bucket, and object
-    - [x] implements API of user authentication
+  - ✅ implements basic data structure, such as user, region, bucket, and object
+  - ✅ implements API of user authentication
 
 ### Millstone 2
 
@@ -59,13 +59,13 @@ Implement data management.
 #### Description:
 
 - DAG Pool:
-    - [x] reference records of data blocks
-    - [x] strategy of data pin
-    - [x] interruptible garbage collection mechanism of DAG Pool
+  - ✅ reference records of data blocks
+  - ✅ strategy of data pin
+  - ✅ interruptible garbage collection mechanism of DAG Pool
 - Object store:
-    - [x] API of bucket related operations
-    - [x] API of object manipulation
-    - [x] API of permission operation
+  - ✅ API of bucket related operations
+  - ✅ API of object manipulation
+  - ✅ API of permission operation
 
 
 ### Milestone 3
@@ -77,12 +77,12 @@ Realize clustered DAG Node and development of data fault tolerance.
 #### Description:
 
 - DAG Node:
-    - [x] develops data fault tolerance based on Reed-Solomon Erasure Code
+  - ✅ develops data fault tolerance based on Reed-Solomon Erasure Code
 - DAG Pool:
-    - [x] organizes multiple DAG Nodes to build a storage cluster based on Redis Hash Slots
-    - [x] provides health report of storage nodes and status of global consistency
-    - [x] supports dynamic expansion of storage nodes
-    - [x] supports dynamic scaling of storage nodes
+  - ✅ organizes multiple DAG Nodes to build a storage cluster based on Redis Hash Slots
+  - ✅ provides health report of storage nodes and status of global consistency
+  - ✅ supports dynamic expansion of storage nodes
+  - ✅ supports dynamic scaling of storage nodes
 
 ### Milestone 4
 
@@ -92,13 +92,13 @@ Develop the Control Panel of FileDAG Storage.
 
 #### Description:
 
-- [x] Dashboard of storage pool statistics overview
-- [x] User interface
+- ✅ Dashboard of storage pool statistics overview
+- ✅ User interface
 - Object Store interface:
-    - [x] users
-    - [x] user access operations
-    - [x] bucket operations
-    - [x] permission setting
+  - ✅ users
+  - ✅ user access operations
+  - ✅ bucket operations
+  - ✅ permission setting
     
 ### Milestone 5
 
